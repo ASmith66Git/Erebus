@@ -1,6 +1,6 @@
-const primaryColor = '#005A8C';
-const primaryDark = '#0077B6';
-const accentColor = '#00B4D8';
+const primaryColor = '#1F37D6';
+const primaryDark = '#3A4FE0';
+const accentColor = '#5C6FEB';
 
 export const Colors = {
   light: {
