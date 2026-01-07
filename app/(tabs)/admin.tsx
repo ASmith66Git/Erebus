@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Alert, Platform, Modal, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Alert, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -30,10 +30,7 @@ export default function AdminScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   
-  const [resetPasswordModal, setResetPasswordModal] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
-  const [newPassword, setNewPassword] = useState('');
-  const [resetLoading, setResetLoading] = useState(false);
+  const [resetLoading, setResetLoading] = useState<number | null>(null);
 
   useEffect(() => {
     if (!isAdmin) {
@@ -134,46 +131,41 @@ export default function AdminScreen() {
     );
   }
 
-  function openResetPasswordModal(userData: UserData) {
-    setSelectedUser(userData);
-    setNewPassword('');
-    setResetPasswordModal(true);
-  }
+  async function sendPasswordResetEmail(userData: UserData) {
+    Alert.alert(
+      'Send Password Reset Email',
+      `Send a password reset email to ${userData.email}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Send',
+          onPress: async () => {
+            setResetLoading(userData.id);
+            try {
+              const response = await fetch(`${getApiUrl()}/api/admin/users/${userData.id}/reset-password`, {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                  'Content-Type': 'application/json',
+                },
+              });
 
-  async function handleResetPassword() {
-    if (!selectedUser) return;
-    
-    if (newPassword.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters');
-      return;
-    }
-
-    setResetLoading(true);
-
-    try {
-      const response = await fetch(`${getApiUrl()}/api/admin/users/${selectedUser.id}/reset-password`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
+              const data = await response.json();
+              
+              if (response.ok) {
+                Alert.alert('Success', 'Password reset email has been sent to the user');
+              } else {
+                Alert.alert('Error', data.error || 'Failed to send password reset email');
+              }
+            } catch (err) {
+              Alert.alert('Error', 'Network error');
+            } finally {
+              setResetLoading(null);
+            }
+          },
         },
-        body: JSON.stringify({ newPassword }),
-      });
-
-      if (response.ok) {
-        Alert.alert('Success', 'Password has been reset successfully');
-        setResetPasswordModal(false);
-        setSelectedUser(null);
-        setNewPassword('');
-      } else {
-        const data = await response.json();
-        Alert.alert('Error', data.error || 'Failed to reset password');
-      }
-    } catch (err) {
-      Alert.alert('Error', 'Network error');
-    } finally {
-      setResetLoading(false);
-    }
+      ]
+    );
   }
 
   async function deleteUser(userId: number) {
@@ -321,9 +313,14 @@ export default function AdminScreen() {
                 </Pressable>
                 <Pressable
                   style={[styles.actionButton, { backgroundColor: '#FF9500' + '20' }]}
-                  onPress={() => openResetPasswordModal(userData)}
+                  onPress={() => sendPasswordResetEmail(userData)}
+                  disabled={resetLoading === userData.id}
                 >
-                  <Ionicons name="key" size={18} color="#FF9500" />
+                  {resetLoading === userData.id ? (
+                    <ActivityIndicator size="small" color="#FF9500" />
+                  ) : (
+                    <Ionicons name="mail" size={18} color="#FF9500" />
+                  )}
                 </Pressable>
                 <Pressable
                   style={[styles.actionButton, { backgroundColor: (userData.isBlocked ? colors.primary : '#FF3B30') + '20' }]}
@@ -347,51 +344,6 @@ export default function AdminScreen() {
         ))
       )}
 
-      <Modal
-        visible={resetPasswordModal}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setResetPasswordModal(false)}
-      >
-        <Pressable style={styles.modalOverlay} onPress={() => setResetPasswordModal(false)}>
-          <Pressable style={[styles.modalContent, { backgroundColor: colors.surface }]} onPress={(e) => e.stopPropagation()}>
-            <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>Reset Password</Text>
-              <Pressable onPress={() => setResetPasswordModal(false)}>
-                <Ionicons name="close" size={24} color={colors.text} />
-              </Pressable>
-            </View>
-
-            <Text style={[styles.modalDescription, { color: colors.textSecondary }]}>
-              Set a new password for {selectedUser?.email}
-            </Text>
-
-            <View style={[styles.inputContainer, { backgroundColor: colors.background, borderColor: colors.border, marginTop: 16 }]}>
-              <Ionicons name="lock-closed-outline" size={20} color={colors.icon} />
-              <TextInput
-                style={[styles.input, { color: colors.text }]}
-                placeholder="Enter new password"
-                placeholderTextColor={colors.textSecondary}
-                value={newPassword}
-                onChangeText={setNewPassword}
-                secureTextEntry
-              />
-            </View>
-
-            <Pressable
-              style={[styles.modalButton, { backgroundColor: colors.primary }]}
-              onPress={handleResetPassword}
-              disabled={resetLoading}
-            >
-              {resetLoading ? (
-                <ActivityIndicator color="#FFFFFF" />
-              ) : (
-                <Text style={styles.modalButtonText}>Reset Password</Text>
-              )}
-            </Pressable>
-          </Pressable>
-        </Pressable>
-      </Modal>
     </ScrollView>
   );
 }
@@ -538,58 +490,5 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  modalContent: {
-    width: '100%',
-    maxWidth: 400,
-    borderRadius: 16,
-    padding: 24,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  modalDescription: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    height: 52,
-    gap: 12,
-  },
-  input: {
-    flex: 1,
-    fontSize: 16,
-    height: '100%',
-  },
-  modalButton: {
-    height: 52,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 16,
-  },
-  modalButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
   },
 });

@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const { Pool } = require('pg');
+const { Resend } = require('resend');
 
 const app = express();
 const PORT = 3001;
@@ -13,6 +14,47 @@ const pool = new Pool({
 });
 
 const JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(64).toString('hex');
+
+let resendConnectionSettings = null;
+
+async function getResendCredentials() {
+  const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
+  const xReplitToken = process.env.REPL_IDENTITY 
+    ? 'repl ' + process.env.REPL_IDENTITY 
+    : process.env.WEB_REPL_RENEWAL 
+    ? 'depl ' + process.env.WEB_REPL_RENEWAL 
+    : null;
+
+  if (!xReplitToken) {
+    throw new Error('X_REPLIT_TOKEN not found for repl/depl');
+  }
+
+  resendConnectionSettings = await fetch(
+    'https://' + hostname + '/api/v2/connection?include_secrets=true&connector_names=resend',
+    {
+      headers: {
+        'Accept': 'application/json',
+        'X_REPLIT_TOKEN': xReplitToken
+      }
+    }
+  ).then(res => res.json()).then(data => data.items?.[0]);
+
+  if (!resendConnectionSettings || (!resendConnectionSettings.settings.api_key)) {
+    throw new Error('Resend not connected');
+  }
+  return {
+    apiKey: resendConnectionSettings.settings.api_key, 
+    fromEmail: resendConnectionSettings.settings.from_email
+  };
+}
+
+async function getUncachableResendClient() {
+  const { apiKey, fromEmail } = await getResendCredentials();
+  return {
+    client: new Resend(apiKey),
+    fromEmail: fromEmail
+  };
+}
 
 app.use(cors());
 app.use(express.json());
@@ -367,25 +409,64 @@ app.put('/api/admin/users/:id/block', authenticateToken, requireAdmin, async (re
 
 app.post('/api/admin/users/:id/reset-password', authenticateToken, requireAdmin, async (req, res) => {
   const { id } = req.params;
-  const { newPassword } = req.body;
-  
-  if (!newPassword || newPassword.length < 6) {
-    return res.status(400).json({ error: 'Password must be at least 6 characters' });
-  }
   
   try {
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-    
-    const result = await pool.query(
-      'UPDATE users SET password = $1, password_reset_token = NULL, password_reset_expires = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING id, email',
-      [hashedPassword, id]
+    const userResult = await pool.query(
+      'SELECT id, email, first_name FROM users WHERE id = $1',
+      [id]
     );
     
-    if (result.rows.length === 0) {
+    if (userResult.rows.length === 0) {
       return res.status(404).json({ error: 'User not found' });
     }
     
-    res.json({ message: 'Password reset successfully' });
+    const user = userResult.rows[0];
+    
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const resetExpires = new Date(Date.now() + 24 * 3600000);
+    
+    await pool.query(
+      'UPDATE users SET password_reset_token = $1, password_reset_expires = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3',
+      [resetToken, resetExpires, id]
+    );
+    
+    const baseUrl = process.env.REPLIT_DEV_DOMAIN 
+      ? `https://${process.env.REPLIT_DEV_DOMAIN}`
+      : 'http://localhost:5000';
+    const resetLink = `${baseUrl}/reset-password?token=${resetToken}`;
+    
+    try {
+      const { client, fromEmail } = await getUncachableResendClient();
+      
+      await client.emails.send({
+        from: fromEmail || 'noreply@resend.dev',
+        to: user.email,
+        subject: 'Erebus - Password Reset Request',
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #1F37D6;">Password Reset Request</h2>
+            <p>Hello ${user.first_name || 'there'},</p>
+            <p>An administrator has initiated a password reset for your Erebus account.</p>
+            <p>Click the button below to set a new password:</p>
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${resetLink}" style="background-color: #1F37D6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Reset Password</a>
+            </div>
+            <p>Or copy and paste this link into your browser:</p>
+            <p style="color: #666; word-break: break-all;">${resetLink}</p>
+            <p>This link will expire in 24 hours.</p>
+            <p>If you did not expect this email, please contact an administrator.</p>
+            <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+            <p style="color: #999; font-size: 12px;">Erebus Dive Management</p>
+          </div>
+        `
+      });
+      
+      console.log(`Password reset email sent to ${user.email}`);
+      res.json({ message: 'Password reset email sent successfully' });
+    } catch (emailError) {
+      console.error('Email send error:', emailError);
+      res.status(500).json({ error: 'Failed to send password reset email. Please check email configuration.' });
+    }
   } catch (error) {
     console.error('Admin reset password error:', error);
     res.status(500).json({ error: 'Server error' });
