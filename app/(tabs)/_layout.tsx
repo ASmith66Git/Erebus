@@ -188,8 +188,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingVertical: 16,
-    minHeight: 60,
+    paddingTop: 12,
+    paddingBottom: 16,
+    minHeight: 70,
     borderBottomWidth: 1,
   },
   menuButton: {
