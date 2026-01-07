@@ -12,6 +12,10 @@ externalPort = 3001
 localPort = 5000
 externalPort = 80
 
+[[ports]]
+localPort = 8080
+externalPort = 8080
+
 [workflows]
 runButton = "Project"
 
@@ -68,6 +72,10 @@ args = "Expo Web"
 task = "workflow.run"
 args = "API Server"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Expo Mobile"
+
 [[workflows.workflow]]
 name = "Expo Web"
 author = "agent"
@@ -91,6 +99,18 @@ waitForPort = 3001
 
 [workflows.workflow.metadata]
 outputType = "console"
+
+[[workflows.workflow]]
+name = "Expo Mobile"
+author = "agent"
+
+[workflows.workflow.metadata]
+outputType = "console"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npx expo start --port 8080"
+waitForPort = 8080
 
 [agent]
 expertMode = true
