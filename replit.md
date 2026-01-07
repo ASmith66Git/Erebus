@@ -45,10 +45,14 @@ assets/                    # Static assets
 
 ## API Endpoints
 - `POST /api/auth/signup` - Create new user
-- `POST /api/auth/login` - Authenticate user
+- `POST /api/auth/login` - Authenticate user (checks if user is blocked)
+- `POST /api/auth/forgot-password` - Request password reset
+- `POST /api/auth/reset-password` - Reset password with token
 - `GET /api/auth/me` - Get current user (requires auth)
-- `GET /api/admin/users` - List all users (admin only)
+- `GET /api/admin/users` - List all users with blocked status (admin only)
 - `PUT /api/admin/users/:id/role` - Change user role (admin only)
+- `PUT /api/admin/users/:id/block` - Block/unblock user (admin only)
+- `POST /api/admin/users/:id/reset-password` - Reset user password (admin only)
 - `DELETE /api/admin/users/:id` - Delete user (admin only)
 
 ## Database
@@ -58,6 +62,9 @@ Uses PostgreSQL with a `users` table:
 - password (hashed with bcrypt)
 - first_name, last_name (VARCHAR)
 - role ('user' or 'admin')
+- is_blocked (BOOLEAN) - Whether user is blocked from logging in
+- password_reset_token (VARCHAR) - Token for password reset
+- password_reset_expires (TIMESTAMP) - Token expiration time
 - created_at, updated_at (TIMESTAMP)
 
 ## Design
@@ -73,3 +80,8 @@ Uses PostgreSQL with a `users` table:
   - Main navigation with tabs and drawer menu
   - Admin panel for user management
   - PostgreSQL database integration
+  - Forgot password functionality on login screen
+  - Admin: Reset user password feature
+  - Admin: Block/unblock user feature
+  - Blocked users cannot log in
+  - Admin panel shows blocked user count

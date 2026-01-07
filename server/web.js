@@ -12,7 +12,6 @@ const indexPath = path.join(distPath, 'index.html');
 app.use('/api', createProxyMiddleware({
   target: 'http://localhost:3001',
   changeOrigin: true,
-  pathRewrite: (path) => '/api' + path,
 }));
 
 app.use(express.static(distPath));
