@@ -54,7 +54,7 @@ export default function SplashScreen() {
         <Text style={styles.title}>Erebus</Text>
         
         <Text style={styles.tagline}>
-          Everything you need to{'\n'}manage your diving
+          Track your dives, Plan your dives,{'\n'}Connect with divers, and much more
         </Text>
 
         <View style={styles.features}>
@@ -64,11 +64,15 @@ export default function SplashScreen() {
           </View>
           <View style={styles.featureItem}>
             <Ionicons name="calendar-outline" size={24} color="#FFFFFF" />
-            <Text style={styles.featureText}>Plan adventures</Text>
+            <Text style={styles.featureText}>Plan your dives</Text>
           </View>
           <View style={styles.featureItem}>
             <Ionicons name="people-outline" size={24} color="#FFFFFF" />
             <Text style={styles.featureText}>Connect with divers</Text>
+          </View>
+          <View style={styles.featureItem}>
+            <Ionicons name="ellipsis-horizontal-outline" size={24} color="#FFFFFF" />
+            <Text style={styles.featureText}>And much more</Text>
           </View>
         </View>
       </Animated.View>
