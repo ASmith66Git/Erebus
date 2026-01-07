@@ -28,10 +28,25 @@ async function initDatabase() {
         first_name VARCHAR(100),
         last_name VARCHAR(100),
         role VARCHAR(20) DEFAULT 'user',
+        is_blocked BOOLEAN DEFAULT FALSE,
+        password_reset_token VARCHAR(255),
+        password_reset_expires TIMESTAMP,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
+    
+    await client.query(`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS is_blocked BOOLEAN DEFAULT FALSE;
+    `).catch(() => {});
+    
+    await client.query(`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS password_reset_token VARCHAR(255);
+    `).catch(() => {});
+    
+    await client.query(`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS password_reset_expires TIMESTAMP;
+    `).catch(() => {});
     
     const adminCheck = await client.query("SELECT id FROM users WHERE email = 'admin@erebus.app'");
     if (adminCheck.rows.length === 0) {
@@ -137,6 +152,11 @@ app.post('/api/auth/login', async (req, res) => {
     }
     
     const user = result.rows[0];
+    
+    if (user.is_blocked) {
+      return res.status(403).json({ error: 'Your account has been blocked. Please contact an administrator.' });
+    }
+    
     const validPassword = await bcrypt.compare(password, user.password);
     
     if (!validPassword) {
@@ -162,6 +182,73 @@ app.post('/api/auth/login', async (req, res) => {
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ error: 'Server error during login' });
+  }
+});
+
+app.post('/api/auth/forgot-password', async (req, res) => {
+  const { email } = req.body;
+  
+  if (!email) {
+    return res.status(400).json({ error: 'Email is required' });
+  }
+  
+  try {
+    const result = await pool.query('SELECT id, email FROM users WHERE email = $1', [email.toLowerCase()]);
+    
+    if (result.rows.length === 0) {
+      return res.json({ message: 'If an account exists with this email, password reset instructions have been sent.' });
+    }
+    
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const resetExpires = new Date(Date.now() + 3600000);
+    
+    await pool.query(
+      'UPDATE users SET password_reset_token = $1, password_reset_expires = $2 WHERE email = $3',
+      [resetToken, resetExpires, email.toLowerCase()]
+    );
+    
+    res.json({ 
+      message: 'If an account exists with this email, password reset instructions have been sent.',
+      resetToken: resetToken
+    });
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.post('/api/auth/reset-password', async (req, res) => {
+  const { token, newPassword } = req.body;
+  
+  if (!token || !newPassword) {
+    return res.status(400).json({ error: 'Token and new password are required' });
+  }
+  
+  if (newPassword.length < 6) {
+    return res.status(400).json({ error: 'Password must be at least 6 characters' });
+  }
+  
+  try {
+    const result = await pool.query(
+      'SELECT id FROM users WHERE password_reset_token = $1 AND password_reset_expires > NOW()',
+      [token]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(400).json({ error: 'Invalid or expired reset token' });
+    }
+    
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    
+    await pool.query(
+      'UPDATE users SET password = $1, password_reset_token = NULL, password_reset_expires = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
+      [hashedPassword, result.rows[0].id]
+    );
+    
+    res.json({ message: 'Password reset successfully' });
+  } catch (error) {
+    console.error('Reset password error:', error);
+    res.status(500).json({ error: 'Server error' });
   }
 });
 
@@ -194,7 +281,7 @@ app.get('/api/auth/me', authenticateToken, async (req, res) => {
 app.get('/api/admin/users', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT id, email, first_name, last_name, role, created_at FROM users ORDER BY created_at DESC'
+      'SELECT id, email, first_name, last_name, role, is_blocked, created_at FROM users ORDER BY created_at DESC'
     );
     
     res.json(result.rows.map(user => ({
@@ -203,6 +290,7 @@ app.get('/api/admin/users', authenticateToken, requireAdmin, async (req, res) =>
       firstName: user.first_name,
       lastName: user.last_name,
       role: user.role,
+      isBlocked: user.is_blocked || false,
       createdAt: user.created_at
     })));
   } catch (error) {
@@ -239,6 +327,66 @@ app.put('/api/admin/users/:id/role', authenticateToken, requireAdmin, async (req
     });
   } catch (error) {
     console.error('Update role error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.put('/api/admin/users/:id/block', authenticateToken, requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  const { blocked } = req.body;
+  
+  if (parseInt(id) === req.user.id) {
+    return res.status(400).json({ error: 'Cannot block your own account' });
+  }
+  
+  try {
+    const result = await pool.query(
+      'UPDATE users SET is_blocked = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING id, email, first_name, last_name, role, is_blocked',
+      [blocked, id]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    const user = result.rows[0];
+    res.json({
+      id: user.id,
+      email: user.email,
+      firstName: user.first_name,
+      lastName: user.last_name,
+      role: user.role,
+      isBlocked: user.is_blocked
+    });
+  } catch (error) {
+    console.error('Block user error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.post('/api/admin/users/:id/reset-password', authenticateToken, requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  const { newPassword } = req.body;
+  
+  if (!newPassword || newPassword.length < 6) {
+    return res.status(400).json({ error: 'Password must be at least 6 characters' });
+  }
+  
+  try {
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    
+    const result = await pool.query(
+      'UPDATE users SET password = $1, password_reset_token = NULL, password_reset_expires = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING id, email',
+      [hashedPassword, id]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    res.json({ message: 'Password reset successfully' });
+  } catch (error) {
+    console.error('Admin reset password error:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });
