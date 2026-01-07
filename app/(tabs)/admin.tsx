@@ -14,9 +14,12 @@ interface UserData {
   createdAt: string;
 }
 
-const API_URL = Platform.OS === 'web' 
-  ? `${window.location.protocol}//${window.location.hostname}:3001`
-  : 'http://10.0.2.2:3001';
+function getApiUrl(): string {
+  if (Platform.OS === 'web' && typeof window !== 'undefined') {
+    return `${window.location.protocol}//${window.location.hostname}:3001`;
+  }
+  return 'http://10.0.2.2:3001';
+}
 
 export default function AdminScreen() {
   const { colors } = useTheme();
@@ -37,7 +40,7 @@ export default function AdminScreen() {
   async function fetchUsers() {
     try {
       setIsLoading(true);
-      const response = await fetch(`${API_URL}/api/admin/users`, {
+      const response = await fetch(`${getApiUrl()}/api/admin/users`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -65,7 +68,7 @@ export default function AdminScreen() {
     }
 
     try {
-      const response = await fetch(`${API_URL}/api/admin/users/${userId}/role`, {
+      const response = await fetch(`${getApiUrl()}/api/admin/users/${userId}/role`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -100,7 +103,7 @@ export default function AdminScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              const response = await fetch(`${API_URL}/api/admin/users/${userId}`, {
+              const response = await fetch(`${getApiUrl()}/api/admin/users/${userId}`, {
                 method: 'DELETE',
                 headers: {
                   'Authorization': `Bearer ${token}`,

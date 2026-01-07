@@ -2,9 +2,12 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 
-const API_URL = Platform.OS === 'web' 
-  ? `${window.location.protocol}//${window.location.hostname}:3001`
-  : 'http://10.0.2.2:3001';
+function getApiUrl(): string {
+  if (Platform.OS === 'web' && typeof window !== 'undefined') {
+    return `${window.location.protocol}//${window.location.hostname}:3001`;
+  }
+  return 'http://10.0.2.2:3001';
+}
 
 interface User {
   id: number;
@@ -53,7 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function fetchUser(authToken: string) {
     try {
-      const response = await fetch(`${API_URL}/api/auth/me`, {
+      const response = await fetch(`${getApiUrl()}/api/auth/me`, {
         headers: {
           'Authorization': `Bearer ${authToken}`,
         },
@@ -72,7 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function login(email: string, password: string): Promise<{ success: boolean; error?: string }> {
     try {
-      const response = await fetch(`${API_URL}/api/auth/login`, {
+      const response = await fetch(`${getApiUrl()}/api/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -103,7 +106,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     lastName?: string
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      const response = await fetch(`${API_URL}/api/auth/signup`, {
+      const response = await fetch(`${getApiUrl()}/api/auth/signup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
