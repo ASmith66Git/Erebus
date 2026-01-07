@@ -185,10 +185,10 @@ export default function TabLayout() {
 const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
+    alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingTop: 8,
+    paddingTop: 20,
     paddingBottom: 10,
     minHeight: 75,
     borderBottomWidth: 1,
