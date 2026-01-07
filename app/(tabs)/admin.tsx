@@ -339,7 +339,7 @@ export default function AdminScreen() {
                   style={[styles.actionButton, { backgroundColor: colors.error + '20' }]}
                   onPress={() => deleteUser(userData.id)}
                 >
-                  <Ionicons name="trash" size={18} color={colors.error} />
+                  <Ionicons name="archive" size={18} color={colors.error} />
                 </Pressable>
               </View>
             )}
