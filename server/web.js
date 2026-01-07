@@ -1,12 +1,18 @@
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
+const { createProxyMiddleware } = require('http-proxy-middleware');
 
 const app = express();
 const PORT = 5000;
 
 const distPath = path.join(__dirname, '..', 'dist', 'web');
 const indexPath = path.join(distPath, 'index.html');
+
+app.use('/api', createProxyMiddleware({
+  target: 'http://localhost:3001',
+  changeOrigin: true,
+}));
 
 app.use(express.static(distPath));
 

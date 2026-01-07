@@ -4,9 +4,9 @@ import { Platform } from 'react-native';
 
 function getApiUrl(): string {
   if (Platform.OS === 'web' && typeof window !== 'undefined') {
-    return `${window.location.protocol}//${window.location.hostname}:3001`;
+    return `${window.location.protocol}//${window.location.host}`;
   }
-  return 'http://10.0.2.2:3001';
+  return 'https://56fa4c0f-d24e-42d1-a9d5-89c79bbd28d6-00-3nhmxvxgj4wxs.spock.replit.dev';
 }
 
 interface User {
