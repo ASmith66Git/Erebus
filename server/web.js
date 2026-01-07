@@ -10,7 +10,7 @@ const distPath = path.join(__dirname, '..', 'dist', 'web');
 const indexPath = path.join(distPath, 'index.html');
 
 app.use('/api', createProxyMiddleware({
-  target: 'http://localhost:3001',
+  target: 'http://localhost:3001/api',
   changeOrigin: true,
 }));
 
