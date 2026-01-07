@@ -189,8 +189,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingTop: 12,
-    paddingBottom: 16,
-    minHeight: 70,
+    paddingBottom: 12,
+    minHeight: 75,
     borderBottomWidth: 1,
   },
   menuButton: {
