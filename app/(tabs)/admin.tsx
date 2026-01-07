@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Alert, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Alert, Platform, Modal, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -11,14 +11,15 @@ interface UserData {
   firstName: string | null;
   lastName: string | null;
   role: 'user' | 'admin';
+  isBlocked: boolean;
   createdAt: string;
 }
 
 function getApiUrl(): string {
   if (Platform.OS === 'web' && typeof window !== 'undefined') {
-    return `${window.location.protocol}//${window.location.hostname}:3001`;
+    return `${window.location.protocol}//${window.location.host}`;
   }
-  return 'http://10.0.2.2:3001';
+  return 'https://56fa4c0f-d24e-42d1-a9d5-89c79bbd28d6-00-3nhmxvxgj4wxs.spock.replit.dev';
 }
 
 export default function AdminScreen() {
@@ -28,6 +29,11 @@ export default function AdminScreen() {
   const [users, setUsers] = useState<UserData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  
+  const [resetPasswordModal, setResetPasswordModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [resetLoading, setResetLoading] = useState(false);
 
   useEffect(() => {
     if (!isAdmin) {
@@ -87,6 +93,89 @@ export default function AdminScreen() {
     }
   }
 
+  async function toggleBlockUser(userId: number, currentlyBlocked: boolean) {
+    if (userId === user?.id) {
+      Alert.alert('Error', 'You cannot block your own account');
+      return;
+    }
+
+    const action = currentlyBlocked ? 'unblock' : 'block';
+    
+    Alert.alert(
+      `Confirm ${action.charAt(0).toUpperCase() + action.slice(1)}`,
+      `Are you sure you want to ${action} this user?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: action.charAt(0).toUpperCase() + action.slice(1),
+          style: currentlyBlocked ? 'default' : 'destructive',
+          onPress: async () => {
+            try {
+              const response = await fetch(`${getApiUrl()}/api/admin/users/${userId}/block`, {
+                method: 'PUT',
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ blocked: !currentlyBlocked }),
+              });
+
+              if (response.ok) {
+                setUsers(users.map(u => u.id === userId ? { ...u, isBlocked: !currentlyBlocked } : u));
+              } else {
+                Alert.alert('Error', `Failed to ${action} user`);
+              }
+            } catch (err) {
+              Alert.alert('Error', 'Network error');
+            }
+          },
+        },
+      ]
+    );
+  }
+
+  function openResetPasswordModal(userData: UserData) {
+    setSelectedUser(userData);
+    setNewPassword('');
+    setResetPasswordModal(true);
+  }
+
+  async function handleResetPassword() {
+    if (!selectedUser) return;
+    
+    if (newPassword.length < 6) {
+      Alert.alert('Error', 'Password must be at least 6 characters');
+      return;
+    }
+
+    setResetLoading(true);
+
+    try {
+      const response = await fetch(`${getApiUrl()}/api/admin/users/${selectedUser.id}/reset-password`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ newPassword }),
+      });
+
+      if (response.ok) {
+        Alert.alert('Success', 'Password has been reset successfully');
+        setResetPasswordModal(false);
+        setSelectedUser(null);
+        setNewPassword('');
+      } else {
+        const data = await response.json();
+        Alert.alert('Error', data.error || 'Failed to reset password');
+      }
+    } catch (err) {
+      Alert.alert('Error', 'Network error');
+    } finally {
+      setResetLoading(false);
+    }
+  }
+
   async function deleteUser(userId: number) {
     if (userId === user?.id) {
       Alert.alert('Error', 'You cannot delete your own account');
@@ -95,7 +184,7 @@ export default function AdminScreen() {
 
     Alert.alert(
       'Confirm Delete',
-      'Are you sure you want to delete this user?',
+      'Are you sure you want to delete this user? This action cannot be undone.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -154,10 +243,10 @@ export default function AdminScreen() {
         </View>
         <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
         <View style={styles.statItem}>
-          <Text style={[styles.statValue, { color: colors.primary }]}>
-            {users.filter(u => u.role === 'user').length}
+          <Text style={[styles.statValue, { color: colors.error }]}>
+            {users.filter(u => u.isBlocked).length}
           </Text>
-          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Regular Users</Text>
+          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Blocked</Text>
         </View>
       </View>
 
@@ -181,7 +270,11 @@ export default function AdminScreen() {
         users.map((userData) => (
           <View
             key={userData.id}
-            style={[styles.userCard, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}
+            style={[
+              styles.userCard, 
+              { backgroundColor: colors.cardBackground, borderColor: colors.border },
+              userData.isBlocked && { opacity: 0.7 }
+            ]}
           >
             <View style={styles.userInfo}>
               <View style={[styles.userAvatar, { backgroundColor: userData.role === 'admin' ? colors.primary : colors.textSecondary }]}>
@@ -199,6 +292,11 @@ export default function AdminScreen() {
                   {userData.role === 'admin' && (
                     <View style={[styles.roleBadge, { backgroundColor: colors.primary }]}>
                       <Text style={styles.roleBadgeText}>Admin</Text>
+                    </View>
+                  )}
+                  {userData.isBlocked && (
+                    <View style={[styles.roleBadge, { backgroundColor: colors.error }]}>
+                      <Text style={styles.roleBadgeText}>Blocked</Text>
                     </View>
                   )}
                 </View>
@@ -222,6 +320,22 @@ export default function AdminScreen() {
                   />
                 </Pressable>
                 <Pressable
+                  style={[styles.actionButton, { backgroundColor: '#FF9500' + '20' }]}
+                  onPress={() => openResetPasswordModal(userData)}
+                >
+                  <Ionicons name="key" size={18} color="#FF9500" />
+                </Pressable>
+                <Pressable
+                  style={[styles.actionButton, { backgroundColor: (userData.isBlocked ? colors.primary : '#FF3B30') + '20' }]}
+                  onPress={() => toggleBlockUser(userData.id, userData.isBlocked)}
+                >
+                  <Ionicons
+                    name={userData.isBlocked ? 'lock-open' : 'lock-closed'}
+                    size={18}
+                    color={userData.isBlocked ? colors.primary : '#FF3B30'}
+                  />
+                </Pressable>
+                <Pressable
                   style={[styles.actionButton, { backgroundColor: colors.error + '20' }]}
                   onPress={() => deleteUser(userData.id)}
                 >
@@ -232,6 +346,52 @@ export default function AdminScreen() {
           </View>
         ))
       )}
+
+      <Modal
+        visible={resetPasswordModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setResetPasswordModal(false)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setResetPasswordModal(false)}>
+          <Pressable style={[styles.modalContent, { backgroundColor: colors.surface }]} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>Reset Password</Text>
+              <Pressable onPress={() => setResetPasswordModal(false)}>
+                <Ionicons name="close" size={24} color={colors.text} />
+              </Pressable>
+            </View>
+
+            <Text style={[styles.modalDescription, { color: colors.textSecondary }]}>
+              Set a new password for {selectedUser?.email}
+            </Text>
+
+            <View style={[styles.inputContainer, { backgroundColor: colors.background, borderColor: colors.border, marginTop: 16 }]}>
+              <Ionicons name="lock-closed-outline" size={20} color={colors.icon} />
+              <TextInput
+                style={[styles.input, { color: colors.text }]}
+                placeholder="Enter new password"
+                placeholderTextColor={colors.textSecondary}
+                value={newPassword}
+                onChangeText={setNewPassword}
+                secureTextEntry
+              />
+            </View>
+
+            <Pressable
+              style={[styles.modalButton, { backgroundColor: colors.primary }]}
+              onPress={handleResetPassword}
+              disabled={resetLoading}
+            >
+              {resetLoading ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Text style={styles.modalButtonText}>Reset Password</Text>
+              )}
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </ScrollView>
   );
 }
@@ -340,6 +500,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     marginBottom: 2,
+    flexWrap: 'wrap',
   },
   userName: {
     fontSize: 16,
@@ -377,5 +538,58 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  modalContent: {
+    width: '100%',
+    maxWidth: 400,
+    borderRadius: 16,
+    padding: 24,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  modalDescription: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    height: 52,
+    gap: 12,
+  },
+  input: {
+    flex: 1,
+    fontSize: 16,
+    height: '100%',
+  },
+  modalButton: {
+    height: 52,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  modalButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

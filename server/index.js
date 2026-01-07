@@ -207,9 +207,10 @@ app.post('/api/auth/forgot-password', async (req, res) => {
       [resetToken, resetExpires, email.toLowerCase()]
     );
     
+    console.log(`Password reset requested for ${email}. In production, email would be sent with reset link.`);
+    
     res.json({ 
-      message: 'If an account exists with this email, password reset instructions have been sent.',
-      resetToken: resetToken
+      message: 'If an account exists with this email, password reset instructions have been sent. Please contact an administrator to reset your password.'
     });
   } catch (error) {
     console.error('Forgot password error:', error);

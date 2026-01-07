@@ -9,11 +9,19 @@ import {
   Platform,
   ScrollView,
   ActivityIndicator,
+  Modal,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
+
+function getApiUrl(): string {
+  if (Platform.OS === 'web' && typeof window !== 'undefined') {
+    return `${window.location.protocol}//${window.location.host}`;
+  }
+  return 'https://56fa4c0f-d24e-42d1-a9d5-89c79bbd28d6-00-3nhmxvxgj4wxs.spock.replit.dev';
+}
 
 export default function LoginScreen() {
   const { colors, isDark } = useTheme();
@@ -25,6 +33,12 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  
+  const [forgotPasswordVisible, setForgotPasswordVisible] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotMessage, setForgotMessage] = useState('');
+  const [forgotError, setForgotError] = useState('');
 
   const handleLogin = async () => {
     if (!email.trim()) {
@@ -46,6 +60,46 @@ export default function LoginScreen() {
     if (!result.success) {
       setError(result.error || 'Login failed');
     }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!forgotEmail.trim()) {
+      setForgotError('Please enter your email');
+      return;
+    }
+
+    setForgotError('');
+    setForgotMessage('');
+    setForgotLoading(true);
+
+    try {
+      const response = await fetch(`${getApiUrl()}/api/auth/forgot-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email: forgotEmail.trim() }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setForgotMessage(data.message);
+      } else {
+        setForgotError(data.error || 'Failed to process request');
+      }
+    } catch (err) {
+      setForgotError('Network error. Please try again.');
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
+  const closeForgotModal = () => {
+    setForgotPasswordVisible(false);
+    setForgotEmail('');
+    setForgotMessage('');
+    setForgotError('');
   };
 
   return (
@@ -119,6 +173,10 @@ export default function LoginScreen() {
             </View>
           </View>
 
+          <Pressable onPress={() => setForgotPasswordVisible(true)}>
+            <Text style={[styles.forgotPassword, { color: colors.primary }]}>Forgot Password?</Text>
+          </Pressable>
+
           <Pressable
             style={[styles.loginButton, { backgroundColor: colors.primary }]}
             onPress={handleLogin}
@@ -141,6 +199,80 @@ export default function LoginScreen() {
           </View>
         </View>
       </ScrollView>
+
+      <Modal
+        visible={forgotPasswordVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={closeForgotModal}
+      >
+        <Pressable style={styles.modalOverlay} onPress={closeForgotModal}>
+          <Pressable style={[styles.modalContent, { backgroundColor: colors.surface }]} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>Forgot Password</Text>
+              <Pressable onPress={closeForgotModal}>
+                <Ionicons name="close" size={24} color={colors.text} />
+              </Pressable>
+            </View>
+
+            <Text style={[styles.modalDescription, { color: colors.textSecondary }]}>
+              Enter your email address and we'll help you reset your password.
+            </Text>
+
+            {forgotMessage ? (
+              <View style={[styles.successContainer, { backgroundColor: colors.primary + '20' }]}>
+                <Ionicons name="checkmark-circle" size={20} color={colors.primary} />
+                <Text style={[styles.successText, { color: colors.primary }]}>{forgotMessage}</Text>
+              </View>
+            ) : null}
+
+            {forgotError ? (
+              <View style={[styles.errorContainer, { backgroundColor: colors.error + '20' }]}>
+                <Ionicons name="alert-circle" size={20} color={colors.error} />
+                <Text style={[styles.errorText, { color: colors.error }]}>{forgotError}</Text>
+              </View>
+            ) : null}
+
+            {!forgotMessage && (
+              <>
+                <View style={[styles.inputContainer, { backgroundColor: colors.background, borderColor: colors.border, marginTop: 16 }]}>
+                  <Ionicons name="mail-outline" size={20} color={colors.icon} />
+                  <TextInput
+                    style={[styles.input, { color: colors.text }]}
+                    placeholder="Enter your email"
+                    placeholderTextColor={colors.textSecondary}
+                    value={forgotEmail}
+                    onChangeText={setForgotEmail}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                  />
+                </View>
+
+                <Pressable
+                  style={[styles.loginButton, { backgroundColor: colors.primary, marginTop: 16 }]}
+                  onPress={handleForgotPassword}
+                  disabled={forgotLoading}
+                >
+                  {forgotLoading ? (
+                    <ActivityIndicator color="#FFFFFF" />
+                  ) : (
+                    <Text style={styles.loginButtonText}>Send Reset Request</Text>
+                  )}
+                </Pressable>
+              </>
+            )}
+
+            {forgotMessage && (
+              <Pressable
+                style={[styles.loginButton, { backgroundColor: colors.primary, marginTop: 16 }]}
+                onPress={closeForgotModal}
+              >
+                <Text style={styles.loginButtonText}>Done</Text>
+              </Pressable>
+            )}
+          </Pressable>
+        </Pressable>
+      </Modal>
     </KeyboardAvoidingView>
   );
 }
@@ -196,6 +328,18 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
   },
+  successContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 8,
+    gap: 8,
+    marginTop: 12,
+  },
+  successText: {
+    flex: 1,
+    fontSize: 14,
+  },
   inputGroup: {
     gap: 8,
   },
@@ -216,6 +360,12 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     height: '100%',
+  },
+  forgotPassword: {
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'right',
+    marginTop: -8,
   },
   loginButton: {
     height: 52,
@@ -240,5 +390,32 @@ const styles = StyleSheet.create({
   signupLink: {
     fontSize: 14,
     fontWeight: '600',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  modalContent: {
+    width: '100%',
+    maxWidth: 400,
+    borderRadius: 16,
+    padding: 24,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  modalDescription: {
+    fontSize: 14,
+    lineHeight: 20,
   },
 });
