@@ -134,9 +134,9 @@ export default function TabLayout() {
           tabBarStyle: {
             backgroundColor: colors.surface,
             borderTopColor: colors.border,
-            paddingBottom: 8,
-            paddingTop: 8,
-            height: 65,
+            paddingBottom: 12,
+            paddingTop: 10,
+            height: 75,
           },
           tabBarLabelStyle: {
             fontSize: 12,
@@ -188,7 +188,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 16,
+    minHeight: 60,
     borderBottomWidth: 1,
   },
   menuButton: {
