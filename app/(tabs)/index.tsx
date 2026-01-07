@@ -1,80 +1,160 @@
-import { Image } from "expo-image";
-import { Platform, StyleSheet } from "react-native";
-
-import { HelloWave } from "@/components/HelloWave";
-import ParallaxScrollView from "@/components/ParallaxScrollView";
-import { ThemedText } from "@/components/ThemedText";
-import { ThemedView } from "@/components/ThemedView";
+import React from 'react';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '@/contexts/ThemeContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function HomeScreen() {
+  const { colors } = useTheme();
+  const { user } = useAuth();
+
+  const stats = [
+    { icon: 'water', label: 'Total Dives', value: '0' },
+    { icon: 'time', label: 'Dive Time', value: '0h' },
+    { icon: 'location', label: 'Sites Visited', value: '0' },
+  ];
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: "#A1CEDC", dark: "#1D3D47" }}
-      headerImage={
-        <Image
-          source={require("@/assets/images/partial-react-logo.png")}
-          style={styles.reactLogo}
-        />
-      }
-    >
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Replit + Expo</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit{" "}
-          <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText>{" "}
-          to see changes. Press{" "}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: "cmd + d",
-              android: "cmd + m",
-              web: "F12",
-            })}
-          </ThemedText>{" "}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">
-            npm run reset-project
-          </ThemedText>{" "}
-          to get a fresh <ThemedText type="defaultSemiBold">app</ThemedText>{" "}
-          directory. This will move the current{" "}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{" "}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+    <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={styles.welcomeSection}>
+        <Text style={[styles.greeting, { color: colors.textSecondary }]}>Welcome back,</Text>
+        <Text style={[styles.name, { color: colors.text }]}>
+          {user?.firstName || user?.email?.split('@')[0] || 'Diver'}!
+        </Text>
+      </View>
+
+      <View style={styles.statsContainer}>
+        {stats.map((stat, index) => (
+          <View key={index} style={[styles.statCard, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
+            <View style={[styles.statIconContainer, { backgroundColor: colors.primary + '20' }]}>
+              <Ionicons name={stat.icon as any} size={24} color={colors.primary} />
+            </View>
+            <Text style={[styles.statValue, { color: colors.text }]}>{stat.value}</Text>
+            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{stat.label}</Text>
+          </View>
+        ))}
+      </View>
+
+      <View style={[styles.section, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
+        <View style={styles.sectionHeader}>
+          <Ionicons name="flash" size={20} color={colors.primary} />
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Quick Actions</Text>
+        </View>
+        <View style={styles.quickActions}>
+          <View style={[styles.actionButton, { backgroundColor: colors.primary }]}>
+            <Ionicons name="add" size={24} color="#FFFFFF" />
+            <Text style={styles.actionText}>Log Dive</Text>
+          </View>
+          <View style={[styles.actionButton, { backgroundColor: colors.primary }]}>
+            <Ionicons name="map" size={24} color="#FFFFFF" />
+            <Text style={styles.actionText}>Find Site</Text>
+          </View>
+          <View style={[styles.actionButton, { backgroundColor: colors.primary }]}>
+            <Ionicons name="calendar" size={24} color="#FFFFFF" />
+            <Text style={styles.actionText}>Plan Trip</Text>
+          </View>
+        </View>
+      </View>
+
+      <View style={[styles.section, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
+        <View style={styles.sectionHeader}>
+          <Ionicons name="time-outline" size={20} color={colors.primary} />
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Recent Activity</Text>
+        </View>
+        <View style={styles.emptyState}>
+          <Ionicons name="water-outline" size={48} color={colors.textSecondary} />
+          <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+            No dives logged yet. Start by logging your first dive!
+          </Text>
+        </View>
+      </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
+  container: {
+    flex: 1,
+    padding: 16,
   },
-  stepContainer: {
-    gap: 8,
+  welcomeSection: {
+    marginBottom: 24,
+  },
+  greeting: {
+    fontSize: 16,
+  },
+  name: {
+    fontSize: 28,
+    fontWeight: 'bold',
+  },
+  statsContainer: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 24,
+  },
+  statCard: {
+    flex: 1,
+    padding: 16,
+    borderRadius: 16,
+    alignItems: 'center',
+    borderWidth: 1,
+  },
+  statIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
     marginBottom: 8,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: "absolute",
+  statValue: {
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
+  statLabel: {
+    fontSize: 12,
+    textAlign: 'center',
+  },
+  section: {
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  quickActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  actionButton: {
+    flex: 1,
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    gap: 8,
+  },
+  actionText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 24,
+    gap: 12,
+  },
+  emptyText: {
+    textAlign: 'center',
+    fontSize: 14,
+    lineHeight: 20,
   },
 });
