@@ -91,7 +91,7 @@ function DrawerMenu({ visible, onClose }: { visible: boolean; onClose: () => voi
     >
       <View style={styles.modalOverlay}>
         <TouchableOpacity style={styles.backdrop} onPress={onClose} activeOpacity={1} />
-        <View style={[styles.drawer, { backgroundColor: colors.surface, zIndex: 10 }]}>
+        <View style={[styles.drawer, { backgroundColor: colors.surface }]}>
           <SafeAreaView style={styles.drawerContent}>
             <View style={styles.drawerHeader}>
               <View style={[styles.avatarPlaceholder, { backgroundColor: colors.primary }]}>
@@ -293,11 +293,14 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    zIndex: 1,
   },
   drawer: {
     width: '80%',
     maxWidth: 320,
     height: '100%',
+    position: 'relative',
+    zIndex: 2,
   },
   drawerContent: {
     flex: 1,
