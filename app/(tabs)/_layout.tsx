@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Tabs } from 'expo-router';
-import { View, Text, Pressable, StyleSheet, Modal, SafeAreaView, Switch, ScrollView, Alert } from 'react-native';
+import { View, Text, Pressable, TouchableOpacity, StyleSheet, Modal, SafeAreaView, Switch, ScrollView, Alert } from 'react-native';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -57,8 +57,8 @@ function DrawerMenu({ visible, onClose }: { visible: boolean; onClose: () => voi
       onRequestClose={onClose}
     >
       <View style={styles.modalOverlay}>
-        <Pressable style={styles.backdrop} onPress={onClose} />
-        <View style={[styles.drawer, { backgroundColor: colors.surface }]}>
+        <TouchableOpacity style={styles.backdrop} onPress={onClose} activeOpacity={1} />
+        <View style={[styles.drawer, { backgroundColor: colors.surface, zIndex: 10 }]}>
           <SafeAreaView style={styles.drawerContent}>
             <View style={styles.drawerHeader}>
               <View style={[styles.avatarPlaceholder, { backgroundColor: colors.primary }]}>
@@ -80,10 +80,10 @@ function DrawerMenu({ visible, onClose }: { visible: boolean; onClose: () => voi
             <ScrollView style={styles.menuScroll} showsVerticalScrollIndicator={false}>
               <View style={styles.menuItems}>
                 {menuItems.map((item, index) => (
-                  <Pressable key={index} style={styles.menuItem} onPress={item.action}>
+                  <TouchableOpacity key={index} style={styles.menuItem} onPress={item.action} activeOpacity={0.7}>
                     <Feather name={item.icon as any} size={22} color={colors.primary} />
                     <Text style={[styles.menuItemText, { color: colors.text }]}>{item.label}</Text>
-                  </Pressable>
+                  </TouchableOpacity>
                 ))}
               </View>
 
@@ -93,10 +93,10 @@ function DrawerMenu({ visible, onClose }: { visible: boolean; onClose: () => voi
                   <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Admin</Text>
                   <View style={styles.menuItems}>
                     {adminItems.map((item, index) => (
-                      <Pressable key={index} style={styles.menuItem} onPress={item.action}>
+                      <TouchableOpacity key={index} style={styles.menuItem} onPress={item.action} activeOpacity={0.7}>
                         <Feather name={item.icon as any} size={22} color={colors.primary} />
                         <Text style={[styles.menuItemText, { color: colors.text }]}>{item.label}</Text>
-                      </Pressable>
+                      </TouchableOpacity>
                     ))}
                   </View>
                 </>
@@ -118,10 +118,10 @@ function DrawerMenu({ visible, onClose }: { visible: boolean; onClose: () => voi
               </View>
             </ScrollView>
 
-            <Pressable style={[styles.logoutButton, { borderColor: colors.error }]} onPress={handleLogout}>
+            <TouchableOpacity style={[styles.logoutButton, { borderColor: colors.error }]} onPress={handleLogout} activeOpacity={0.7}>
               <Feather name="log-out" size={22} color={colors.error} />
               <Text style={[styles.logoutText, { color: colors.error }]}>Logout</Text>
-            </Pressable>
+            </TouchableOpacity>
           </SafeAreaView>
         </View>
       </View>
