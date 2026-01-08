@@ -146,9 +146,6 @@ export default function DiveSitesScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedType, setSelectedType] = useState<string | null>(null);
-
-  const siteTypes = ['reef', 'wreck', 'cave', 'wall', 'drift', 'shore', 'quarry', 'lake'];
 
   const fetchSites = useCallback(async () => {
     if (!token) return;
@@ -156,7 +153,6 @@ export default function DiveSitesScreen() {
     try {
       const params = new URLSearchParams();
       if (searchQuery) params.append('search', searchQuery);
-      if (selectedType) params.append('type', selectedType);
 
       const response = await fetch(`${getApiUrl()}/api/dive-sites?${params}`, {
         headers: {
@@ -174,7 +170,7 @@ export default function DiveSitesScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [token, searchQuery, selectedType]);
+  }, [token, searchQuery]);
 
   useEffect(() => {
     fetchSites();
@@ -198,11 +194,11 @@ export default function DiveSitesScreen() {
       <Feather name="map-pin" size={64} color={colors.textSecondary} />
       <Text style={[styles.emptyTitle, { color: colors.text }]}>No Dive Sites Found</Text>
       <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
-        {searchQuery || selectedType
-          ? 'Try adjusting your search or filters'
+        {searchQuery
+          ? 'Try adjusting your search'
           : 'Add your first dive site to get started'}
       </Text>
-      {!searchQuery && !selectedType && (
+      {!searchQuery && (
         <Pressable
           style={[styles.addButton, { backgroundColor: colors.primary }]}
           onPress={handleAddSite}
@@ -232,42 +228,6 @@ export default function DiveSitesScreen() {
             </Pressable>
           ) : null}
         </View>
-      </View>
-
-      <View style={styles.filterContainer}>
-        <FlatList
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          data={siteTypes}
-          keyExtractor={(item) => item}
-          contentContainerStyle={styles.filterList}
-          renderItem={({ item }) => (
-            <Pressable
-              style={[
-                styles.filterChip,
-                {
-                  backgroundColor: selectedType === item ? colors.primary : colors.surface,
-                  borderColor: selectedType === item ? colors.primary : colors.border,
-                },
-              ]}
-              onPress={() => setSelectedType(selectedType === item ? null : item)}
-            >
-              <Feather
-                name={siteTypeIcons[item] as any}
-                size={14}
-                color={selectedType === item ? '#FFFFFF' : colors.text}
-              />
-              <Text
-                style={[
-                  styles.filterChipText,
-                  { color: selectedType === item ? '#FFFFFF' : colors.text },
-                ]}
-              >
-                {item.charAt(0).toUpperCase() + item.slice(1)}
-              </Text>
-            </Pressable>
-          )}
-        />
       </View>
 
       {loading ? (
@@ -320,27 +280,6 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     height: '100%',
-  },
-  filterContainer: {
-    paddingBottom: 8,
-  },
-  filterList: {
-    paddingHorizontal: 16,
-    gap: 8,
-  },
-  filterChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    gap: 6,
-    marginRight: 8,
-  },
-  filterChipText: {
-    fontSize: 13,
-    fontWeight: '500',
   },
   loadingContainer: {
     flex: 1,
