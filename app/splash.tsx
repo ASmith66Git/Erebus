@@ -25,30 +25,28 @@ export default function SplashScreen() {
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
       <View style={styles.container}>
-        <View style={styles.content}>
-          <View style={[styles.iconContainer, { backgroundColor: colors.primary + '20' }]}>
-            <Ionicons name="water" size={56} color={colors.primary} />
-          </View>
-          
-          <Text style={[styles.title, { color: colors.text }]}>Erebus</Text>
+        <View style={[styles.iconContainer, { backgroundColor: colors.primary + '20' }]}>
+          <Ionicons name="water" size={56} color={colors.primary} />
+        </View>
+        
+        <Text style={[styles.title, { color: colors.text }]}>Erebus</Text>
 
-          <View style={styles.features}>
-            <View style={styles.featureItem}>
-              <Ionicons name="analytics-outline" size={20} color={colors.primary} />
-              <Text style={[styles.featureText, { color: colors.text }]}>Track your dives</Text>
-            </View>
-            <View style={styles.featureItem}>
-              <Ionicons name="calendar-outline" size={20} color={colors.primary} />
-              <Text style={[styles.featureText, { color: colors.text }]}>Plan your dives</Text>
-            </View>
-            <View style={styles.featureItem}>
-              <Ionicons name="people-outline" size={20} color={colors.primary} />
-              <Text style={[styles.featureText, { color: colors.text }]}>Connect with divers</Text>
-            </View>
-            <View style={styles.featureItem}>
-              <Ionicons name="ellipsis-horizontal-outline" size={20} color={colors.primary} />
-              <Text style={[styles.featureText, { color: colors.text }]}>And much more</Text>
-            </View>
+        <View style={styles.features}>
+          <View style={styles.featureItem}>
+            <Ionicons name="analytics-outline" size={20} color={colors.primary} />
+            <Text style={[styles.featureText, { color: colors.text }]}>Track your dives</Text>
+          </View>
+          <View style={styles.featureItem}>
+            <Ionicons name="calendar-outline" size={20} color={colors.primary} />
+            <Text style={[styles.featureText, { color: colors.text }]}>Plan your dives</Text>
+          </View>
+          <View style={styles.featureItem}>
+            <Ionicons name="people-outline" size={20} color={colors.primary} />
+            <Text style={[styles.featureText, { color: colors.text }]}>Connect with divers</Text>
+          </View>
+          <View style={styles.featureItem}>
+            <Ionicons name="ellipsis-horizontal-outline" size={20} color={colors.primary} />
+            <Text style={[styles.featureText, { color: colors.text }]}>And much more</Text>
           </View>
         </View>
 
@@ -56,7 +54,7 @@ export default function SplashScreen() {
           <Pressable
             style={[
               styles.getStartedButton, 
-              { backgroundColor: colors.primary, maxWidth: Math.min(width - 48, 400) }
+              { backgroundColor: colors.primary, width: Math.min(width - 48, 320) }
             ]}
             onPress={handleGetStarted}
           >
@@ -79,14 +77,9 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    justifyContent: 'space-between',
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-  },
-  content: {
-    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: 24,
   },
   iconContainer: {
     width: 88,
@@ -104,6 +97,7 @@ const styles = StyleSheet.create({
   },
   features: {
     gap: 10,
+    marginBottom: 40,
   },
   featureItem: {
     flexDirection: 'row',
@@ -116,7 +110,6 @@ const styles = StyleSheet.create({
   bottomSection: {
     alignItems: 'center',
     gap: 12,
-    paddingBottom: 8,
   },
   getStartedButton: {
     flexDirection: 'row',
@@ -126,7 +119,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
     borderRadius: 28,
     gap: 8,
-    alignSelf: 'stretch',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
