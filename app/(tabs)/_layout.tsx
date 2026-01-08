@@ -26,15 +26,8 @@ function DrawerMenu({ visible, onClose }: { visible: boolean; onClose: () => voi
   };
 
   const handleNavigation = (path: string) => {
-    Alert.alert('Navigation', `Going to ${path}`, [
-      {
-        text: 'OK',
-        onPress: () => {
-          onClose();
-          router.push(path as any);
-        }
-      }
-    ]);
+    onClose();
+    router.push(path as any);
   };
 
   const menuItems = [
@@ -63,8 +56,9 @@ function DrawerMenu({ visible, onClose }: { visible: boolean; onClose: () => voi
       transparent={true}
       onRequestClose={onClose}
     >
-      <Pressable style={styles.modalOverlay} onPress={onClose}>
-        <Pressable style={[styles.drawer, { backgroundColor: colors.surface }]} onPress={e => e.stopPropagation()}>
+      <View style={styles.modalOverlay}>
+        <Pressable style={styles.backdrop} onPress={onClose} />
+        <View style={[styles.drawer, { backgroundColor: colors.surface }]}>
           <SafeAreaView style={styles.drawerContent}>
             <View style={styles.drawerHeader}>
               <View style={[styles.avatarPlaceholder, { backgroundColor: colors.primary }]}>
@@ -129,8 +123,8 @@ function DrawerMenu({ visible, onClose }: { visible: boolean; onClose: () => voi
               <Text style={[styles.logoutText, { color: colors.error }]}>Logout</Text>
             </Pressable>
           </SafeAreaView>
-        </Pressable>
-      </Pressable>
+        </View>
+      </View>
     </Modal>
   );
 }
@@ -251,6 +245,14 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
+    flexDirection: 'row',
+  },
+  backdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   drawer: {
