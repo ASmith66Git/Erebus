@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Tabs } from 'expo-router';
-import { View, Text, Pressable, StyleSheet, Modal, SafeAreaView, Switch } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Modal, SafeAreaView, Switch, ScrollView, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -20,6 +20,29 @@ function DrawerMenu({ visible, onClose }: { visible: boolean; onClose: () => voi
     onClose();
     router.push(path as any);
   };
+
+  const showComingSoon = (feature: string) => {
+    Alert.alert('Coming Soon', `${feature} will be available in a future update.`);
+  };
+
+  const menuItems = [
+    { icon: 'home-outline', label: 'Home', action: () => navigateTo('/(tabs)') },
+    { icon: 'book-outline', label: 'Dive Logs', action: () => showComingSoon('Dive Logs') },
+    { icon: 'location-outline', label: 'Dive Site', action: () => showComingSoon('Dive Site') },
+    { icon: 'construct-outline', label: 'Gear Profiles', action: () => showComingSoon('Gear Profiles') },
+    { icon: 'people-outline', label: 'Buddies', action: () => showComingSoon('Buddies') },
+    { icon: 'calendar-outline', label: 'Dive Planning', action: () => showComingSoon('Dive Planning') },
+    { icon: 'flask-outline', label: 'Gas', action: () => showComingSoon('Gas') },
+    { icon: 'images-outline', label: 'Photos', action: () => showComingSoon('Photos') },
+    { icon: 'airplane-outline', label: 'Trips', action: () => showComingSoon('Trips') },
+    { icon: 'school-outline', label: 'Training', action: () => showComingSoon('Training') },
+    { icon: 'settings-outline', label: 'Settings', action: () => showComingSoon('Settings') },
+  ];
+
+  const adminItems = [
+    { icon: 'people-circle-outline', label: 'User Management', action: () => navigateTo('/(tabs)/admin') },
+    { icon: 'options-outline', label: 'Other Settings', action: () => showComingSoon('Other Settings') },
+  ];
 
   return (
     <Modal
@@ -48,46 +71,46 @@ function DrawerMenu({ visible, onClose }: { visible: boolean; onClose: () => voi
 
             <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
-            <View style={styles.menuItems}>
-              <Pressable style={styles.menuItem} onPress={() => navigateTo('/(tabs)')}>
-                <Ionicons name="home-outline" size={24} color={colors.primary} />
-                <Text style={[styles.menuItemText, { color: colors.text }]}>Home</Text>
-              </Pressable>
-
-              <Pressable style={styles.menuItem} onPress={() => navigateTo('/(tabs)/explore')}>
-                <Ionicons name="compass-outline" size={24} color={colors.primary} />
-                <Text style={[styles.menuItemText, { color: colors.text }]}>Explore</Text>
-              </Pressable>
-
-              <Pressable style={styles.menuItem} onPress={() => navigateTo('/(tabs)/profile')}>
-                <Ionicons name="person-outline" size={24} color={colors.primary} />
-                <Text style={[styles.menuItemText, { color: colors.text }]}>Profile</Text>
-              </Pressable>
+            <ScrollView style={styles.menuScroll} showsVerticalScrollIndicator={false}>
+              <View style={styles.menuItems}>
+                {menuItems.map((item, index) => (
+                  <Pressable key={index} style={styles.menuItem} onPress={item.action}>
+                    <Ionicons name={item.icon as any} size={24} color={colors.primary} />
+                    <Text style={[styles.menuItemText, { color: colors.text }]}>{item.label}</Text>
+                  </Pressable>
+                ))}
+              </View>
 
               {isAdmin && (
-                <Pressable style={styles.menuItem} onPress={() => navigateTo('/(tabs)/admin')}>
-                  <Ionicons name="settings-outline" size={24} color={colors.primary} />
-                  <Text style={[styles.menuItemText, { color: colors.text }]}>Admin Panel</Text>
-                </Pressable>
+                <>
+                  <View style={[styles.divider, { backgroundColor: colors.border }]} />
+                  <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Admin</Text>
+                  <View style={styles.menuItems}>
+                    {adminItems.map((item, index) => (
+                      <Pressable key={index} style={styles.menuItem} onPress={item.action}>
+                        <Ionicons name={item.icon as any} size={24} color={colors.primary} />
+                        <Text style={[styles.menuItemText, { color: colors.text }]}>{item.label}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                </>
               )}
-            </View>
 
-            <View style={[styles.divider, { backgroundColor: colors.border }]} />
+              <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
-            <View style={styles.themeToggle}>
-              <View style={styles.themeToggleLeft}>
-                <Ionicons name={isDark ? 'moon' : 'sunny'} size={24} color={colors.primary} />
-                <Text style={[styles.menuItemText, { color: colors.text }]}>Dark Mode</Text>
+              <View style={styles.themeToggle}>
+                <View style={styles.themeToggleLeft}>
+                  <Ionicons name={isDark ? 'moon' : 'sunny'} size={24} color={colors.primary} />
+                  <Text style={[styles.menuItemText, { color: colors.text }]}>Dark Mode</Text>
+                </View>
+                <Switch
+                  value={isDark}
+                  onValueChange={toggleTheme}
+                  trackColor={{ false: colors.border, true: colors.primary }}
+                  thumbColor="#FFFFFF"
+                />
               </View>
-              <Switch
-                value={isDark}
-                onValueChange={toggleTheme}
-                trackColor={{ false: colors.border, true: colors.primary }}
-                thumbColor="#FFFFFF"
-              />
-            </View>
-
-            <View style={styles.spacer} />
+            </ScrollView>
 
             <Pressable style={[styles.logoutButton, { borderColor: colors.error }]} onPress={handleLogout}>
               <Ionicons name="log-out-outline" size={24} color={colors.error} />
@@ -254,36 +277,43 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    marginVertical: 16,
+    marginVertical: 12,
+  },
+  menuScroll: {
+    flex: 1,
   },
   menuItems: {
-    gap: 4,
+    gap: 2,
   },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 16,
-    paddingVertical: 14,
+    paddingVertical: 12,
     paddingHorizontal: 8,
     borderRadius: 8,
   },
   menuItemText: {
     fontSize: 16,
   },
+  sectionLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    marginBottom: 8,
+    marginLeft: 8,
+  },
   themeToggle: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 14,
+    paddingVertical: 12,
     paddingHorizontal: 8,
   },
   themeToggleLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 16,
-  },
-  spacer: {
-    flex: 1,
   },
   logoutButton: {
     flexDirection: 'row',
