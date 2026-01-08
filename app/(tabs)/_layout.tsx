@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Tabs } from 'expo-router';
 import { View, Text, Pressable, StyleSheet, Modal, SafeAreaView, Switch, ScrollView, Alert } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, Feather } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'expo-router';
@@ -26,22 +26,22 @@ function DrawerMenu({ visible, onClose }: { visible: boolean; onClose: () => voi
   };
 
   const menuItems = [
-    { icon: 'home-outline', label: 'Home', action: () => navigateTo('/(tabs)') },
-    { icon: 'book-outline', label: 'Dive Logs', action: () => showComingSoon('Dive Logs') },
-    { icon: 'location-outline', label: 'Dive Site', action: () => showComingSoon('Dive Site') },
-    { icon: 'construct-outline', label: 'Gear Profiles', action: () => showComingSoon('Gear Profiles') },
-    { icon: 'people-outline', label: 'Buddies', action: () => showComingSoon('Buddies') },
-    { icon: 'analytics-outline', label: 'Dive Planning', action: () => showComingSoon('Dive Planning') },
-    { icon: 'server-outline', label: 'Gas', action: () => showComingSoon('Gas') },
-    { icon: 'images-outline', label: 'Photos', action: () => showComingSoon('Photos') },
-    { icon: 'airplane-outline', label: 'Trips', action: () => showComingSoon('Trips') },
-    { icon: 'school-outline', label: 'Training', action: () => showComingSoon('Training') },
-    { icon: 'settings-outline', label: 'Settings', action: () => showComingSoon('Settings') },
+    { icon: 'home', label: 'Home', action: () => navigateTo('/(tabs)') },
+    { icon: 'book', label: 'Dive Logs', action: () => showComingSoon('Dive Logs') },
+    { icon: 'map-pin', label: 'Dive Site', action: () => showComingSoon('Dive Site') },
+    { icon: 'tool', label: 'Gear Profiles', action: () => showComingSoon('Gear Profiles') },
+    { icon: 'users', label: 'Buddies', action: () => showComingSoon('Buddies') },
+    { icon: 'activity', label: 'Dive Planning', action: () => showComingSoon('Dive Planning') },
+    { icon: 'database', label: 'Gas', action: () => showComingSoon('Gas') },
+    { icon: 'image', label: 'Photos', action: () => showComingSoon('Photos') },
+    { icon: 'map', label: 'Trips', action: () => showComingSoon('Trips') },
+    { icon: 'award', label: 'Training', action: () => showComingSoon('Training') },
+    { icon: 'settings', label: 'Settings', action: () => showComingSoon('Settings') },
   ];
 
   const adminItems = [
-    { icon: 'people-circle-outline', label: 'User Management', action: () => navigateTo('/(tabs)/admin') },
-    { icon: 'options-outline', label: 'Other Settings', action: () => showComingSoon('Other Settings') },
+    { icon: 'users', label: 'User Management', action: () => navigateTo('/(tabs)/admin') },
+    { icon: 'sliders', label: 'Other Settings', action: () => showComingSoon('Other Settings') },
   ];
 
   return (
@@ -75,7 +75,7 @@ function DrawerMenu({ visible, onClose }: { visible: boolean; onClose: () => voi
               <View style={styles.menuItems}>
                 {menuItems.map((item, index) => (
                   <Pressable key={index} style={styles.menuItem} onPress={item.action}>
-                    <Ionicons name={item.icon as any} size={24} color={colors.primary} />
+                    <Feather name={item.icon as any} size={22} color={colors.primary} />
                     <Text style={[styles.menuItemText, { color: colors.text }]}>{item.label}</Text>
                   </Pressable>
                 ))}
@@ -88,7 +88,7 @@ function DrawerMenu({ visible, onClose }: { visible: boolean; onClose: () => voi
                   <View style={styles.menuItems}>
                     {adminItems.map((item, index) => (
                       <Pressable key={index} style={styles.menuItem} onPress={item.action}>
-                        <Ionicons name={item.icon as any} size={24} color={colors.primary} />
+                        <Feather name={item.icon as any} size={22} color={colors.primary} />
                         <Text style={[styles.menuItemText, { color: colors.text }]}>{item.label}</Text>
                       </Pressable>
                     ))}
@@ -100,7 +100,7 @@ function DrawerMenu({ visible, onClose }: { visible: boolean; onClose: () => voi
 
               <View style={styles.themeToggle}>
                 <View style={styles.themeToggleLeft}>
-                  <Ionicons name={isDark ? 'moon' : 'sunny'} size={24} color={colors.primary} />
+                  <Feather name={isDark ? 'moon' : 'sun'} size={22} color={colors.primary} />
                   <Text style={[styles.menuItemText, { color: colors.text }]}>Dark Mode</Text>
                 </View>
                 <Switch
@@ -113,7 +113,7 @@ function DrawerMenu({ visible, onClose }: { visible: boolean; onClose: () => voi
             </ScrollView>
 
             <Pressable style={[styles.logoutButton, { borderColor: colors.error }]} onPress={handleLogout}>
-              <Ionicons name="log-out-outline" size={24} color={colors.error} />
+              <Feather name="log-out" size={22} color={colors.error} />
               <Text style={[styles.logoutText, { color: colors.error }]}>Logout</Text>
             </Pressable>
           </SafeAreaView>
