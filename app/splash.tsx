@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, Pressable, Animated, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Dimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -11,23 +11,6 @@ export default function SplashScreen() {
   const { colors } = useTheme();
   const { isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
-  const fadeAnim = new Animated.Value(0);
-  const slideAnim = new Animated.Value(30);
-
-  useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 800,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 800,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, []);
 
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
@@ -41,12 +24,7 @@ export default function SplashScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.primary }]}>
-      <Animated.View 
-        style={[
-          styles.content,
-          { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }
-        ]}
-      >
+      <View style={styles.content}>
         <View style={styles.iconContainer}>
           <Ionicons name="water" size={80} color="#FFFFFF" />
         </View>
@@ -75,9 +53,9 @@ export default function SplashScreen() {
             <Text style={styles.featureText}>And much more</Text>
           </View>
         </View>
-      </Animated.View>
+      </View>
 
-      <Animated.View style={[styles.bottomSection, { opacity: fadeAnim }]}>
+      <View style={styles.bottomSection}>
         <Pressable
           style={styles.getStartedButton}
           onPress={handleGetStarted}
@@ -89,7 +67,7 @@ export default function SplashScreen() {
         <Pressable onPress={() => router.push('/(auth)/login' as any)}>
           <Text style={styles.loginLink}>Already have an account? Log in</Text>
         </Pressable>
-      </Animated.View>
+      </View>
     </View>
   );
 }
