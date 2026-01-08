@@ -68,9 +68,10 @@ Uses PostgreSQL with a `users` table:
 - created_at, updated_at (TIMESTAMP)
 
 ## Design
-- Primary color: #0077B6 (ocean blue)
-- Dark theme: Deep navy background (#0D1B2A)
-- Light theme: Clean white (#F8F9FA)
+- Primary color: #E31837 (Nammu-Tech red)
+- Dark theme: Pure black background (#000000)
+- Light theme: Pure white background (#FFFFFF)
+- Color scheme inspired by nammu-tech.com (white, black, red)
 
 ## Recent Changes
 - January 2026: Initial implementation of Erebus dive management app

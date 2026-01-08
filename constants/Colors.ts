@@ -1,41 +1,41 @@
-const primaryColor = '#1F37D6';
-const primaryDark = '#3A4FE0';
-const accentColor = '#5C6FEB';
+const primaryColor = '#E31837';
+const primaryDark = '#FF2E4D';
+const accentColor = '#FF4D6A';
 
 export const Colors = {
   light: {
-    text: '#1A1A2E',
-    textSecondary: '#4A4A6A',
-    background: '#F8F9FA',
+    text: '#000000',
+    textSecondary: '#4A4A4A',
+    background: '#FFFFFF',
     surface: '#FFFFFF',
     primary: primaryColor,
     accent: accentColor,
     tint: primaryColor,
-    icon: '#5A6268',
-    tabIconDefault: '#5A6268',
+    icon: '#333333',
+    tabIconDefault: '#666666',
     tabIconSelected: primaryColor,
     border: '#E0E0E0',
-    error: '#DC3545',
+    error: '#E31837',
     success: '#28A745',
     headerBackground: '#FFFFFF',
-    cardBackground: '#FFFFFF',
+    cardBackground: '#F8F8F8',
   },
   dark: {
-    text: '#E8E8E8',
+    text: '#FFFFFF',
     textSecondary: '#A0A0A0',
-    background: '#0D1B2A',
-    surface: '#1B2838',
+    background: '#000000',
+    surface: '#1A1A1A',
     primary: primaryDark,
     accent: accentColor,
     tint: primaryDark,
-    icon: '#8B9298',
-    tabIconDefault: '#8B9298',
+    icon: '#CCCCCC',
+    tabIconDefault: '#888888',
     tabIconSelected: primaryDark,
-    border: '#2D3E50',
-    error: '#FF6B6B',
+    border: '#333333',
+    error: '#FF4D6A',
     success: '#4CAF50',
-    headerBackground: '#1B2838',
-    cardBackground: '#1B2838',
+    headerBackground: '#1A1A1A',
+    cardBackground: '#1A1A1A',
   },
 };
 

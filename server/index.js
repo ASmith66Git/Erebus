@@ -444,12 +444,12 @@ app.post('/api/admin/users/:id/reset-password', authenticateToken, requireAdmin,
         subject: 'Erebus - Password Reset Request',
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #1F37D6;">Password Reset Request</h2>
+            <h2 style="color: #E31837;">Password Reset Request</h2>
             <p>Hello ${user.first_name || 'there'},</p>
             <p>An administrator has initiated a password reset for your Erebus account.</p>
             <p>Click the button below to set a new password:</p>
             <div style="text-align: center; margin: 30px 0;">
-              <a href="${resetLink}" style="background-color: #1F37D6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Reset Password</a>
+              <a href="${resetLink}" style="background-color: #E31837; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Reset Password</a>
             </div>
             <p>Or copy and paste this link into your browser:</p>
             <p style="color: #666; word-break: break-all;">${resetLink}</p>
