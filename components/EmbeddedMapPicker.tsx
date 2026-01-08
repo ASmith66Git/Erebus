@@ -56,7 +56,7 @@ export default function EmbeddedMapPicker({
   const markerRef = useRef<any>(null);
   const autocompleteRef = useRef<any>(null);
 
-  const apiKey = Constants.expoConfig?.extra?.googleMapsApiKey || process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || '';
+  const apiKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || Constants.expoConfig?.extra?.googleMapsApiKey || '';
 
   useEffect(() => {
     setMarkerPosition({ latitude, longitude });
