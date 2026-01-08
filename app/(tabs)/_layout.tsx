@@ -26,9 +26,15 @@ function DrawerMenu({ visible, onClose }: { visible: boolean; onClose: () => voi
   };
 
   const handleNavigation = (path: string) => {
-    console.log('Navigating to:', path);
-    onClose();
-    router.push(path as any);
+    Alert.alert('Navigation', `Going to ${path}`, [
+      {
+        text: 'OK',
+        onPress: () => {
+          onClose();
+          router.push(path as any);
+        }
+      }
+    ]);
   };
 
   const menuItems = [
