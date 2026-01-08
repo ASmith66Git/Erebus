@@ -149,8 +149,10 @@ Uses PostgreSQL with a `users` table:
   - Added picker dropdowns for Site Type and Water Type
   - Added Difficulty picker dropdown
   - Added tappable 5-star rating component
-  - Added map picker component for coordinates:
-    - Native react-native-maps with draggable marker on mobile
-    - Web fallback with manual coordinate inputs
-    - "View in Google Maps" button for external reference
+  - Embedded Google Maps for coordinate selection:
+    - On web: Google Maps JavaScript API with Places Autocomplete search
+    - On native: react-native-maps with draggable marker
+    - Search for locations by name and drop a pin
+    - Click/tap anywhere on map to set coordinates
     - "Use My Location" button via expo-location
+    - Live coordinate display as you interact with the map
