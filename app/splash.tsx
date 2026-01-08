@@ -14,7 +14,7 @@ export default function SplashScreen() {
 
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
-      router.replace('/(tabs)' as any);
+      router.replace('/' as any);
     }
   }, [isAuthenticated, isLoading]);
 

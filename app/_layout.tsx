@@ -23,7 +23,7 @@ function RootLayoutNav() {
     if (!isAuthenticated && !inAuthGroup && !inSplash) {
       router.replace('/splash' as any);
     } else if (isAuthenticated && (inAuthGroup || inSplash)) {
-      router.replace('/(tabs)' as any);
+      router.replace('/(app)/(tabs)' as any);
     }
   }, [isAuthenticated, isLoading, segments]);
 
@@ -32,7 +32,7 @@ function RootLayoutNav() {
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="splash" options={{ headerShown: false }} />
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="(app)" options={{ headerShown: false }} />
         <Stack.Screen name="dive-site/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="+not-found" />
       </Stack>

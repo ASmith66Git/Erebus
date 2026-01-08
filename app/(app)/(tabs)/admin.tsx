@@ -34,7 +34,7 @@ export default function AdminScreen() {
 
   useEffect(() => {
     if (!isAdmin) {
-      router.replace('/(tabs)' as any);
+      router.replace('/' as any);
       return;
     }
     fetchUsers();

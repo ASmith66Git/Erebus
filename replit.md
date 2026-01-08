@@ -30,27 +30,36 @@ app/                       # Expo Router screens
     _layout.tsx
     login.tsx
     signup.tsx
-  (tabs)/                  # Main app screens
-    _layout.tsx            # Tab layout with header/drawer
-    index.tsx              # Home screen
-    explore.tsx            # Explore dive sites
-    profile.tsx            # User profile
-    dive-sites.tsx         # Dive sites list with search
-    admin.tsx              # Admin panel (admin only)
+  (app)/                   # Main authenticated app (wrapped in Drawer)
+    _layout.tsx            # Drawer layout with custom content
+    (tabs)/                # Tab navigator (nested in drawer)
+      _layout.tsx          # Tab layout with header
+      index.tsx            # Home screen
+      explore.tsx          # Explore dive sites
+      profile.tsx          # User profile
+      dive-sites.tsx       # Dive sites list with search
+      admin.tsx            # Admin panel (admin only)
   dive-site/
     [id].tsx               # Dive site detail/edit screen
   splash.tsx               # Splash/welcome screen
-  _layout.tsx              # Root layout with providers
+  _layout.tsx              # Root layout with Stack navigator
 server/
   index.js                 # Express API server
 contexts/
   AuthContext.tsx          # Authentication context/state
   ThemeContext.tsx         # Theme context (dark/light)
 constants/
-  Colors.ts                # Theme colors (ocean blue)
+  Colors.ts                # Theme colors
 components/                # Reusable React components
 assets/                    # Static assets
 ```
+
+## Navigation Architecture
+- **Root Stack**: Handles auth flow (splash → auth → app)
+- **Drawer** (in `(app)/_layout.tsx`): Slides from left, contains custom menu
+- **Tabs** (in `(app)/(tabs)/_layout.tsx`): Bottom tab bar with Home, Explore, Profile
+- Uses `expo-router/drawer` with `@react-navigation/drawer` for native gestures/animations
+- `GestureHandlerRootView` wraps the drawer for proper gesture handling
 
 ## API Endpoints
 - `POST /api/auth/signup` - Create new user
@@ -128,3 +137,10 @@ Uses PostgreSQL with a `users` table:
   - Inline edit mode with cancel/save buttons
   - Wikipedia REST API integration for wreck site information
   - Navigation integration via hamburger drawer menu
+- January 2026: Navigation refactor to best practices
+  - Migrated from custom overlay drawer to expo-router/drawer
+  - Nested navigation: Stack → Drawer → Tabs
+  - Native swipe gestures on mobile
+  - Smooth slide animations
+  - Proper accessibility with @react-navigation/drawer
+  - GestureHandlerRootView for gesture support
