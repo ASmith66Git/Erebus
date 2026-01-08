@@ -1,6 +1,6 @@
-const primaryColor = '#E31837';
-const primaryDark = '#FF2E4D';
-const accentColor = '#FF4D6A';
+const primaryColor = '#D22F00';
+const primaryDark = '#D22F00';
+const accentColor = '#E84B1C';
 
 export const Colors = {
   light: {
@@ -15,7 +15,7 @@ export const Colors = {
     tabIconDefault: '#666666',
     tabIconSelected: primaryColor,
     border: '#E0E0E0',
-    error: '#E31837',
+    error: '#D22F00',
     success: '#28A745',
     headerBackground: '#FFFFFF',
     cardBackground: '#F8F8F8',

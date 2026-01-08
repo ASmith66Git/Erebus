@@ -68,7 +68,7 @@ Uses PostgreSQL with a `users` table:
 - created_at, updated_at (TIMESTAMP)
 
 ## Design
-- Primary color: #E31837 (Nammu-Tech red)
+- Primary color: #D22F00 (Nammu-Tech red)
 - Dark theme: Pure black background (#000000)
 - Light theme: Pure white background (#FFFFFF)
 - Color scheme inspired by nammu-tech.com (white, black, red)
