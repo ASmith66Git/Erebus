@@ -119,3 +119,8 @@ waitForPort = 8080
 [agent]
 expertMode = true
 integrations = ["resend:1.0.0"]
+
+[userenv]
+
+[userenv.shared]
+EXPO_PUBLIC_GOOGLE_MAPS_API_KEY = "${GOOGLE_MAPS_API_KEY}"

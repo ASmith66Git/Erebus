@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -11,29 +11,12 @@ import {
   Image,
   Dimensions,
   Alert,
-  Modal,
-  Linking,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
-import * as Location from 'expo-location';
-
-let MapView: any = null;
-let Marker: any = null;
-let PROVIDER_GOOGLE: any = null;
-
-if (Platform.OS !== 'web') {
-  try {
-    const RNMaps = require('react-native-maps');
-    MapView = RNMaps.default;
-    Marker = RNMaps.Marker;
-    PROVIDER_GOOGLE = RNMaps.PROVIDER_GOOGLE;
-  } catch (e) {
-    console.log('react-native-maps not available');
-  }
-}
+import EmbeddedMapPicker from '@/components/EmbeddedMapPicker';
 
 const { width } = Dimensions.get('window');
 
@@ -294,8 +277,6 @@ export default function DiveSiteDetailScreen() {
   const { colors } = useTheme();
   const { token } = useAuth();
   const router = useRouter();
-  const mapRef = useRef<MapView>(null);
-
   const [site, setSite] = useState<DiveSite | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState(0);
@@ -304,10 +285,6 @@ export default function DiveSiteDetailScreen() {
   const [saving, setSaving] = useState(false);
   const [wikipediaInfo, setWikipediaInfo] = useState<WikipediaInfo | null>(null);
   const [loadingWiki, setLoadingWiki] = useState(false);
-  const [showMapPicker, setShowMapPicker] = useState(false);
-  const [tempCoords, setTempCoords] = useState<{ latitude: number; longitude: number } | null>(null);
-  const [tempCoordsText, setTempCoordsText] = useState<{ lat: string; lng: string }>({ lat: '', lng: '' });
-  const [gettingLocation, setGettingLocation] = useState(false);
 
   const isNewSite = id === 'new';
 
@@ -420,74 +397,6 @@ export default function DiveSiteDetailScreen() {
     setEditedSite((prev) => ({ ...prev, [field]: value }));
   };
 
-  const openMapPicker = () => {
-    const lat = editedSite.latitude || 0;
-    const lng = editedSite.longitude || 0;
-    setTempCoords({ latitude: lat, longitude: lng });
-    setTempCoordsText({ lat: lat.toString(), lng: lng.toString() });
-    setShowMapPicker(true);
-  };
-
-  const confirmMapLocation = () => {
-    if (Platform.OS === 'web' || !MapView) {
-      const lat = parseFloat(tempCoordsText.lat);
-      const lng = parseFloat(tempCoordsText.lng);
-      if (isNaN(lat) || isNaN(lng)) {
-        Alert.alert('Invalid Coordinates', 'Please enter valid latitude and longitude values.');
-        return;
-      }
-      if (lat < -90 || lat > 90) {
-        Alert.alert('Invalid Latitude', 'Latitude must be between -90 and 90.');
-        return;
-      }
-      if (lng < -180 || lng > 180) {
-        Alert.alert('Invalid Longitude', 'Longitude must be between -180 and 180.');
-        return;
-      }
-      updateField('latitude', lat);
-      updateField('longitude', lng);
-    } else if (tempCoords) {
-      updateField('latitude', tempCoords.latitude);
-      updateField('longitude', tempCoords.longitude);
-    }
-    setShowMapPicker(false);
-  };
-
-  const getCurrentLocation = async () => {
-    setGettingLocation(true);
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission Denied', 'Location permission is required to use this feature.');
-        return;
-      }
-
-      const location = await Location.getCurrentPositionAsync({});
-      const newCoords = {
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
-      };
-      setTempCoords(newCoords);
-      setTempCoordsText({
-        lat: newCoords.latitude.toString(),
-        lng: newCoords.longitude.toString(),
-      });
-      
-      if (mapRef.current) {
-        mapRef.current.animateToRegion({
-          ...newCoords,
-          latitudeDelta: 0.01,
-          longitudeDelta: 0.01,
-        });
-      }
-    } catch (error) {
-      console.error('Error getting location:', error);
-      Alert.alert('Error', 'Could not get your current location.');
-    } finally {
-      setGettingLocation(false);
-    }
-  };
-
   if (loading) {
     return (
       <View style={[styles.container, styles.centered, { backgroundColor: colors.background }]}>
@@ -596,34 +505,16 @@ export default function DiveSiteDetailScreen() {
           </View>
 
           <View style={styles.formGroup}>
-            <Text style={[styles.formLabel, { color: colors.text }]}>Location Coordinates</Text>
-            <View style={styles.coordsContainer}>
-              <View style={styles.coordsInputs}>
-                <TextInput
-                  style={[styles.formInput, styles.coordInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
-                  value={editedSite.latitude?.toString() || ''}
-                  onChangeText={(v) => updateField('latitude', v ? parseFloat(v) : null)}
-                  placeholder="Latitude"
-                  placeholderTextColor={colors.textSecondary}
-                  keyboardType="numeric"
-                />
-                <TextInput
-                  style={[styles.formInput, styles.coordInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
-                  value={editedSite.longitude?.toString() || ''}
-                  onChangeText={(v) => updateField('longitude', v ? parseFloat(v) : null)}
-                  placeholder="Longitude"
-                  placeholderTextColor={colors.textSecondary}
-                  keyboardType="numeric"
-                />
-              </View>
-              <Pressable
-                style={[styles.mapButton, { backgroundColor: colors.primary }]}
-                onPress={openMapPicker}
-              >
-                <Feather name="map-pin" size={20} color="#FFFFFF" />
-                <Text style={styles.mapButtonText}>Pick on Map</Text>
-              </Pressable>
-            </View>
+            <Text style={[styles.formLabel, { color: colors.text }]}>Location</Text>
+            <EmbeddedMapPicker
+              latitude={editedSite.latitude || 0}
+              longitude={editedSite.longitude || 0}
+              onCoordinatesChange={(lat, lng) => {
+                updateField('latitude', lat);
+                updateField('longitude', lng);
+              }}
+              colors={colors}
+            />
           </View>
         </>
       ) : (
@@ -1016,114 +907,6 @@ export default function DiveSiteDetailScreen() {
         {activeTab === 3 && renderNotesTab()}
       </ScrollView>
 
-      <Modal visible={showMapPicker} animationType="slide">
-        <View style={[styles.mapContainer, { backgroundColor: colors.background }]}>
-          <View style={[styles.mapHeader, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-            <Pressable onPress={() => setShowMapPicker(false)} style={styles.mapHeaderButton}>
-              <Feather name="x" size={24} color={colors.text} />
-            </Pressable>
-            <Text style={[styles.mapHeaderTitle, { color: colors.text }]}>Select Location</Text>
-            <Pressable onPress={confirmMapLocation} style={styles.mapHeaderButton}>
-              <Feather name="check" size={24} color={colors.primary} />
-            </Pressable>
-          </View>
-
-          {Platform.OS !== 'web' && MapView ? (
-            <MapView
-              ref={mapRef}
-              style={styles.map}
-              provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
-              initialRegion={{
-                latitude: tempCoords?.latitude || 0,
-                longitude: tempCoords?.longitude || 0,
-                latitudeDelta: 0.05,
-                longitudeDelta: 0.05,
-              }}
-              onPress={(e: any) => {
-                setTempCoords(e.nativeEvent.coordinate);
-              }}
-            >
-              {tempCoords && Marker && (
-                <Marker
-                  coordinate={tempCoords}
-                  draggable
-                  onDragEnd={(e: any) => setTempCoords(e.nativeEvent.coordinate)}
-                />
-              )}
-            </MapView>
-          ) : (
-            <View style={[styles.webMapFallback, { backgroundColor: colors.surface }]}>
-              <Feather name="map" size={64} color={colors.textSecondary} />
-              <Text style={[styles.webMapTitle, { color: colors.text }]}>Map Picker</Text>
-              <Text style={[styles.webMapSubtitle, { color: colors.textSecondary }]}>
-                Use the options below to set coordinates
-              </Text>
-              
-              <View style={styles.webMapInputs}>
-                <View style={styles.webMapInputRow}>
-                  <Text style={[styles.webMapInputLabel, { color: colors.text }]}>Latitude:</Text>
-                  <TextInput
-                    style={[styles.webMapInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
-                    value={tempCoordsText.lat}
-                    onChangeText={(v) => setTempCoordsText(prev => ({ ...prev, lat: v }))}
-                    placeholder="-33.857000"
-                    placeholderTextColor={colors.textSecondary}
-                    keyboardType="numeric"
-                  />
-                </View>
-                <View style={styles.webMapInputRow}>
-                  <Text style={[styles.webMapInputLabel, { color: colors.text }]}>Longitude:</Text>
-                  <TextInput
-                    style={[styles.webMapInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
-                    value={tempCoordsText.lng}
-                    onChangeText={(v) => setTempCoordsText(prev => ({ ...prev, lng: v }))}
-                    placeholder="151.215000"
-                    placeholderTextColor={colors.textSecondary}
-                    keyboardType="numeric"
-                  />
-                </View>
-              </View>
-
-              <Pressable
-                style={[styles.webMapButton, { backgroundColor: colors.primary }]}
-                onPress={() => {
-                  const lat = parseFloat(tempCoordsText.lat) || 0;
-                  const lng = parseFloat(tempCoordsText.lng) || 0;
-                  Linking.openURL(`https://www.google.com/maps?q=${lat},${lng}`);
-                }}
-              >
-                <Feather name="external-link" size={18} color="#FFFFFF" />
-                <Text style={styles.webMapButtonText}>View in Google Maps</Text>
-              </Pressable>
-            </View>
-          )}
-
-          <View style={[styles.mapFooter, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
-            <View style={styles.mapCoordsDisplay}>
-              <Text style={[styles.mapCoordsLabel, { color: colors.textSecondary }]}>Selected Location:</Text>
-              <Text style={[styles.mapCoordsValue, { color: colors.text }]}>
-                {Platform.OS === 'web' || !MapView
-                  ? (tempCoordsText.lat && tempCoordsText.lng ? `${tempCoordsText.lat}, ${tempCoordsText.lng}` : 'Enter coordinates above')
-                  : (tempCoords ? `${tempCoords.latitude.toFixed(6)}, ${tempCoords.longitude.toFixed(6)}` : 'Tap the map to select')}
-              </Text>
-            </View>
-            <Pressable
-              style={[styles.locationButton, { backgroundColor: colors.primary }]}
-              onPress={getCurrentLocation}
-              disabled={gettingLocation}
-            >
-              {gettingLocation ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
-              ) : (
-                <>
-                  <Feather name="navigation" size={18} color="#FFFFFF" />
-                  <Text style={styles.locationButtonText}>Use My Location</Text>
-                </>
-              )}
-            </Pressable>
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 }
