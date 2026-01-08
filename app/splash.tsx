@@ -23,49 +23,49 @@ export default function SplashScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.primary }]}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.content}>
-        <View style={styles.iconContainer}>
-          <Ionicons name="water" size={80} color="#FFFFFF" />
+        <View style={[styles.iconContainer, { backgroundColor: colors.primary + '20' }]}>
+          <Ionicons name="water" size={80} color={colors.primary} />
         </View>
         
-        <Text style={styles.title}>Erebus</Text>
+        <Text style={[styles.title, { color: colors.text }]}>Erebus</Text>
         
-        <Text style={styles.tagline}>
+        <Text style={[styles.tagline, { color: colors.textSecondary }]}>
           Track your dives, Plan your dives,{'\n'}Connect with divers, and much more
         </Text>
 
         <View style={styles.features}>
           <View style={styles.featureItem}>
-            <Ionicons name="analytics-outline" size={24} color="#FFFFFF" />
-            <Text style={styles.featureText}>Track your dives</Text>
+            <Ionicons name="analytics-outline" size={24} color={colors.primary} />
+            <Text style={[styles.featureText, { color: colors.text }]}>Track your dives</Text>
           </View>
           <View style={styles.featureItem}>
-            <Ionicons name="calendar-outline" size={24} color="#FFFFFF" />
-            <Text style={styles.featureText}>Plan your dives</Text>
+            <Ionicons name="calendar-outline" size={24} color={colors.primary} />
+            <Text style={[styles.featureText, { color: colors.text }]}>Plan your dives</Text>
           </View>
           <View style={styles.featureItem}>
-            <Ionicons name="people-outline" size={24} color="#FFFFFF" />
-            <Text style={styles.featureText}>Connect with divers</Text>
+            <Ionicons name="people-outline" size={24} color={colors.primary} />
+            <Text style={[styles.featureText, { color: colors.text }]}>Connect with divers</Text>
           </View>
           <View style={styles.featureItem}>
-            <Ionicons name="ellipsis-horizontal-outline" size={24} color="#FFFFFF" />
-            <Text style={styles.featureText}>And much more</Text>
+            <Ionicons name="ellipsis-horizontal-outline" size={24} color={colors.primary} />
+            <Text style={[styles.featureText, { color: colors.text }]}>And much more</Text>
           </View>
         </View>
       </View>
 
       <View style={styles.bottomSection}>
         <Pressable
-          style={styles.getStartedButton}
+          style={[styles.getStartedButton, { backgroundColor: colors.primary }]}
           onPress={handleGetStarted}
         >
-          <Text style={[styles.getStartedText, { color: colors.primary }]}>Get Started</Text>
-          <Ionicons name="arrow-forward" size={20} color={colors.primary} />
+          <Text style={styles.getStartedText}>Get Started</Text>
+          <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
         </Pressable>
 
         <Pressable onPress={() => router.push('/(auth)/login' as any)}>
-          <Text style={styles.loginLink}>Already have an account? Log in</Text>
+          <Text style={[styles.loginLink, { color: colors.textSecondary }]}>Already have an account? Log in</Text>
         </Pressable>
       </View>
     </View>
@@ -88,7 +88,6 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 24,
@@ -96,13 +95,11 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 48,
     fontWeight: 'bold',
-    color: '#FFFFFF',
     marginBottom: 16,
     letterSpacing: 2,
   },
   tagline: {
     fontSize: 18,
-    color: 'rgba(255, 255, 255, 0.9)',
     textAlign: 'center',
     lineHeight: 28,
     marginBottom: 40,
@@ -117,7 +114,6 @@ const styles = StyleSheet.create({
   },
   featureText: {
     fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.9)',
   },
   bottomSection: {
     alignItems: 'center',
@@ -127,7 +123,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
     paddingVertical: 16,
     paddingHorizontal: 40,
     borderRadius: 30,
@@ -142,9 +137,9 @@ const styles = StyleSheet.create({
   getStartedText: {
     fontSize: 18,
     fontWeight: '600',
+    color: '#FFFFFF',
   },
   loginLink: {
-    color: 'rgba(255, 255, 255, 0.9)',
     fontSize: 14,
   },
 });

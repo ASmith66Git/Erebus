@@ -128,7 +128,7 @@ export default function SignupScreen() {
           <View style={styles.inputGroup}>
             <Text style={[styles.label, { color: colors.text }]}>Email</Text>
             <View style={[styles.inputContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              <Ionicons name="mail-outline" size={20} color={colors.icon} />
+              <Ionicons name="mail-outline" size={20} color={colors.primary} />
               <TextInput
                 style={[styles.input, { color: colors.text }]}
                 placeholder="Enter your email"
@@ -145,7 +145,7 @@ export default function SignupScreen() {
           <View style={styles.inputGroup}>
             <Text style={[styles.label, { color: colors.text }]}>Password</Text>
             <View style={[styles.inputContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              <Ionicons name="lock-closed-outline" size={20} color={colors.icon} />
+              <Ionicons name="lock-closed-outline" size={20} color={colors.primary} />
               <TextInput
                 style={[styles.input, { color: colors.text }]}
                 placeholder="Create a password"
@@ -159,7 +159,7 @@ export default function SignupScreen() {
                 <Ionicons
                   name={showPassword ? 'eye-off-outline' : 'eye-outline'}
                   size={20}
-                  color={colors.icon}
+                  color={colors.primary}
                 />
               </Pressable>
             </View>
@@ -168,7 +168,7 @@ export default function SignupScreen() {
           <View style={styles.inputGroup}>
             <Text style={[styles.label, { color: colors.text }]}>Confirm Password</Text>
             <View style={[styles.inputContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              <Ionicons name="lock-closed-outline" size={20} color={colors.icon} />
+              <Ionicons name="lock-closed-outline" size={20} color={colors.primary} />
               <TextInput
                 style={[styles.input, { color: colors.text }]}
                 placeholder="Confirm your password"
