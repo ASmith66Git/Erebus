@@ -11,6 +11,7 @@ import {
   Image,
   Dimensions,
   Alert,
+  Modal,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
