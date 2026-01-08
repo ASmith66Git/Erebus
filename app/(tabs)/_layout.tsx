@@ -26,9 +26,9 @@ function DrawerMenu({ visible, onClose }: { visible: boolean; onClose: () => voi
   };
 
   const menuItems = [
-    { icon: 'home', label: 'Home', action: () => navigateTo('/(tabs)') },
+    { icon: 'home', label: 'Home', action: () => navigateTo('/') },
     { icon: 'book', label: 'Dive Logs', action: () => showComingSoon('Dive Logs') },
-    { icon: 'map-pin', label: 'Dive Sites', action: () => navigateTo('/(tabs)/dive-sites') },
+    { icon: 'map-pin', label: 'Dive Sites', action: () => navigateTo('/dive-sites') },
     { icon: 'tool', label: 'Gear Profiles', action: () => showComingSoon('Gear Profiles') },
     { icon: 'users', label: 'Buddies', action: () => showComingSoon('Buddies') },
     { icon: 'activity', label: 'Dive Planning', action: () => showComingSoon('Dive Planning') },
@@ -40,7 +40,7 @@ function DrawerMenu({ visible, onClose }: { visible: boolean; onClose: () => voi
   ];
 
   const adminItems = [
-    { icon: 'users', label: 'User Management', action: () => navigateTo('/(tabs)/admin') },
+    { icon: 'users', label: 'User Management', action: () => navigateTo('/admin') },
     { icon: 'sliders', label: 'Other Settings', action: () => showComingSoon('Other Settings') },
   ];
 
