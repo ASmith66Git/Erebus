@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, useWindowDimensions } from 'react-native';
+import { View, Text, StyleSheet, Pressable, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,36 +24,29 @@ export default function SplashScreen() {
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
-      <ScrollView 
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
+      <View style={styles.container}>
         <View style={styles.content}>
           <View style={[styles.iconContainer, { backgroundColor: colors.primary + '20' }]}>
-            <Ionicons name="water" size={64} color={colors.primary} />
+            <Ionicons name="water" size={56} color={colors.primary} />
           </View>
           
           <Text style={[styles.title, { color: colors.text }]}>Erebus</Text>
-          
-          <Text style={[styles.tagline, { color: colors.textSecondary }]}>
-            Track your dives, Plan your dives,{'\n'}Connect with divers, and much more
-          </Text>
 
           <View style={styles.features}>
             <View style={styles.featureItem}>
-              <Ionicons name="analytics-outline" size={22} color={colors.primary} />
+              <Ionicons name="analytics-outline" size={20} color={colors.primary} />
               <Text style={[styles.featureText, { color: colors.text }]}>Track your dives</Text>
             </View>
             <View style={styles.featureItem}>
-              <Ionicons name="calendar-outline" size={22} color={colors.primary} />
+              <Ionicons name="calendar-outline" size={20} color={colors.primary} />
               <Text style={[styles.featureText, { color: colors.text }]}>Plan your dives</Text>
             </View>
             <View style={styles.featureItem}>
-              <Ionicons name="people-outline" size={22} color={colors.primary} />
+              <Ionicons name="people-outline" size={20} color={colors.primary} />
               <Text style={[styles.featureText, { color: colors.text }]}>Connect with divers</Text>
             </View>
             <View style={styles.featureItem}>
-              <Ionicons name="ellipsis-horizontal-outline" size={22} color={colors.primary} />
+              <Ionicons name="ellipsis-horizontal-outline" size={20} color={colors.primary} />
               <Text style={[styles.featureText, { color: colors.text }]}>And much more</Text>
             </View>
           </View>
@@ -75,7 +68,7 @@ export default function SplashScreen() {
             <Text style={[styles.loginLink, { color: colors.textSecondary }]}>Already have an account? Log in</Text>
           </Pressable>
         </View>
-      </ScrollView>
+      </View>
     </SafeAreaView>
   );
 }
@@ -84,41 +77,33 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
   },
-  scrollContent: {
-    flexGrow: 1,
+  container: {
+    flex: 1,
     justifyContent: 'space-between',
-    paddingVertical: 24,
+    paddingVertical: 16,
     paddingHorizontal: 24,
-    minHeight: '100%',
   },
   content: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 20,
   },
   iconContainer: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    width: 88,
+    height: 88,
+    borderRadius: 44,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 16,
   },
   title: {
-    fontSize: 40,
+    fontSize: 36,
     fontWeight: 'bold',
-    marginBottom: 12,
+    marginBottom: 24,
     letterSpacing: 2,
   },
-  tagline: {
-    fontSize: 16,
-    textAlign: 'center',
-    lineHeight: 24,
-    marginBottom: 32,
-  },
   features: {
-    gap: 12,
+    gap: 10,
   },
   featureItem: {
     flexDirection: 'row',
@@ -126,12 +111,12 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   featureText: {
-    fontSize: 15,
+    fontSize: 14,
   },
   bottomSection: {
     alignItems: 'center',
-    gap: 16,
-    paddingTop: 24,
+    gap: 12,
+    paddingBottom: 8,
   },
   getStartedButton: {
     flexDirection: 'row',
