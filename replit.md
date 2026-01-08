@@ -144,3 +144,13 @@ Uses PostgreSQL with a `users` table:
   - Smooth slide animations
   - Proper accessibility with @react-navigation/drawer
   - GestureHandlerRootView for gesture support
+- January 2026: Dive Site Edit Enhancements
+  - Removed filter chip row from dive sites list for cleaner UI
+  - Added picker dropdowns for Site Type and Water Type
+  - Added Difficulty picker dropdown
+  - Added tappable 5-star rating component
+  - Added map picker component for coordinates:
+    - Native react-native-maps with draggable marker on mobile
+    - Web fallback with manual coordinate inputs
+    - "View in Google Maps" button for external reference
+    - "Use My Location" button via expo-location
