@@ -1,10 +1,43 @@
 import React, { useState } from 'react';
 import { Tabs } from 'expo-router';
-import { View, Text, Pressable, TouchableOpacity, StyleSheet, Modal, SafeAreaView, Switch, ScrollView, Alert } from 'react-native';
+import { View, Text, Pressable, TouchableOpacity, StyleSheet, Modal, SafeAreaView, Switch, ScrollView, Alert, Platform } from 'react-native';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'expo-router';
+
+function MenuItem({ icon, label, onPress, colors }: { icon: string; label: string; onPress: () => void; colors: any }) {
+  const [isHovered, setIsHovered] = useState(false);
+  
+  const webProps = Platform.OS === 'web' ? {
+    onClick: onPress,
+    onMouseEnter: () => setIsHovered(true),
+    onMouseLeave: () => setIsHovered(false),
+    style: { cursor: 'pointer' } as any,
+  } : {};
+  
+  return (
+    <View
+      {...webProps}
+      style={[
+        styles.menuItem,
+        isHovered && { backgroundColor: colors.border }
+      ]}
+    >
+      {Platform.OS !== 'web' ? (
+        <TouchableOpacity onPress={onPress} style={styles.menuItemInner} activeOpacity={0.7}>
+          <Feather name={icon as any} size={22} color={colors.primary} />
+          <Text style={[styles.menuItemText, { color: colors.text }]}>{label}</Text>
+        </TouchableOpacity>
+      ) : (
+        <>
+          <Feather name={icon as any} size={22} color={colors.primary} />
+          <Text style={[styles.menuItemText, { color: colors.text }]}>{label}</Text>
+        </>
+      )}
+    </View>
+  );
+}
 
 function DrawerMenu({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const { colors, isDark, toggleTheme } = useTheme();
@@ -80,10 +113,13 @@ function DrawerMenu({ visible, onClose }: { visible: boolean; onClose: () => voi
             <ScrollView style={styles.menuScroll} showsVerticalScrollIndicator={false}>
               <View style={styles.menuItems}>
                 {menuItems.map((item, index) => (
-                  <TouchableOpacity key={index} style={styles.menuItem} onPress={item.action} activeOpacity={0.7}>
-                    <Feather name={item.icon as any} size={22} color={colors.primary} />
-                    <Text style={[styles.menuItemText, { color: colors.text }]}>{item.label}</Text>
-                  </TouchableOpacity>
+                  <MenuItem 
+                    key={index}
+                    icon={item.icon}
+                    label={item.label}
+                    onPress={item.action}
+                    colors={colors}
+                  />
                 ))}
               </View>
 
@@ -93,10 +129,13 @@ function DrawerMenu({ visible, onClose }: { visible: boolean; onClose: () => voi
                   <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Admin</Text>
                   <View style={styles.menuItems}>
                     {adminItems.map((item, index) => (
-                      <TouchableOpacity key={index} style={styles.menuItem} onPress={item.action} activeOpacity={0.7}>
-                        <Feather name={item.icon as any} size={22} color={colors.primary} />
-                        <Text style={[styles.menuItemText, { color: colors.text }]}>{item.label}</Text>
-                      </TouchableOpacity>
+                      <MenuItem 
+                        key={index}
+                        icon={item.icon}
+                        label={item.label}
+                        onPress={item.action}
+                        colors={colors}
+                      />
                     ))}
                   </View>
                 </>
@@ -312,6 +351,12 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 8,
     borderRadius: 8,
+  },
+  menuItemInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    flex: 1,
   },
   menuItemText: {
     fontSize: 16,
