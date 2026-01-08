@@ -56,9 +56,13 @@ interface WikipediaInfo {
 
 function getApiUrl(): string {
   if (Platform.OS === 'web' && typeof window !== 'undefined') {
+    const host = window.location.host;
+    if (host.includes('localhost') || host.includes('127.0.0.1')) {
+      return `${window.location.protocol}//localhost:3001`;
+    }
     return `${window.location.protocol}//${window.location.host}`;
   }
-  return 'https://56fa4c0f-d24e-42d1-a9d5-89c79bbd28d6-00-3nhmxvxgj4wxs.spock.replit.dev';
+  return process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3001';
 }
 
 const tabs = ['Overview', 'Conditions', 'Media', 'Notes'];
