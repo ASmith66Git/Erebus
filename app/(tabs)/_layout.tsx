@@ -25,10 +25,16 @@ function DrawerMenu({ visible, onClose }: { visible: boolean; onClose: () => voi
     Alert.alert('Coming Soon', `${feature} will be available in a future update.`);
   };
 
+  const handleNavigation = (path: string) => {
+    console.log('Navigating to:', path);
+    onClose();
+    router.push(path as any);
+  };
+
   const menuItems = [
-    { icon: 'home', label: 'Home', action: () => { onClose(); router.push('/' as any); } },
+    { icon: 'home', label: 'Home', action: () => handleNavigation('/') },
     { icon: 'book', label: 'Dive Logs', action: () => showComingSoon('Dive Logs') },
-    { icon: 'map-pin', label: 'Dive Sites', action: () => { onClose(); router.push('/dive-sites' as any); } },
+    { icon: 'map-pin', label: 'Dive Sites', action: () => handleNavigation('/dive-sites') },
     { icon: 'tool', label: 'Gear Profiles', action: () => showComingSoon('Gear Profiles') },
     { icon: 'users', label: 'Buddies', action: () => showComingSoon('Buddies') },
     { icon: 'activity', label: 'Dive Planning', action: () => showComingSoon('Dive Planning') },
@@ -40,7 +46,7 @@ function DrawerMenu({ visible, onClose }: { visible: boolean; onClose: () => voi
   ];
 
   const adminItems = [
-    { icon: 'users', label: 'User Management', action: () => { onClose(); router.push('/admin' as any); } },
+    { icon: 'users', label: 'User Management', action: () => handleNavigation('/admin') },
     { icon: 'sliders', label: 'Other Settings', action: () => showComingSoon('Other Settings') },
   ];
 
@@ -197,13 +203,13 @@ export default function TabLayout() {
         <Tabs.Screen
           name="dive-sites"
           options={{
-            href: null,
+            tabBarButton: () => null,
           }}
         />
         <Tabs.Screen
           name="admin"
           options={{
-            href: null,
+            tabBarButton: () => null,
           }}
         />
       </Tabs>
