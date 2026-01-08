@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Tabs } from 'expo-router';
-import { View, Text, Pressable, TouchableOpacity, StyleSheet, Modal, SafeAreaView, Switch, ScrollView, Alert, Platform } from 'react-native';
+import { View, Text, Pressable, TouchableOpacity, StyleSheet, SafeAreaView, Switch, ScrollView, Alert, Platform } from 'react-native';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -82,89 +82,84 @@ function DrawerMenu({ visible, onClose }: { visible: boolean; onClose: () => voi
     { icon: 'sliders', label: 'Other Settings', action: () => showComingSoon('Other Settings') },
   ];
 
+  if (!visible) return null;
+
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent={true}
-      onRequestClose={onClose}
-    >
-      <View style={styles.modalOverlay}>
-        <TouchableOpacity style={styles.backdrop} onPress={onClose} activeOpacity={1} />
-        <View style={[styles.drawer, { backgroundColor: colors.surface }]}>
-          <SafeAreaView style={styles.drawerContent}>
-            <View style={styles.drawerHeader}>
-              <View style={[styles.avatarPlaceholder, { backgroundColor: colors.primary }]}>
-                <Ionicons name="person" size={32} color="#FFFFFF" />
-              </View>
-              <Text style={[styles.userName, { color: colors.text }]}>
-                {user?.firstName || user?.email?.split('@')[0] || 'Diver'}
-              </Text>
-              <Text style={[styles.userEmail, { color: colors.textSecondary }]}>{user?.email}</Text>
-              {isAdmin && (
-                <View style={[styles.adminBadge, { backgroundColor: colors.primary }]}>
-                  <Text style={styles.adminBadgeText}>Admin</Text>
-                </View>
-              )}
+    <View style={styles.drawerOverlay}>
+      <Pressable style={styles.backdrop} onPress={onClose} />
+      <View style={[styles.drawer, { backgroundColor: colors.surface }]}>
+        <SafeAreaView style={styles.drawerContent}>
+          <View style={styles.drawerHeader}>
+            <View style={[styles.avatarPlaceholder, { backgroundColor: colors.primary }]}>
+              <Ionicons name="person" size={32} color="#FFFFFF" />
             </View>
+            <Text style={[styles.userName, { color: colors.text }]}>
+              {user?.firstName || user?.email?.split('@')[0] || 'Diver'}
+            </Text>
+            <Text style={[styles.userEmail, { color: colors.textSecondary }]}>{user?.email}</Text>
+            {isAdmin && (
+              <View style={[styles.adminBadge, { backgroundColor: colors.primary }]}>
+                <Text style={styles.adminBadgeText}>Admin</Text>
+              </View>
+            )}
+          </View>
+
+          <View style={[styles.divider, { backgroundColor: colors.border }]} />
+
+          <ScrollView style={styles.menuScroll} showsVerticalScrollIndicator={false}>
+            <View style={styles.menuItems}>
+              {menuItems.map((item, index) => (
+                <MenuItem 
+                  key={index}
+                  icon={item.icon}
+                  label={item.label}
+                  onPress={item.action}
+                  colors={colors}
+                />
+              ))}
+            </View>
+
+            {isAdmin && (
+              <>
+                <View style={[styles.divider, { backgroundColor: colors.border }]} />
+                <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Admin</Text>
+                <View style={styles.menuItems}>
+                  {adminItems.map((item, index) => (
+                    <MenuItem 
+                      key={index}
+                      icon={item.icon}
+                      label={item.label}
+                      onPress={item.action}
+                      colors={colors}
+                    />
+                  ))}
+                </View>
+              </>
+            )}
 
             <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
-            <ScrollView style={styles.menuScroll} showsVerticalScrollIndicator={false}>
-              <View style={styles.menuItems}>
-                {menuItems.map((item, index) => (
-                  <MenuItem 
-                    key={index}
-                    icon={item.icon}
-                    label={item.label}
-                    onPress={item.action}
-                    colors={colors}
-                  />
-                ))}
+            <View style={styles.themeToggle}>
+              <View style={styles.themeToggleLeft}>
+                <Feather name={isDark ? 'moon' : 'sun'} size={22} color={colors.primary} />
+                <Text style={[styles.menuItemText, { color: colors.text }]}>Dark Mode</Text>
               </View>
+              <Switch
+                value={isDark}
+                onValueChange={toggleTheme}
+                trackColor={{ false: colors.border, true: colors.primary }}
+                thumbColor="#FFFFFF"
+              />
+            </View>
+          </ScrollView>
 
-              {isAdmin && (
-                <>
-                  <View style={[styles.divider, { backgroundColor: colors.border }]} />
-                  <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Admin</Text>
-                  <View style={styles.menuItems}>
-                    {adminItems.map((item, index) => (
-                      <MenuItem 
-                        key={index}
-                        icon={item.icon}
-                        label={item.label}
-                        onPress={item.action}
-                        colors={colors}
-                      />
-                    ))}
-                  </View>
-                </>
-              )}
-
-              <View style={[styles.divider, { backgroundColor: colors.border }]} />
-
-              <View style={styles.themeToggle}>
-                <View style={styles.themeToggleLeft}>
-                  <Feather name={isDark ? 'moon' : 'sun'} size={22} color={colors.primary} />
-                  <Text style={[styles.menuItemText, { color: colors.text }]}>Dark Mode</Text>
-                </View>
-                <Switch
-                  value={isDark}
-                  onValueChange={toggleTheme}
-                  trackColor={{ false: colors.border, true: colors.primary }}
-                  thumbColor="#FFFFFF"
-                />
-              </View>
-            </ScrollView>
-
-            <TouchableOpacity style={[styles.logoutButton, { borderColor: colors.error }]} onPress={handleLogout} activeOpacity={0.7}>
-              <Feather name="log-out" size={22} color={colors.error} />
-              <Text style={[styles.logoutText, { color: colors.error }]}>Logout</Text>
-            </TouchableOpacity>
-          </SafeAreaView>
-        </View>
+          <TouchableOpacity style={[styles.logoutButton, { borderColor: colors.error }]} onPress={handleLogout} activeOpacity={0.7}>
+            <Feather name="log-out" size={22} color={colors.error} />
+            <Text style={[styles.logoutText, { color: colors.error }]}>Logout</Text>
+          </TouchableOpacity>
+        </SafeAreaView>
       </View>
-    </Modal>
+    </View>
   );
 }
 
@@ -282,9 +277,14 @@ const styles = StyleSheet.create({
   headerRight: {
     width: 36,
   },
-  modalOverlay: {
-    flex: 1,
+  drawerOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     flexDirection: 'row',
+    zIndex: 1000,
   },
   backdrop: {
     position: 'absolute',
@@ -293,14 +293,12 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    zIndex: 1,
   },
   drawer: {
     width: '80%',
     maxWidth: 320,
     height: '100%',
-    position: 'relative',
-    zIndex: 2,
+    zIndex: 1001,
   },
   drawerContent: {
     flex: 1,
