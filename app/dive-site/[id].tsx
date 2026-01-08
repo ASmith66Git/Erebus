@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -11,11 +11,29 @@ import {
   Image,
   Dimensions,
   Alert,
+  Modal,
+  Linking,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
+import * as Location from 'expo-location';
+
+let MapView: any = null;
+let Marker: any = null;
+let PROVIDER_GOOGLE: any = null;
+
+if (Platform.OS !== 'web') {
+  try {
+    const RNMaps = require('react-native-maps');
+    MapView = RNMaps.default;
+    Marker = RNMaps.Marker;
+    PROVIDER_GOOGLE = RNMaps.PROVIDER_GOOGLE;
+  } catch (e) {
+    console.log('react-native-maps not available');
+  }
+}
 
 const { width } = Dimensions.get('window');
 
@@ -89,11 +107,194 @@ const difficultyLabels: { [key: string]: string } = {
   technical: 'Technical',
 };
 
+const waterTypeOptions = [
+  { value: 'marine', label: 'Marine (Saltwater)' },
+  { value: 'inland', label: 'Inland (Freshwater)' },
+];
+
+const siteTypeOptions = Object.entries(siteTypeLabels).map(([value, label]) => ({ value, label }));
+const difficultyOptions = Object.entries(difficultyLabels).map(([value, label]) => ({ value, label }));
+
+function StarRating({ rating, onRatingChange, editable, colors }: { rating: number; onRatingChange?: (rating: number) => void; editable: boolean; colors: any }) {
+  return (
+    <View style={starStyles.container}>
+      {[1, 2, 3, 4, 5].map((star) => (
+        <Pressable
+          key={star}
+          onPress={() => editable && onRatingChange?.(star)}
+          disabled={!editable}
+          style={starStyles.star}
+        >
+          <Feather
+            name={star <= rating ? 'star' : 'star'}
+            size={28}
+            color={star <= rating ? '#FFC107' : colors.border}
+            style={{ opacity: star <= rating ? 1 : 0.4 }}
+          />
+        </Pressable>
+      ))}
+      {rating > 0 && (
+        <Text style={[starStyles.ratingText, { color: colors.textSecondary }]}>
+          {rating.toFixed(1)}
+        </Text>
+      )}
+    </View>
+  );
+}
+
+const starStyles = StyleSheet.create({
+  container: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  star: {
+    padding: 2,
+  },
+  ratingText: {
+    marginLeft: 8,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+});
+
+function PickerDropdown({ 
+  label, 
+  value, 
+  options, 
+  onValueChange, 
+  colors,
+  placeholder = 'Select...'
+}: { 
+  label: string;
+  value: string | null | undefined;
+  options: { value: string; label: string }[];
+  onValueChange: (value: string) => void;
+  colors: any;
+  placeholder?: string;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const selectedOption = options.find(opt => opt.value === value);
+
+  return (
+    <View style={pickerStyles.container}>
+      <Text style={[pickerStyles.label, { color: colors.text }]}>{label}</Text>
+      <Pressable
+        style={[pickerStyles.button, { backgroundColor: colors.surface, borderColor: colors.border }]}
+        onPress={() => setIsOpen(true)}
+      >
+        <Text style={[pickerStyles.buttonText, { color: selectedOption ? colors.text : colors.textSecondary }]}>
+          {selectedOption?.label || placeholder}
+        </Text>
+        <Feather name="chevron-down" size={20} color={colors.textSecondary} />
+      </Pressable>
+
+      <Modal visible={isOpen} transparent animationType="fade">
+        <Pressable style={pickerStyles.overlay} onPress={() => setIsOpen(false)}>
+          <View style={[pickerStyles.modal, { backgroundColor: colors.surface }]}>
+            <View style={[pickerStyles.modalHeader, { borderBottomColor: colors.border }]}>
+              <Text style={[pickerStyles.modalTitle, { color: colors.text }]}>{label}</Text>
+              <Pressable onPress={() => setIsOpen(false)}>
+                <Feather name="x" size={24} color={colors.text} />
+              </Pressable>
+            </View>
+            <ScrollView style={pickerStyles.optionsList}>
+              {options.map((option) => (
+                <Pressable
+                  key={option.value}
+                  style={[
+                    pickerStyles.option,
+                    value === option.value && { backgroundColor: colors.primary + '20' }
+                  ]}
+                  onPress={() => {
+                    onValueChange(option.value);
+                    setIsOpen(false);
+                  }}
+                >
+                  <Text style={[
+                    pickerStyles.optionText,
+                    { color: value === option.value ? colors.primary : colors.text }
+                  ]}>
+                    {option.label}
+                  </Text>
+                  {value === option.value && (
+                    <Feather name="check" size={20} color={colors.primary} />
+                  )}
+                </Pressable>
+              ))}
+            </ScrollView>
+          </View>
+        </Pressable>
+      </Modal>
+    </View>
+  );
+}
+
+const pickerStyles = StyleSheet.create({
+  container: {
+    gap: 8,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  button: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  buttonText: {
+    fontSize: 16,
+  },
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  modal: {
+    width: '100%',
+    maxWidth: 400,
+    maxHeight: '70%',
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    borderBottomWidth: 1,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  optionsList: {
+    maxHeight: 300,
+  },
+  option: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+  },
+  optionText: {
+    fontSize: 16,
+  },
+});
+
 export default function DiveSiteDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { colors } = useTheme();
   const { token } = useAuth();
   const router = useRouter();
+  const mapRef = useRef<MapView>(null);
 
   const [site, setSite] = useState<DiveSite | null>(null);
   const [loading, setLoading] = useState(true);
@@ -103,6 +304,10 @@ export default function DiveSiteDetailScreen() {
   const [saving, setSaving] = useState(false);
   const [wikipediaInfo, setWikipediaInfo] = useState<WikipediaInfo | null>(null);
   const [loadingWiki, setLoadingWiki] = useState(false);
+  const [showMapPicker, setShowMapPicker] = useState(false);
+  const [tempCoords, setTempCoords] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [tempCoordsText, setTempCoordsText] = useState<{ lat: string; lng: string }>({ lat: '', lng: '' });
+  const [gettingLocation, setGettingLocation] = useState(false);
 
   const isNewSite = id === 'new';
 
@@ -215,6 +420,74 @@ export default function DiveSiteDetailScreen() {
     setEditedSite((prev) => ({ ...prev, [field]: value }));
   };
 
+  const openMapPicker = () => {
+    const lat = editedSite.latitude || 0;
+    const lng = editedSite.longitude || 0;
+    setTempCoords({ latitude: lat, longitude: lng });
+    setTempCoordsText({ lat: lat.toString(), lng: lng.toString() });
+    setShowMapPicker(true);
+  };
+
+  const confirmMapLocation = () => {
+    if (Platform.OS === 'web' || !MapView) {
+      const lat = parseFloat(tempCoordsText.lat);
+      const lng = parseFloat(tempCoordsText.lng);
+      if (isNaN(lat) || isNaN(lng)) {
+        Alert.alert('Invalid Coordinates', 'Please enter valid latitude and longitude values.');
+        return;
+      }
+      if (lat < -90 || lat > 90) {
+        Alert.alert('Invalid Latitude', 'Latitude must be between -90 and 90.');
+        return;
+      }
+      if (lng < -180 || lng > 180) {
+        Alert.alert('Invalid Longitude', 'Longitude must be between -180 and 180.');
+        return;
+      }
+      updateField('latitude', lat);
+      updateField('longitude', lng);
+    } else if (tempCoords) {
+      updateField('latitude', tempCoords.latitude);
+      updateField('longitude', tempCoords.longitude);
+    }
+    setShowMapPicker(false);
+  };
+
+  const getCurrentLocation = async () => {
+    setGettingLocation(true);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Denied', 'Location permission is required to use this feature.');
+        return;
+      }
+
+      const location = await Location.getCurrentPositionAsync({});
+      const newCoords = {
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+      };
+      setTempCoords(newCoords);
+      setTempCoordsText({
+        lat: newCoords.latitude.toString(),
+        lng: newCoords.longitude.toString(),
+      });
+      
+      if (mapRef.current) {
+        mapRef.current.animateToRegion({
+          ...newCoords,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
+        });
+      }
+    } catch (error) {
+      console.error('Error getting location:', error);
+      Alert.alert('Error', 'Could not get your current location.');
+    } finally {
+      setGettingLocation(false);
+    }
+  };
+
   if (loading) {
     return (
       <View style={[styles.container, styles.centered, { backgroundColor: colors.background }]}>
@@ -254,6 +527,52 @@ export default function DiveSiteDetailScreen() {
           </View>
 
           <View style={styles.formRow}>
+            <View style={{ flex: 1 }}>
+              <PickerDropdown
+                label="Site Type *"
+                value={editedSite.siteType}
+                options={siteTypeOptions}
+                onValueChange={(v) => updateField('siteType', v)}
+                colors={colors}
+                placeholder="Select type..."
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <PickerDropdown
+                label="Water Type *"
+                value={editedSite.waterType}
+                options={waterTypeOptions}
+                onValueChange={(v) => updateField('waterType', v)}
+                colors={colors}
+                placeholder="Select water type..."
+              />
+            </View>
+          </View>
+
+          <View style={styles.formRow}>
+            <View style={{ flex: 1 }}>
+              <PickerDropdown
+                label="Difficulty"
+                value={editedSite.difficulty}
+                options={difficultyOptions}
+                onValueChange={(v) => updateField('difficulty', v)}
+                colors={colors}
+                placeholder="Select difficulty..."
+              />
+            </View>
+          </View>
+
+          <View style={styles.formGroup}>
+            <Text style={[styles.formLabel, { color: colors.text }]}>Rating</Text>
+            <StarRating
+              rating={editedSite.ratingAvg || 0}
+              onRatingChange={(rating) => updateField('ratingAvg', rating)}
+              editable={true}
+              colors={colors}
+            />
+          </View>
+
+          <View style={styles.formRow}>
             <View style={[styles.formGroup, { flex: 1 }]}>
               <Text style={[styles.formLabel, { color: colors.text }]}>Country</Text>
               <TextInput
@@ -276,28 +595,34 @@ export default function DiveSiteDetailScreen() {
             </View>
           </View>
 
-          <View style={styles.formRow}>
-            <View style={[styles.formGroup, { flex: 1 }]}>
-              <Text style={[styles.formLabel, { color: colors.text }]}>Latitude</Text>
-              <TextInput
-                style={[styles.formInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
-                value={editedSite.latitude?.toString() || ''}
-                onChangeText={(v) => updateField('latitude', v ? parseFloat(v) : null)}
-                placeholder="0.000000"
-                placeholderTextColor={colors.textSecondary}
-                keyboardType="numeric"
-              />
-            </View>
-            <View style={[styles.formGroup, { flex: 1 }]}>
-              <Text style={[styles.formLabel, { color: colors.text }]}>Longitude</Text>
-              <TextInput
-                style={[styles.formInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
-                value={editedSite.longitude?.toString() || ''}
-                onChangeText={(v) => updateField('longitude', v ? parseFloat(v) : null)}
-                placeholder="0.000000"
-                placeholderTextColor={colors.textSecondary}
-                keyboardType="numeric"
-              />
+          <View style={styles.formGroup}>
+            <Text style={[styles.formLabel, { color: colors.text }]}>Location Coordinates</Text>
+            <View style={styles.coordsContainer}>
+              <View style={styles.coordsInputs}>
+                <TextInput
+                  style={[styles.formInput, styles.coordInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
+                  value={editedSite.latitude?.toString() || ''}
+                  onChangeText={(v) => updateField('latitude', v ? parseFloat(v) : null)}
+                  placeholder="Latitude"
+                  placeholderTextColor={colors.textSecondary}
+                  keyboardType="numeric"
+                />
+                <TextInput
+                  style={[styles.formInput, styles.coordInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
+                  value={editedSite.longitude?.toString() || ''}
+                  onChangeText={(v) => updateField('longitude', v ? parseFloat(v) : null)}
+                  placeholder="Longitude"
+                  placeholderTextColor={colors.textSecondary}
+                  keyboardType="numeric"
+                />
+              </View>
+              <Pressable
+                style={[styles.mapButton, { backgroundColor: colors.primary }]}
+                onPress={openMapPicker}
+              >
+                <Feather name="map-pin" size={20} color="#FFFFFF" />
+                <Text style={styles.mapButtonText}>Pick on Map</Text>
+              </Pressable>
             </View>
           </View>
         </>
@@ -690,6 +1015,115 @@ export default function DiveSiteDetailScreen() {
         {activeTab === 2 && renderMediaTab()}
         {activeTab === 3 && renderNotesTab()}
       </ScrollView>
+
+      <Modal visible={showMapPicker} animationType="slide">
+        <View style={[styles.mapContainer, { backgroundColor: colors.background }]}>
+          <View style={[styles.mapHeader, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+            <Pressable onPress={() => setShowMapPicker(false)} style={styles.mapHeaderButton}>
+              <Feather name="x" size={24} color={colors.text} />
+            </Pressable>
+            <Text style={[styles.mapHeaderTitle, { color: colors.text }]}>Select Location</Text>
+            <Pressable onPress={confirmMapLocation} style={styles.mapHeaderButton}>
+              <Feather name="check" size={24} color={colors.primary} />
+            </Pressable>
+          </View>
+
+          {Platform.OS !== 'web' && MapView ? (
+            <MapView
+              ref={mapRef}
+              style={styles.map}
+              provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
+              initialRegion={{
+                latitude: tempCoords?.latitude || 0,
+                longitude: tempCoords?.longitude || 0,
+                latitudeDelta: 0.05,
+                longitudeDelta: 0.05,
+              }}
+              onPress={(e: any) => {
+                setTempCoords(e.nativeEvent.coordinate);
+              }}
+            >
+              {tempCoords && Marker && (
+                <Marker
+                  coordinate={tempCoords}
+                  draggable
+                  onDragEnd={(e: any) => setTempCoords(e.nativeEvent.coordinate)}
+                />
+              )}
+            </MapView>
+          ) : (
+            <View style={[styles.webMapFallback, { backgroundColor: colors.surface }]}>
+              <Feather name="map" size={64} color={colors.textSecondary} />
+              <Text style={[styles.webMapTitle, { color: colors.text }]}>Map Picker</Text>
+              <Text style={[styles.webMapSubtitle, { color: colors.textSecondary }]}>
+                Use the options below to set coordinates
+              </Text>
+              
+              <View style={styles.webMapInputs}>
+                <View style={styles.webMapInputRow}>
+                  <Text style={[styles.webMapInputLabel, { color: colors.text }]}>Latitude:</Text>
+                  <TextInput
+                    style={[styles.webMapInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
+                    value={tempCoordsText.lat}
+                    onChangeText={(v) => setTempCoordsText(prev => ({ ...prev, lat: v }))}
+                    placeholder="-33.857000"
+                    placeholderTextColor={colors.textSecondary}
+                    keyboardType="numeric"
+                  />
+                </View>
+                <View style={styles.webMapInputRow}>
+                  <Text style={[styles.webMapInputLabel, { color: colors.text }]}>Longitude:</Text>
+                  <TextInput
+                    style={[styles.webMapInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
+                    value={tempCoordsText.lng}
+                    onChangeText={(v) => setTempCoordsText(prev => ({ ...prev, lng: v }))}
+                    placeholder="151.215000"
+                    placeholderTextColor={colors.textSecondary}
+                    keyboardType="numeric"
+                  />
+                </View>
+              </View>
+
+              <Pressable
+                style={[styles.webMapButton, { backgroundColor: colors.primary }]}
+                onPress={() => {
+                  const lat = parseFloat(tempCoordsText.lat) || 0;
+                  const lng = parseFloat(tempCoordsText.lng) || 0;
+                  Linking.openURL(`https://www.google.com/maps?q=${lat},${lng}`);
+                }}
+              >
+                <Feather name="external-link" size={18} color="#FFFFFF" />
+                <Text style={styles.webMapButtonText}>View in Google Maps</Text>
+              </Pressable>
+            </View>
+          )}
+
+          <View style={[styles.mapFooter, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
+            <View style={styles.mapCoordsDisplay}>
+              <Text style={[styles.mapCoordsLabel, { color: colors.textSecondary }]}>Selected Location:</Text>
+              <Text style={[styles.mapCoordsValue, { color: colors.text }]}>
+                {Platform.OS === 'web' || !MapView
+                  ? (tempCoordsText.lat && tempCoordsText.lng ? `${tempCoordsText.lat}, ${tempCoordsText.lng}` : 'Enter coordinates above')
+                  : (tempCoords ? `${tempCoords.latitude.toFixed(6)}, ${tempCoords.longitude.toFixed(6)}` : 'Tap the map to select')}
+              </Text>
+            </View>
+            <Pressable
+              style={[styles.locationButton, { backgroundColor: colors.primary }]}
+              onPress={getCurrentLocation}
+              disabled={gettingLocation}
+            >
+              {gettingLocation ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <>
+                  <Feather name="navigation" size={18} color="#FFFFFF" />
+                  <Text style={styles.locationButtonText}>Use My Location</Text>
+                </>
+              )}
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -922,5 +1356,130 @@ const styles = StyleSheet.create({
   formRow: {
     flexDirection: 'row',
     gap: 12,
+  },
+  coordsContainer: {
+    gap: 12,
+  },
+  coordsInputs: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  coordInput: {
+    flex: 1,
+  },
+  mapButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    gap: 8,
+  },
+  mapButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  mapContainer: {
+    flex: 1,
+  },
+  mapHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: 50,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+  },
+  mapHeaderButton: {
+    padding: 8,
+  },
+  mapHeaderTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  map: {
+    flex: 1,
+  },
+  mapFooter: {
+    padding: 16,
+    gap: 12,
+    borderTopWidth: 1,
+  },
+  mapCoordsDisplay: {
+    gap: 4,
+  },
+  mapCoordsLabel: {
+    fontSize: 12,
+  },
+  mapCoordsValue: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  locationButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    gap: 8,
+  },
+  locationButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  webMapFallback: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+    gap: 16,
+  },
+  webMapTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+  },
+  webMapSubtitle: {
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  webMapInputs: {
+    width: '100%',
+    maxWidth: 300,
+    gap: 12,
+    marginTop: 16,
+  },
+  webMapInputRow: {
+    gap: 4,
+  },
+  webMapInputLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  webMapInput: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    fontSize: 16,
+  },
+  webMapButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    gap: 8,
+    marginTop: 16,
+  },
+  webMapButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
