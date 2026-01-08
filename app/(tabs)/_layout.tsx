@@ -50,23 +50,23 @@ function DrawerMenu({ visible, onClose }: { visible: boolean; onClose: () => voi
 
             <View style={styles.menuItems}>
               <Pressable style={styles.menuItem} onPress={() => navigateTo('/(tabs)')}>
-                <Ionicons name="home-outline" size={24} color={colors.text} />
+                <Ionicons name="home-outline" size={24} color={colors.primary} />
                 <Text style={[styles.menuItemText, { color: colors.text }]}>Home</Text>
               </Pressable>
 
               <Pressable style={styles.menuItem} onPress={() => navigateTo('/(tabs)/explore')}>
-                <Ionicons name="compass-outline" size={24} color={colors.text} />
+                <Ionicons name="compass-outline" size={24} color={colors.primary} />
                 <Text style={[styles.menuItemText, { color: colors.text }]}>Explore</Text>
               </Pressable>
 
               <Pressable style={styles.menuItem} onPress={() => navigateTo('/(tabs)/profile')}>
-                <Ionicons name="person-outline" size={24} color={colors.text} />
+                <Ionicons name="person-outline" size={24} color={colors.primary} />
                 <Text style={[styles.menuItemText, { color: colors.text }]}>Profile</Text>
               </Pressable>
 
               {isAdmin && (
                 <Pressable style={styles.menuItem} onPress={() => navigateTo('/(tabs)/admin')}>
-                  <Ionicons name="settings-outline" size={24} color={colors.text} />
+                  <Ionicons name="settings-outline" size={24} color={colors.primary} />
                   <Text style={[styles.menuItemText, { color: colors.text }]}>Admin Panel</Text>
                 </Pressable>
               )}
@@ -76,7 +76,7 @@ function DrawerMenu({ visible, onClose }: { visible: boolean; onClose: () => voi
 
             <View style={styles.themeToggle}>
               <View style={styles.themeToggleLeft}>
-                <Ionicons name={isDark ? 'moon' : 'sunny'} size={24} color={colors.text} />
+                <Ionicons name={isDark ? 'moon' : 'sunny'} size={24} color={colors.primary} />
                 <Text style={[styles.menuItemText, { color: colors.text }]}>Dark Mode</Text>
               </View>
               <Switch
@@ -128,8 +128,8 @@ export default function TabLayout() {
       
       <Tabs
         screenOptions={{
-          tabBarActiveTintColor: colors.primary,
-          tabBarInactiveTintColor: colors.tabIconDefault,
+          tabBarActiveTintColor: colors.text,
+          tabBarInactiveTintColor: colors.textSecondary,
           headerShown: false,
           tabBarStyle: {
             backgroundColor: colors.surface,
@@ -148,8 +148,8 @@ export default function TabLayout() {
           name="index"
           options={{
             title: 'Home',
-            tabBarIcon: ({ color, focused }) => (
-              <Ionicons name={focused ? 'home' : 'home-outline'} size={24} color={color} />
+            tabBarIcon: ({ focused }) => (
+              <Ionicons name={focused ? 'home' : 'home-outline'} size={24} color={colors.primary} />
             ),
           }}
         />
@@ -157,8 +157,8 @@ export default function TabLayout() {
           name="explore"
           options={{
             title: 'Explore',
-            tabBarIcon: ({ color, focused }) => (
-              <Ionicons name={focused ? 'compass' : 'compass-outline'} size={24} color={color} />
+            tabBarIcon: ({ focused }) => (
+              <Ionicons name={focused ? 'compass' : 'compass-outline'} size={24} color={colors.primary} />
             ),
           }}
         />
@@ -166,8 +166,8 @@ export default function TabLayout() {
           name="profile"
           options={{
             title: 'Profile',
-            tabBarIcon: ({ color, focused }) => (
-              <Ionicons name={focused ? 'person' : 'person-outline'} size={24} color={color} />
+            tabBarIcon: ({ focused }) => (
+              <Ionicons name={focused ? 'person' : 'person-outline'} size={24} color={colors.primary} />
             ),
           }}
         />
