@@ -1,0 +1,477 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  FlatList,
+  Pressable,
+  StyleSheet,
+  ActivityIndicator,
+  RefreshControl,
+  Platform,
+  Image,
+} from 'react-native';
+import { useRouter } from 'expo-router';
+import { Feather } from '@expo/vector-icons';
+import { useTheme } from '@/contexts/ThemeContext';
+import { useAuth } from '@/contexts/AuthContext';
+
+interface DiveSite {
+  id: number;
+  name: string;
+  description: string | null;
+  siteType: string;
+  latitude: number | null;
+  longitude: number | null;
+  country: string | null;
+  region: string | null;
+  waterType: string;
+  depthMin: number | null;
+  depthMax: number | null;
+  difficulty: string;
+  imageUrl: string | null;
+  ratingAvg: number;
+  ratingsCount: number;
+}
+
+function getApiUrl(): string {
+  if (Platform.OS === 'web' && typeof window !== 'undefined') {
+    return `${window.location.protocol}//${window.location.host}`;
+  }
+  return 'https://56fa4c0f-d24e-42d1-a9d5-89c79bbd28d6-00-3nhmxvxgj4wxs.spock.replit.dev';
+}
+
+const siteTypeIcons: { [key: string]: string } = {
+  reef: 'sunrise',
+  wreck: 'anchor',
+  cave: 'moon',
+  wall: 'sidebar',
+  drift: 'wind',
+  shore: 'sun',
+  quarry: 'square',
+  lake: 'droplet',
+  river: 'navigation',
+  cenote: 'circle',
+  artificial: 'box',
+  other: 'map-pin',
+};
+
+const difficultyColors: { [key: string]: string } = {
+  beginner: '#28A745',
+  intermediate: '#FFC107',
+  advanced: '#FD7E14',
+  technical: '#DC3545',
+};
+
+function DiveSiteCard({ site, onPress, colors }: { site: DiveSite; onPress: () => void; colors: any }) {
+  const iconName = siteTypeIcons[site.siteType] || 'map-pin';
+  const difficultyColor = difficultyColors[site.difficulty] || colors.textSecondary;
+
+  return (
+    <Pressable
+      style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}
+      onPress={onPress}
+    >
+      <View style={styles.cardImageContainer}>
+        {site.imageUrl ? (
+          <Image source={{ uri: site.imageUrl }} style={styles.cardImage} resizeMode="cover" />
+        ) : (
+          <View style={[styles.cardImagePlaceholder, { backgroundColor: colors.border }]}>
+            <Feather name={iconName as any} size={32} color={colors.primary} />
+          </View>
+        )}
+      </View>
+      <View style={styles.cardContent}>
+        <View style={styles.cardHeader}>
+          <Text style={[styles.cardTitle, { color: colors.text }]} numberOfLines={1}>
+            {site.name}
+          </Text>
+          <View style={[styles.typeBadge, { backgroundColor: colors.primary + '20' }]}>
+            <Feather name={iconName as any} size={12} color={colors.primary} />
+            <Text style={[styles.typeBadgeText, { color: colors.primary }]}>
+              {site.siteType.charAt(0).toUpperCase() + site.siteType.slice(1)}
+            </Text>
+          </View>
+        </View>
+
+        {(site.country || site.region) && (
+          <View style={styles.locationRow}>
+            <Feather name="map-pin" size={14} color={colors.textSecondary} />
+            <Text style={[styles.locationText, { color: colors.textSecondary }]} numberOfLines={1}>
+              {[site.region, site.country].filter(Boolean).join(', ')}
+            </Text>
+          </View>
+        )}
+
+        <View style={styles.cardStats}>
+          {site.depthMax && (
+            <View style={styles.statItem}>
+              <Feather name="arrow-down" size={14} color={colors.textSecondary} />
+              <Text style={[styles.statText, { color: colors.textSecondary }]}>
+                {site.depthMax}m
+              </Text>
+            </View>
+          )}
+          <View style={styles.statItem}>
+            <View style={[styles.difficultyDot, { backgroundColor: difficultyColor }]} />
+            <Text style={[styles.statText, { color: colors.textSecondary }]}>
+              {site.difficulty.charAt(0).toUpperCase() + site.difficulty.slice(1)}
+            </Text>
+          </View>
+          {site.ratingAvg > 0 && (
+            <View style={styles.statItem}>
+              <Feather name="star" size={14} color="#FFC107" />
+              <Text style={[styles.statText, { color: colors.textSecondary }]}>
+                {site.ratingAvg.toFixed(1)}
+              </Text>
+            </View>
+          )}
+        </View>
+      </View>
+      <Feather name="chevron-right" size={20} color={colors.textSecondary} />
+    </Pressable>
+  );
+}
+
+export default function DiveSitesScreen() {
+  const { colors } = useTheme();
+  const { token } = useAuth();
+  const router = useRouter();
+
+  const [sites, setSites] = useState<DiveSite[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedType, setSelectedType] = useState<string | null>(null);
+
+  const siteTypes = ['reef', 'wreck', 'cave', 'wall', 'drift', 'shore', 'quarry', 'lake'];
+
+  const fetchSites = useCallback(async () => {
+    if (!token) return;
+
+    try {
+      const params = new URLSearchParams();
+      if (searchQuery) params.append('search', searchQuery);
+      if (selectedType) params.append('type', selectedType);
+
+      const response = await fetch(`${getApiUrl()}/api/dive-sites?${params}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setSites(data.sites);
+      }
+    } catch (error) {
+      console.error('Error fetching dive sites:', error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [token, searchQuery, selectedType]);
+
+  useEffect(() => {
+    fetchSites();
+  }, [fetchSites]);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchSites();
+  };
+
+  const handleSitePress = (site: DiveSite) => {
+    router.push(`/dive-site/${site.id}` as any);
+  };
+
+  const handleAddSite = () => {
+    router.push('/dive-site/new' as any);
+  };
+
+  const renderEmptyState = () => (
+    <View style={styles.emptyState}>
+      <Feather name="map-pin" size={64} color={colors.textSecondary} />
+      <Text style={[styles.emptyTitle, { color: colors.text }]}>No Dive Sites Found</Text>
+      <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
+        {searchQuery || selectedType
+          ? 'Try adjusting your search or filters'
+          : 'Add your first dive site to get started'}
+      </Text>
+      {!searchQuery && !selectedType && (
+        <Pressable
+          style={[styles.addButton, { backgroundColor: colors.primary }]}
+          onPress={handleAddSite}
+        >
+          <Feather name="plus" size={20} color="#FFFFFF" />
+          <Text style={styles.addButtonText}>Add Dive Site</Text>
+        </Pressable>
+      )}
+    </View>
+  );
+
+  return (
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={styles.searchContainer}>
+        <View style={[styles.searchBar, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Feather name="search" size={20} color={colors.textSecondary} />
+          <TextInput
+            style={[styles.searchInput, { color: colors.text }]}
+            placeholder="Search dive sites..."
+            placeholderTextColor={colors.textSecondary}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+          {searchQuery ? (
+            <Pressable onPress={() => setSearchQuery('')}>
+              <Feather name="x" size={20} color={colors.textSecondary} />
+            </Pressable>
+          ) : null}
+        </View>
+      </View>
+
+      <View style={styles.filterContainer}>
+        <FlatList
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          data={siteTypes}
+          keyExtractor={(item) => item}
+          contentContainerStyle={styles.filterList}
+          renderItem={({ item }) => (
+            <Pressable
+              style={[
+                styles.filterChip,
+                {
+                  backgroundColor: selectedType === item ? colors.primary : colors.surface,
+                  borderColor: selectedType === item ? colors.primary : colors.border,
+                },
+              ]}
+              onPress={() => setSelectedType(selectedType === item ? null : item)}
+            >
+              <Feather
+                name={siteTypeIcons[item] as any}
+                size={14}
+                color={selectedType === item ? '#FFFFFF' : colors.text}
+              />
+              <Text
+                style={[
+                  styles.filterChipText,
+                  { color: selectedType === item ? '#FFFFFF' : colors.text },
+                ]}
+              >
+                {item.charAt(0).toUpperCase() + item.slice(1)}
+              </Text>
+            </Pressable>
+          )}
+        />
+      </View>
+
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      ) : (
+        <FlatList
+          data={sites}
+          keyExtractor={(item) => item.id.toString()}
+          renderItem={({ item }) => (
+            <DiveSiteCard site={item} onPress={() => handleSitePress(item)} colors={colors} />
+          )}
+          contentContainerStyle={styles.listContent}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+          }
+          ListEmptyComponent={renderEmptyState}
+        />
+      )}
+
+      <Pressable
+        style={[styles.fab, { backgroundColor: colors.primary }]}
+        onPress={handleAddSite}
+      >
+        <Feather name="plus" size={24} color="#FFFFFF" />
+      </Pressable>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  searchContainer: {
+    padding: 16,
+    paddingBottom: 8,
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 1,
+    gap: 12,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    height: '100%',
+  },
+  filterContainer: {
+    paddingBottom: 8,
+  },
+  filterList: {
+    paddingHorizontal: 16,
+    gap: 8,
+  },
+  filterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    gap: 6,
+    marginRight: 8,
+  },
+  filterChipText: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  listContent: {
+    padding: 16,
+    paddingTop: 8,
+    flexGrow: 1,
+  },
+  card: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 12,
+  },
+  cardImageContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  cardImage: {
+    width: '100%',
+    height: '100%',
+  },
+  cardImagePlaceholder: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cardContent: {
+    flex: 1,
+    marginLeft: 12,
+    gap: 4,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  cardTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    flex: 1,
+  },
+  typeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4,
+  },
+  typeBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  locationText: {
+    fontSize: 13,
+    flex: 1,
+  },
+  cardStats: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 4,
+  },
+  statItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  statText: {
+    fontSize: 12,
+  },
+  difficultyDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  emptyState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+    paddingTop: 64,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    marginTop: 16,
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginTop: 8,
+  },
+  addButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 24,
+    gap: 8,
+    marginTop: 24,
+  },
+  addButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  fab: {
+    position: 'absolute',
+    right: 20,
+    bottom: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+  },
+});

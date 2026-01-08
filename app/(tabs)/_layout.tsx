@@ -28,7 +28,7 @@ function DrawerMenu({ visible, onClose }: { visible: boolean; onClose: () => voi
   const menuItems = [
     { icon: 'home', label: 'Home', action: () => navigateTo('/(tabs)') },
     { icon: 'book', label: 'Dive Logs', action: () => showComingSoon('Dive Logs') },
-    { icon: 'map-pin', label: 'Dive Site', action: () => showComingSoon('Dive Site') },
+    { icon: 'map-pin', label: 'Dive Sites', action: () => navigateTo('/(tabs)/dive-sites') },
     { icon: 'tool', label: 'Gear Profiles', action: () => showComingSoon('Gear Profiles') },
     { icon: 'users', label: 'Buddies', action: () => showComingSoon('Buddies') },
     { icon: 'activity', label: 'Dive Planning', action: () => showComingSoon('Dive Planning') },
@@ -192,6 +192,12 @@ export default function TabLayout() {
             tabBarIcon: ({ focused }) => (
               <Ionicons name={focused ? 'person' : 'person-outline'} size={24} color={colors.primary} />
             ),
+          }}
+        />
+        <Tabs.Screen
+          name="dive-sites"
+          options={{
+            href: null,
           }}
         />
         <Tabs.Screen
