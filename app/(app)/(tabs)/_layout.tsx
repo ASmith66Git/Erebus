@@ -6,7 +6,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { DrawerActions } from '@react-navigation/native';
 
 function CustomHeader() {
-  const { colors } = useTheme();
+  const { colors, isDark, toggleTheme } = useTheme();
   const navigation = useNavigation();
 
   const openDrawer = () => {
@@ -22,7 +22,9 @@ function CustomHeader() {
         <Ionicons name="water" size={24} color={colors.primary} />
         <Text style={[styles.headerTitle, { color: colors.text }]}>Erebus</Text>
       </View>
-      <View style={styles.headerRight} />
+      <Pressable onPress={toggleTheme} style={styles.themeButton}>
+        <Ionicons name={isDark ? 'sunny' : 'moon'} size={24} color={colors.text} />
+      </Pressable>
     </SafeAreaView>
   );
 }
@@ -120,5 +122,8 @@ const styles = StyleSheet.create({
   },
   headerRight: {
     width: 36,
+  },
+  themeButton: {
+    padding: 4,
   },
 });
