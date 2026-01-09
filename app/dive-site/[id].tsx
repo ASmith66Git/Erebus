@@ -521,6 +521,12 @@ export default function DiveSiteDetailScreen() {
         </>
       ) : (
         <>
+          {displaySite?.ratingAvg !== undefined && displaySite.ratingAvg > 0 && (
+            <View style={styles.ratingRow}>
+              <StarRating rating={displaySite.ratingAvg} editable={false} colors={colors} />
+            </View>
+          )}
+
           {displaySite?.description && (
             <Text style={[styles.descriptionCompact, { color: colors.textSecondary }]}>
               {displaySite.description}
@@ -564,9 +570,9 @@ export default function DiveSiteDetailScreen() {
                   <View style={styles.detailRowIcon}>
                     <Feather name="arrow-down" size={18} color={colors.primary} />
                   </View>
-                  <Text style={[styles.detailRowLabel, { color: colors.textSecondary }]}>Depth</Text>
+                  <Text style={[styles.detailRowLabel, { color: colors.textSecondary }]}>Max Depth</Text>
                   <Text style={[styles.detailRowValue, { color: colors.text }]}>
-                    {displaySite.depthMin ? `${displaySite.depthMin}-` : ''}{displaySite.depthMax}m
+                    {displaySite.depthMax}m
                   </Text>
                 </View>
               </>
@@ -1035,6 +1041,9 @@ const styles = StyleSheet.create({
   detailValue: {
     fontSize: 16,
     fontWeight: '600',
+  },
+  ratingRow: {
+    marginBottom: 12,
   },
   descriptionCompact: {
     fontSize: 14,
