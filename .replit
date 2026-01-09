@@ -13,10 +13,6 @@ localPort = 5000
 externalPort = 80
 
 [[ports]]
-localPort = 8080
-externalPort = 8080
-
-[[ports]]
 localPort = 8081
 externalPort = 8081
 
@@ -89,7 +85,7 @@ outputType = "webview"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "node server/web.js"
+args = "npx expo start --web --port 5000 --clear"
 waitForPort = 5000
 
 [[workflows.workflow]]
