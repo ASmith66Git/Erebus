@@ -149,9 +149,10 @@ function getApiUrl(): string {
     if (host.includes('localhost') || host.includes('127.0.0.1')) {
       return `${window.location.protocol}//localhost:3001`;
     }
-    return `${window.location.protocol}//${window.location.host}`;
+    const baseHost = host.replace(/:.*$/, '');
+    return `${window.location.protocol}//${baseHost}:3001`;
   }
-  return process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3001';
+  return 'https://56fa4c0f-d24e-42d1-a9d5-89c79bbd28d6-00-3nhmxvxgj4wxs.spock.replit.dev:3001';
 }
 
 const tabs = ['Overview', 'Conditions', 'Media', 'Notes'];

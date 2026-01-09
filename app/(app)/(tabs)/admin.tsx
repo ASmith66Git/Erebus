@@ -17,9 +17,14 @@ interface UserData {
 
 function getApiUrl(): string {
   if (Platform.OS === 'web' && typeof window !== 'undefined') {
-    return `${window.location.protocol}//${window.location.host}`;
+    const host = window.location.host;
+    if (host.includes('localhost') || host.includes('127.0.0.1')) {
+      return `${window.location.protocol}//localhost:3001`;
+    }
+    const baseHost = host.replace(/:.*$/, '');
+    return `${window.location.protocol}//${baseHost}:3001`;
   }
-  return 'https://56fa4c0f-d24e-42d1-a9d5-89c79bbd28d6-00-3nhmxvxgj4wxs.spock.replit.dev';
+  return 'https://56fa4c0f-d24e-42d1-a9d5-89c79bbd28d6-00-3nhmxvxgj4wxs.spock.replit.dev:3001';
 }
 
 export default function AdminScreen() {
