@@ -30,7 +30,7 @@ function CustomDrawerContent(props: any) {
 
   const menuItems = [
     { icon: 'home', label: 'Home', action: () => handleNavigation('/') },
-    { icon: 'book', label: 'Dive Logs', action: () => showComingSoon('Dive Logs') },
+    { icon: 'book', label: 'Dive Logs', action: () => handleNavigation('/dive-logs') },
     { icon: 'map-pin', label: 'Dive Sites', action: () => handleNavigation('/dive-sites') },
     { icon: 'tool', label: 'Gear Profiles', action: () => showComingSoon('Gear Profiles') },
     { icon: 'users', label: 'Buddies', action: () => showComingSoon('Buddies') },

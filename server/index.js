@@ -4,8 +4,15 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const path = require('path');
+const multer = require('multer');
 const { Pool } = require('pg');
 const { Resend } = require('resend');
+const diveLogParser = require('./services/diveLogParser');
+
+const upload = multer({ 
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 }
+});
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -1778,6 +1785,362 @@ app.get('/api/sync/status', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     console.error('Sync status error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.get('/api/dive-logs', authenticateToken, async (req, res) => {
+  try {
+    const { search, dive_site_id, limit = 50, offset = 0 } = req.query;
+    
+    let query = `
+      SELECT dl.*, ds.name as dive_site_name
+      FROM dive_logs dl
+      LEFT JOIN dive_sites ds ON dl.dive_site_id = ds.id
+      WHERE dl.user_id = $1 AND dl.deleted_at IS NULL
+    `;
+    const params = [req.user.id];
+    let paramIndex = 2;
+
+    if (search) {
+      query += ` AND (dl.notes ILIKE $${paramIndex} OR dl.device_model ILIKE $${paramIndex} OR ds.name ILIKE $${paramIndex})`;
+      params.push(`%${search}%`);
+      paramIndex++;
+    }
+
+    if (dive_site_id) {
+      query += ` AND dl.dive_site_id = $${paramIndex}`;
+      params.push(parseInt(dive_site_id));
+      paramIndex++;
+    }
+
+    query += ` ORDER BY dl.dive_datetime DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
+    params.push(parseInt(limit), parseInt(offset));
+
+    const result = await pool.query(query, params);
+
+    const countQuery = `
+      SELECT COUNT(*) FROM dive_logs dl
+      LEFT JOIN dive_sites ds ON dl.dive_site_id = ds.id
+      WHERE dl.user_id = $1 AND dl.deleted_at IS NULL
+      ${search ? `AND (dl.notes ILIKE $2 OR dl.device_model ILIKE $2 OR ds.name ILIKE $2)` : ''}
+      ${dive_site_id ? `AND dl.dive_site_id = $${search ? 3 : 2}` : ''}
+    `;
+    const countParams = [req.user.id];
+    if (search) countParams.push(`%${search}%`);
+    if (dive_site_id) countParams.push(parseInt(dive_site_id));
+    
+    const countResult = await pool.query(countQuery, countParams);
+
+    res.json({
+      diveLogs: result.rows.map(row => ({
+        id: row.id,
+        userId: row.user_id,
+        diveSiteId: row.dive_site_id,
+        diveSiteName: row.dive_site_name,
+        diveDateTime: row.dive_datetime,
+        durationSeconds: row.duration_seconds,
+        maxDepthMeters: parseFloat(row.max_depth_meters),
+        avgDepthMeters: parseFloat(row.avg_depth_meters),
+        minTemperatureCelsius: row.min_temperature_celsius ? parseFloat(row.min_temperature_celsius) : null,
+        maxTemperatureCelsius: row.max_temperature_celsius ? parseFloat(row.max_temperature_celsius) : null,
+        deviceManufacturer: row.device_manufacturer,
+        deviceModel: row.device_model,
+        notes: row.notes,
+        rating: row.rating,
+        importSource: row.import_source,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at
+      })),
+      total: parseInt(countResult.rows[0].count),
+      limit: parseInt(limit),
+      offset: parseInt(offset)
+    });
+  } catch (error) {
+    console.error('Get dive logs error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.get('/api/dive-logs/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const result = await pool.query(`
+      SELECT dl.*, ds.name as dive_site_name
+      FROM dive_logs dl
+      LEFT JOIN dive_sites ds ON dl.dive_site_id = ds.id
+      WHERE dl.id = $1 AND dl.user_id = $2 AND dl.deleted_at IS NULL
+    `, [id, req.user.id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Dive log not found' });
+    }
+
+    const row = result.rows[0];
+    res.json({
+      id: row.id,
+      userId: row.user_id,
+      diveSiteId: row.dive_site_id,
+      diveSiteName: row.dive_site_name,
+      diveDateTime: row.dive_datetime,
+      durationSeconds: row.duration_seconds,
+      maxDepthMeters: parseFloat(row.max_depth_meters),
+      avgDepthMeters: parseFloat(row.avg_depth_meters),
+      minTemperatureCelsius: row.min_temperature_celsius ? parseFloat(row.min_temperature_celsius) : null,
+      maxTemperatureCelsius: row.max_temperature_celsius ? parseFloat(row.max_temperature_celsius) : null,
+      deviceManufacturer: row.device_manufacturer,
+      deviceModel: row.device_model,
+      deviceSerial: row.device_serial,
+      samples: row.samples,
+      gasMixes: row.gas_mixes,
+      notes: row.notes,
+      rating: row.rating,
+      importSource: row.import_source,
+      importFilename: row.import_filename,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at
+    });
+  } catch (error) {
+    console.error('Get dive log error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.post('/api/dive-logs/import', authenticateToken, upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    const fileContent = req.file.buffer.toString('utf-8');
+    const filename = req.file.originalname;
+    const mimeType = req.file.mimetype;
+
+    const parsedDives = await diveLogParser.parseFile(fileContent, filename, mimeType);
+
+    if (!parsedDives || parsedDives.length === 0) {
+      return res.status(400).json({ error: 'No dives found in file' });
+    }
+
+    const insertedDives = [];
+    const client = await pool.connect();
+    
+    try {
+      await client.query('BEGIN');
+
+      for (const dive of parsedDives) {
+        const result = await client.query(`
+          INSERT INTO dive_logs (
+            user_id, dive_datetime, duration_seconds, max_depth_meters, avg_depth_meters,
+            min_temperature_celsius, max_temperature_celsius, device_manufacturer, device_model,
+            device_serial, samples, gas_mixes, notes, import_source, import_filename
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+          RETURNING id, dive_datetime, max_depth_meters, duration_seconds
+        `, [
+          req.user.id,
+          dive.dive_datetime,
+          dive.duration_seconds,
+          dive.max_depth_meters,
+          dive.avg_depth_meters,
+          dive.min_temperature_celsius,
+          dive.max_temperature_celsius,
+          dive.device_manufacturer,
+          dive.device_model,
+          dive.device_serial,
+          JSON.stringify(dive.samples),
+          JSON.stringify(dive.gas_mixes),
+          dive.notes,
+          dive.import_source,
+          filename
+        ]);
+
+        insertedDives.push({
+          id: result.rows[0].id,
+          diveDateTime: result.rows[0].dive_datetime,
+          maxDepthMeters: parseFloat(result.rows[0].max_depth_meters),
+          durationSeconds: result.rows[0].duration_seconds
+        });
+      }
+
+      await client.query('COMMIT');
+
+      res.status(201).json({
+        message: `Successfully imported ${insertedDives.length} dive(s)`,
+        dives: insertedDives
+      });
+    } catch (insertError) {
+      await client.query('ROLLBACK');
+      throw insertError;
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    console.error('Import dive logs error:', error);
+    res.status(500).json({ error: error.message || 'Server error during import' });
+  }
+});
+
+app.post('/api/dive-logs', authenticateToken, async (req, res) => {
+  try {
+    const {
+      diveSiteId, diveDateTime, durationSeconds, maxDepthMeters, avgDepthMeters,
+      minTemperatureCelsius, maxTemperatureCelsius, deviceManufacturer, deviceModel,
+      samples, gasMixes, notes, rating
+    } = req.body;
+
+    if (!diveDateTime) {
+      return res.status(400).json({ error: 'Dive date/time is required' });
+    }
+
+    const result = await pool.query(`
+      INSERT INTO dive_logs (
+        user_id, dive_site_id, dive_datetime, duration_seconds, max_depth_meters, avg_depth_meters,
+        min_temperature_celsius, max_temperature_celsius, device_manufacturer, device_model,
+        samples, gas_mixes, notes, rating, import_source
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, 'manual')
+      RETURNING *
+    `, [
+      req.user.id,
+      diveSiteId || null,
+      diveDateTime,
+      durationSeconds || null,
+      maxDepthMeters || null,
+      avgDepthMeters || null,
+      minTemperatureCelsius || null,
+      maxTemperatureCelsius || null,
+      deviceManufacturer || null,
+      deviceModel || null,
+      samples ? JSON.stringify(samples) : null,
+      gasMixes ? JSON.stringify(gasMixes) : null,
+      notes || null,
+      rating || null
+    ]);
+
+    const row = result.rows[0];
+    res.status(201).json({
+      id: row.id,
+      userId: row.user_id,
+      diveSiteId: row.dive_site_id,
+      diveDateTime: row.dive_datetime,
+      durationSeconds: row.duration_seconds,
+      maxDepthMeters: row.max_depth_meters ? parseFloat(row.max_depth_meters) : null,
+      avgDepthMeters: row.avg_depth_meters ? parseFloat(row.avg_depth_meters) : null,
+      createdAt: row.created_at
+    });
+  } catch (error) {
+    console.error('Create dive log error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.put('/api/dive-logs/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      diveSiteId, diveDateTime, durationSeconds, maxDepthMeters, avgDepthMeters,
+      minTemperatureCelsius, maxTemperatureCelsius, notes, rating
+    } = req.body;
+
+    const existingResult = await pool.query(
+      'SELECT id FROM dive_logs WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL',
+      [id, req.user.id]
+    );
+
+    if (existingResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Dive log not found' });
+    }
+
+    const result = await pool.query(`
+      UPDATE dive_logs SET
+        dive_site_id = COALESCE($1, dive_site_id),
+        dive_datetime = COALESCE($2, dive_datetime),
+        duration_seconds = COALESCE($3, duration_seconds),
+        max_depth_meters = COALESCE($4, max_depth_meters),
+        avg_depth_meters = COALESCE($5, avg_depth_meters),
+        min_temperature_celsius = COALESCE($6, min_temperature_celsius),
+        max_temperature_celsius = COALESCE($7, max_temperature_celsius),
+        notes = COALESCE($8, notes),
+        rating = COALESCE($9, rating)
+      WHERE id = $10 AND user_id = $11
+      RETURNING *
+    `, [
+      diveSiteId,
+      diveDateTime,
+      durationSeconds,
+      maxDepthMeters,
+      avgDepthMeters,
+      minTemperatureCelsius,
+      maxTemperatureCelsius,
+      notes,
+      rating,
+      id,
+      req.user.id
+    ]);
+
+    const row = result.rows[0];
+    res.json({
+      id: row.id,
+      userId: row.user_id,
+      diveSiteId: row.dive_site_id,
+      diveDateTime: row.dive_datetime,
+      durationSeconds: row.duration_seconds,
+      maxDepthMeters: row.max_depth_meters ? parseFloat(row.max_depth_meters) : null,
+      notes: row.notes,
+      rating: row.rating,
+      updatedAt: row.updated_at
+    });
+  } catch (error) {
+    console.error('Update dive log error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.delete('/api/dive-logs/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const result = await pool.query(
+      'UPDATE dive_logs SET deleted_at = CURRENT_TIMESTAMP WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL RETURNING id',
+      [id, req.user.id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Dive log not found' });
+    }
+
+    res.json({ message: 'Dive log deleted successfully' });
+  } catch (error) {
+    console.error('Delete dive log error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.get('/api/dive-logs/stats', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT 
+        COUNT(*) as total_dives,
+        SUM(duration_seconds) as total_duration_seconds,
+        MAX(max_depth_meters) as deepest_dive_meters,
+        AVG(max_depth_meters) as avg_max_depth_meters,
+        MIN(min_temperature_celsius) as coldest_temp,
+        MAX(max_temperature_celsius) as warmest_temp
+      FROM dive_logs
+      WHERE user_id = $1 AND deleted_at IS NULL
+    `, [req.user.id]);
+
+    const stats = result.rows[0];
+    res.json({
+      totalDives: parseInt(stats.total_dives) || 0,
+      totalDurationSeconds: parseInt(stats.total_duration_seconds) || 0,
+      deepestDiveMeters: stats.deepest_dive_meters ? parseFloat(stats.deepest_dive_meters) : null,
+      avgMaxDepthMeters: stats.avg_max_depth_meters ? parseFloat(stats.avg_max_depth_meters) : null,
+      coldestTemp: stats.coldest_temp ? parseFloat(stats.coldest_temp) : null,
+      warmestTemp: stats.warmest_temp ? parseFloat(stats.warmest_temp) : null
+    });
+  } catch (error) {
+    console.error('Get dive stats error:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });
