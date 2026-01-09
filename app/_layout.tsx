@@ -7,6 +7,7 @@ import 'react-native-reanimated';
 
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
+import { SyncProvider } from '@/contexts/SyncContext';
 
 function RootLayoutNav() {
   const { colorScheme, isDark } = useTheme();
@@ -53,7 +54,9 @@ export default function RootLayout() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <RootLayoutNav />
+        <SyncProvider>
+          <RootLayoutNav />
+        </SyncProvider>
       </AuthProvider>
     </ThemeProvider>
   );
