@@ -145,6 +145,14 @@ async function initDatabase() {
     `).catch(() => {});
     
     await client.query(`
+      ALTER TABLE dive_sites ADD COLUMN IF NOT EXISTS is_wreck BOOLEAN DEFAULT FALSE;
+    `).catch(() => {});
+    
+    await client.query(`
+      ALTER TABLE dive_sites ADD COLUMN IF NOT EXISTS wreck_info TEXT;
+    `).catch(() => {});
+    
+    await client.query(`
       CREATE INDEX IF NOT EXISTS idx_dive_sites_name ON dive_sites(name);
     `).catch(() => {});
     
@@ -658,6 +666,7 @@ app.get('/api/dive-sites', authenticateToken, async (req, res) => {
           wikipediaUrl: site.wikipedia_url,
           externalInfo: site.external_info,
           imageUrl: displayImageUrl,
+          isWreck: site.is_wreck || false,
           createdAt: site.created_at,
           updatedAt: site.updated_at
         };
@@ -714,6 +723,8 @@ app.get('/api/dive-sites/:id', authenticateToken, async (req, res) => {
       wikipediaUrl: site.wikipedia_url,
       externalInfo: site.external_info,
       imageUrl: site.image_url,
+      isWreck: site.is_wreck || false,
+      wreckInfo: site.wreck_info || null,
       images: imagesResult.rows.map(img => ({
         id: img.id,
         imageUrl: img.image_url,
@@ -734,7 +745,7 @@ app.post('/api/dive-sites', authenticateToken, async (req, res) => {
     name, description, siteType, latitude, longitude, country, region,
     waterType, depthMin, depthMax, visibilityMin, visibilityMax,
     difficulty, currentStrength, accessNotes, facilities, hazards,
-    bestSeason, wikipediaUrl, externalInfo, imageUrl
+    bestSeason, wikipediaUrl, externalInfo, imageUrl, isWreck, wreckInfo
   } = req.body;
   
   if (!name) {
@@ -748,8 +759,8 @@ app.post('/api/dive-sites', authenticateToken, async (req, res) => {
         country, region, water_type, depth_min, depth_max,
         visibility_min, visibility_max, difficulty, current_strength,
         access_notes, facilities, hazards, best_season,
-        wikipedia_url, external_info, image_url
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
+        wikipedia_url, external_info, image_url, is_wreck, wreck_info
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24)
       RETURNING *`,
       [
         req.user.id, name, description || null, siteType || 'reef',
@@ -758,7 +769,8 @@ app.post('/api/dive-sites', authenticateToken, async (req, res) => {
         visibilityMin || null, visibilityMax || null, difficulty || 'intermediate',
         currentStrength || null, accessNotes || null,
         JSON.stringify(facilities || []), JSON.stringify(hazards || []),
-        bestSeason || null, wikipediaUrl || null, externalInfo || null, imageUrl || null
+        bestSeason || null, wikipediaUrl || null, externalInfo || null, imageUrl || null,
+        isWreck || false, wreckInfo || null
       ]
     );
     
@@ -777,6 +789,7 @@ app.post('/api/dive-sites', authenticateToken, async (req, res) => {
       depthMax: parseFloat(site.depth_max) || null,
       difficulty: site.difficulty,
       imageUrl: site.image_url,
+      isWreck: site.is_wreck || false,
       createdAt: site.created_at
     });
   } catch (error) {
@@ -791,7 +804,8 @@ app.put('/api/dive-sites/:id', authenticateToken, async (req, res) => {
     name, description, siteType, latitude, longitude, country, region,
     waterType, depthMin, depthMax, visibilityMin, visibilityMax,
     difficulty, currentStrength, accessNotes, facilities, hazards,
-    bestSeason, wikipediaUrl, externalInfo, imageUrl, ratingAvg
+    bestSeason, wikipediaUrl, externalInfo, imageUrl, ratingAvg,
+    isWreck, wreckInfo
   } = req.body;
   
   try {
@@ -824,14 +838,17 @@ app.put('/api/dive-sites/:id', authenticateToken, async (req, res) => {
         external_info = $20,
         image_url = $21,
         rating_avg = COALESCE($22, rating_avg),
+        is_wreck = $23,
+        wreck_info = $24,
         updated_at = CURRENT_TIMESTAMP
-      WHERE id = $23 RETURNING *`,
+      WHERE id = $25 RETURNING *`,
       [
         name, description, siteType, latitude, longitude, country, region,
         waterType, depthMin, depthMax, visibilityMin, visibilityMax,
         difficulty, currentStrength, accessNotes,
         JSON.stringify(facilities || []), JSON.stringify(hazards || []),
-        bestSeason, wikipediaUrl, externalInfo, imageUrl, ratingAvg, id
+        bestSeason, wikipediaUrl, externalInfo, imageUrl, ratingAvg,
+        isWreck !== undefined ? isWreck : false, wreckInfo || null, id
       ]
     );
     
@@ -861,6 +878,8 @@ app.put('/api/dive-sites/:id', authenticateToken, async (req, res) => {
       wikipediaUrl: site.wikipedia_url,
       externalInfo: site.external_info,
       imageUrl: site.image_url,
+      isWreck: site.is_wreck || false,
+      wreckInfo: site.wreck_info || null,
       updatedAt: site.updated_at
     });
   } catch (error) {
