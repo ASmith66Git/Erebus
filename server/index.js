@@ -819,7 +819,18 @@ app.put('/api/dive-sites/:id', authenticateToken, async (req, res) => {
       waterType: site.water_type,
       depthMin: parseFloat(site.depth_min) || null,
       depthMax: parseFloat(site.depth_max) || null,
+      visibilityMin: parseFloat(site.visibility_min) || null,
+      visibilityMax: parseFloat(site.visibility_max) || null,
       difficulty: site.difficulty,
+      currentStrength: site.current_strength,
+      accessNotes: site.access_notes,
+      facilities: site.facilities || [],
+      hazards: site.hazards || [],
+      bestSeason: site.best_season,
+      ratingAvg: parseFloat(site.rating_avg) || 0,
+      ratingsCount: parseInt(site.ratings_count) || 0,
+      wikipediaUrl: site.wikipedia_url,
+      externalInfo: site.external_info,
       imageUrl: site.image_url,
       updatedAt: site.updated_at
     });
