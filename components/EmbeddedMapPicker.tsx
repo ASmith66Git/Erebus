@@ -167,26 +167,30 @@ export default function EmbeddedMapPicker({
 
         setTimeout(() => {
           const searchInput = document.getElementById('map-search-input') as HTMLInputElement;
-          if (searchInput) {
-            const autocomplete = new google.maps.places.Autocomplete(searchInput, {
-              types: ['geocode', 'establishment'],
-            });
-            autocompleteRef.current = autocomplete;
+          if (searchInput && google.maps.places?.Autocomplete) {
+            try {
+              const autocomplete = new google.maps.places.Autocomplete(searchInput, {
+                types: ['geocode', 'establishment'],
+              });
+              autocompleteRef.current = autocomplete;
 
-            autocomplete.addListener('place_changed', () => {
-              const place = autocomplete.getPlace();
-              if (place.geometry && place.geometry.location) {
-                const lat = place.geometry.location.lat();
-                const lng = place.geometry.location.lng();
-                map.setCenter({ lat, lng });
-                map.setZoom(14);
-                marker.setPosition({ lat, lng });
-                handleMarkerChange(lat, lng);
-                setSearchText(place.formatted_address || place.name || '');
-              }
-            });
+              autocomplete.addListener('place_changed', () => {
+                const place = autocomplete.getPlace();
+                if (place.geometry && place.geometry.location) {
+                  const lat = place.geometry.location.lat();
+                  const lng = place.geometry.location.lng();
+                  map.setCenter({ lat, lng });
+                  map.setZoom(14);
+                  marker.setPosition({ lat, lng });
+                  handleMarkerChange(lat, lng);
+                  setSearchText(place.formatted_address || place.name || '');
+                }
+              });
+            } catch (e) {
+              console.log('Places Autocomplete not available');
+            }
           }
-        }, 100);
+        }, 500);
 
         setMapLoaded(true);
       } catch (error: any) {

@@ -863,6 +863,7 @@ app.delete('/api/dive-sites/:id', authenticateToken, async (req, res) => {
 
 app.get('/api/dive-sites/:id/weather', authenticateToken, async (req, res) => {
   const { id } = req.params;
+  const { date } = req.query;
   
   try {
     const siteResult = await pool.query('SELECT latitude, longitude, water_type FROM dive_sites WHERE id = $1', [id]);
@@ -883,39 +884,76 @@ app.get('/api/dive-sites/:id/weather', authenticateToken, async (req, res) => {
     
     const weatherData = {};
     
-    // Fetch land/atmospheric weather from Open-Meteo
-    const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,precipitation,weather_code,wind_speed_10m,wind_direction_10m&timezone=auto`;
-    const weatherResponse = await fetch(weatherUrl);
-    if (weatherResponse.ok) {
-      const data = await weatherResponse.json();
-      weatherData.temperature = data.current?.temperature_2m;
-      weatherData.temperatureUnit = data.current_units?.temperature_2m;
-      weatherData.humidity = data.current?.relative_humidity_2m;
-      weatherData.precipitation = data.current?.precipitation;
-      weatherData.weatherCode = data.current?.weather_code;
-      weatherData.windSpeed = data.current?.wind_speed_10m;
-      weatherData.windSpeedUnit = data.current_units?.wind_speed_10m;
-      weatherData.windDirection = data.current?.wind_direction_10m;
-    }
+    const today = new Date().toISOString().split('T')[0];
+    const requestedDate = date || today;
+    const isToday = requestedDate === today;
     
-    // Fetch marine weather if site is marine
-    if (isMarine) {
-      const marineUrl = `https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lon}&current=wave_height,wave_direction,wave_period,ocean_current_velocity,ocean_current_direction&timezone=auto`;
-      const marineResponse = await fetch(marineUrl);
-      if (marineResponse.ok) {
-        const data = await marineResponse.json();
-        weatherData.waveHeight = data.current?.wave_height;
-        weatherData.waveHeightUnit = data.current_units?.wave_height;
-        weatherData.waveDirection = data.current?.wave_direction;
-        weatherData.wavePeriod = data.current?.wave_period;
-        weatherData.wavePeriodUnit = data.current_units?.wave_period;
-        weatherData.currentVelocity = data.current?.ocean_current_velocity;
-        weatherData.currentVelocityUnit = data.current_units?.ocean_current_velocity;
-        weatherData.currentDirection = data.current?.ocean_current_direction;
+    if (isToday) {
+      const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,precipitation,weather_code,wind_speed_10m,wind_direction_10m&timezone=auto`;
+      const weatherResponse = await fetch(weatherUrl);
+      if (weatherResponse.ok) {
+        const data = await weatherResponse.json();
+        weatherData.temperature = data.current?.temperature_2m;
+        weatherData.temperatureUnit = data.current_units?.temperature_2m;
+        weatherData.humidity = data.current?.relative_humidity_2m;
+        weatherData.precipitation = data.current?.precipitation;
+        weatherData.weatherCode = data.current?.weather_code;
+        weatherData.windSpeed = data.current?.wind_speed_10m;
+        weatherData.windSpeedUnit = data.current_units?.wind_speed_10m;
+        weatherData.windDirection = data.current?.wind_direction_10m;
+      }
+      
+      if (isMarine) {
+        const marineUrl = `https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lon}&current=wave_height,wave_direction,wave_period,ocean_current_velocity,ocean_current_direction&timezone=auto`;
+        const marineResponse = await fetch(marineUrl);
+        if (marineResponse.ok) {
+          const data = await marineResponse.json();
+          weatherData.waveHeight = data.current?.wave_height;
+          weatherData.waveHeightUnit = data.current_units?.wave_height;
+          weatherData.waveDirection = data.current?.wave_direction;
+          weatherData.wavePeriod = data.current?.wave_period;
+          weatherData.wavePeriodUnit = data.current_units?.wave_period;
+          weatherData.currentVelocity = data.current?.ocean_current_velocity;
+          weatherData.currentVelocityUnit = data.current_units?.ocean_current_velocity;
+          weatherData.currentDirection = data.current?.ocean_current_direction;
+        }
+      }
+    } else {
+      const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,weather_code,wind_speed_10m_max,wind_direction_10m_dominant&start_date=${requestedDate}&end_date=${requestedDate}&timezone=auto`;
+      const weatherResponse = await fetch(weatherUrl);
+      if (weatherResponse.ok) {
+        const data = await weatherResponse.json();
+        if (data.daily) {
+          weatherData.temperatureMax = data.daily.temperature_2m_max?.[0];
+          weatherData.temperatureMin = data.daily.temperature_2m_min?.[0];
+          weatherData.temperatureUnit = data.daily_units?.temperature_2m_max;
+          weatherData.precipitation = data.daily.precipitation_sum?.[0];
+          weatherData.weatherCode = data.daily.weather_code?.[0];
+          weatherData.windSpeed = data.daily.wind_speed_10m_max?.[0];
+          weatherData.windSpeedUnit = data.daily_units?.wind_speed_10m_max;
+          weatherData.windDirection = data.daily.wind_direction_10m_dominant?.[0];
+        }
+      }
+      
+      if (isMarine) {
+        const marineUrl = `https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lon}&daily=wave_height_max,wave_direction_dominant,wave_period_max&start_date=${requestedDate}&end_date=${requestedDate}&timezone=auto`;
+        const marineResponse = await fetch(marineUrl);
+        if (marineResponse.ok) {
+          const data = await marineResponse.json();
+          if (data.daily) {
+            weatherData.waveHeight = data.daily.wave_height_max?.[0];
+            weatherData.waveHeightUnit = data.daily_units?.wave_height_max;
+            weatherData.waveDirection = data.daily.wave_direction_dominant?.[0];
+            weatherData.wavePeriod = data.daily.wave_period_max?.[0];
+            weatherData.wavePeriodUnit = data.daily_units?.wave_period_max;
+          }
+        }
       }
     }
     
     weatherData.isMarine = isMarine;
+    weatherData.isToday = isToday;
+    weatherData.forecastDate = requestedDate;
     weatherData.fetchedAt = new Date().toISOString();
     
     res.json(weatherData);

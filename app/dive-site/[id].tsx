@@ -59,6 +59,8 @@ interface WikipediaInfo {
 
 interface WeatherData {
   temperature?: number;
+  temperatureMax?: number;
+  temperatureMin?: number;
   temperatureUnit?: string;
   humidity?: number;
   precipitation?: number;
@@ -75,6 +77,8 @@ interface WeatherData {
   currentVelocityUnit?: string;
   currentDirection?: number;
   isMarine?: boolean;
+  isToday?: boolean;
+  forecastDate?: string;
   fetchedAt?: string;
 }
 
@@ -343,6 +347,7 @@ export default function DiveSiteDetailScreen() {
   const [loadingWiki, setLoadingWiki] = useState(false);
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [loadingWeather, setLoadingWeather] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
 
   const isNewSite = id === 'new';
 
@@ -402,12 +407,13 @@ export default function DiveSiteDetailScreen() {
     }
   }, [site?.siteType, fetchWikipediaInfo]);
 
-  const fetchWeather = useCallback(async () => {
+  const fetchWeather = useCallback(async (date?: string) => {
     if (!token || !site?.id || !site?.latitude || !site?.longitude) return;
 
     setLoadingWeather(true);
     try {
-      const response = await fetch(`${getApiUrl()}/api/dive-sites/${site.id}/weather`, {
+      const dateParam = date || selectedDate;
+      const response = await fetch(`${getApiUrl()}/api/dive-sites/${site.id}/weather?date=${dateParam}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -420,13 +426,13 @@ export default function DiveSiteDetailScreen() {
     } finally {
       setLoadingWeather(false);
     }
-  }, [token, site?.id, site?.latitude, site?.longitude]);
+  }, [token, site?.id, site?.latitude, site?.longitude, selectedDate]);
 
   useEffect(() => {
     if (site?.latitude && site?.longitude) {
-      fetchWeather();
+      fetchWeather(selectedDate);
     }
-  }, [site?.latitude, site?.longitude, fetchWeather]);
+  }, [site?.latitude, site?.longitude]);
 
   const handleSave = async () => {
     if (!token) return;
@@ -778,61 +784,60 @@ export default function DiveSiteDetailScreen() {
       ) : (
         <>
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Dive Conditions</Text>
-            <View style={styles.conditionsGrid}>
-              {(displaySite?.depthMin || displaySite?.depthMax) && (
-                <View style={[styles.conditionCard, { backgroundColor: colors.surface }]}>
-                  <Feather name="arrow-down" size={24} color={colors.primary} />
-                  <Text style={[styles.conditionLabel, { color: colors.textSecondary }]}>Depth Range</Text>
-                  <Text style={[styles.conditionValue, { color: colors.text }]}>
-                    {displaySite.depthMin || 0} - {displaySite.depthMax || '?'}m
-                  </Text>
-                </View>
-              )}
-              {(displaySite?.visibilityMin || displaySite?.visibilityMax) && (
-                <View style={[styles.conditionCard, { backgroundColor: colors.surface }]}>
-                  <Feather name="eye" size={24} color={colors.primary} />
-                  <Text style={[styles.conditionLabel, { color: colors.textSecondary }]}>Visibility</Text>
-                  <Text style={[styles.conditionValue, { color: colors.text }]}>
-                    {displaySite.visibilityMin || 0} - {displaySite.visibilityMax || '?'}m
-                  </Text>
-                </View>
-              )}
-              {displaySite?.currentStrength && (
-                <View style={[styles.conditionCard, { backgroundColor: colors.surface }]}>
-                  <Feather name="wind" size={24} color={colors.primary} />
-                  <Text style={[styles.conditionLabel, { color: colors.textSecondary }]}>Current</Text>
-                  <Text style={[styles.conditionValue, { color: colors.text }]}>{displaySite.currentStrength}</Text>
-                </View>
-              )}
-              {displaySite?.bestSeason && (
-                <View style={[styles.conditionCard, { backgroundColor: colors.surface }]}>
-                  <Feather name="calendar" size={24} color={colors.primary} />
-                  <Text style={[styles.conditionLabel, { color: colors.textSecondary }]}>Best Season</Text>
-                  <Text style={[styles.conditionValue, { color: colors.text }]}>{displaySite.bestSeason}</Text>
-                </View>
-              )}
-            </View>
-          </View>
-
-          <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>Current Weather</Text>
-              <Pressable onPress={fetchWeather} style={styles.refreshButton}>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>Weather Forecast</Text>
+              <Pressable onPress={() => fetchWeather(selectedDate)} style={styles.refreshButton}>
                 <Feather name="refresh-cw" size={16} color={colors.primary} />
               </Pressable>
             </View>
+
+            <View style={styles.datePickerRow}>
+              <Text style={[styles.dateLabel, { color: colors.textSecondary }]}>Date:</Text>
+              <View style={styles.dateButtonsRow}>
+                {[0, 1, 2, 3, 4, 5, 6].map((dayOffset) => {
+                  const date = new Date();
+                  date.setDate(date.getDate() + dayOffset);
+                  const dateStr = date.toISOString().split('T')[0];
+                  const isSelected = selectedDate === dateStr;
+                  const dayLabel = dayOffset === 0 ? 'Today' : dayOffset === 1 ? 'Tomorrow' : date.toLocaleDateString('en-US', { weekday: 'short' });
+                  return (
+                    <Pressable
+                      key={dateStr}
+                      style={[
+                        styles.dateButton,
+                        { backgroundColor: isSelected ? colors.primary : colors.surface, borderColor: colors.border },
+                      ]}
+                      onPress={() => {
+                        setSelectedDate(dateStr);
+                        fetchWeather(dateStr);
+                      }}
+                    >
+                      <Text style={[styles.dateButtonText, { color: isSelected ? '#fff' : colors.text }]}>
+                        {dayLabel}
+                      </Text>
+                      <Text style={[styles.dateButtonDate, { color: isSelected ? '#fff' : colors.textSecondary }]}>
+                        {date.getDate()}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+
             {loadingWeather ? (
               <ActivityIndicator size="small" color={colors.primary} />
             ) : weatherData ? (
               <View style={styles.weatherContainer}>
                 <View style={styles.conditionsGrid}>
-                  {weatherData.temperature !== undefined && (
+                  {(weatherData.temperature !== undefined || weatherData.temperatureMax !== undefined) && (
                     <View style={[styles.conditionCard, { backgroundColor: colors.surface }]}>
                       <Feather name="thermometer" size={24} color={colors.primary} />
                       <Text style={[styles.conditionLabel, { color: colors.textSecondary }]}>Temperature</Text>
                       <Text style={[styles.conditionValue, { color: colors.text }]}>
-                        {weatherData.temperature}{weatherData.temperatureUnit}
+                        {weatherData.isToday 
+                          ? `${weatherData.temperature}${weatherData.temperatureUnit}`
+                          : `${weatherData.temperatureMin} - ${weatherData.temperatureMax}${weatherData.temperatureUnit}`
+                        }
                       </Text>
                     </View>
                   )}
@@ -1293,6 +1298,34 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlign: 'center',
     marginTop: 8,
+  },
+  datePickerRow: {
+    marginBottom: 16,
+  },
+  dateLabel: {
+    fontSize: 14,
+    marginBottom: 8,
+  },
+  dateButtonsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  dateButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: 'center',
+    minWidth: 60,
+  },
+  dateButtonText: {
+    fontSize: 11,
+    fontWeight: '500',
+  },
+  dateButtonDate: {
+    fontSize: 16,
+    fontWeight: '600',
   },
   locationInfo: {
     flexDirection: 'row',

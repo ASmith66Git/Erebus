@@ -144,14 +144,14 @@ Uses PostgreSQL with a `users` table:
   - Smooth slide animations
   - Proper accessibility with @react-navigation/drawer
   - GestureHandlerRootView for gesture support
-- January 2026: Real-time Weather Integration
+- January 2026: Weather Forecast Integration
   - Open-Meteo API integration for weather data (no API key required)
-  - Backend proxy endpoint /api/dive-sites/:id/weather
-  - Marine weather: wave height, wave period, ocean current velocity/direction
-  - Atmospheric weather: temperature, conditions, wind speed/direction, humidity
-  - Conditions tab displays real-time weather based on dive site coordinates
-  - Refresh button to update weather data
-  - Timestamp shows when weather was last updated
+  - Backend proxy endpoint /api/dive-sites/:id/weather with date parameter
+  - 7-day forecast with date picker (Today through next 6 days)
+  - Marine weather (ocean sites only): wave height, wave period, current velocity/direction
+  - Atmospheric weather: temperature (current or min/max for future dates), conditions, wind
+  - Removed "Dive Conditions" section (depth, visibility, etc.) - now part of dive logs
+  - Freshwater sites only show atmospheric weather (no marine data)
 - January 2026: Dive Site Edit Enhancements
   - Removed filter chip row from dive sites list for cleaner UI
   - Added picker dropdowns for Site Type and Water Type
