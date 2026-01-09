@@ -94,7 +94,7 @@ const difficultyLabels: { [key: string]: string } = {
 
 const waterTypeOptions = [
   { value: 'marine', label: 'Marine (Saltwater)' },
-  { value: 'inland', label: 'Inland (Freshwater)' },
+  { value: 'inland', label: 'Normal (Freshwater)' },
 ];
 
 const siteTypeOptions = Object.entries(siteTypeLabels).map(([value, label]) => ({ value, label }));
@@ -471,6 +471,17 @@ export default function DiveSiteDetailScreen() {
                 placeholder="Select difficulty..."
               />
             </View>
+            <View style={[styles.formGroup, { flex: 1 }]}>
+              <Text style={[styles.formLabel, { color: colors.text }]}>Max Depth (m)</Text>
+              <TextInput
+                style={[styles.formInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
+                value={editedSite.depthMax?.toString() || ''}
+                onChangeText={(v) => updateField('depthMax', v ? parseFloat(v) : null)}
+                placeholder="0"
+                placeholderTextColor={colors.textSecondary}
+                keyboardType="numeric"
+              />
+            </View>
           </View>
 
           <View style={styles.formGroup}>
@@ -521,11 +532,9 @@ export default function DiveSiteDetailScreen() {
         </>
       ) : (
         <>
-          {displaySite?.ratingAvg !== undefined && displaySite.ratingAvg > 0 && (
-            <View style={styles.ratingRow}>
-              <StarRating rating={displaySite.ratingAvg} editable={false} colors={colors} />
-            </View>
-          )}
+          <View style={styles.ratingRow}>
+            <StarRating rating={displaySite?.ratingAvg || 0} editable={false} colors={colors} />
+          </View>
 
           {displaySite?.description && (
             <Text style={[styles.descriptionCompact, { color: colors.textSecondary }]}>
@@ -560,7 +569,7 @@ export default function DiveSiteDetailScreen() {
               </View>
               <Text style={[styles.detailRowLabel, { color: colors.textSecondary }]}>Water</Text>
               <Text style={[styles.detailRowValue, { color: colors.text }]}>
-                {displaySite?.waterType === 'marine' ? 'Marine' : 'Inland'}
+                {displaySite?.waterType === 'marine' ? 'Marine' : 'Normal'}
               </Text>
             </View>
             {displaySite?.depthMax && (
