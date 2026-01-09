@@ -115,6 +115,8 @@ Uses PostgreSQL with a `users` table:
 - current_strength, access_notes, facilities (JSONB), hazards (JSONB)
 - best_season, rating_avg, ratings_count
 - wikipedia_url, external_info, image_url
+- is_wreck (BOOLEAN) - Whether site is marked as a wreck
+- wreck_info (TEXT) - Manual wreck information/notes
 - is_archived (BOOLEAN for soft delete)
 - created_at, updated_at
 
@@ -187,3 +189,10 @@ Uses PostgreSQL with a `users` table:
   - Media tab UI with image gallery
   - Stock photo attribution tracking
   - Dive site cards show primary image as thumbnail
+- January 2026: Wreck Site Feature
+  - Added is_wreck and wreck_info columns to dive_sites table
+  - Checkbox in Overview tab (edit mode) to mark site as a wreck
+  - Conditional "Wreck" tab appears only when isWreck is true
+  - Wikipedia integration fetches info based on isWreck flag
+  - Manual wreck notes field for custom information
+  - Dynamic tabs array updates based on wreck status
