@@ -18,6 +18,7 @@ import { Feather } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import EmbeddedMapPicker from '@/components/EmbeddedMapPicker';
+import StaticMapView from '@/components/StaticMapView';
 
 const { width } = Dimensions.get('window');
 
@@ -579,20 +580,11 @@ export default function DiveSiteDetailScreen() {
                   <Text style={[styles.coordinates, { color: colors.textSecondary }]}>
                     {displaySite.latitude.toFixed(6)}, {displaySite.longitude.toFixed(6)}
                   </Text>
-                  <View style={[styles.staticMapContainer, { borderColor: colors.border }]}>
-                    <Pressable
-                      style={[styles.mapLinkButton, { backgroundColor: colors.surface }]}
-                      onPress={() => {
-                        const url = `https://www.google.com/maps?q=${displaySite.latitude},${displaySite.longitude}`;
-                        if (Platform.OS === 'web') {
-                          window.open(url, '_blank');
-                        }
-                      }}
-                    >
-                      <Feather name="map" size={18} color={colors.primary} />
-                      <Text style={[styles.mapLinkText, { color: colors.primary }]}>View on Google Maps</Text>
-                    </Pressable>
-                  </View>
+                  <StaticMapView
+                    latitude={displaySite.latitude}
+                    longitude={displaySite.longitude}
+                    colors={colors}
+                  />
                 </>
               )}
             </View>
