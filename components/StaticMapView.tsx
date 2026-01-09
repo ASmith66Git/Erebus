@@ -8,6 +8,7 @@ import {
   Pressable,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import Constants from 'expo-constants';
 
 interface StaticMapViewProps {
   latitude: number;
@@ -45,7 +46,7 @@ export default function StaticMapView({
   const webMapRef = useRef<HTMLDivElement | null>(null);
   const googleMapRef = useRef<any>(null);
 
-  const apiKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || '';
+  const apiKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || Constants.expoConfig?.extra?.googleMapsApiKey || '';
 
   useEffect(() => {
     if (Platform.OS !== 'web') return;
