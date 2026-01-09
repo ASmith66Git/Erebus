@@ -57,6 +57,60 @@ interface WikipediaInfo {
   url: string | null;
 }
 
+interface WeatherData {
+  temperature?: number;
+  temperatureUnit?: string;
+  humidity?: number;
+  precipitation?: number;
+  weatherCode?: number;
+  windSpeed?: number;
+  windSpeedUnit?: string;
+  windDirection?: number;
+  waveHeight?: number;
+  waveHeightUnit?: string;
+  waveDirection?: number;
+  wavePeriod?: number;
+  wavePeriodUnit?: string;
+  currentVelocity?: number;
+  currentVelocityUnit?: string;
+  currentDirection?: number;
+  isMarine?: boolean;
+  fetchedAt?: string;
+}
+
+const weatherCodeLabels: { [key: number]: string } = {
+  0: 'Clear sky',
+  1: 'Mainly clear',
+  2: 'Partly cloudy',
+  3: 'Overcast',
+  45: 'Fog',
+  48: 'Depositing rime fog',
+  51: 'Light drizzle',
+  53: 'Moderate drizzle',
+  55: 'Dense drizzle',
+  61: 'Slight rain',
+  63: 'Moderate rain',
+  65: 'Heavy rain',
+  71: 'Slight snow',
+  73: 'Moderate snow',
+  75: 'Heavy snow',
+  77: 'Snow grains',
+  80: 'Slight rain showers',
+  81: 'Moderate rain showers',
+  82: 'Violent rain showers',
+  85: 'Slight snow showers',
+  86: 'Heavy snow showers',
+  95: 'Thunderstorm',
+  96: 'Thunderstorm with slight hail',
+  99: 'Thunderstorm with heavy hail',
+};
+
+const getWindDirection = (degrees: number): string => {
+  const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+  const index = Math.round(degrees / 45) % 8;
+  return directions[index];
+};
+
 function getApiUrl(): string {
   if (Platform.OS === 'web' && typeof window !== 'undefined') {
     const host = window.location.host;
@@ -287,6 +341,8 @@ export default function DiveSiteDetailScreen() {
   const [saving, setSaving] = useState(false);
   const [wikipediaInfo, setWikipediaInfo] = useState<WikipediaInfo | null>(null);
   const [loadingWiki, setLoadingWiki] = useState(false);
+  const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
+  const [loadingWeather, setLoadingWeather] = useState(false);
 
   const isNewSite = id === 'new';
 
@@ -345,6 +401,32 @@ export default function DiveSiteDetailScreen() {
       fetchWikipediaInfo();
     }
   }, [site?.siteType, fetchWikipediaInfo]);
+
+  const fetchWeather = useCallback(async () => {
+    if (!token || !site?.id || !site?.latitude || !site?.longitude) return;
+
+    setLoadingWeather(true);
+    try {
+      const response = await fetch(`${getApiUrl()}/api/dive-sites/${site.id}/weather`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setWeatherData(data);
+      }
+    } catch (error) {
+      console.error('Error fetching weather:', error);
+    } finally {
+      setLoadingWeather(false);
+    }
+  }, [token, site?.id, site?.latitude, site?.longitude]);
+
+  useEffect(() => {
+    if (site?.latitude && site?.longitude) {
+      fetchWeather();
+    }
+  }, [site?.latitude, site?.longitude, fetchWeather]);
 
   const handleSave = async () => {
     if (!token) return;
@@ -734,13 +816,102 @@ export default function DiveSiteDetailScreen() {
           </View>
 
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Weather</Text>
-            <View style={[styles.weatherPlaceholder, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              <Feather name="cloud" size={32} color={colors.textSecondary} />
-              <Text style={[styles.weatherPlaceholderText, { color: colors.textSecondary }]}>
-                Weather data coming soon
-              </Text>
+            <View style={styles.sectionHeader}>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>Current Weather</Text>
+              <Pressable onPress={fetchWeather} style={styles.refreshButton}>
+                <Feather name="refresh-cw" size={16} color={colors.primary} />
+              </Pressable>
             </View>
+            {loadingWeather ? (
+              <ActivityIndicator size="small" color={colors.primary} />
+            ) : weatherData ? (
+              <View style={styles.weatherContainer}>
+                <View style={styles.conditionsGrid}>
+                  {weatherData.temperature !== undefined && (
+                    <View style={[styles.conditionCard, { backgroundColor: colors.surface }]}>
+                      <Feather name="thermometer" size={24} color={colors.primary} />
+                      <Text style={[styles.conditionLabel, { color: colors.textSecondary }]}>Temperature</Text>
+                      <Text style={[styles.conditionValue, { color: colors.text }]}>
+                        {weatherData.temperature}{weatherData.temperatureUnit}
+                      </Text>
+                    </View>
+                  )}
+                  {weatherData.weatherCode !== undefined && (
+                    <View style={[styles.conditionCard, { backgroundColor: colors.surface }]}>
+                      <Feather name="cloud" size={24} color={colors.primary} />
+                      <Text style={[styles.conditionLabel, { color: colors.textSecondary }]}>Conditions</Text>
+                      <Text style={[styles.conditionValue, { color: colors.text }]}>
+                        {weatherCodeLabels[weatherData.weatherCode] || 'Unknown'}
+                      </Text>
+                    </View>
+                  )}
+                  {weatherData.windSpeed !== undefined && (
+                    <View style={[styles.conditionCard, { backgroundColor: colors.surface }]}>
+                      <Feather name="wind" size={24} color={colors.primary} />
+                      <Text style={[styles.conditionLabel, { color: colors.textSecondary }]}>Wind</Text>
+                      <Text style={[styles.conditionValue, { color: colors.text }]}>
+                        {weatherData.windSpeed} {weatherData.windSpeedUnit} {weatherData.windDirection !== undefined ? getWindDirection(weatherData.windDirection) : ''}
+                      </Text>
+                    </View>
+                  )}
+                  {weatherData.humidity !== undefined && (
+                    <View style={[styles.conditionCard, { backgroundColor: colors.surface }]}>
+                      <Feather name="droplet" size={24} color={colors.primary} />
+                      <Text style={[styles.conditionLabel, { color: colors.textSecondary }]}>Humidity</Text>
+                      <Text style={[styles.conditionValue, { color: colors.text }]}>{weatherData.humidity}%</Text>
+                    </View>
+                  )}
+                </View>
+
+                {weatherData.isMarine && (
+                  <>
+                    <Text style={[styles.subsectionTitle, { color: colors.text }]}>Marine Conditions</Text>
+                    <View style={styles.conditionsGrid}>
+                      {weatherData.waveHeight !== undefined && (
+                        <View style={[styles.conditionCard, { backgroundColor: colors.surface }]}>
+                          <Feather name="activity" size={24} color={colors.primary} />
+                          <Text style={[styles.conditionLabel, { color: colors.textSecondary }]}>Wave Height</Text>
+                          <Text style={[styles.conditionValue, { color: colors.text }]}>
+                            {weatherData.waveHeight} {weatherData.waveHeightUnit}
+                          </Text>
+                        </View>
+                      )}
+                      {weatherData.wavePeriod !== undefined && (
+                        <View style={[styles.conditionCard, { backgroundColor: colors.surface }]}>
+                          <Feather name="clock" size={24} color={colors.primary} />
+                          <Text style={[styles.conditionLabel, { color: colors.textSecondary }]}>Wave Period</Text>
+                          <Text style={[styles.conditionValue, { color: colors.text }]}>
+                            {weatherData.wavePeriod} {weatherData.wavePeriodUnit}
+                          </Text>
+                        </View>
+                      )}
+                      {weatherData.currentVelocity !== undefined && (
+                        <View style={[styles.conditionCard, { backgroundColor: colors.surface }]}>
+                          <Feather name="navigation" size={24} color={colors.primary} />
+                          <Text style={[styles.conditionLabel, { color: colors.textSecondary }]}>Current</Text>
+                          <Text style={[styles.conditionValue, { color: colors.text }]}>
+                            {weatherData.currentVelocity} {weatherData.currentVelocityUnit} {weatherData.currentDirection !== undefined ? getWindDirection(weatherData.currentDirection) : ''}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  </>
+                )}
+
+                {weatherData.fetchedAt && (
+                  <Text style={[styles.weatherTimestamp, { color: colors.textSecondary }]}>
+                    Updated: {new Date(weatherData.fetchedAt).toLocaleTimeString()}
+                  </Text>
+                )}
+              </View>
+            ) : (
+              <View style={[styles.weatherPlaceholder, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                <Feather name="map-pin" size={32} color={colors.textSecondary} />
+                <Text style={[styles.weatherPlaceholderText, { color: colors.textSecondary }]}>
+                  Add location coordinates to see weather data
+                </Text>
+              </View>
+            )}
           </View>
         </>
       )}
@@ -1099,6 +1270,29 @@ const styles = StyleSheet.create({
   ratingLabel: {
     fontSize: 14,
     marginBottom: 8,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  refreshButton: {
+    padding: 8,
+  },
+  weatherContainer: {
+    gap: 16,
+  },
+  subsectionTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  weatherTimestamp: {
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: 8,
   },
   locationInfo: {
     flexDirection: 'row',

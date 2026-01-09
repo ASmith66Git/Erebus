@@ -861,6 +861,70 @@ app.delete('/api/dive-sites/:id', authenticateToken, async (req, res) => {
   }
 });
 
+app.get('/api/dive-sites/:id/weather', authenticateToken, async (req, res) => {
+  const { id } = req.params;
+  
+  try {
+    const siteResult = await pool.query('SELECT latitude, longitude, water_type FROM dive_sites WHERE id = $1', [id]);
+    
+    if (siteResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Dive site not found' });
+    }
+    
+    const site = siteResult.rows[0];
+    
+    if (!site.latitude || !site.longitude) {
+      return res.status(400).json({ error: 'Dive site has no coordinates' });
+    }
+    
+    const lat = site.latitude;
+    const lon = site.longitude;
+    const isMarine = site.water_type === 'marine';
+    
+    const weatherData = {};
+    
+    // Fetch land/atmospheric weather from Open-Meteo
+    const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,precipitation,weather_code,wind_speed_10m,wind_direction_10m&timezone=auto`;
+    const weatherResponse = await fetch(weatherUrl);
+    if (weatherResponse.ok) {
+      const data = await weatherResponse.json();
+      weatherData.temperature = data.current?.temperature_2m;
+      weatherData.temperatureUnit = data.current_units?.temperature_2m;
+      weatherData.humidity = data.current?.relative_humidity_2m;
+      weatherData.precipitation = data.current?.precipitation;
+      weatherData.weatherCode = data.current?.weather_code;
+      weatherData.windSpeed = data.current?.wind_speed_10m;
+      weatherData.windSpeedUnit = data.current_units?.wind_speed_10m;
+      weatherData.windDirection = data.current?.wind_direction_10m;
+    }
+    
+    // Fetch marine weather if site is marine
+    if (isMarine) {
+      const marineUrl = `https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lon}&current=wave_height,wave_direction,wave_period,ocean_current_velocity,ocean_current_direction&timezone=auto`;
+      const marineResponse = await fetch(marineUrl);
+      if (marineResponse.ok) {
+        const data = await marineResponse.json();
+        weatherData.waveHeight = data.current?.wave_height;
+        weatherData.waveHeightUnit = data.current_units?.wave_height;
+        weatherData.waveDirection = data.current?.wave_direction;
+        weatherData.wavePeriod = data.current?.wave_period;
+        weatherData.wavePeriodUnit = data.current_units?.wave_period;
+        weatherData.currentVelocity = data.current?.ocean_current_velocity;
+        weatherData.currentVelocityUnit = data.current_units?.ocean_current_velocity;
+        weatherData.currentDirection = data.current?.ocean_current_direction;
+      }
+    }
+    
+    weatherData.isMarine = isMarine;
+    weatherData.fetchedAt = new Date().toISOString();
+    
+    res.json(weatherData);
+  } catch (error) {
+    console.error('Weather fetch error:', error);
+    res.status(500).json({ error: 'Failed to fetch weather data' });
+  }
+});
+
 app.get('/api/dive-sites/:id/wikipedia', authenticateToken, async (req, res) => {
   const { id } = req.params;
   
