@@ -1,14 +1,11 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
-import { AppState, AppStateStatus } from 'react-native';
+import { AppState, AppStateStatus, Platform } from 'react-native';
 import { useAuth } from './AuthContext';
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
-import { performFullSync, getSyncStatus } from '@/services/syncService';
-import {
-  getDatabase,
-  getPendingMutations,
-  getLastSyncTime,
-  PendingMutation
-} from '@/services/localDatabase';
+import { performFullSync } from '@/services/syncService';
+import { getPendingMutations, getLastSyncTime } from '@/services/localDatabase';
+
+const isNative = Platform.OS !== 'web';
 
 interface SyncState {
   isSyncing: boolean;
@@ -40,6 +37,7 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
   const wasOffline = useRef(false);
 
   const updatePendingCount = useCallback(async () => {
+    if (!isNative) return;
     try {
       const mutations = await getPendingMutations();
       setSyncState(prev => ({ ...prev, pendingChanges: mutations.length }));
@@ -49,6 +47,7 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const updateLastSyncTime = useCallback(async () => {
+    if (!isNative) return;
     try {
       const lastSync = await getLastSyncTime();
       setSyncState(prev => ({ ...prev, lastSyncTime: lastSync }));
@@ -58,6 +57,7 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const triggerSync = useCallback(async () => {
+    if (!isNative) return;
     if (!token || !isOnline || syncInProgress.current) {
       return;
     }
@@ -92,7 +92,7 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setSyncState(prev => ({ ...prev, isOnline }));
     
-    if (isOnline && wasOffline.current && isAuthenticated) {
+    if (isNative && isOnline && wasOffline.current && isAuthenticated) {
       triggerSync();
     }
     
@@ -100,6 +100,8 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
   }, [isOnline, isAuthenticated, triggerSync]);
 
   useEffect(() => {
+    if (!isNative) return;
+    
     const subscription = AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
       if (nextAppState === 'active' && isAuthenticated && isOnline) {
         triggerSync();
@@ -112,6 +114,8 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
   }, [isAuthenticated, isOnline, triggerSync]);
 
   useEffect(() => {
+    if (!isNative) return;
+    
     if (isAuthenticated) {
       updatePendingCount();
       updateLastSyncTime();
