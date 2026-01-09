@@ -532,10 +532,6 @@ export default function DiveSiteDetailScreen() {
         </>
       ) : (
         <>
-          <View style={styles.ratingRow}>
-            <StarRating rating={displaySite?.ratingAvg || 0} editable={false} colors={colors} />
-          </View>
-
           {displaySite?.description && (
             <Text style={[styles.descriptionCompact, { color: colors.textSecondary }]}>
               {displaySite.description}
@@ -611,6 +607,11 @@ export default function DiveSiteDetailScreen() {
               />
             </View>
           )}
+
+          <View style={styles.ratingSection}>
+            <Text style={[styles.ratingLabel, { color: colors.textSecondary }]}>Rating</Text>
+            <StarRating rating={displaySite?.ratingAvg || 0} editable={false} colors={colors} />
+          </View>
         </>
       )}
     </View>
@@ -1090,6 +1091,14 @@ const styles = StyleSheet.create({
   },
   mapSection: {
     marginTop: 12,
+  },
+  ratingSection: {
+    marginTop: 16,
+    paddingTop: 12,
+  },
+  ratingLabel: {
+    fontSize: 14,
+    marginBottom: 8,
   },
   locationInfo: {
     flexDirection: 'row',

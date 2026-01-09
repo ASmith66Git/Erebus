@@ -763,7 +763,7 @@ app.put('/api/dive-sites/:id', authenticateToken, async (req, res) => {
     name, description, siteType, latitude, longitude, country, region,
     waterType, depthMin, depthMax, visibilityMin, visibilityMax,
     difficulty, currentStrength, accessNotes, facilities, hazards,
-    bestSeason, wikipediaUrl, externalInfo, imageUrl
+    bestSeason, wikipediaUrl, externalInfo, imageUrl, ratingAvg
   } = req.body;
   
   try {
@@ -795,14 +795,15 @@ app.put('/api/dive-sites/:id', authenticateToken, async (req, res) => {
         wikipedia_url = $19,
         external_info = $20,
         image_url = $21,
+        rating_avg = COALESCE($22, rating_avg),
         updated_at = CURRENT_TIMESTAMP
-      WHERE id = $22 RETURNING *`,
+      WHERE id = $23 RETURNING *`,
       [
         name, description, siteType, latitude, longitude, country, region,
         waterType, depthMin, depthMax, visibilityMin, visibilityMax,
         difficulty, currentStrength, accessNotes,
         JSON.stringify(facilities || []), JSON.stringify(hazards || []),
-        bestSeason, wikipediaUrl, externalInfo, imageUrl, id
+        bestSeason, wikipediaUrl, externalInfo, imageUrl, ratingAvg, id
       ]
     );
     
