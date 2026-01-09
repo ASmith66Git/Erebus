@@ -118,15 +118,25 @@ export default function EmbeddedMapPicker({
         let google = (window as any).google;
         
         if (!google || !google.maps) {
-          const { Loader } = await import('@googlemaps/js-api-loader');
-          const loader = new Loader({
-            apiKey: apiKey,
-            version: 'weekly',
-            libraries: ['places'],
-          });
-
-          await loader.importLibrary('maps');
-          await loader.importLibrary('places');
+          const loader = await import('@googlemaps/js-api-loader');
+          
+          if (loader.setOptions) {
+            loader.setOptions({
+              apiKey: apiKey,
+              version: 'weekly',
+            });
+            await loader.importLibrary('maps');
+            await loader.importLibrary('places');
+          } else if (loader.Loader) {
+            const loaderInstance = new loader.Loader({
+              apiKey: apiKey,
+              version: 'weekly',
+              libraries: ['places'],
+            });
+            await loaderInstance.importLibrary('maps');
+            await loaderInstance.importLibrary('places');
+          }
+          
           google = (window as any).google;
         }
         
