@@ -1396,21 +1396,21 @@ export default function DiveSiteDetailScreen() {
           <View style={styles.formGroup}>
             <Text style={[styles.formLabel, { color: colors.text }]}>Additional Notes</Text>
             <TextInput
-              style={[styles.formInput, styles.textArea, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
+              style={[styles.formInput, styles.textAreaLarge, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
               value={editedSite.wreckInfo || ''}
               onChangeText={(v) => updateField('wreckInfo', v)}
               placeholder="Sinking date, history, cargo, notable features..."
               placeholderTextColor={colors.textSecondary}
               multiline
-              numberOfLines={4}
+              numberOfLines={8}
             />
           </View>
           <View style={[styles.wreckResourcesSection, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <Text style={[styles.wreckResourcesTitle, { color: colors.text }]}>
-              <Feather name="search" size={14} color={colors.primary} /> Find Wreck Information
+              <Feather name="search" size={14} color={colors.primary} /> Wreck Research Resources
             </Text>
             <Text style={[styles.wreckResourcesSubtitle, { color: colors.textSecondary }]}>
-              Use these resources to research wreck history and details:
+              Use the links below to copy and paste information about this wreck
             </Text>
             <View style={styles.wreckResourcesList}>
               {wreckResources.map((resource, index) => (
@@ -2012,6 +2012,10 @@ const styles = StyleSheet.create({
   },
   textArea: {
     minHeight: 100,
+    textAlignVertical: 'top',
+  },
+  textAreaLarge: {
+    minHeight: 180,
     textAlignVertical: 'top',
   },
   formRow: {
