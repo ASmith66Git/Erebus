@@ -124,3 +124,8 @@ integrations = ["resend:1.0.0", "javascript_object_storage:2.0.0"]
 
 [userenv.shared]
 PEXELS_API_KEY = "OcHCrP60cM9wXO33I9D6bl5ymzBHZjKbnMgQwM3JbnZ5rHzJhKstEIHO"
+
+[deployment]
+deploymentTarget = "autoscale"
+run = ["bash", "-c", "node server/index.js & npx serve dist -l 5000"]
+build = ["bash", "-c", "npm run web:build && node server/index.js &"]
