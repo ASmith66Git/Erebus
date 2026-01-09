@@ -76,6 +76,8 @@ interface DiveSite {
   externalInfo: string | null;
   imageUrl: string | null;
   images: DiveSiteImage[];
+  isWreck: boolean;
+  wreckInfo: string | null;
 }
 
 interface WikipediaInfo {
@@ -155,7 +157,7 @@ function getApiUrl(): string {
   return 'https://56fa4c0f-d24e-42d1-a9d5-89c79bbd28d6-00-3nhmxvxgj4wxs.spock.replit.dev:3001';
 }
 
-const tabs = ['Overview', 'Conditions', 'Media', 'Notes'];
+const baseTabs = ['Overview', 'Conditions', 'Media', 'Notes'];
 
 const siteTypeLabels: { [key: string]: string } = {
   reef: 'Reef',
@@ -414,7 +416,7 @@ export default function DiveSiteDetailScreen() {
   }, [token, id, isNewSite]);
 
   const fetchWikipediaInfo = useCallback(async () => {
-    if (!token || !site?.id || site.siteType !== 'wreck') return;
+    if (!token || !site?.id || !site?.isWreck) return;
 
     setLoadingWiki(true);
     try {
@@ -433,17 +435,17 @@ export default function DiveSiteDetailScreen() {
     } finally {
       setLoadingWiki(false);
     }
-  }, [token, site?.id, site?.siteType]);
+  }, [token, site?.id, site?.isWreck]);
 
   useEffect(() => {
     fetchSite();
   }, [fetchSite]);
 
   useEffect(() => {
-    if (site?.siteType === 'wreck') {
+    if (site?.isWreck) {
       fetchWikipediaInfo();
     }
-  }, [site?.siteType, fetchWikipediaInfo]);
+  }, [site?.isWreck, fetchWikipediaInfo]);
 
   const fetchWeather = useCallback(async (date?: string) => {
     if (!token || !site?.id || !site?.latitude || !site?.longitude) return;
@@ -737,6 +739,11 @@ export default function DiveSiteDetailScreen() {
   }
 
   const displaySite = isEditing ? editedSite : site;
+  
+  const showWreckTab = displaySite?.isWreck || false;
+  const tabs = showWreckTab 
+    ? ['Overview', 'Conditions', 'Media', 'Wreck', 'Notes']
+    : baseTabs;
 
   const renderOverviewTab = () => (
     <View style={styles.tabContent}>
@@ -858,6 +865,20 @@ export default function DiveSiteDetailScreen() {
               colors={colors}
             />
           </View>
+
+          <Pressable
+            style={styles.checkboxRow}
+            onPress={() => updateField('isWreck', !editedSite.isWreck)}
+          >
+            <View style={[
+              styles.checkbox,
+              { borderColor: colors.border },
+              editedSite.isWreck && { backgroundColor: colors.primary, borderColor: colors.primary }
+            ]}>
+              {editedSite.isWreck && <Feather name="check" size={14} color="#fff" />}
+            </View>
+            <Text style={[styles.checkboxLabel, { color: colors.text }]}>This is a wreck/shipwreck dive site</Text>
+          </Pressable>
         </>
       ) : (
         <>
@@ -1323,6 +1344,80 @@ export default function DiveSiteDetailScreen() {
     </View>
   );
 
+  const renderWreckTab = () => (
+    <View style={styles.tabContent}>
+      {isEditing ? (
+        <>
+          <View style={styles.formGroup}>
+            <Text style={[styles.formLabel, { color: colors.text }]}>Wreck Information</Text>
+            <TextInput
+              style={[styles.formInput, styles.textArea, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
+              value={editedSite.wreckInfo || ''}
+              onChangeText={(v) => updateField('wreckInfo', v)}
+              placeholder="Enter wreck details such as ship name, sinking date, history, cargo, etc..."
+              placeholderTextColor={colors.textSecondary}
+              multiline
+              numberOfLines={6}
+            />
+          </View>
+          <View style={[styles.wreckInfoTip, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Feather name="info" size={16} color={colors.textSecondary} />
+            <Text style={[styles.wreckInfoTipText, { color: colors.textSecondary }]}>
+              For known wrecks, you can also add a Wikipedia URL in the site details to auto-fetch information.
+            </Text>
+          </View>
+        </>
+      ) : (
+        <>
+          {loadingWiki ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="small" color={colors.primary} />
+              <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Loading wreck information...</Text>
+            </View>
+          ) : (
+            <>
+              {wikipediaInfo && (
+                <View style={[styles.wikiCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                  <View style={styles.wikiHeader}>
+                    <Feather name="book-open" size={20} color={colors.primary} />
+                    <Text style={[styles.wikiTitle, { color: colors.text }]}>{wikipediaInfo.title}</Text>
+                  </View>
+                  {wikipediaInfo.thumbnail && (
+                    <Image source={{ uri: wikipediaInfo.thumbnail }} style={styles.wikiThumbnail} />
+                  )}
+                  <Text style={[styles.wikiExtract, { color: colors.textSecondary }]}>{wikipediaInfo.extract}</Text>
+                  {wikipediaInfo.url && (
+                    <Pressable style={styles.wikiLink}>
+                      <Feather name="external-link" size={14} color={colors.primary} />
+                      <Text style={[styles.wikiLinkText, { color: colors.primary }]}>View on Wikipedia</Text>
+                    </Pressable>
+                  )}
+                </View>
+              )}
+
+              {displaySite?.wreckInfo && (
+                <View style={styles.section}>
+                  <Text style={[styles.sectionTitle, { color: colors.text }]}>Wreck Details</Text>
+                  <Text style={[styles.description, { color: colors.textSecondary }]}>{displaySite.wreckInfo}</Text>
+                </View>
+              )}
+
+              {!wikipediaInfo && !displaySite?.wreckInfo && (
+                <View style={styles.emptyTab}>
+                  <Feather name="anchor" size={48} color={colors.textSecondary} />
+                  <Text style={[styles.emptyTabText, { color: colors.textSecondary }]}>No wreck information available</Text>
+                  <Text style={[styles.emptyTabSubtext, { color: colors.textSecondary }]}>
+                    Edit this dive site to add wreck details
+                  </Text>
+                </View>
+              )}
+            </>
+          )}
+        </>
+      )}
+    </View>
+  );
+
   const renderNotesTab = () => (
     <View style={styles.tabContent}>
       {isEditing ? (
@@ -1448,10 +1543,11 @@ export default function DiveSiteDetailScreen() {
       </View>
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-        {activeTab === 0 && renderOverviewTab()}
-        {activeTab === 1 && renderConditionsTab()}
-        {activeTab === 2 && renderMediaTab()}
-        {activeTab === 3 && renderNotesTab()}
+        {tabs[activeTab] === 'Overview' && renderOverviewTab()}
+        {tabs[activeTab] === 'Conditions' && renderConditionsTab()}
+        {tabs[activeTab] === 'Media' && renderMediaTab()}
+        {tabs[activeTab] === 'Wreck' && renderWreckTab()}
+        {tabs[activeTab] === 'Notes' && renderNotesTab()}
       </ScrollView>
 
     </View>
@@ -2116,5 +2212,84 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 8,
     gap: 8,
+  },
+  checkboxRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    gap: 12,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 4,
+    borderWidth: 2,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxLabel: {
+    fontSize: 16,
+  },
+  wreckInfoTip: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    gap: 10,
+  },
+  wreckInfoTipText: {
+    flex: 1,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  wikiCard: {
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 16,
+    gap: 12,
+  },
+  wikiHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  wikiTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    flex: 1,
+  },
+  wikiThumbnail: {
+    width: '100%',
+    height: 200,
+    borderRadius: 8,
+    resizeMode: 'cover',
+  },
+  wikiExtract: {
+    fontSize: 14,
+    lineHeight: 22,
+  },
+  wikiLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 4,
+  },
+  wikiLinkText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    paddingVertical: 32,
+    gap: 12,
+  },
+  loadingText: {
+    fontSize: 14,
+  },
+  emptyTabSubtext: {
+    fontSize: 14,
+    marginTop: 8,
+    textAlign: 'center',
   },
 });
