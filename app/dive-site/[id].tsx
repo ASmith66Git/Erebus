@@ -948,79 +948,12 @@ export default function DiveSiteDetailScreen() {
   const renderConditionsTab = () => (
     <View style={styles.tabContent}>
       {isEditing ? (
-        <>
-          <View style={styles.formRow}>
-            <View style={[styles.formGroup, { flex: 1 }]}>
-              <Text style={[styles.formLabel, { color: colors.text }]}>Min Depth (m)</Text>
-              <TextInput
-                style={[styles.formInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
-                value={editedSite.depthMin?.toString() || ''}
-                onChangeText={(v) => updateField('depthMin', v ? parseFloat(v) : null)}
-                placeholder="0"
-                placeholderTextColor={colors.textSecondary}
-                keyboardType="numeric"
-              />
-            </View>
-            <View style={[styles.formGroup, { flex: 1 }]}>
-              <Text style={[styles.formLabel, { color: colors.text }]}>Max Depth (m)</Text>
-              <TextInput
-                style={[styles.formInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
-                value={editedSite.depthMax?.toString() || ''}
-                onChangeText={(v) => updateField('depthMax', v ? parseFloat(v) : null)}
-                placeholder="0"
-                placeholderTextColor={colors.textSecondary}
-                keyboardType="numeric"
-              />
-            </View>
-          </View>
-
-          <View style={styles.formRow}>
-            <View style={[styles.formGroup, { flex: 1 }]}>
-              <Text style={[styles.formLabel, { color: colors.text }]}>Min Visibility (m)</Text>
-              <TextInput
-                style={[styles.formInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
-                value={editedSite.visibilityMin?.toString() || ''}
-                onChangeText={(v) => updateField('visibilityMin', v ? parseFloat(v) : null)}
-                placeholder="0"
-                placeholderTextColor={colors.textSecondary}
-                keyboardType="numeric"
-              />
-            </View>
-            <View style={[styles.formGroup, { flex: 1 }]}>
-              <Text style={[styles.formLabel, { color: colors.text }]}>Max Visibility (m)</Text>
-              <TextInput
-                style={[styles.formInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
-                value={editedSite.visibilityMax?.toString() || ''}
-                onChangeText={(v) => updateField('visibilityMax', v ? parseFloat(v) : null)}
-                placeholder="0"
-                placeholderTextColor={colors.textSecondary}
-                keyboardType="numeric"
-              />
-            </View>
-          </View>
-
-          <View style={styles.formGroup}>
-            <Text style={[styles.formLabel, { color: colors.text }]}>Current Strength</Text>
-            <TextInput
-              style={[styles.formInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
-              value={editedSite.currentStrength || ''}
-              onChangeText={(v) => updateField('currentStrength', v)}
-              placeholder="e.g., None, Light, Moderate, Strong"
-              placeholderTextColor={colors.textSecondary}
-            />
-          </View>
-
-          <View style={styles.formGroup}>
-            <Text style={[styles.formLabel, { color: colors.text }]}>Best Season</Text>
-            <TextInput
-              style={[styles.formInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
-              value={editedSite.bestSeason || ''}
-              onChangeText={(v) => updateField('bestSeason', v)}
-              placeholder="e.g., April - October"
-              placeholderTextColor={colors.textSecondary}
-            />
-          </View>
-        </>
+        <View style={[styles.editConditionsNotice, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Feather name="info" size={20} color={colors.textSecondary} />
+          <Text style={[styles.editConditionsText, { color: colors.textSecondary }]}>
+            Weather conditions are fetched live from Open-Meteo. Dive conditions (depth, visibility, etc.) are recorded in individual dive logs.
+          </Text>
+        </View>
       ) : (
         <>
           <View style={styles.section}>
@@ -1764,9 +1697,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 12,
+    justifyContent: 'space-between',
   },
   conditionCard: {
-    width: (width - 44) / 2,
+    width: '48%',
+    minWidth: 140,
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
@@ -1790,6 +1725,19 @@ const styles = StyleSheet.create({
   },
   weatherPlaceholderText: {
     fontSize: 14,
+  },
+  editConditionsNotice: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 12,
+  },
+  editConditionsText: {
+    flex: 1,
+    fontSize: 14,
+    lineHeight: 20,
   },
   mainImage: {
     width: '100%',
