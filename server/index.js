@@ -173,6 +173,52 @@ async function initDatabase() {
       CREATE INDEX IF NOT EXISTS idx_dive_sites_location ON dive_sites(country, region);
     `).catch(() => {});
     
+    await client.query(`
+      ALTER TABLE dive_sites ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP;
+    `).catch(() => {});
+    
+    await client.query(`
+      ALTER TABLE dive_site_images ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+    `).catch(() => {});
+    
+    await client.query(`
+      ALTER TABLE dive_site_images ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP;
+    `).catch(() => {});
+    
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_dive_sites_updated_at ON dive_sites(updated_at);
+    `).catch(() => {});
+    
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_dive_sites_deleted_at ON dive_sites(deleted_at);
+    `).catch(() => {});
+    
+    await client.query(`
+      CREATE OR REPLACE FUNCTION update_updated_at_column()
+      RETURNS TRIGGER AS $$
+      BEGIN
+        NEW.updated_at = CURRENT_TIMESTAMP;
+        RETURN NEW;
+      END;
+      $$ language 'plpgsql';
+    `).catch(() => {});
+    
+    await client.query(`
+      DROP TRIGGER IF EXISTS update_dive_sites_updated_at ON dive_sites;
+      CREATE TRIGGER update_dive_sites_updated_at
+        BEFORE UPDATE ON dive_sites
+        FOR EACH ROW
+        EXECUTE FUNCTION update_updated_at_column();
+    `).catch(() => {});
+    
+    await client.query(`
+      DROP TRIGGER IF EXISTS update_dive_site_images_updated_at ON dive_site_images;
+      CREATE TRIGGER update_dive_site_images_updated_at
+        BEFORE UPDATE ON dive_site_images
+        FOR EACH ROW
+        EXECUTE FUNCTION update_updated_at_column();
+    `).catch(() => {});
+    
     const adminCheck = await client.query("SELECT id FROM users WHERE email = 'admin@erebus.app'");
     if (adminCheck.rows.length === 0) {
       const hashedPassword = await bcrypt.hash('admin123', 10);
@@ -1468,6 +1514,271 @@ app.get('/api/stock-photos/search', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Pexels search error:', error);
     res.status(500).json({ error: 'Failed to search stock photos' });
+  }
+});
+
+app.get('/api/sync/dive-sites', authenticateToken, async (req, res) => {
+  const { since } = req.query;
+  
+  try {
+    let query;
+    let params = [];
+    
+    if (since) {
+      query = `
+        SELECT id, user_id, name, description, site_type, latitude, longitude,
+               country, region, water_type, depth_min, depth_max, visibility_min,
+               visibility_max, difficulty, current_strength, access_notes, facilities,
+               hazards, best_season, rating_avg, ratings_count, wikipedia_url,
+               external_info, image_url, is_archived, is_wreck, wreck_info, wreck_name,
+               wreck_url, created_at, updated_at, deleted_at
+        FROM dive_sites
+        WHERE updated_at > $1 OR deleted_at > $1
+        ORDER BY updated_at ASC
+      `;
+      params = [since];
+    } else {
+      query = `
+        SELECT id, user_id, name, description, site_type, latitude, longitude,
+               country, region, water_type, depth_min, depth_max, visibility_min,
+               visibility_max, difficulty, current_strength, access_notes, facilities,
+               hazards, best_season, rating_avg, ratings_count, wikipedia_url,
+               external_info, image_url, is_archived, is_wreck, wreck_info, wreck_name,
+               wreck_url, created_at, updated_at, deleted_at
+        FROM dive_sites
+        WHERE deleted_at IS NULL
+        ORDER BY updated_at ASC
+      `;
+    }
+    
+    const result = await pool.query(query, params);
+    
+    const sites = result.rows.map(row => ({
+      id: row.id,
+      userId: row.user_id,
+      name: row.name,
+      description: row.description,
+      siteType: row.site_type,
+      latitude: row.latitude ? parseFloat(row.latitude) : null,
+      longitude: row.longitude ? parseFloat(row.longitude) : null,
+      country: row.country,
+      region: row.region,
+      waterType: row.water_type,
+      depthMin: row.depth_min ? parseFloat(row.depth_min) : null,
+      depthMax: row.depth_max ? parseFloat(row.depth_max) : null,
+      visibilityMin: row.visibility_min ? parseFloat(row.visibility_min) : null,
+      visibilityMax: row.visibility_max ? parseFloat(row.visibility_max) : null,
+      difficulty: row.difficulty,
+      currentStrength: row.current_strength,
+      accessNotes: row.access_notes,
+      facilities: row.facilities || [],
+      hazards: row.hazards || [],
+      bestSeason: row.best_season,
+      ratingAvg: row.rating_avg ? parseFloat(row.rating_avg) : 0,
+      ratingsCount: row.ratings_count || 0,
+      wikipediaUrl: row.wikipedia_url,
+      externalInfo: row.external_info,
+      imageUrl: row.image_url,
+      isArchived: row.is_archived,
+      isWreck: row.is_wreck,
+      wreckInfo: row.wreck_info,
+      wreckName: row.wreck_name,
+      wreckUrl: row.wreck_url,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+      deletedAt: row.deleted_at
+    }));
+    
+    const serverTime = new Date().toISOString();
+    
+    res.json({
+      sites,
+      serverTime,
+      count: sites.length
+    });
+  } catch (error) {
+    console.error('Sync dive sites error:', error);
+    res.status(500).json({ error: 'Server error during sync' });
+  }
+});
+
+app.post('/api/sync/dive-sites', authenticateToken, async (req, res) => {
+  const { mutations } = req.body;
+  
+  if (!Array.isArray(mutations)) {
+    return res.status(400).json({ error: 'Mutations array is required' });
+  }
+  
+  const client = await pool.connect();
+  const results = [];
+  
+  try {
+    await client.query('BEGIN');
+    
+    for (const mutation of mutations) {
+      const { clientMutationId, action, data } = mutation;
+      
+      try {
+        if (action === 'create') {
+          const insertResult = await client.query(`
+            INSERT INTO dive_sites (
+              user_id, name, description, site_type, latitude, longitude,
+              country, region, water_type, depth_min, depth_max, difficulty,
+              current_strength, access_notes, facilities, hazards, best_season,
+              image_url, is_wreck, wreck_info, wreck_name, wreck_url
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
+            RETURNING id, updated_at
+          `, [
+            req.user.id,
+            data.name,
+            data.description || null,
+            data.siteType || 'reef',
+            data.latitude || null,
+            data.longitude || null,
+            data.country || null,
+            data.region || null,
+            data.waterType || 'marine',
+            data.depthMin || null,
+            data.depthMax || null,
+            data.difficulty || 'intermediate',
+            data.currentStrength || null,
+            data.accessNotes || null,
+            JSON.stringify(data.facilities || []),
+            JSON.stringify(data.hazards || []),
+            data.bestSeason || null,
+            data.imageUrl || null,
+            data.isWreck || false,
+            data.wreckInfo || null,
+            data.wreckName || null,
+            data.wreckUrl || null
+          ]);
+          
+          results.push({
+            clientMutationId,
+            success: true,
+            serverId: insertResult.rows[0].id,
+            serverUpdatedAt: insertResult.rows[0].updated_at
+          });
+        } else if (action === 'update') {
+          const canModify = await canModifyDiveSite(data.id, req.user.id, req.user.role);
+          if (!canModify) {
+            results.push({
+              clientMutationId,
+              success: false,
+              error: 'Permission denied'
+            });
+            continue;
+          }
+          
+          const updateResult = await client.query(`
+            UPDATE dive_sites SET
+              name = COALESCE($1, name),
+              description = COALESCE($2, description),
+              site_type = COALESCE($3, site_type),
+              latitude = COALESCE($4, latitude),
+              longitude = COALESCE($5, longitude),
+              country = COALESCE($6, country),
+              region = COALESCE($7, region),
+              water_type = COALESCE($8, water_type),
+              depth_min = COALESCE($9, depth_min),
+              depth_max = COALESCE($10, depth_max),
+              difficulty = COALESCE($11, difficulty),
+              current_strength = COALESCE($12, current_strength),
+              access_notes = COALESCE($13, access_notes),
+              image_url = COALESCE($14, image_url)
+            WHERE id = $15 AND deleted_at IS NULL
+            RETURNING id, updated_at
+          `, [
+            data.name,
+            data.description,
+            data.siteType,
+            data.latitude,
+            data.longitude,
+            data.country,
+            data.region,
+            data.waterType,
+            data.depthMin,
+            data.depthMax,
+            data.difficulty,
+            data.currentStrength,
+            data.accessNotes,
+            data.imageUrl,
+            data.id
+          ]);
+          
+          if (updateResult.rows.length === 0) {
+            results.push({
+              clientMutationId,
+              success: false,
+              error: 'Site not found or deleted'
+            });
+          } else {
+            results.push({
+              clientMutationId,
+              success: true,
+              serverId: updateResult.rows[0].id,
+              serverUpdatedAt: updateResult.rows[0].updated_at
+            });
+          }
+        } else if (action === 'delete') {
+          const canModify = await canModifyDiveSite(data.id, req.user.id, req.user.role);
+          if (!canModify) {
+            results.push({
+              clientMutationId,
+              success: false,
+              error: 'Permission denied'
+            });
+            continue;
+          }
+          
+          await client.query(`
+            UPDATE dive_sites SET deleted_at = CURRENT_TIMESTAMP WHERE id = $1
+          `, [data.id]);
+          
+          results.push({
+            clientMutationId,
+            success: true,
+            serverId: data.id
+          });
+        }
+      } catch (mutationError) {
+        results.push({
+          clientMutationId,
+          success: false,
+          error: mutationError.message
+        });
+      }
+    }
+    
+    await client.query('COMMIT');
+    
+    res.json({
+      results,
+      serverTime: new Date().toISOString()
+    });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Sync mutations error:', error);
+    res.status(500).json({ error: 'Server error during sync' });
+  } finally {
+    client.release();
+  }
+});
+
+app.get('/api/sync/status', authenticateToken, async (req, res) => {
+  try {
+    const sitesResult = await pool.query('SELECT MAX(updated_at) as last_updated, COUNT(*) as count FROM dive_sites WHERE deleted_at IS NULL');
+    
+    res.json({
+      serverTime: new Date().toISOString(),
+      diveSites: {
+        lastUpdated: sitesResult.rows[0].last_updated,
+        count: parseInt(sitesResult.rows[0].count) || 0
+      }
+    });
+  } catch (error) {
+    console.error('Sync status error:', error);
+    res.status(500).json({ error: 'Server error' });
   }
 });
 
