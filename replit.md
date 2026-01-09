@@ -214,6 +214,16 @@ Uses PostgreSQL with a `users` table:
   - Soft delete support with deleted_at columns
   - Auto-updating updated_at triggers on database tables
   - SyncStatusBadge component for UI feedback
+- January 2026: In-App Debug Logging
+  - Error logging service with persistent storage (AsyncStorage)
+  - Automatic capture of console.error, console.warn, and uncaught errors
+  - Global error handler for React Native (ErrorUtils)
+  - Unhandled promise rejection capture
+  - Debug Log screen accessible from Profile tab
+  - Log filtering by level (error, warn, info, debug)
+  - Share/copy logs for easy bug reporting
+  - Error count badge in Profile menu
+  - ErrorBoundary component for React error catching
 
 ## Offline Sync Architecture
 The app supports offline-first functionality for dive site data:
@@ -241,3 +251,27 @@ The app supports offline-first functionality for dive site data:
 - `GET /api/sync/dive-sites?since=<ISO>` - Get changes since timestamp
 - `POST /api/sync/dive-sites` - Batch sync mutations (create/update/delete)
 - `GET /api/sync/status` - Get server sync status
+
+## Debug Logging
+The app includes an in-app error logging system for debugging on physical devices:
+
+### Key Files
+- `services/errorLogger.ts` - Error logging service with storage and global handlers
+- `app/debug-log.tsx` - Debug Log screen with filtering and sharing
+- `components/ErrorBoundary.tsx` - React error boundary component
+
+### Features
+- View all captured logs with timestamps and severity levels
+- Filter logs by level (error, warn, info, debug)
+- Color-coded entries for quick identification
+- Share/copy logs for bug reporting
+- Clear logs when no longer needed
+- Error count badge in Profile menu
+- Automatic capture of console.error and uncaught exceptions
+
+### Usage
+1. Go to Profile tab
+2. Scroll down to "Developer" section
+3. Tap "Debug Logs" to view all captured logs
+4. Use filter chips to narrow by log level
+5. Tap "Share" icon to export logs
