@@ -203,3 +203,41 @@ Uses PostgreSQL with a `users` table:
     - Curated wreck research resource links (wrecksite.eu, divesitedirectory.com, scubadiving.com/wrecks, navsource.org, NOAA Maritime Heritage)
     - Clickable links open in browser
   - Dynamic tabs array updates based on wreck status
+- January 2026: Offline Sync Capabilities
+  - Local SQLite database using expo-sqlite for offline data storage
+  - Sync API endpoints for incremental data fetching
+  - Centralized API URL configuration (utils/apiConfig.ts)
+  - SyncContext and SyncProvider for managing sync state
+  - Network connectivity detection using @react-native-community/netinfo
+  - Pending mutations queue for offline changes
+  - Automatic sync on reconnection and app resume
+  - Soft delete support with deleted_at columns
+  - Auto-updating updated_at triggers on database tables
+  - SyncStatusBadge component for UI feedback
+
+## Offline Sync Architecture
+The app supports offline-first functionality for dive site data:
+
+### Local Storage
+- Uses expo-sqlite for structured data storage
+- Local database schema mirrors server tables
+- Supports iOS, Android, and web platforms
+
+### Sync Flow
+1. On login/app start: Full sync pulls all dive sites from server
+2. Incremental sync: Only fetches records updated since last sync
+3. Offline changes: Queued as pending mutations in local database
+4. On reconnect: Pending mutations pushed to server, then pull changes
+
+### Key Files
+- `services/localDatabase.ts` - Local SQLite database layer
+- `services/syncService.ts` - Sync logic (push/pull)
+- `hooks/useNetworkStatus.ts` - Network connectivity detection
+- `contexts/SyncContext.tsx` - Sync state management
+- `components/SyncStatusBadge.tsx` - UI indicator
+- `utils/apiConfig.ts` - Centralized API URL configuration
+
+### Sync API Endpoints
+- `GET /api/sync/dive-sites?since=<ISO>` - Get changes since timestamp
+- `POST /api/sync/dive-sites` - Batch sync mutations (create/update/delete)
+- `GET /api/sync/status` - Get server sync status

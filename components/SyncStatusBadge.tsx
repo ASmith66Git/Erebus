@@ -57,7 +57,7 @@ export default function SyncStatusBadge({ compact = false, onPress }: SyncStatus
   return (
     <Pressable 
       onPress={handlePress} 
-      style={[styles.container, { backgroundColor: colors.card, borderColor: colors.border }]}
+      style={[styles.container, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}
     >
       <View style={[styles.indicator, { backgroundColor: getStatusColor() }]} />
       

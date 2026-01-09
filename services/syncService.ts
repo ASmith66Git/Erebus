@@ -11,7 +11,7 @@ import {
   LocalDiveSite,
   PendingMutation
 } from './localDatabase';
-import { Platform } from 'react-native';
+import { getApiUrl } from '@/utils/apiConfig';
 
 interface SyncResult {
   success: boolean;
@@ -54,20 +54,6 @@ interface ServerDiveSite {
   createdAt: string;
   updatedAt: string;
   deletedAt: string | null;
-}
-
-function getApiUrl(): string {
-  if (Platform.OS === 'web' && typeof window !== 'undefined') {
-    const host = window.location.host;
-    if (host.includes('localhost') || host.includes('127.0.0.1')) {
-      return `${window.location.protocol}//localhost:3001`;
-    }
-    if (host.includes('.replit.dev') || host.includes('.replit.app')) {
-      return `${window.location.protocol}//${host}`;
-    }
-    return `${window.location.protocol}//${host}`;
-  }
-  return 'https://56fa4c0f-d24e-42d1-a9d5-89c79bbd28d6-00-3nhmxvxgj4wxs.spock.replit.dev';
 }
 
 export async function performFullSync(token: string): Promise<SyncResult> {
