@@ -580,28 +580,18 @@ export default function DiveSiteDetailScreen() {
                     {displaySite.latitude.toFixed(6)}, {displaySite.longitude.toFixed(6)}
                   </Text>
                   <View style={[styles.staticMapContainer, { borderColor: colors.border }]}>
-                    {Platform.OS === 'web' ? (
-                      <iframe
-                        src={`https://www.google.com/maps/embed/v1/place?key=${process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY}&q=${displaySite.latitude},${displaySite.longitude}&zoom=12`}
-                        style={{ width: '100%', height: 200, border: 0, borderRadius: 8 }}
-                        allowFullScreen
-                        loading="lazy"
-                        referrerPolicy="no-referrer-when-downgrade"
-                      />
-                    ) : (
-                      <Pressable
-                        style={[styles.mapLinkButton, { backgroundColor: colors.surface }]}
-                        onPress={() => {
-                          const url = `https://www.google.com/maps?q=${displaySite.latitude},${displaySite.longitude}`;
-                          if (Platform.OS === 'web') {
-                            window.open(url, '_blank');
-                          }
-                        }}
-                      >
-                        <Feather name="external-link" size={18} color={colors.primary} />
-                        <Text style={[styles.mapLinkText, { color: colors.primary }]}>View in Google Maps</Text>
-                      </Pressable>
-                    )}
+                    <Pressable
+                      style={[styles.mapLinkButton, { backgroundColor: colors.surface }]}
+                      onPress={() => {
+                        const url = `https://www.google.com/maps?q=${displaySite.latitude},${displaySite.longitude}`;
+                        if (Platform.OS === 'web') {
+                          window.open(url, '_blank');
+                        }
+                      }}
+                    >
+                      <Feather name="map" size={18} color={colors.primary} />
+                      <Text style={[styles.mapLinkText, { color: colors.primary }]}>View on Google Maps</Text>
+                    </Pressable>
                   </View>
                 </>
               )}
