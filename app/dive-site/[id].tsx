@@ -563,19 +563,47 @@ export default function DiveSiteDetailScreen() {
             </View>
           </View>
 
-          {(displaySite?.country || displaySite?.region) && (
+          {(displaySite?.country || displaySite?.region || (displaySite?.latitude && displaySite?.longitude)) && (
             <View style={styles.section}>
               <Text style={[styles.sectionTitle, { color: colors.text }]}>Location</Text>
-              <View style={styles.locationInfo}>
-                <Feather name="map-pin" size={18} color={colors.primary} />
-                <Text style={[styles.locationText, { color: colors.text }]}>
-                  {[displaySite.region, displaySite.country].filter(Boolean).join(', ')}
-                </Text>
-              </View>
-              {displaySite.latitude && displaySite.longitude && (
-                <Text style={[styles.coordinates, { color: colors.textSecondary }]}>
-                  {displaySite.latitude.toFixed(6)}, {displaySite.longitude.toFixed(6)}
-                </Text>
+              {(displaySite?.country || displaySite?.region) && (
+                <View style={styles.locationInfo}>
+                  <Feather name="map-pin" size={18} color={colors.primary} />
+                  <Text style={[styles.locationText, { color: colors.text }]}>
+                    {[displaySite.region, displaySite.country].filter(Boolean).join(', ')}
+                  </Text>
+                </View>
+              )}
+              {displaySite?.latitude && displaySite?.longitude && (
+                <>
+                  <Text style={[styles.coordinates, { color: colors.textSecondary }]}>
+                    {displaySite.latitude.toFixed(6)}, {displaySite.longitude.toFixed(6)}
+                  </Text>
+                  <View style={[styles.staticMapContainer, { borderColor: colors.border }]}>
+                    {Platform.OS === 'web' ? (
+                      <iframe
+                        src={`https://www.google.com/maps/embed/v1/place?key=${process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY}&q=${displaySite.latitude},${displaySite.longitude}&zoom=12`}
+                        style={{ width: '100%', height: 200, border: 0, borderRadius: 8 }}
+                        allowFullScreen
+                        loading="lazy"
+                        referrerPolicy="no-referrer-when-downgrade"
+                      />
+                    ) : (
+                      <Pressable
+                        style={[styles.mapLinkButton, { backgroundColor: colors.surface }]}
+                        onPress={() => {
+                          const url = `https://www.google.com/maps?q=${displaySite.latitude},${displaySite.longitude}`;
+                          if (Platform.OS === 'web') {
+                            window.open(url, '_blank');
+                          }
+                        }}
+                      >
+                        <Feather name="external-link" size={18} color={colors.primary} />
+                        <Text style={[styles.mapLinkText, { color: colors.primary }]}>View in Google Maps</Text>
+                      </Pressable>
+                    )}
+                  </View>
+                </>
               )}
             </View>
           )}
@@ -1030,6 +1058,24 @@ const styles = StyleSheet.create({
   coordinates: {
     fontSize: 12,
     marginLeft: 26,
+  },
+  staticMapContainer: {
+    marginTop: 12,
+    borderRadius: 8,
+    overflow: 'hidden',
+    borderWidth: 1,
+  },
+  mapLinkButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+    gap: 8,
+    borderRadius: 8,
+  },
+  mapLinkText: {
+    fontSize: 14,
+    fontWeight: '500',
   },
   conditionsGrid: {
     flexDirection: 'row',

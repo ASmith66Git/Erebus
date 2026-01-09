@@ -100,49 +100,63 @@ export default function EmbeddedMapPicker({
   };
 
   useEffect(() => {
-    if (Platform.OS === 'web' && webMapRef.current && !googleMapRef.current) {
-      const initWebMap = async () => {
-        try {
-          const { setOptions, importLibrary } = await import('@googlemaps/js-api-loader');
-          setOptions({ 
-            key: apiKey, 
-            v: 'weekly' 
-          });
+    if (Platform.OS !== 'web') return;
+    if (googleMapRef.current) return;
+    if (!apiKey) {
+      setMapError('Google Maps API key not configured');
+      return;
+    }
 
-          await importLibrary('maps');
-          await importLibrary('places');
-          const google = (window as any).google;
-          
-          const map = new google.maps.Map(webMapRef.current!, {
-            center: { lat: latitude || 0, lng: longitude || 0 },
-            zoom: latitude && longitude ? 12 : 2,
-            mapTypeControl: true,
-            streetViewControl: false,
-            fullscreenControl: false,
-          });
-          googleMapRef.current = map;
+    const initWebMap = async () => {
+      const mapElement = webMapRef.current;
+      if (!mapElement) {
+        setTimeout(initWebMap, 100);
+        return;
+      }
 
-          const marker = new google.maps.Marker({
-            position: { lat: latitude || 0, lng: longitude || 0 },
-            map: map,
-            draggable: true,
-          });
-          markerRef.current = marker;
+      try {
+        const { Loader } = await import('@googlemaps/js-api-loader');
+        const loader = new Loader({
+          apiKey: apiKey,
+          version: 'weekly',
+          libraries: ['places'],
+        });
 
-          marker.addListener('dragend', () => {
-            const pos = marker.getPosition();
-            if (pos) {
-              handleMarkerChange(pos.lat(), pos.lng());
-            }
-          });
+        await loader.importLibrary('maps');
+        await loader.importLibrary('places');
+        const google = (window as any).google;
+        
+        const map = new google.maps.Map(mapElement, {
+          center: { lat: latitude || 0, lng: longitude || 0 },
+          zoom: latitude && longitude ? 12 : 2,
+          mapTypeControl: true,
+          streetViewControl: false,
+          fullscreenControl: false,
+        });
+        googleMapRef.current = map;
 
-          map.addListener('click', (e: any) => {
-            const lat = e.latLng.lat();
-            const lng = e.latLng.lng();
-            marker.setPosition({ lat, lng });
-            handleMarkerChange(lat, lng);
-          });
+        const marker = new google.maps.Marker({
+          position: { lat: latitude || 0, lng: longitude || 0 },
+          map: map,
+          draggable: true,
+        });
+        markerRef.current = marker;
 
+        marker.addListener('dragend', () => {
+          const pos = marker.getPosition();
+          if (pos) {
+            handleMarkerChange(pos.lat(), pos.lng());
+          }
+        });
+
+        map.addListener('click', (e: any) => {
+          const lat = e.latLng.lat();
+          const lng = e.latLng.lng();
+          marker.setPosition({ lat, lng });
+          handleMarkerChange(lat, lng);
+        });
+
+        setTimeout(() => {
           const searchInput = document.getElementById('map-search-input') as HTMLInputElement;
           if (searchInput) {
             const autocomplete = new google.maps.places.Autocomplete(searchInput, {
@@ -163,16 +177,17 @@ export default function EmbeddedMapPicker({
               }
             });
           }
+        }, 100);
 
-          setMapLoaded(true);
-        } catch (error) {
-          console.error('Error loading Google Maps:', error);
-          setMapError('Failed to load map. Please check your API key.');
-        }
-      };
+        setMapLoaded(true);
+      } catch (error) {
+        console.error('Error loading Google Maps:', error);
+        setMapError('Failed to load map. Please check your API key.');
+      }
+    };
 
-      initWebMap();
-    }
+    const timer = setTimeout(initWebMap, 50);
+    return () => clearTimeout(timer);
   }, [apiKey, latitude, longitude, handleMarkerChange]);
 
   useEffect(() => {
@@ -189,13 +204,22 @@ export default function EmbeddedMapPicker({
         <View style={styles.searchRow}>
           <View style={[styles.searchInputContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <Feather name="search" size={18} color={colors.textSecondary} style={styles.searchIcon} />
-            <TextInput
+            <input
               id="map-search-input"
-              style={[styles.searchInput, { color: colors.text }]}
+              type="text"
               placeholder="Search for a location..."
-              placeholderTextColor={colors.textSecondary}
+              style={{
+                flex: 1,
+                border: 'none',
+                outline: 'none',
+                backgroundColor: 'transparent',
+                color: colors.text,
+                fontSize: 16,
+                padding: '8px 0',
+                width: '100%',
+              }}
               value={searchText}
-              onChangeText={setSearchText}
+              onChange={(e) => setSearchText(e.target.value)}
             />
           </View>
           <Pressable
