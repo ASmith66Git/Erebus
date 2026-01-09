@@ -123,3 +123,4 @@ integrations = ["resend:1.0.0", "javascript_object_storage:2.0.0"]
 [userenv]
 
 [userenv.shared]
+PEXELS_API_KEY = "OcHCrP60cM9wXO33I9D6bl5ymzBHZjKbnMgQwM3JbnZ5rHzJhKstEIHO"
