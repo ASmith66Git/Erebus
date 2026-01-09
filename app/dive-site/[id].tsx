@@ -12,6 +12,7 @@ import {
   Dimensions,
   Alert,
   Modal,
+  Linking,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
@@ -77,6 +78,8 @@ interface DiveSite {
   imageUrl: string | null;
   images: DiveSiteImage[];
   isWreck: boolean;
+  wreckName: string | null;
+  wreckUrl: string | null;
   wreckInfo: string | null;
 }
 
@@ -1344,27 +1347,84 @@ export default function DiveSiteDetailScreen() {
     </View>
   );
 
+  const wreckResources = [
+    { name: 'Wrecksite.eu', url: 'https://www.wrecksite.eu', icon: 'anchor' },
+    { name: 'Dive Site Directory', url: 'https://www.divesitedirectory.com', icon: 'compass' },
+    { name: 'Scuba Diving Wrecks', url: 'https://www.scubadiving.com/wrecks', icon: 'life-buoy' },
+    { name: 'NavSource Naval History', url: 'https://www.navsource.org', icon: 'navigation' },
+    { name: 'NOAA Maritime Heritage', url: 'https://sanctuaries.noaa.gov/maritime', icon: 'globe' },
+  ];
+
+  const isValidUrl = (str: string) => {
+    try {
+      new URL(str);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
   const renderWreckTab = () => (
     <View style={styles.tabContent}>
       {isEditing ? (
         <>
           <View style={styles.formGroup}>
-            <Text style={[styles.formLabel, { color: colors.text }]}>Wreck Information</Text>
+            <Text style={[styles.formLabel, { color: colors.text }]}>Wreck Name</Text>
+            <TextInput
+              style={[styles.formInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
+              value={editedSite.wreckName || ''}
+              onChangeText={(v) => updateField('wreckName', v)}
+              placeholder="e.g., SS Thistlegorm, USS Arizona"
+              placeholderTextColor={colors.textSecondary}
+            />
+          </View>
+          <View style={styles.formGroup}>
+            <Text style={[styles.formLabel, { color: colors.text }]}>Reference URL</Text>
+            <TextInput
+              style={[styles.formInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
+              value={editedSite.wreckUrl || ''}
+              onChangeText={(v) => updateField('wreckUrl', v)}
+              placeholder="https://en.wikipedia.org/wiki/SS_Thistlegorm"
+              placeholderTextColor={colors.textSecondary}
+              keyboardType="url"
+              autoCapitalize="none"
+            />
+            {editedSite.wreckUrl && !isValidUrl(editedSite.wreckUrl) && (
+              <Text style={[styles.errorText, { color: colors.error }]}>Please enter a valid URL</Text>
+            )}
+          </View>
+          <View style={styles.formGroup}>
+            <Text style={[styles.formLabel, { color: colors.text }]}>Additional Notes</Text>
             <TextInput
               style={[styles.formInput, styles.textArea, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
               value={editedSite.wreckInfo || ''}
               onChangeText={(v) => updateField('wreckInfo', v)}
-              placeholder="Enter wreck details such as ship name, sinking date, history, cargo, etc..."
+              placeholder="Sinking date, history, cargo, notable features..."
               placeholderTextColor={colors.textSecondary}
               multiline
-              numberOfLines={6}
+              numberOfLines={4}
             />
           </View>
-          <View style={[styles.wreckInfoTip, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Feather name="info" size={16} color={colors.textSecondary} />
-            <Text style={[styles.wreckInfoTipText, { color: colors.textSecondary }]}>
-              For known wrecks, you can also add a Wikipedia URL in the site details to auto-fetch information.
+          <View style={[styles.wreckResourcesSection, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Text style={[styles.wreckResourcesTitle, { color: colors.text }]}>
+              <Feather name="search" size={14} color={colors.primary} /> Find Wreck Information
             </Text>
+            <Text style={[styles.wreckResourcesSubtitle, { color: colors.textSecondary }]}>
+              Use these resources to research wreck history and details:
+            </Text>
+            <View style={styles.wreckResourcesList}>
+              {wreckResources.map((resource, index) => (
+                <Pressable 
+                  key={index} 
+                  style={[styles.wreckResourceLink, { borderColor: colors.border }]}
+                  onPress={() => Linking.openURL(resource.url)}
+                >
+                  <Feather name={resource.icon as any} size={14} color={colors.primary} />
+                  <Text style={[styles.wreckResourceLinkText, { color: colors.primary }]}>{resource.name}</Text>
+                  <Feather name="external-link" size={12} color={colors.textSecondary} />
+                </Pressable>
+              ))}
+            </View>
           </View>
         </>
       ) : (
@@ -1376,6 +1436,27 @@ export default function DiveSiteDetailScreen() {
             </View>
           ) : (
             <>
+              {displaySite?.wreckName && (
+                <View style={styles.section}>
+                  <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                    <Feather name="anchor" size={16} color={colors.primary} /> {displaySite.wreckName}
+                  </Text>
+                </View>
+              )}
+
+              {displaySite?.wreckUrl && isValidUrl(displaySite.wreckUrl) && (
+                <Pressable 
+                  style={[styles.wreckUrlCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                  onPress={() => Linking.openURL(displaySite.wreckUrl!)}
+                >
+                  <Feather name="link" size={16} color={colors.primary} />
+                  <Text style={[styles.wreckUrlText, { color: colors.primary }]} numberOfLines={1}>
+                    {displaySite.wreckUrl}
+                  </Text>
+                  <Feather name="external-link" size={14} color={colors.textSecondary} />
+                </Pressable>
+              )}
+
               {wikipediaInfo && (
                 <View style={[styles.wikiCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
                   <View style={styles.wikiHeader}>
@@ -1387,7 +1468,10 @@ export default function DiveSiteDetailScreen() {
                   )}
                   <Text style={[styles.wikiExtract, { color: colors.textSecondary }]}>{wikipediaInfo.extract}</Text>
                   {wikipediaInfo.url && (
-                    <Pressable style={styles.wikiLink}>
+                    <Pressable 
+                      style={styles.wikiLink}
+                      onPress={() => Linking.openURL(wikipediaInfo.url!)}
+                    >
                       <Feather name="external-link" size={14} color={colors.primary} />
                       <Text style={[styles.wikiLinkText, { color: colors.primary }]}>View on Wikipedia</Text>
                     </Pressable>
@@ -1397,12 +1481,12 @@ export default function DiveSiteDetailScreen() {
 
               {displaySite?.wreckInfo && (
                 <View style={styles.section}>
-                  <Text style={[styles.sectionTitle, { color: colors.text }]}>Wreck Details</Text>
+                  <Text style={[styles.sectionTitle, { color: colors.text }]}>Notes</Text>
                   <Text style={[styles.description, { color: colors.textSecondary }]}>{displaySite.wreckInfo}</Text>
                 </View>
               )}
 
-              {!wikipediaInfo && !displaySite?.wreckInfo && (
+              {!wikipediaInfo && !displaySite?.wreckInfo && !displaySite?.wreckName && !displaySite?.wreckUrl && (
                 <View style={styles.emptyTab}>
                   <Feather name="anchor" size={48} color={colors.textSecondary} />
                   <Text style={[styles.emptyTabText, { color: colors.textSecondary }]}>No wreck information available</Text>
@@ -1411,6 +1495,25 @@ export default function DiveSiteDetailScreen() {
                   </Text>
                 </View>
               )}
+
+              <View style={[styles.wreckResourcesSection, { backgroundColor: colors.surface, borderColor: colors.border, marginTop: 16 }]}>
+                <Text style={[styles.wreckResourcesTitle, { color: colors.text }]}>
+                  <Feather name="search" size={14} color={colors.primary} /> Wreck Research Resources
+                </Text>
+                <View style={styles.wreckResourcesList}>
+                  {wreckResources.map((resource, index) => (
+                    <Pressable 
+                      key={index} 
+                      style={[styles.wreckResourceLink, { borderColor: colors.border }]}
+                      onPress={() => Linking.openURL(resource.url)}
+                    >
+                      <Feather name={resource.icon as any} size={14} color={colors.primary} />
+                      <Text style={[styles.wreckResourceLinkText, { color: colors.primary }]}>{resource.name}</Text>
+                      <Feather name="external-link" size={12} color={colors.textSecondary} />
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
             </>
           )}
         </>
@@ -2291,5 +2394,56 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 8,
     textAlign: 'center',
+  },
+  wreckUrlCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    gap: 10,
+    marginBottom: 16,
+  },
+  wreckUrlText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  wreckResourcesSection: {
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 10,
+  },
+  wreckResourcesTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  wreckResourcesSubtitle: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  wreckResourcesList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 8,
+  },
+  wreckResourceLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    gap: 6,
+  },
+  wreckResourceLinkText: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  errorText: {
+    fontSize: 12,
+    marginTop: 4,
   },
 });
