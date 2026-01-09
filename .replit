@@ -118,7 +118,7 @@ waitForPort = 8080
 
 [agent]
 expertMode = true
-integrations = ["resend:1.0.0"]
+integrations = ["resend:1.0.0", "javascript_object_storage:2.0.0"]
 
 [userenv]
 
