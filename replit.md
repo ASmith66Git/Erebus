@@ -80,8 +80,19 @@ assets/                    # Static assets
 - `PUT /api/dive-sites/:id` - Update dive site
 - `DELETE /api/dive-sites/:id` - Archive dive site (soft delete)
 - `GET /api/dive-sites/:id/wikipedia` - Fetch Wikipedia info for wreck sites
+- `GET /api/dive-sites/:id/weather` - Get 7-day weather forecast
 - `GET /api/site-types` - List available site types
 - `GET /api/difficulties` - List difficulty levels
+
+### Dive Site Images (owner/admin only)
+- `GET /api/dive-sites/:id/images` - List images for a dive site
+- `POST /api/dive-sites/:id/images` - Upload image (via presigned URL)
+- `PUT /api/dive-sites/:id/images/:imageId` - Update image (caption, set primary)
+- `DELETE /api/dive-sites/:id/images/:imageId` - Delete image
+- `POST /api/upload-url` - Generate presigned upload URL for Object Storage
+
+### Stock Photos
+- `GET /api/stock-photos/search` - Search Pexels for stock photos (requires PEXELS_API_KEY)
 
 ## Database
 Uses PostgreSQL with a `users` table:
@@ -108,7 +119,10 @@ Uses PostgreSQL with a `users` table:
 - created_at, updated_at
 
 ### Dive Site Images Table (dive_site_images)
-- id, dive_site_id (FK), image_url, caption, is_primary, created_at
+- id, dive_site_id (FK), image_url, caption, is_primary
+- is_stock (BOOLEAN) - Whether image is from stock photo service
+- attribution (TEXT) - Attribution text for stock photos
+- created_at
 
 ## Design
 - Primary color: #D22F00 (Nammu-Tech red)
@@ -164,3 +178,12 @@ Uses PostgreSQL with a `users` table:
     - Click/tap anywhere on map to set coordinates
     - "Use My Location" button via expo-location
     - Live coordinate display as you interact with the map
+- January 2026: Dive Site Image Management
+  - Replit Object Storage integration for file uploads
+  - Full image CRUD API with owner/admin authorization
+  - Presigned URL upload flow for secure uploads
+  - Primary image selection with transactional updates
+  - Pexels stock photo search integration
+  - Media tab UI with image gallery
+  - Stock photo attribution tracking
+  - Dive site cards show primary image as thumbnail

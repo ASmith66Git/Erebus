@@ -22,6 +22,34 @@ import StaticMapView from '@/components/StaticMapView';
 
 const { width } = Dimensions.get('window');
 
+interface DiveSiteImage {
+  id: number;
+  diveSiteId: number;
+  imageUrl: string;
+  caption: string | null;
+  isPrimary: boolean;
+  isStock: boolean;
+  attribution: string | null;
+  createdAt: string;
+}
+
+interface StockPhoto {
+  id: number;
+  width: number;
+  height: number;
+  url: string;
+  photographer: string;
+  photographerUrl: string;
+  src: {
+    original: string;
+    large: string;
+    medium: string;
+    small: string;
+    thumbnail: string;
+  };
+  alt: string;
+}
+
 interface DiveSite {
   id: number;
   name: string;
@@ -47,7 +75,7 @@ interface DiveSite {
   wikipediaUrl: string | null;
   externalInfo: string | null;
   imageUrl: string | null;
-  images: { id: number; imageUrl: string; caption: string | null; isPrimary: boolean }[];
+  images: DiveSiteImage[];
 }
 
 interface WikipediaInfo {
@@ -348,6 +376,15 @@ export default function DiveSiteDetailScreen() {
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [loadingWeather, setLoadingWeather] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [siteImages, setSiteImages] = useState<DiveSiteImage[]>([]);
+  const [loadingImages, setLoadingImages] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [stockSearchQuery, setStockSearchQuery] = useState('');
+  const [stockPhotos, setStockPhotos] = useState<StockPhoto[]>([]);
+  const [searchingStock, setSearchingStock] = useState(false);
+  const [showStockModal, setShowStockModal] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<DiveSiteImage | null>(null);
+  const [showImageModal, setShowImageModal] = useState(false);
 
   const isNewSite = id === 'new';
 
@@ -433,6 +470,209 @@ export default function DiveSiteDetailScreen() {
       fetchWeather(selectedDate);
     }
   }, [site?.latitude, site?.longitude]);
+
+  const fetchSiteImages = useCallback(async () => {
+    if (!token || !site?.id) return;
+
+    setLoadingImages(true);
+    try {
+      const response = await fetch(`${getApiUrl()}/api/dive-sites/${site.id}/images`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setSiteImages(data);
+      }
+    } catch (error) {
+      console.error('Error fetching images:', error);
+    } finally {
+      setLoadingImages(false);
+    }
+  }, [token, site?.id]);
+
+  useEffect(() => {
+    if (site?.id) {
+      fetchSiteImages();
+    }
+  }, [site?.id, fetchSiteImages]);
+
+  const handleImageUpload = async () => {
+    if (!token || !site?.id || Platform.OS !== 'web') {
+      Alert.alert('Info', 'Image upload is only available on web for now');
+      return;
+    }
+
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = async (e: any) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      setUploadingImage(true);
+      try {
+        const urlResponse = await fetch(`${getApiUrl()}/api/uploads/request-url`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            name: file.name,
+            size: file.size,
+            contentType: file.type,
+          }),
+        });
+
+        if (!urlResponse.ok) {
+          throw new Error('Failed to get upload URL');
+        }
+
+        const { uploadURL, objectPath } = await urlResponse.json();
+
+        const uploadResponse = await fetch(uploadURL, {
+          method: 'PUT',
+          body: file,
+          headers: { 'Content-Type': file.type },
+        });
+
+        if (!uploadResponse.ok) {
+          throw new Error('Failed to upload file');
+        }
+
+        const addImageResponse = await fetch(`${getApiUrl()}/api/dive-sites/${site.id}/images`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            imageUrl: objectPath,
+            caption: null,
+            isPrimary: siteImages.length === 0,
+          }),
+        });
+
+        if (addImageResponse.ok) {
+          fetchSiteImages();
+          Alert.alert('Success', 'Image uploaded successfully');
+        }
+      } catch (error) {
+        console.error('Error uploading image:', error);
+        Alert.alert('Error', 'Failed to upload image');
+      } finally {
+        setUploadingImage(false);
+      }
+    };
+    input.click();
+  };
+
+  const searchStockPhotos = async () => {
+    if (!token || !stockSearchQuery.trim()) return;
+
+    setSearchingStock(true);
+    try {
+      const response = await fetch(
+        `${getApiUrl()}/api/stock-photos/search?query=${encodeURIComponent(stockSearchQuery)}&perPage=12`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        setStockPhotos(data.photos || []);
+      } else {
+        const error = await response.json();
+        Alert.alert('Info', error.error || 'Could not search stock photos');
+        setStockPhotos([]);
+      }
+    } catch (error) {
+      console.error('Error searching stock photos:', error);
+    } finally {
+      setSearchingStock(false);
+    }
+  };
+
+  const addStockPhoto = async (photo: StockPhoto) => {
+    if (!token || !site?.id) return;
+
+    try {
+      const response = await fetch(`${getApiUrl()}/api/dive-sites/${site.id}/images`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          imageUrl: photo.src.large,
+          caption: photo.alt || null,
+          isPrimary: siteImages.length === 0,
+          isStock: true,
+          attribution: `Photo by ${photo.photographer} on Pexels`,
+        }),
+      });
+
+      if (response.ok) {
+        fetchSiteImages();
+        setShowStockModal(false);
+        Alert.alert('Success', 'Stock photo added');
+      }
+    } catch (error) {
+      console.error('Error adding stock photo:', error);
+      Alert.alert('Error', 'Failed to add stock photo');
+    }
+  };
+
+  const setImageAsPrimary = async (imageId: number) => {
+    if (!token || !site?.id) return;
+
+    try {
+      const response = await fetch(`${getApiUrl()}/api/dive-sites/${site.id}/images/${imageId}`, {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ isPrimary: true }),
+      });
+
+      if (response.ok) {
+        fetchSiteImages();
+        setShowImageModal(false);
+        Alert.alert('Success', 'Primary image updated');
+      }
+    } catch (error) {
+      console.error('Error setting primary image:', error);
+    }
+  };
+
+  const deleteImage = async (imageId: number) => {
+    if (!token || !site?.id) return;
+
+    Alert.alert('Delete Image', 'Are you sure you want to delete this image?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            const response = await fetch(`${getApiUrl()}/api/dive-sites/${site.id}/images/${imageId}`, {
+              method: 'DELETE',
+              headers: { Authorization: `Bearer ${token}` },
+            });
+
+            if (response.ok) {
+              fetchSiteImages();
+              setShowImageModal(false);
+              Alert.alert('Success', 'Image deleted');
+            }
+          } catch (error) {
+            console.error('Error deleting image:', error);
+          }
+        },
+      },
+    ]);
+  };
 
   const handleSave = async () => {
     if (!token) return;
@@ -923,12 +1163,82 @@ export default function DiveSiteDetailScreen() {
     </View>
   );
 
+  const getImageUrl = (imageUrl: string) => {
+    if (imageUrl.startsWith('/objects/')) {
+      return `${getApiUrl()}${imageUrl}`;
+    }
+    return imageUrl;
+  };
+
   const renderMediaTab = () => (
     <View style={styles.tabContent}>
-      {displaySite?.imageUrl && (
+      {!isNewSite && (
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Main Image</Text>
-          <Image source={{ uri: displaySite.imageUrl }} style={styles.mainImage} resizeMode="cover" />
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Photos</Text>
+            {!loadingImages && (
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                <Pressable
+                  onPress={() => setShowStockModal(true)}
+                  style={[styles.mediaActionButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                >
+                  <Feather name="search" size={18} color={colors.primary} />
+                  <Text style={[styles.mediaActionText, { color: colors.primary }]}>Stock</Text>
+                </Pressable>
+                <Pressable
+                  onPress={handleImageUpload}
+                  style={[styles.mediaActionButton, { backgroundColor: colors.primary }]}
+                  disabled={uploadingImage}
+                >
+                  {uploadingImage ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <>
+                      <Feather name="upload" size={18} color="#FFFFFF" />
+                      <Text style={[styles.mediaActionText, { color: '#FFFFFF' }]}>Upload</Text>
+                    </>
+                  )}
+                </Pressable>
+              </View>
+            )}
+          </View>
+
+          {loadingImages ? (
+            <ActivityIndicator size="small" color={colors.primary} style={{ marginVertical: 20 }} />
+          ) : siteImages.length > 0 ? (
+            <View style={styles.imageGrid}>
+              {siteImages.map((img) => (
+                <Pressable
+                  key={img.id}
+                  onPress={() => {
+                    setSelectedImage(img);
+                    setShowImageModal(true);
+                  }}
+                  style={[styles.imageGridItem, { borderColor: img.isPrimary ? colors.primary : colors.border }]}
+                >
+                  <Image source={{ uri: getImageUrl(img.imageUrl) }} style={styles.gridImage} resizeMode="cover" />
+                  {img.isPrimary && (
+                    <View style={[styles.primaryBadge, { backgroundColor: colors.primary }]}>
+                      <Feather name="star" size={12} color="#FFFFFF" />
+                    </View>
+                  )}
+                  {img.isStock && (
+                    <View style={[styles.stockBadge, { backgroundColor: colors.surface }]}>
+                      <Text style={{ fontSize: 10, color: colors.textSecondary }}>Pexels</Text>
+                    </View>
+                  )}
+                </Pressable>
+              ))}
+            </View>
+          ) : (
+            <View style={[styles.emptyMedia, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <Feather name="image" size={48} color={colors.textSecondary} />
+              <Text style={[styles.emptyMediaText, { color: colors.textSecondary }]}>No photos yet</Text>
+              <Text style={[styles.emptyMediaSubtext, { color: colors.textSecondary }]}>
+                Upload your own or add from stock photos
+              </Text>
+            </View>
+          )}
         </View>
       )}
 
@@ -958,19 +1268,6 @@ export default function DiveSiteDetailScreen() {
         </View>
       )}
 
-      {isEditing && (
-        <View style={styles.formGroup}>
-          <Text style={[styles.formLabel, { color: colors.text }]}>Image URL</Text>
-          <TextInput
-            style={[styles.formInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
-            value={editedSite.imageUrl || ''}
-            onChangeText={(v) => updateField('imageUrl', v)}
-            placeholder="https://..."
-            placeholderTextColor={colors.textSecondary}
-          />
-        </View>
-      )}
-
       {isEditing && site?.siteType === 'wreck' && (
         <View style={styles.formGroup}>
           <Text style={[styles.formLabel, { color: colors.text }]}>Wikipedia URL</Text>
@@ -983,6 +1280,112 @@ export default function DiveSiteDetailScreen() {
           />
         </View>
       )}
+
+      <Modal visible={showStockModal} transparent animationType="slide">
+        <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
+          <View style={[styles.stockModal, { backgroundColor: colors.background }]}>
+            <View style={[styles.stockModalHeader, { borderBottomColor: colors.border }]}>
+              <Text style={[styles.stockModalTitle, { color: colors.text }]}>Search Stock Photos</Text>
+              <Pressable onPress={() => setShowStockModal(false)}>
+                <Feather name="x" size={24} color={colors.text} />
+              </Pressable>
+            </View>
+
+            <View style={styles.stockSearchRow}>
+              <TextInput
+                style={[styles.stockSearchInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
+                value={stockSearchQuery}
+                onChangeText={setStockSearchQuery}
+                placeholder="Search diving, coral reef, ocean..."
+                placeholderTextColor={colors.textSecondary}
+                onSubmitEditing={searchStockPhotos}
+              />
+              <Pressable
+                onPress={searchStockPhotos}
+                style={[styles.stockSearchButton, { backgroundColor: colors.primary }]}
+                disabled={searchingStock}
+              >
+                {searchingStock ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Feather name="search" size={20} color="#FFFFFF" />
+                )}
+              </Pressable>
+            </View>
+
+            <ScrollView style={styles.stockResults} contentContainerStyle={styles.stockResultsContent}>
+              {stockPhotos.length > 0 ? (
+                <View style={styles.stockGrid}>
+                  {stockPhotos.map((photo) => (
+                    <Pressable
+                      key={photo.id}
+                      onPress={() => addStockPhoto(photo)}
+                      style={[styles.stockPhotoItem, { borderColor: colors.border }]}
+                    >
+                      <Image source={{ uri: photo.src.medium }} style={styles.stockPhotoImage} resizeMode="cover" />
+                      <View style={[styles.stockPhotoInfo, { backgroundColor: colors.surface }]}>
+                        <Text style={{ fontSize: 11, color: colors.textSecondary }} numberOfLines={1}>
+                          {photo.photographer}
+                        </Text>
+                      </View>
+                    </Pressable>
+                  ))}
+                </View>
+              ) : (
+                <View style={styles.stockEmptyState}>
+                  <Feather name="camera" size={48} color={colors.textSecondary} />
+                  <Text style={{ color: colors.textSecondary, marginTop: 12 }}>
+                    Search for photos above
+                  </Text>
+                </View>
+              )}
+            </ScrollView>
+
+            <Text style={[styles.pexelsAttribution, { color: colors.textSecondary }]}>
+              Photos provided by Pexels
+            </Text>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={showImageModal} transparent animationType="fade">
+        <Pressable style={styles.modalOverlay} onPress={() => setShowImageModal(false)}>
+          <View style={[styles.imageModalContent, { backgroundColor: colors.background }]}>
+            {selectedImage && (
+              <>
+                <Image
+                  source={{ uri: getImageUrl(selectedImage.imageUrl) }}
+                  style={styles.imageModalImage}
+                  resizeMode="contain"
+                />
+                {selectedImage.attribution && (
+                  <Text style={[styles.imageAttribution, { color: colors.textSecondary }]}>
+                    {selectedImage.attribution}
+                  </Text>
+                )}
+                <View style={styles.imageModalActions}>
+                  {!selectedImage.isPrimary && (
+                    <Pressable
+                      onPress={() => setImageAsPrimary(selectedImage.id)}
+                      style={[styles.imageModalButton, { backgroundColor: colors.primary }]}
+                    >
+                      <Feather name="star" size={18} color="#FFFFFF" />
+                      <Text style={{ color: '#FFFFFF', fontWeight: '600' }}>Set as Primary</Text>
+                    </Pressable>
+                  )}
+                  <Pressable
+                    onPress={() => deleteImage(selectedImage.id)}
+                    style={[styles.imageModalButton, { backgroundColor: colors.error }]}
+                  >
+                    <Feather name="trash-2" size={18} color="#FFFFFF" />
+                    <Text style={{ color: '#FFFFFF', fontWeight: '600' }}>Delete</Text>
+                  </Pressable>
+                </View>
+              </>
+            )}
+          </View>
+        </Pressable>
+      </Modal>
     </View>
   );
 
@@ -1591,5 +1994,178 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '600',
+  },
+  mediaActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    gap: 6,
+  },
+  mediaActionText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  imageGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  imageGridItem: {
+    width: (width - 48) / 3,
+    aspectRatio: 1,
+    borderRadius: 8,
+    overflow: 'hidden',
+    borderWidth: 2,
+  },
+  gridImage: {
+    width: '100%',
+    height: '100%',
+  },
+  primaryBadge: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    padding: 4,
+    borderRadius: 12,
+  },
+  stockBadge: {
+    position: 'absolute',
+    bottom: 4,
+    left: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  emptyMedia: {
+    alignItems: 'center',
+    paddingVertical: 40,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+  },
+  emptyMediaText: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginTop: 12,
+  },
+  emptyMediaSubtext: {
+    fontSize: 14,
+    marginTop: 4,
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  stockModal: {
+    width: '90%',
+    maxWidth: 500,
+    maxHeight: '80%',
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  stockModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    borderBottomWidth: 1,
+  },
+  stockModalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  stockSearchRow: {
+    flexDirection: 'row',
+    padding: 16,
+    gap: 8,
+  },
+  stockSearchInput: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    fontSize: 16,
+  },
+  stockSearchButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  stockResults: {
+    flex: 1,
+  },
+  stockResultsContent: {
+    padding: 16,
+    paddingTop: 0,
+  },
+  stockGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  stockPhotoItem: {
+    width: (width * 0.9 - 64) / 3,
+    aspectRatio: 1,
+    borderRadius: 8,
+    overflow: 'hidden',
+    borderWidth: 1,
+  },
+  stockPhotoImage: {
+    width: '100%',
+    height: '100%',
+  },
+  stockPhotoInfo: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 4,
+  },
+  stockEmptyState: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  pexelsAttribution: {
+    textAlign: 'center',
+    padding: 12,
+    fontSize: 12,
+  },
+  imageModalContent: {
+    width: '90%',
+    maxWidth: 500,
+    borderRadius: 16,
+    overflow: 'hidden',
+    padding: 16,
+  },
+  imageModalImage: {
+    width: '100%',
+    aspectRatio: 1,
+    borderRadius: 8,
+  },
+  imageAttribution: {
+    textAlign: 'center',
+    fontSize: 12,
+    marginTop: 8,
+  },
+  imageModalActions: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 16,
+    justifyContent: 'center',
+  },
+  imageModalButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 8,
+    gap: 8,
   },
 });

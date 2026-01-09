@@ -67,9 +67,18 @@ const difficultyColors: { [key: string]: string } = {
   technical: '#DC3545',
 };
 
+function getImageUrl(imageUrl: string): string {
+  if (imageUrl.startsWith('/objects/')) {
+    const apiUrl = getApiUrl();
+    return `${apiUrl}${imageUrl}`;
+  }
+  return imageUrl;
+}
+
 function DiveSiteCard({ site, onPress, colors }: { site: DiveSite; onPress: () => void; colors: any }) {
   const iconName = siteTypeIcons[site.siteType] || 'map-pin';
   const difficultyColor = difficultyColors[site.difficulty] || colors.textSecondary;
+  const displayImageUrl = site.imageUrl ? getImageUrl(site.imageUrl) : null;
 
   return (
     <Pressable
@@ -77,8 +86,8 @@ function DiveSiteCard({ site, onPress, colors }: { site: DiveSite; onPress: () =
       onPress={onPress}
     >
       <View style={styles.cardImageContainer}>
-        {site.imageUrl ? (
-          <Image source={{ uri: site.imageUrl }} style={styles.cardImage} resizeMode="cover" />
+        {displayImageUrl ? (
+          <Image source={{ uri: displayImageUrl }} style={styles.cardImage} resizeMode="cover" />
         ) : (
           <View style={[styles.cardImagePlaceholder, { backgroundColor: colors.border }]}>
             <Feather name={iconName as any} size={32} color={colors.primary} />

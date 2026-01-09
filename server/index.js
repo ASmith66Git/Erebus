@@ -130,9 +130,19 @@ async function initDatabase() {
         image_url VARCHAR(500) NOT NULL,
         caption VARCHAR(255),
         is_primary BOOLEAN DEFAULT FALSE,
+        is_stock BOOLEAN DEFAULT FALSE,
+        attribution TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
+    
+    await client.query(`
+      ALTER TABLE dive_site_images ADD COLUMN IF NOT EXISTS is_stock BOOLEAN DEFAULT FALSE;
+    `).catch(() => {});
+    
+    await client.query(`
+      ALTER TABLE dive_site_images ADD COLUMN IF NOT EXISTS attribution TEXT;
+    `).catch(() => {});
     
     await client.query(`
       CREATE INDEX IF NOT EXISTS idx_dive_sites_name ON dive_sites(name);
@@ -605,35 +615,53 @@ app.get('/api/dive-sites', authenticateToken, async (req, res) => {
     const countQuery = 'SELECT COUNT(*) FROM dive_sites WHERE is_archived = FALSE';
     const countResult = await pool.query(countQuery);
     
+    const siteIds = result.rows.map(s => s.id);
+    let primaryImages = {};
+    if (siteIds.length > 0) {
+      const imagesResult = await pool.query(
+        'SELECT dive_site_id, image_url FROM dive_site_images WHERE dive_site_id = ANY($1) AND is_primary = TRUE',
+        [siteIds]
+      );
+      imagesResult.rows.forEach(img => {
+        primaryImages[img.dive_site_id] = img.image_url;
+      });
+    }
+    
     res.json({
-      sites: result.rows.map(site => ({
-        id: site.id,
-        name: site.name,
-        description: site.description,
-        siteType: site.site_type,
-        latitude: parseFloat(site.latitude) || null,
-        longitude: parseFloat(site.longitude) || null,
-        country: site.country,
-        region: site.region,
-        waterType: site.water_type,
-        depthMin: parseFloat(site.depth_min) || null,
-        depthMax: parseFloat(site.depth_max) || null,
-        visibilityMin: parseFloat(site.visibility_min) || null,
-        visibilityMax: parseFloat(site.visibility_max) || null,
-        difficulty: site.difficulty,
-        currentStrength: site.current_strength,
-        accessNotes: site.access_notes,
-        facilities: site.facilities || [],
-        hazards: site.hazards || [],
-        bestSeason: site.best_season,
-        ratingAvg: parseFloat(site.rating_avg) || 0,
-        ratingsCount: site.ratings_count || 0,
-        wikipediaUrl: site.wikipedia_url,
-        externalInfo: site.external_info,
-        imageUrl: site.image_url,
-        createdAt: site.created_at,
-        updatedAt: site.updated_at
-      })),
+      sites: result.rows.map(site => {
+        let displayImageUrl = primaryImages[site.id] || site.image_url;
+        if (displayImageUrl && displayImageUrl.startsWith('/objects/')) {
+          displayImageUrl = displayImageUrl;
+        }
+        return {
+          id: site.id,
+          name: site.name,
+          description: site.description,
+          siteType: site.site_type,
+          latitude: parseFloat(site.latitude) || null,
+          longitude: parseFloat(site.longitude) || null,
+          country: site.country,
+          region: site.region,
+          waterType: site.water_type,
+          depthMin: parseFloat(site.depth_min) || null,
+          depthMax: parseFloat(site.depth_max) || null,
+          visibilityMin: parseFloat(site.visibility_min) || null,
+          visibilityMax: parseFloat(site.visibility_max) || null,
+          difficulty: site.difficulty,
+          currentStrength: site.current_strength,
+          accessNotes: site.access_notes,
+          facilities: site.facilities || [],
+          hazards: site.hazards || [],
+          bestSeason: site.best_season,
+          ratingAvg: parseFloat(site.rating_avg) || 0,
+          ratingsCount: site.ratings_count || 0,
+          wikipediaUrl: site.wikipedia_url,
+          externalInfo: site.external_info,
+          imageUrl: displayImageUrl,
+          createdAt: site.created_at,
+          updatedAt: site.updated_at
+        };
+      }),
       total: parseInt(countResult.rows[0].count),
       limit: parseInt(limit),
       offset: parseInt(offset)
@@ -1042,6 +1070,371 @@ app.get('/api/difficulties', authenticateToken, (req, res) => {
     { value: 'advanced', label: 'Advanced' },
     { value: 'technical', label: 'Technical' }
   ]);
+});
+
+const { Storage } = require('@google-cloud/storage');
+
+const REPLIT_SIDECAR_ENDPOINT = 'http://127.0.0.1:1106';
+
+const objectStorageClient = new Storage({
+  credentials: {
+    audience: 'replit',
+    subject_token_type: 'access_token',
+    token_url: `${REPLIT_SIDECAR_ENDPOINT}/token`,
+    type: 'external_account',
+    credential_source: {
+      url: `${REPLIT_SIDECAR_ENDPOINT}/credential`,
+      format: {
+        type: 'json',
+        subject_token_field_name: 'access_token',
+      },
+    },
+    universe_domain: 'googleapis.com',
+  },
+  projectId: '',
+});
+
+function parseObjectPath(path) {
+  if (!path.startsWith('/')) {
+    path = `/${path}`;
+  }
+  const pathParts = path.split('/');
+  if (pathParts.length < 3) {
+    throw new Error('Invalid path: must contain at least a bucket name');
+  }
+  return {
+    bucketName: pathParts[1],
+    objectName: pathParts.slice(2).join('/'),
+  };
+}
+
+async function signObjectURL({ bucketName, objectName, method, ttlSec }) {
+  const request = {
+    bucket_name: bucketName,
+    object_name: objectName,
+    method,
+    expires_at: new Date(Date.now() + ttlSec * 1000).toISOString(),
+  };
+  const response = await fetch(
+    `${REPLIT_SIDECAR_ENDPOINT}/object-storage/signed-object-url`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(request),
+    }
+  );
+  if (!response.ok) {
+    throw new Error(`Failed to sign object URL: ${response.status}`);
+  }
+  const { signed_url: signedURL } = await response.json();
+  return signedURL;
+}
+
+async function getUploadURL() {
+  const privateObjectDir = process.env.PRIVATE_OBJECT_DIR || '';
+  if (!privateObjectDir) {
+    throw new Error('PRIVATE_OBJECT_DIR not set');
+  }
+  const objectId = crypto.randomUUID();
+  const fullPath = `${privateObjectDir}/uploads/${objectId}`;
+  const { bucketName, objectName } = parseObjectPath(fullPath);
+  return signObjectURL({ bucketName, objectName, method: 'PUT', ttlSec: 900 });
+}
+
+function normalizeObjectPath(rawPath) {
+  if (!rawPath.startsWith('https://storage.googleapis.com/')) {
+    return rawPath;
+  }
+  const url = new URL(rawPath);
+  const rawObjectPath = url.pathname;
+  let objectEntityDir = process.env.PRIVATE_OBJECT_DIR || '';
+  if (!objectEntityDir.endsWith('/')) {
+    objectEntityDir = `${objectEntityDir}/`;
+  }
+  if (!rawObjectPath.startsWith(objectEntityDir)) {
+    return rawObjectPath;
+  }
+  const entityId = rawObjectPath.slice(objectEntityDir.length);
+  return `/objects/${entityId}`;
+}
+
+app.post('/api/uploads/request-url', authenticateToken, async (req, res) => {
+  try {
+    const { name, size, contentType } = req.body;
+    if (!name) {
+      return res.status(400).json({ error: 'Missing required field: name' });
+    }
+    const uploadURL = await getUploadURL();
+    const objectPath = normalizeObjectPath(uploadURL);
+    res.json({
+      uploadURL,
+      objectPath,
+      metadata: { name, size, contentType },
+    });
+  } catch (error) {
+    console.error('Error generating upload URL:', error);
+    res.status(500).json({ error: 'Failed to generate upload URL' });
+  }
+});
+
+app.get(/^\/objects\/(.+)$/, async (req, res) => {
+  try {
+    const objectPath = req.path;
+    const parts = objectPath.slice(1).split('/');
+    if (parts.length < 2) {
+      return res.status(404).json({ error: 'Object not found' });
+    }
+    const entityId = parts.slice(1).join('/');
+    let entityDir = process.env.PRIVATE_OBJECT_DIR || '';
+    if (!entityDir.endsWith('/')) {
+      entityDir = `${entityDir}/`;
+    }
+    const objectEntityPath = `${entityDir}${entityId}`;
+    const { bucketName, objectName } = parseObjectPath(objectEntityPath);
+    const bucket = objectStorageClient.bucket(bucketName);
+    const file = bucket.file(objectName);
+    const [exists] = await file.exists();
+    if (!exists) {
+      return res.status(404).json({ error: 'Object not found' });
+    }
+    const [metadata] = await file.getMetadata();
+    res.set({
+      'Content-Type': metadata.contentType || 'application/octet-stream',
+      'Content-Length': metadata.size,
+      'Cache-Control': 'public, max-age=3600',
+    });
+    const stream = file.createReadStream();
+    stream.on('error', (err) => {
+      console.error('Stream error:', err);
+      if (!res.headersSent) {
+        res.status(500).json({ error: 'Error streaming file' });
+      }
+    });
+    stream.pipe(res);
+  } catch (error) {
+    console.error('Error serving object:', error);
+    res.status(500).json({ error: 'Failed to serve object' });
+  }
+});
+
+app.get('/api/dive-sites/:id/images', authenticateToken, async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await pool.query(
+      'SELECT * FROM dive_site_images WHERE dive_site_id = $1 ORDER BY is_primary DESC, created_at ASC',
+      [id]
+    );
+    res.json(result.rows.map(img => ({
+      id: img.id,
+      diveSiteId: img.dive_site_id,
+      imageUrl: img.image_url,
+      caption: img.caption,
+      isPrimary: img.is_primary,
+      isStock: img.is_stock || false,
+      attribution: img.attribution,
+      createdAt: img.created_at
+    })));
+  } catch (error) {
+    console.error('Get dive site images error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+async function canModifyDiveSite(siteId, userId, userRole) {
+  if (userRole === 'admin') return true;
+  const result = await pool.query('SELECT user_id FROM dive_sites WHERE id = $1 AND is_archived = FALSE', [siteId]);
+  if (result.rows.length === 0) return false;
+  return result.rows[0].user_id === userId;
+}
+
+app.post('/api/dive-sites/:id/images', authenticateToken, async (req, res) => {
+  const { id } = req.params;
+  const { imageUrl, caption, isPrimary, isStock, attribution } = req.body;
+  
+  if (!imageUrl) {
+    return res.status(400).json({ error: 'Image URL is required' });
+  }
+  
+  try {
+    const siteCheck = await pool.query('SELECT id, user_id FROM dive_sites WHERE id = $1 AND is_archived = FALSE', [id]);
+    if (siteCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Dive site not found' });
+    }
+    
+    const canModify = await canModifyDiveSite(id, req.user.id, req.user.role);
+    if (!canModify) {
+      return res.status(403).json({ error: 'You do not have permission to modify this dive site' });
+    }
+    
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      
+      if (isPrimary) {
+        await client.query('UPDATE dive_site_images SET is_primary = FALSE WHERE dive_site_id = $1', [id]);
+      }
+      
+      const result = await client.query(
+        'INSERT INTO dive_site_images (dive_site_id, image_url, caption, is_primary, is_stock, attribution) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+        [id, imageUrl, caption || null, isPrimary || false, isStock || false, attribution || null]
+      );
+      
+      await client.query('COMMIT');
+      
+      const img = result.rows[0];
+      res.status(201).json({
+        id: img.id,
+        diveSiteId: img.dive_site_id,
+        imageUrl: img.image_url,
+        caption: img.caption,
+        isPrimary: img.is_primary,
+        isStock: img.is_stock || false,
+        attribution: img.attribution,
+        createdAt: img.created_at
+      });
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    console.error('Add dive site image error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.put('/api/dive-sites/:siteId/images/:imageId', authenticateToken, async (req, res) => {
+  const { siteId, imageId } = req.params;
+  const { caption, isPrimary } = req.body;
+  
+  try {
+    const canModify = await canModifyDiveSite(siteId, req.user.id, req.user.role);
+    if (!canModify) {
+      return res.status(403).json({ error: 'You do not have permission to modify this dive site' });
+    }
+    
+    const imageCheck = await pool.query(
+      'SELECT id FROM dive_site_images WHERE id = $1 AND dive_site_id = $2',
+      [imageId, siteId]
+    );
+    if (imageCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Image not found' });
+    }
+    
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      
+      if (isPrimary) {
+        await client.query('UPDATE dive_site_images SET is_primary = FALSE WHERE dive_site_id = $1', [siteId]);
+      }
+      
+      const result = await client.query(
+        'UPDATE dive_site_images SET caption = COALESCE($1, caption), is_primary = COALESCE($2, is_primary) WHERE id = $3 RETURNING *',
+        [caption, isPrimary, imageId]
+      );
+      
+      await client.query('COMMIT');
+      
+      const img = result.rows[0];
+      res.json({
+        id: img.id,
+        diveSiteId: img.dive_site_id,
+        imageUrl: img.image_url,
+        caption: img.caption,
+        isPrimary: img.is_primary,
+        isStock: img.is_stock || false,
+        attribution: img.attribution,
+        createdAt: img.created_at
+      });
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    console.error('Update dive site image error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.delete('/api/dive-sites/:siteId/images/:imageId', authenticateToken, async (req, res) => {
+  const { siteId, imageId } = req.params;
+  
+  try {
+    const canModify = await canModifyDiveSite(siteId, req.user.id, req.user.role);
+    if (!canModify) {
+      return res.status(403).json({ error: 'You do not have permission to modify this dive site' });
+    }
+    
+    const result = await pool.query(
+      'DELETE FROM dive_site_images WHERE id = $1 AND dive_site_id = $2 RETURNING id',
+      [imageId, siteId]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Image not found' });
+    }
+    res.json({ message: 'Image deleted successfully' });
+  } catch (error) {
+    console.error('Delete dive site image error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.get('/api/stock-photos/search', authenticateToken, async (req, res) => {
+  const { query, page = 1, perPage = 15 } = req.query;
+  
+  if (!query) {
+    return res.status(400).json({ error: 'Search query is required' });
+  }
+  
+  const pexelsApiKey = process.env.PEXELS_API_KEY;
+  if (!pexelsApiKey) {
+    return res.status(503).json({ error: 'Stock photo service not configured' });
+  }
+  
+  try {
+    const searchUrl = `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&page=${page}&per_page=${perPage}`;
+    const response = await fetch(searchUrl, {
+      headers: {
+        'Authorization': pexelsApiKey
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Pexels API error: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    
+    res.json({
+      photos: data.photos.map(photo => ({
+        id: photo.id,
+        width: photo.width,
+        height: photo.height,
+        url: photo.url,
+        photographer: photo.photographer,
+        photographerUrl: photo.photographer_url,
+        src: {
+          original: photo.src.original,
+          large: photo.src.large,
+          medium: photo.src.medium,
+          small: photo.src.small,
+          thumbnail: photo.src.tiny
+        },
+        alt: photo.alt
+      })),
+      page: data.page,
+      perPage: data.per_page,
+      totalResults: data.total_results,
+      nextPage: data.next_page ? page + 1 : null
+    });
+  } catch (error) {
+    console.error('Pexels search error:', error);
+    res.status(500).json({ error: 'Failed to search stock photos' });
+  }
 });
 
 initDatabase().then(() => {
