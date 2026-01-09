@@ -1787,17 +1787,23 @@ const distPath = path.join(__dirname, '..', 'dist');
 if (process.env.NODE_ENV === 'production' || process.env.PORT) {
   app.use(express.static(distPath));
   
-  app.get('*', (req, res, next) => {
+  app.use((req, res, next) => {
     if (req.path.startsWith('/api/') || req.path.startsWith('/objects/')) {
       return next();
     }
-    const indexPath = path.join(distPath, 'index.html');
-    res.sendFile(indexPath, (err) => {
-      if (err) {
-        console.error('Error serving index.html:', err);
-        res.status(500).send('Server error');
-      }
-    });
+    if (req.method === 'GET') {
+      const indexPath = path.join(distPath, 'index.html');
+      res.sendFile(indexPath, (err) => {
+        if (err) {
+          console.error('Error serving index.html:', err);
+          if (!res.headersSent) {
+            res.status(500).send('Server error');
+          }
+        }
+      });
+    } else {
+      next();
+    }
   });
 }
 
