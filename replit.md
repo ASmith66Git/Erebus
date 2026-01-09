@@ -116,6 +116,8 @@ Uses PostgreSQL with a `users` table:
 - best_season, rating_avg, ratings_count
 - wikipedia_url, external_info, image_url
 - is_wreck (BOOLEAN) - Whether site is marked as a wreck
+- wreck_name (VARCHAR 255) - Name of the wreck (e.g., SS Thistlegorm)
+- wreck_url (VARCHAR 500) - Reference URL for wreck information
 - wreck_info (TEXT) - Manual wreck information/notes
 - is_archived (BOOLEAN for soft delete)
 - created_at, updated_at
@@ -190,9 +192,14 @@ Uses PostgreSQL with a `users` table:
   - Stock photo attribution tracking
   - Dive site cards show primary image as thumbnail
 - January 2026: Wreck Site Feature
-  - Added is_wreck and wreck_info columns to dive_sites table
+  - Added is_wreck, wreck_name, wreck_url, and wreck_info columns to dive_sites table
   - Checkbox in Overview tab (edit mode) to mark site as a wreck
   - Conditional "Wreck" tab appears only when isWreck is true
   - Wikipedia integration fetches info based on isWreck flag
-  - Manual wreck notes field for custom information
+  - Enhanced Wreck tab with:
+    - Wreck Name field (e.g., SS Thistlegorm, USS Arizona)
+    - Reference URL field with inline validation (any URL, not just Wikipedia)
+    - Additional Notes text area for custom information
+    - Curated wreck research resource links (wrecksite.eu, divesitedirectory.com, scubadiving.com/wrecks, navsource.org, NOAA Maritime Heritage)
+    - Clickable links open in browser
   - Dynamic tabs array updates based on wreck status
