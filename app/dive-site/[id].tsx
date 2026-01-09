@@ -522,71 +522,78 @@ export default function DiveSiteDetailScreen() {
       ) : (
         <>
           {displaySite?.description && (
-            <View style={styles.section}>
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>About</Text>
-              <Text style={[styles.description, { color: colors.textSecondary }]}>
-                {displaySite.description}
-              </Text>
-            </View>
+            <Text style={[styles.descriptionCompact, { color: colors.textSecondary }]}>
+              {displaySite.description}
+            </Text>
           )}
 
-          <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Details</Text>
-            <View style={styles.detailsGrid}>
-              <View style={[styles.detailItem, { backgroundColor: colors.surface }]}>
-                <Feather name="layers" size={20} color={colors.primary} />
-                <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Type</Text>
-                <Text style={[styles.detailValue, { color: colors.text }]}>
-                  {siteTypeLabels[displaySite?.siteType || ''] || displaySite?.siteType}
-                </Text>
+          <View style={[styles.detailsCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <View style={styles.detailRow}>
+              <View style={styles.detailRowIcon}>
+                <Feather name="layers" size={18} color={colors.primary} />
               </View>
-              <View style={[styles.detailItem, { backgroundColor: colors.surface }]}>
-                <Feather name="activity" size={20} color={colors.primary} />
-                <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Difficulty</Text>
-                <Text style={[styles.detailValue, { color: colors.text }]}>
-                  {difficultyLabels[displaySite?.difficulty || ''] || displaySite?.difficulty}
-                </Text>
-              </View>
-              <View style={[styles.detailItem, { backgroundColor: colors.surface }]}>
-                <Feather name="droplet" size={20} color={colors.primary} />
-                <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Water Type</Text>
-                <Text style={[styles.detailValue, { color: colors.text }]}>
-                  {displaySite?.waterType === 'marine' ? 'Marine' : 'Inland'}
-                </Text>
-              </View>
-              {displaySite?.depthMax && (
-                <View style={[styles.detailItem, { backgroundColor: colors.surface }]}>
-                  <Feather name="arrow-down" size={20} color={colors.primary} />
-                  <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Max Depth</Text>
-                  <Text style={[styles.detailValue, { color: colors.text }]}>{displaySite.depthMax}m</Text>
-                </View>
-              )}
+              <Text style={[styles.detailRowLabel, { color: colors.textSecondary }]}>Type</Text>
+              <Text style={[styles.detailRowValue, { color: colors.text }]}>
+                {siteTypeLabels[displaySite?.siteType || ''] || displaySite?.siteType}
+              </Text>
             </View>
-          </View>
-
-          {(displaySite?.country || displaySite?.region || (displaySite?.latitude && displaySite?.longitude)) && (
-            <View style={styles.section}>
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>Location</Text>
-              {(displaySite?.country || displaySite?.region) && (
-                <View style={styles.locationInfo}>
-                  <Feather name="map-pin" size={18} color={colors.primary} />
-                  <Text style={[styles.locationText, { color: colors.text }]}>
+            <View style={[styles.detailRowDivider, { backgroundColor: colors.border }]} />
+            <View style={styles.detailRow}>
+              <View style={styles.detailRowIcon}>
+                <Feather name="activity" size={18} color={colors.primary} />
+              </View>
+              <Text style={[styles.detailRowLabel, { color: colors.textSecondary }]}>Difficulty</Text>
+              <Text style={[styles.detailRowValue, { color: colors.text }]}>
+                {difficultyLabels[displaySite?.difficulty || ''] || displaySite?.difficulty}
+              </Text>
+            </View>
+            <View style={[styles.detailRowDivider, { backgroundColor: colors.border }]} />
+            <View style={styles.detailRow}>
+              <View style={styles.detailRowIcon}>
+                <Feather name="droplet" size={18} color={colors.primary} />
+              </View>
+              <Text style={[styles.detailRowLabel, { color: colors.textSecondary }]}>Water</Text>
+              <Text style={[styles.detailRowValue, { color: colors.text }]}>
+                {displaySite?.waterType === 'marine' ? 'Marine' : 'Inland'}
+              </Text>
+            </View>
+            {displaySite?.depthMax && (
+              <>
+                <View style={[styles.detailRowDivider, { backgroundColor: colors.border }]} />
+                <View style={styles.detailRow}>
+                  <View style={styles.detailRowIcon}>
+                    <Feather name="arrow-down" size={18} color={colors.primary} />
+                  </View>
+                  <Text style={[styles.detailRowLabel, { color: colors.textSecondary }]}>Depth</Text>
+                  <Text style={[styles.detailRowValue, { color: colors.text }]}>
+                    {displaySite.depthMin ? `${displaySite.depthMin}-` : ''}{displaySite.depthMax}m
+                  </Text>
+                </View>
+              </>
+            )}
+            {(displaySite?.country || displaySite?.region) && (
+              <>
+                <View style={[styles.detailRowDivider, { backgroundColor: colors.border }]} />
+                <View style={styles.detailRow}>
+                  <View style={styles.detailRowIcon}>
+                    <Feather name="map-pin" size={18} color={colors.primary} />
+                  </View>
+                  <Text style={[styles.detailRowLabel, { color: colors.textSecondary }]}>Location</Text>
+                  <Text style={[styles.detailRowValue, { color: colors.text }]} numberOfLines={1}>
                     {[displaySite.region, displaySite.country].filter(Boolean).join(', ')}
                   </Text>
                 </View>
-              )}
-              {displaySite?.latitude && displaySite?.longitude && (
-                <>
-                  <Text style={[styles.coordinates, { color: colors.textSecondary }]}>
-                    {displaySite.latitude.toFixed(6)}, {displaySite.longitude.toFixed(6)}
-                  </Text>
-                  <StaticMapView
-                    latitude={displaySite.latitude}
-                    longitude={displaySite.longitude}
-                    colors={colors}
-                  />
-                </>
-              )}
+              </>
+            )}
+          </View>
+
+          {displaySite?.latitude && displaySite?.longitude && (
+            <View style={styles.mapSection}>
+              <StaticMapView
+                latitude={displaySite.latitude}
+                longitude={displaySite.longitude}
+                colors={colors}
+              />
             </View>
           )}
         </>
@@ -1028,6 +1035,43 @@ const styles = StyleSheet.create({
   detailValue: {
     fontSize: 16,
     fontWeight: '600',
+  },
+  descriptionCompact: {
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+  detailsCard: {
+    borderRadius: 12,
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+  },
+  detailRowIcon: {
+    width: 28,
+    alignItems: 'center',
+  },
+  detailRowLabel: {
+    fontSize: 14,
+    width: 80,
+  },
+  detailRowValue: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'right',
+  },
+  detailRowDivider: {
+    height: 1,
+    marginLeft: 42,
+  },
+  mapSection: {
+    marginTop: 12,
   },
   locationInfo: {
     flexDirection: 'row',
