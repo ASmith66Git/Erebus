@@ -7,10 +7,14 @@ const PRODUCTION_API_URL = process.env.EXPO_PUBLIC_API_URL ||
 export function getApiUrl(): string {
   if (Platform.OS === 'web' && typeof window !== 'undefined') {
     const host = window.location.host;
+    const hostname = window.location.hostname;
     if (host.includes('localhost') || host.includes('127.0.0.1')) {
       return `${window.location.protocol}//localhost:3001`;
     }
-    if (host.includes('.replit.dev') || host.includes('.replit.app')) {
+    if (host.includes('.replit.dev')) {
+      return `${window.location.protocol}//${hostname}:3001`;
+    }
+    if (host.includes('.replit.app')) {
       return `${window.location.protocol}//${host}`;
     }
     return `${window.location.protocol}//${host}`;
