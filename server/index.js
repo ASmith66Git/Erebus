@@ -3,11 +3,12 @@ const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
+const path = require('path');
 const { Pool } = require('pg');
 const { Resend } = require('resend');
 
 const app = express();
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -1468,6 +1469,16 @@ app.get('/api/stock-photos/search', authenticateToken, async (req, res) => {
     console.error('Pexels search error:', error);
     res.status(500).json({ error: 'Failed to search stock photos' });
   }
+});
+
+const distPath = path.join(__dirname, '..', 'dist');
+app.use(express.static(distPath));
+
+app.get('/{*path}', (req, res, next) => {
+  if (req.path.startsWith('/api/') || req.path.startsWith('/objects/')) {
+    return next();
+  }
+  res.sendFile(path.join(distPath, 'index.html'));
 });
 
 initDatabase().then(() => {
