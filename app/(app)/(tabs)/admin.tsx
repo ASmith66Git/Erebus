@@ -5,6 +5,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'expo-router';
 import { getApiUrl } from '@/utils/apiConfig';
+import { errorLogger } from '@/services/errorLogger';
 
 interface UserData {
   id: number;
@@ -23,8 +24,8 @@ export default function AdminScreen() {
   const [users, setUsers] = useState<UserData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
-  
   const [resetLoading, setResetLoading] = useState<number | null>(null);
+  const [errorCount, setErrorCount] = useState(0);
 
   useEffect(() => {
     if (!isAdmin) {
@@ -32,6 +33,12 @@ export default function AdminScreen() {
       return;
     }
     fetchUsers();
+    
+    setErrorCount(errorLogger.getErrorCount());
+    const unsubscribe = errorLogger.subscribe(() => {
+      setErrorCount(errorLogger.getErrorCount());
+    });
+    return unsubscribe;
   }, [isAdmin]);
 
   async function fetchUsers() {
@@ -338,6 +345,31 @@ export default function AdminScreen() {
         ))
       )}
 
+      <View style={styles.sectionHeader}>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>Developer Tools</Text>
+      </View>
+
+      <Pressable 
+        style={[styles.devCard, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}
+        onPress={() => router.push('/debug-log')}
+      >
+        <View style={[styles.devIcon, { backgroundColor: '#e74c3c20' }]}>
+          <Ionicons name="bug-outline" size={24} color="#e74c3c" />
+        </View>
+        <View style={styles.devContent}>
+          <Text style={[styles.devTitle, { color: colors.text }]}>Debug Logs</Text>
+          <Text style={[styles.devDescription, { color: colors.textSecondary }]}>
+            View app errors and diagnostics
+          </Text>
+        </View>
+        {errorCount > 0 && (
+          <View style={styles.errorBadge}>
+            <Text style={styles.errorBadgeText}>{errorCount > 99 ? '99+' : errorCount}</Text>
+          </View>
+        )}
+        <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+      </Pressable>
+
     </ScrollView>
   );
 }
@@ -484,5 +516,47 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  devCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 24,
+  },
+  devIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  devContent: {
+    flex: 1,
+  },
+  devTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  devDescription: {
+    fontSize: 13,
+  },
+  errorBadge: {
+    backgroundColor: '#e74c3c',
+    borderRadius: 12,
+    minWidth: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+    marginRight: 8,
+  },
+  errorBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
 });

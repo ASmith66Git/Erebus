@@ -219,10 +219,10 @@ Uses PostgreSQL with a `users` table:
   - Automatic capture of console.error, console.warn, and uncaught errors
   - Global error handler for React Native (ErrorUtils)
   - Unhandled promise rejection capture
-  - Debug Log screen accessible from Profile tab
+  - Debug Log screen accessible from Admin panel (admin only)
   - Log filtering by level (error, warn, info, debug)
   - Share/copy logs for easy bug reporting
-  - Error count badge in Profile menu
+  - Error count badge in Admin menu
   - ErrorBoundary component for React error catching
 
 ## Offline Sync Architecture
@@ -270,8 +270,8 @@ The app includes an in-app error logging system for debugging on physical device
 - Automatic capture of console.error and uncaught exceptions
 
 ### Usage
-1. Go to Profile tab
-2. Scroll down to "Developer" section
+1. Go to Admin panel (admin users only)
+2. Scroll down to "Developer Tools" section
 3. Tap "Debug Logs" to view all captured logs
 4. Use filter chips to narrow by log level
 5. Tap "Share" icon to export logs
