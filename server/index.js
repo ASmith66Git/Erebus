@@ -1783,14 +1783,23 @@ app.get('/api/sync/status', authenticateToken, async (req, res) => {
 });
 
 const distPath = path.join(__dirname, '..', 'dist');
-app.use(express.static(distPath));
 
-app.get('/{*path}', (req, res, next) => {
-  if (req.path.startsWith('/api/') || req.path.startsWith('/objects/')) {
-    return next();
-  }
-  res.sendFile(path.join(distPath, 'index.html'));
-});
+if (process.env.NODE_ENV === 'production' || process.env.PORT) {
+  app.use(express.static(distPath));
+  
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api/') || req.path.startsWith('/objects/')) {
+      return next();
+    }
+    const indexPath = path.join(distPath, 'index.html');
+    res.sendFile(indexPath, (err) => {
+      if (err) {
+        console.error('Error serving index.html:', err);
+        res.status(500).send('Server error');
+      }
+    });
+  });
+}
 
 initDatabase().then(() => {
   app.listen(PORT, '0.0.0.0', () => {
