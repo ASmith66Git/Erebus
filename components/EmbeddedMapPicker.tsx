@@ -115,16 +115,24 @@ export default function EmbeddedMapPicker({
       }
 
       try {
-        const { Loader } = await import('@googlemaps/js-api-loader');
-        const loader = new Loader({
-          apiKey: apiKey,
-          version: 'weekly',
-          libraries: ['places'],
-        });
+        let google = (window as any).google;
+        
+        if (!google || !google.maps) {
+          const { Loader } = await import('@googlemaps/js-api-loader');
+          const loader = new Loader({
+            apiKey: apiKey,
+            version: 'weekly',
+            libraries: ['places'],
+          });
 
-        await loader.importLibrary('maps');
-        await loader.importLibrary('places');
-        const google = (window as any).google;
+          await loader.importLibrary('maps');
+          await loader.importLibrary('places');
+          google = (window as any).google;
+        }
+        
+        if (!google || !google.maps) {
+          throw new Error('Google Maps failed to initialize');
+        }
         
         const map = new google.maps.Map(mapElement, {
           center: { lat: latitude || 0, lng: longitude || 0 },
@@ -180,9 +188,9 @@ export default function EmbeddedMapPicker({
         }, 100);
 
         setMapLoaded(true);
-      } catch (error) {
-        console.error('Error loading Google Maps:', error);
-        setMapError('Failed to load map. Please check your API key.');
+      } catch (error: any) {
+        console.error('Error loading Google Maps:', error?.message || error?.toString() || 'Unknown error');
+        setMapError(error?.message || 'Failed to load map. Please check your API key.');
       }
     };
 
