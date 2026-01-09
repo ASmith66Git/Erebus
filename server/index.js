@@ -153,6 +153,14 @@ async function initDatabase() {
     `).catch(() => {});
     
     await client.query(`
+      ALTER TABLE dive_sites ADD COLUMN IF NOT EXISTS wreck_name VARCHAR(255);
+    `).catch(() => {});
+    
+    await client.query(`
+      ALTER TABLE dive_sites ADD COLUMN IF NOT EXISTS wreck_url VARCHAR(500);
+    `).catch(() => {});
+    
+    await client.query(`
       CREATE INDEX IF NOT EXISTS idx_dive_sites_name ON dive_sites(name);
     `).catch(() => {});
     
@@ -724,6 +732,8 @@ app.get('/api/dive-sites/:id', authenticateToken, async (req, res) => {
       externalInfo: site.external_info,
       imageUrl: site.image_url,
       isWreck: site.is_wreck || false,
+      wreckName: site.wreck_name || null,
+      wreckUrl: site.wreck_url || null,
       wreckInfo: site.wreck_info || null,
       images: imagesResult.rows.map(img => ({
         id: img.id,
@@ -745,7 +755,7 @@ app.post('/api/dive-sites', authenticateToken, async (req, res) => {
     name, description, siteType, latitude, longitude, country, region,
     waterType, depthMin, depthMax, visibilityMin, visibilityMax,
     difficulty, currentStrength, accessNotes, facilities, hazards,
-    bestSeason, wikipediaUrl, externalInfo, imageUrl, isWreck, wreckInfo
+    bestSeason, wikipediaUrl, externalInfo, imageUrl, isWreck, wreckName, wreckUrl, wreckInfo
   } = req.body;
   
   if (!name) {
@@ -759,8 +769,8 @@ app.post('/api/dive-sites', authenticateToken, async (req, res) => {
         country, region, water_type, depth_min, depth_max,
         visibility_min, visibility_max, difficulty, current_strength,
         access_notes, facilities, hazards, best_season,
-        wikipedia_url, external_info, image_url, is_wreck, wreck_info
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24)
+        wikipedia_url, external_info, image_url, is_wreck, wreck_name, wreck_url, wreck_info
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26)
       RETURNING *`,
       [
         req.user.id, name, description || null, siteType || 'reef',
@@ -770,7 +780,7 @@ app.post('/api/dive-sites', authenticateToken, async (req, res) => {
         currentStrength || null, accessNotes || null,
         JSON.stringify(facilities || []), JSON.stringify(hazards || []),
         bestSeason || null, wikipediaUrl || null, externalInfo || null, imageUrl || null,
-        isWreck || false, wreckInfo || null
+        isWreck || false, wreckName || null, wreckUrl || null, wreckInfo || null
       ]
     );
     
@@ -805,7 +815,7 @@ app.put('/api/dive-sites/:id', authenticateToken, async (req, res) => {
     waterType, depthMin, depthMax, visibilityMin, visibilityMax,
     difficulty, currentStrength, accessNotes, facilities, hazards,
     bestSeason, wikipediaUrl, externalInfo, imageUrl, ratingAvg,
-    isWreck, wreckInfo
+    isWreck, wreckName, wreckUrl, wreckInfo
   } = req.body;
   
   try {
@@ -839,16 +849,18 @@ app.put('/api/dive-sites/:id', authenticateToken, async (req, res) => {
         image_url = $21,
         rating_avg = COALESCE($22, rating_avg),
         is_wreck = $23,
-        wreck_info = $24,
+        wreck_name = $24,
+        wreck_url = $25,
+        wreck_info = $26,
         updated_at = CURRENT_TIMESTAMP
-      WHERE id = $25 RETURNING *`,
+      WHERE id = $27 RETURNING *`,
       [
         name, description, siteType, latitude, longitude, country, region,
         waterType, depthMin, depthMax, visibilityMin, visibilityMax,
         difficulty, currentStrength, accessNotes,
         JSON.stringify(facilities || []), JSON.stringify(hazards || []),
         bestSeason, wikipediaUrl, externalInfo, imageUrl, ratingAvg,
-        isWreck !== undefined ? isWreck : false, wreckInfo || null, id
+        isWreck !== undefined ? isWreck : false, wreckName || null, wreckUrl || null, wreckInfo || null, id
       ]
     );
     
@@ -879,6 +891,8 @@ app.put('/api/dive-sites/:id', authenticateToken, async (req, res) => {
       externalInfo: site.external_info,
       imageUrl: site.image_url,
       isWreck: site.is_wreck || false,
+      wreckName: site.wreck_name || null,
+      wreckUrl: site.wreck_url || null,
       wreckInfo: site.wreck_info || null,
       updatedAt: site.updated_at
     });
