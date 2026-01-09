@@ -8,12 +8,18 @@ import 'react-native-reanimated';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
 import { SyncProvider } from '@/contexts/SyncContext';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { errorLogger } from '@/services/errorLogger';
 
 function RootLayoutNav() {
   const { colorScheme, isDark } = useTheme();
   const { isAuthenticated, isLoading } = useAuth();
   const segments = useSegments();
   const router = useRouter();
+
+  useEffect(() => {
+    errorLogger.initialize();
+  }, []);
 
   useEffect(() => {
     if (isLoading) return;
@@ -35,6 +41,7 @@ function RootLayoutNav() {
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         <Stack.Screen name="(app)" options={{ headerShown: false }} />
         <Stack.Screen name="dive-site/[id]" options={{ headerShown: false }} />
+        <Stack.Screen name="debug-log" options={{ headerShown: false, presentation: 'modal' }} />
         <Stack.Screen name="+not-found" />
       </Stack>
       <StatusBar style={isDark ? 'light' : 'dark'} />
@@ -52,12 +59,14 @@ export default function RootLayout() {
   }
 
   return (
-    <ThemeProvider>
-      <AuthProvider>
-        <SyncProvider>
-          <RootLayoutNav />
-        </SyncProvider>
-      </AuthProvider>
-    </ThemeProvider>
+    <ErrorBoundary>
+      <ThemeProvider>
+        <AuthProvider>
+          <SyncProvider>
+            <RootLayoutNav />
+          </SyncProvider>
+        </AuthProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 }

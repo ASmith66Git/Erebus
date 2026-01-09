@@ -1,12 +1,24 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Switch } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { errorLogger } from '@/services/errorLogger';
 
 export default function ProfileScreen() {
   const { colors, isDark, toggleTheme } = useTheme();
   const { user, logout, isAdmin } = useAuth();
+  const router = useRouter();
+  const [errorCount, setErrorCount] = useState(0);
+
+  useEffect(() => {
+    setErrorCount(errorLogger.getErrorCount());
+    const unsubscribe = errorLogger.subscribe(() => {
+      setErrorCount(errorLogger.getErrorCount());
+    });
+    return unsubscribe;
+  }, []);
 
   const menuItems = [
     { icon: 'person-outline', title: 'Edit Profile', description: 'Update your information' },
@@ -94,6 +106,31 @@ export default function ProfileScreen() {
             <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
           </Pressable>
         ))}
+      </View>
+
+      <View style={[styles.section, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>Developer</Text>
+        
+        <Pressable 
+          style={styles.menuRow}
+          onPress={() => router.push('/debug-log')}
+        >
+          <View style={[styles.menuIcon, { backgroundColor: '#e74c3c20' }]}>
+            <Ionicons name="bug-outline" size={20} color="#e74c3c" />
+          </View>
+          <View style={styles.menuContent}>
+            <Text style={[styles.menuTitle, { color: colors.text }]}>Debug Logs</Text>
+            <Text style={[styles.menuDescription, { color: colors.textSecondary }]}>
+              View app errors and diagnostics
+            </Text>
+          </View>
+          {errorCount > 0 && (
+            <View style={styles.errorBadge}>
+              <Text style={styles.errorBadgeText}>{errorCount > 99 ? '99+' : errorCount}</Text>
+            </View>
+          )}
+          <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+        </Pressable>
       </View>
 
       <Pressable
@@ -242,5 +279,20 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 12,
     marginBottom: 24,
+  },
+  errorBadge: {
+    backgroundColor: '#e74c3c',
+    borderRadius: 12,
+    minWidth: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+    marginRight: 8,
+  },
+  errorBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
 });
