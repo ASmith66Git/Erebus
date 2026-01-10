@@ -44,6 +44,12 @@ The application is built using Expo React Native, targeting both iOS and Android
 - **Wreck Site Specifics**: Dedicated fields and a conditional "Wreck" tab for detailed wreck information and external resource links.
 - **Weather Forecast**: Integrates 7-day weather forecasts, including marine and atmospheric data, based on dive site location.
 - **Dive Log Management**: Allows users to log dives, import from various formats (UDDF, Subsurface XML, CSV), and track personal dive statistics.
+- **Dive Log Detail View**: Comprehensive 5-tab interface matching Shearwater Perdix PWA functionality:
+  - **Dive Tab**: Dive site, surface conditions, weather, depth, duration, temperature, gas pressures with SVG circular gauges, dive problems (thermal comfort, workload, equipment malfunctions, decompression symptoms).
+  - **Profile Tab**: Interactive SVG multi-line chart displaying depth, temperature, NDL, and GF99 with toggleable data series.
+  - **Computer Tab**: Dive computer metadata (model, serial, manufacturer), dive number, surface interval, surface pressure, dive mode, start/end times, and gas mixes.
+  - **Notes Tab**: Dive notes and skills practiced checkboxes (bailout, gas switch, SMB launch, etc.).
+  - **Team Tab**: Buddy/team member information.
 - **Bluetooth Dive Computer Sync**: Direct BLE connectivity to dive computers (Shearwater, Suunto, Mares) for automated dive log downloads.
   - Requires EAS Build for native app (not available in Expo Go or web).
   - Dive computer catalog with 140+ models and BLE capability flags.
@@ -65,3 +71,4 @@ The application is built using Expo React Native, targeting both iOS and Android
 - **react-native-maps**: For displaying interactive maps and selecting coordinates on native platforms.
 - **Google Maps JavaScript API**: For displaying interactive maps and Places Autocomplete search on the web.
 - **bcrypt**: For hashing user passwords.
+- **react-native-svg**: For rendering SVG graphics (dive profile charts, gas pressure gauges).
