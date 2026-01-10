@@ -106,7 +106,59 @@ The application is built using Expo React Native, targeting both iOS and Android
 - **CSVAdapter**: Flexible CSV import with column mapping for various dive computer exports.
 - **DiveImportDTO**: Canonical structure with header, samples, gases, events, tank_pressures, settings, and import_metadata sections.
 
+## BLE Dive Computer Protocol Architecture
+
+### Overview
+Custom JavaScript BLE protocol implementations for direct Bluetooth download from modern dive computers. Built as a modular, extensible system that can be expanded to support additional manufacturers.
+
+### Protocol Stack
+```
+services/protocols/
+├── index.ts              # Protocol registry and factory
+├── slipCodec.ts          # SLIP framing encoder/decoder (shared)
+├── baseProtocol.ts       # Abstract base class with common BLE operations
+├── shearwaterProtocol.ts # Shearwater Petrel/Perdix/Teric implementation
+├── bleImportAdapter.ts   # Converts raw BLE data to DiveImportDTO
+└── (future) suuntoProtocol.ts, maresProtocol.ts
+```
+
+### Shearwater Protocol Implementation
+- **Service UUID**: `fe25c237-0ece-443c-b0aa-e02033e7029d`
+- **Characteristic UUID**: `27b7570b-359e-45a3-91bb-cf7e70049bd2`
+- **Framing**: SLIP (Serial Line Internet Protocol) with BLE chunking
+- **Compression**: 9-bit RLE + 32-byte XOR decompression
+- **Commands**:
+  - `RDBI (0x22)`: Read device info (serial, firmware, hardware)
+  - `Download Init (0x35)`: Start memory download with address/size
+  - `Download Block (0x36)`: Request next data block
+  - `Download Quit (0x37)`: End download session
+- **Supported Models**: Petrel, Petrel 2/3, Perdix, Perdix AI, Perdix 2, Teric, Nerd 2, Peregrine
+
+### Code Reuse Strategy
+- `BaseDiveComputerProtocol`: Abstract class with shared BLE operations (~60% reuse)
+  - Device scanning, connection, packet buffering
+  - SLIP encoding/decoding via shared codec
+  - Progress callbacks and cancellation
+- Vendor-specific protocols extend base class (~200-300 lines each)
+- All protocols output canonical `RawDiveData` structure
+- `bleImportAdapter` converts to `DiveImportDTO` for V2 import pipeline
+
+### Requirements
+- **EAS Build Required**: Native BLE not available in Expo Go or web
+- **iOS**: BLE only (Apple platform restriction)
+- **Android**: BLE and Bluetooth Classic supported
+- **Permissions**: Bluetooth, Location (Android)
+
+### Integration with V2 Import Pipeline
+1. BLE protocol downloads raw dive data from device
+2. Protocol parses binary data into `RawDiveData` structure
+3. `bleImportAdapter` converts to `DiveImportDTO`
+4. Same persistence layer saves to database tables
+
 ## Recent Changes
+- 2026-01-10: Implemented JavaScript Shearwater BLE protocol with SLIP framing and RLE/XOR decompression.
+- 2026-01-10: Created modular BLE protocol architecture with base class for vendor reuse.
+- 2026-01-10: Added BLE import adapter to integrate with V2 import pipeline.
 - 2026-01-10: Implemented V2 import parser with strategy pattern and 6 new database tables for detailed dive data storage.
 - 2026-01-10: Added dive computer catalog with 90 models and capability flags.
 - 2026-01-10: Enhanced legacy JSON fields to include full sample metrics for backwards compatibility.

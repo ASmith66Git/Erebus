@@ -1,88 +1,417 @@
-import bleService, { DownloadProgress } from '../bleService';
-import { Buffer } from 'buffer';
+import { 
+  BaseDiveComputerProtocol, 
+  DiveComputerInfo, 
+  RawDiveData, 
+  RawSample, 
+  RawGasMix, 
+  RawEvent,
+  ProgressCallback 
+} from './baseProtocol';
+import { DownloadProgress } from '../bleService';
 
 const SHEARWATER_SERVICE_UUID = 'fe25c237-0ece-443c-b0aa-e02033e7029d';
 const SHEARWATER_CHAR_UUID = '27b7570b-359e-45a3-91bb-cf7e70049bd2';
 
-const FRAME_START = 0xFD;
-const FRAME_END = 0xFE;
+const MANIFEST_ADDR = 0xe0000000;
+const MANIFEST_SIZE = 0x600;
+const RECORD_SIZE = 0x20;
+const RECORD_COUNT = MANIFEST_SIZE / RECORD_SIZE;
+const DIVE_SIZE = 0xffffff;
 
-interface DiveHeader {
-  diveNumber: number;
-  timestamp: Date;
-  duration: number;
-  maxDepth: number;
+const ID_SERIAL = 0x8010;
+const ID_FIRMWARE = 0x8011;
+const ID_HARDWARE = 0x8012;
+const ID_LOGUPLOAD = 0x8020;
+
+const RDBI_REQUEST = 0x22;
+const RDBI_RESPONSE = 0x62;
+const NAK = 0x7f;
+
+const HARDWARE_MAP: Record<number, string> = {
+  0x0101: 'Petrel',
+  0x0102: 'Petrel 2',
+  0x0104: 'Nerd',
+  0x0105: 'Perdix',
+  0x0106: 'Perdix AI',
+  0x0107: 'Nerd 2',
+  0x0108: 'Teric',
+  0x0109: 'Peregrine',
+  0x010a: 'Petrel 3',
+  0x010b: 'Perdix 2',
+};
+
+class RLEDecoder {
+  private lastByte: number = 0;
+  private pendingBits: number[] = [];
+  private output: number[] = [];
+  private isFinal: boolean = false;
+  
+  reset(): void {
+    this.lastByte = 0;
+    this.pendingBits = [];
+    this.output = [];
+    this.isFinal = false;
+  }
+  
+  addData(data: Uint8Array): void {
+    if (this.isFinal) return;
+    
+    for (let i = 0; i < data.length && !this.isFinal; i++) {
+      const byte = data[i];
+      for (let bit = 7; bit >= 0; bit--) {
+        this.pendingBits.push((byte >> bit) & 1);
+      }
+    }
+    
+    while (this.pendingBits.length >= 9 && !this.isFinal) {
+      let value = 0;
+      for (let i = 0; i < 9; i++) {
+        value = (value << 1) | this.pendingBits[i];
+      }
+      this.pendingBits.splice(0, 9);
+      
+      if (value & 0x100) {
+        this.lastByte = value & 0xff;
+        this.output.push(this.lastByte);
+      } else if (value === 0) {
+        this.isFinal = true;
+      } else {
+        for (let j = 0; j < value; j++) {
+          this.output.push(this.lastByte);
+        }
+      }
+    }
+  }
+  
+  getResult(): Uint8Array {
+    return new Uint8Array(this.output);
+  }
+  
+  isDone(): boolean {
+    return this.isFinal;
+  }
 }
 
-interface DiveData {
-  header: DiveHeader;
-  samples: {
-    time_seconds: number;
-    depth_meters: number;
-    temperature_celsius: number | null;
-  }[];
-  gasMixes: {
-    name: string;
-    o2: number;
-    he: number;
-  }[];
+function decompressXOR(data: Uint8Array): Uint8Array {
+  const result = new Uint8Array(data);
+  for (let i = 32; i < result.length; i++) {
+    result[i] ^= result[i - 32];
+  }
+  return result;
 }
 
-type ProgressCallback = (progress: DownloadProgress) => void;
+function arrayUint16BE(data: Uint8Array, offset: number = 0): number {
+  return (data[offset] << 8) | data[offset + 1];
+}
 
-class ShearwaterProtocol {
-  private dataBuffer: number[] = [];
-  private monitorSubscription: (() => void) | null = null;
-  private progressCallback: ProgressCallback | null = null;
-  private receivedFrames: number[][] = [];
-  private isDownloading: boolean = false;
-  private isCancelled: boolean = false;
-  private waitIntervalId: ReturnType<typeof setInterval> | null = null;
-  private waitResolve: (() => void) | null = null;
+function arrayUint32BE(data: Uint8Array, offset: number = 0): number {
+  return (data[offset] << 24) | (data[offset + 1] << 16) | (data[offset + 2] << 8) | data[offset + 3];
+}
 
-  async downloadDives(onProgress: ProgressCallback): Promise<DiveData[]> {
+function hexToBytes(hex: string): Uint8Array {
+  const bytes = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < bytes.length; i++) {
+    bytes[i] = parseInt(hex.substr(i * 2, 2), 16);
+  }
+  return bytes;
+}
+
+function bytesToHex(bytes: Uint8Array): string {
+  return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+export class ShearwaterProtocol extends BaseDiveComputerProtocol {
+  private fingerprint: Uint8Array = new Uint8Array(4);
+  
+  get name(): string {
+    return 'Shearwater';
+  }
+  
+  get serviceUUID(): string {
+    return SHEARWATER_SERVICE_UUID;
+  }
+  
+  get characteristicUUID(): string {
+    return SHEARWATER_CHAR_UUID;
+  }
+  
+  get supportedModels(): string[] {
+    return Object.values(HARDWARE_MAP);
+  }
+  
+  setFingerprint(data: Uint8Array): void {
+    if (data.length === 4) {
+      this.fingerprint = new Uint8Array(data);
+    }
+  }
+  
+  async getDeviceInfo(): Promise<DiveComputerInfo> {
+    const serialResp = await this.rdbi(ID_SERIAL, 8);
+    const serialHex = bytesToHex(serialResp);
+    const serial = parseInt(serialHex, 16).toString();
+    
+    const firmwareResp = await this.rdbi(ID_FIRMWARE, 12);
+    const firmwareStr = String.fromCharCode(...firmwareResp).replace(/\0/g, '').trim();
+    const firmware = firmwareStr.replace(/^V/, '');
+    
+    const hardwareResp = await this.rdbi(ID_HARDWARE, 2);
+    const hardwareCode = arrayUint16BE(hardwareResp);
+    const model = HARDWARE_MAP[hardwareCode] || `Unknown (0x${hardwareCode.toString(16)})`;
+    
+    return {
+      manufacturer: 'Shearwater',
+      model,
+      serial,
+      firmware,
+      hardware: hardwareCode.toString(16),
+    };
+  }
+  
+  private async rdbi(id: number, expectedLength: number): Promise<Uint8Array> {
+    const request = new Uint8Array([RDBI_REQUEST, (id >> 8) & 0xff, id & 0xff]);
+    const response = await this.transfer(request, expectedLength + 3);
+    
+    if (response.length < 3) {
+      throw new Error('RDBI response too short');
+    }
+    
+    if (response[0] === NAK) {
+      throw new Error(`RDBI NAK received for ID 0x${id.toString(16)}`);
+    }
+    
+    if (response[0] !== RDBI_RESPONSE) {
+      throw new Error(`Unexpected RDBI response type: 0x${response[0].toString(16)}`);
+    }
+    
+    const respId = arrayUint16BE(response, 1);
+    if (respId !== id) {
+      throw new Error(`RDBI response ID mismatch: expected 0x${id.toString(16)}, got 0x${respId.toString(16)}`);
+    }
+    
+    return response.slice(3);
+  }
+  
+  private async downloadBlock(
+    address: number,
+    size: number,
+    compressed: boolean,
+    onProgress?: (current: number, total: number) => void
+  ): Promise<Uint8Array> {
+    const compressionFlag = compressed ? 0x10 : 0x00;
+    const initRequest = new Uint8Array([
+      0x35,
+      compressionFlag,
+      0x34,
+      (address >> 24) & 0xff,
+      (address >> 16) & 0xff,
+      (address >> 8) & 0xff,
+      address & 0xff,
+      (size >> 16) & 0xff,
+      (size >> 8) & 0xff,
+      size & 0xff,
+    ]);
+    
+    const initResponse = await this.transfer(initRequest, 3);
+    
+    if (initResponse.length !== 3 || initResponse[0] !== 0x75 || initResponse[1] !== 0x10) {
+      throw new Error('Invalid download init response');
+    }
+    
+    const blockSize = initResponse[2];
+    const rawBuffer: number[] = [];
+    const rleDecoder = compressed ? new RLEDecoder() : null;
+    let blockNum = 1;
+    let done = false;
+    const maxBlocks = 10000;
+    
+    while (!done && blockNum < maxBlocks) {
+      if (this.isCancelled) {
+        throw new Error('Download cancelled');
+      }
+      
+      const blockRequest = new Uint8Array([0x36, blockNum & 0xff]);
+      const blockResponse = await this.transfer(blockRequest, blockSize + 2);
+      
+      if (blockResponse.length < 2 || blockResponse[0] !== 0x76 || blockResponse[1] !== (blockNum & 0xff)) {
+        throw new Error(`Invalid block response for block ${blockNum}`);
+      }
+      
+      const blockData = blockResponse.slice(2);
+      
+      if (compressed && rleDecoder) {
+        rleDecoder.addData(blockData);
+        done = rleDecoder.isDone();
+      } else {
+        rawBuffer.push(...blockData);
+        if (rawBuffer.length >= size) {
+          done = true;
+        }
+      }
+      
+      blockNum++;
+      
+      if (onProgress) {
+        const currentSize = compressed && rleDecoder 
+          ? rleDecoder.getResult().length 
+          : rawBuffer.length;
+        const estimatedProgress = compressed 
+          ? Math.min(currentSize / 50000, 1) 
+          : currentSize / size;
+        onProgress(estimatedProgress * 100, 100);
+      }
+    }
+    
+    const quitRequest = new Uint8Array([0x37]);
+    const quitResponse = await this.transfer(quitRequest, 2);
+    
+    if (quitResponse.length !== 2 || quitResponse[0] !== 0x77 || quitResponse[1] !== 0x00) {
+      console.warn('Unexpected quit response');
+    }
+    
+    let result: Uint8Array;
+    
+    if (compressed && rleDecoder) {
+      result = new Uint8Array(decompressXOR(rleDecoder.getResult()));
+    } else {
+      result = new Uint8Array(rawBuffer);
+    }
+    
+    return result;
+  }
+  
+  async downloadDives(onProgress: ProgressCallback): Promise<RawDiveData[]> {
     this.progressCallback = onProgress;
-    this.receivedFrames = [];
-    this.dataBuffer = [];
-    this.isDownloading = true;
-    this.isCancelled = false;
-
+    this.reset();
+    
+    const dives: RawDiveData[] = [];
+    
     try {
       this.updateProgress({
         current: 0,
         total: 100,
         percentage: 0,
         status: 'connecting',
-        message: 'Connecting to dive computer...',
+        message: 'Reading device info...',
       });
-
-      this.monitorSubscription = await bleService.monitorCharacteristic(
-        SHEARWATER_SERVICE_UUID,
-        SHEARWATER_CHAR_UUID,
-        (data: string) => this.handleIncomingData(data)
-      );
-
+      
+      const logUploadResp = await this.rdbi(ID_LOGUPLOAD, 9);
+      let baseAddr = arrayUint32BE(logUploadResp, 1);
+      
+      switch (baseAddr) {
+        case 0xdd000000:
+        case 0xc0000000:
+        case 0x90000000:
+          baseAddr = 0xc0000000;
+          break;
+        case 0x80000000:
+          break;
+        default:
+          throw new Error(`Unknown logbook format: 0x${baseAddr.toString(16)}`);
+      }
+      
       this.updateProgress({
-        current: 10,
+        current: 5,
         total: 100,
-        percentage: 10,
+        percentage: 5,
         status: 'downloading',
-        message: 'Requesting dive data...',
+        message: 'Reading dive manifest...',
       });
-
-      await this.sendCommand([0x35]);
-      await this.waitForDownloadComplete();
-
-      this.updateProgress({
-        current: 80,
-        total: 100,
-        percentage: 80,
-        status: 'parsing',
-        message: 'Parsing dive data...',
-      });
-
-      const dives = this.parseDiveData();
-
+      
+      const manifestRecords: Uint8Array[] = [];
+      let manifestPage = 0;
+      
+      while (true) {
+        if (this.isCancelled) {
+          throw new Error('Download cancelled');
+        }
+        
+        const manifest = await this.downloadBlock(MANIFEST_ADDR, MANIFEST_SIZE, false);
+        
+        let count = 0;
+        let deleted = 0;
+        let offset = 0;
+        
+        while (offset < manifest.length) {
+          const header = arrayUint16BE(manifest, offset);
+          
+          if (header === 0x5a23) {
+            offset += RECORD_SIZE;
+            deleted++;
+            continue;
+          }
+          
+          if (header !== 0xa5c4) {
+            break;
+          }
+          
+          const recordFingerprint = manifest.slice(offset + 4, offset + 8);
+          if (this.fingerprint.every((v, i) => v === recordFingerprint[i]) && this.fingerprint.some(v => v !== 0)) {
+            break;
+          }
+          
+          manifestRecords.push(manifest.slice(offset, offset + RECORD_SIZE));
+          offset += RECORD_SIZE;
+          count++;
+        }
+        
+        manifestPage++;
+        
+        if (count + deleted !== RECORD_COUNT) {
+          break;
+        }
+      }
+      
+      const totalDives = manifestRecords.length;
+      
+      if (totalDives === 0) {
+        this.updateProgress({
+          current: 100,
+          total: 100,
+          percentage: 100,
+          status: 'complete',
+          message: 'No new dives found',
+        });
+        return dives;
+      }
+      
+      for (let i = 0; i < manifestRecords.length; i++) {
+        if (this.isCancelled) {
+          throw new Error('Download cancelled');
+        }
+        
+        const record = manifestRecords[i];
+        const diveAddress = arrayUint32BE(record, 20);
+        
+        const progress = 10 + Math.floor((i / totalDives) * 85);
+        this.updateProgress({
+          current: progress,
+          total: 100,
+          percentage: progress,
+          status: 'downloading',
+          message: `Downloading dive ${i + 1} of ${totalDives}...`,
+        });
+        
+        const diveData = await this.downloadBlock(
+          baseAddr + diveAddress,
+          DIVE_SIZE,
+          true,
+          (current, total) => {
+            const diveProgress = (current / total) * (85 / totalDives);
+            const overallProgress = 10 + (i / totalDives) * 85 + diveProgress;
+            this.updateProgress({
+              current: Math.floor(overallProgress),
+              total: 100,
+              percentage: Math.floor(overallProgress),
+              status: 'downloading',
+              message: `Downloading dive ${i + 1} of ${totalDives}...`,
+            });
+          }
+        );
+        
+        const dive = this.parseDive(diveData, record);
+        dives.push(dive);
+      }
+      
       this.updateProgress({
         current: 100,
         total: 100,
@@ -90,8 +419,11 @@ class ShearwaterProtocol {
         status: 'complete',
         message: `Downloaded ${dives.length} dive(s)`,
       });
-
+      
+      await this.shutdown();
+      
       return dives;
+      
     } catch (error) {
       this.updateProgress({
         current: 0,
@@ -101,247 +433,144 @@ class ShearwaterProtocol {
         message: error instanceof Error ? error.message : 'Download failed',
       });
       throw error;
-    } finally {
-      this.cleanup();
     }
   }
-
-  private async sendCommand(command: number[]): Promise<void> {
-    const frame = this.buildFrame(command);
-    const base64Data = Buffer.from(frame).toString('base64');
-    
-    await bleService.writeCharacteristic(
-      SHEARWATER_SERVICE_UUID,
-      SHEARWATER_CHAR_UUID,
-      base64Data,
-      false
-    );
-  }
-
-  private buildFrame(data: number[]): number[] {
-    const frame = [FRAME_START, ...data, FRAME_END];
-    return frame;
-  }
-
-  private handleIncomingData(base64Data: string): void {
+  
+  private async shutdown(): Promise<void> {
     try {
-      const buffer = Buffer.from(base64Data, 'base64');
-      const bytes = Array.from(buffer);
+      const request = new Uint8Array([0x2e, 0x90, 0x20, 0x00]);
+      await this.transfer(request, 0);
+    } catch {
+    }
+  }
+  
+  private parseDive(data: Uint8Array, manifestRecord: Uint8Array): RawDiveData {
+    const samples: RawSample[] = [];
+    const gases: RawGasMix[] = [];
+    const events: RawEvent[] = [];
+    
+    const diveNumber = arrayUint16BE(manifestRecord, 2);
+    const timestamp = arrayUint32BE(manifestRecord, 8);
+    const datetime = new Date(timestamp * 1000);
+    
+    let offset = 0;
+    let currentTime = 0;
+    let maxDepth = 0;
+    let duration = 0;
+    let sampleInterval = 10;
+    
+    while (offset < data.length) {
+      const recordType = data[offset];
       
-      this.dataBuffer.push(...bytes);
-
-      let startIdx = this.dataBuffer.indexOf(FRAME_START);
-      while (startIdx !== -1) {
-        const endIdx = this.dataBuffer.indexOf(FRAME_END, startIdx + 1);
-        if (endIdx === -1) break;
-
-        const frame = this.dataBuffer.slice(startIdx + 1, endIdx);
-        this.receivedFrames.push(frame);
-
-        this.dataBuffer = this.dataBuffer.slice(endIdx + 1);
-        startIdx = this.dataBuffer.indexOf(FRAME_START);
+      if (recordType === 0xff) {
+        break;
       }
-
-      const progress = Math.min(10 + (this.receivedFrames.length * 2), 75);
-      this.updateProgress({
-        current: progress,
-        total: 100,
-        percentage: progress,
-        status: 'downloading',
-        message: `Receiving data... (${this.receivedFrames.length} packets)`,
-      });
-    } catch (error) {
-      console.error('Error handling incoming data:', error);
-    }
-  }
-
-  private async waitForDownloadComplete(): Promise<void> {
-    const timeout = 60000;
-    const checkInterval = 500;
-    let elapsed = 0;
-    let lastFrameCount = 0;
-    let noNewDataCount = 0;
-
-    return new Promise((resolve, reject) => {
-      this.waitResolve = resolve;
       
-      this.waitIntervalId = setInterval(() => {
-        if (this.isCancelled) {
-          if (this.waitIntervalId) {
-            clearInterval(this.waitIntervalId);
-            this.waitIntervalId = null;
-          }
-          resolve();
-          return;
-        }
-
-        elapsed += checkInterval;
-
-        if (this.receivedFrames.length === lastFrameCount) {
-          noNewDataCount++;
-        } else {
-          noNewDataCount = 0;
-          lastFrameCount = this.receivedFrames.length;
-        }
-
-        if (noNewDataCount >= 6 && this.receivedFrames.length > 0) {
-          if (this.waitIntervalId) {
-            clearInterval(this.waitIntervalId);
-            this.waitIntervalId = null;
-          }
-          resolve();
-        }
-
-        if (elapsed >= timeout) {
-          if (this.waitIntervalId) {
-            clearInterval(this.waitIntervalId);
-            this.waitIntervalId = null;
-          }
-          if (this.receivedFrames.length > 0) {
-            resolve();
-          } else {
-            reject(new Error('Download timeout - no data received'));
-          }
-        }
-      }, checkInterval);
-    });
-  }
-
-  private parseDiveData(): DiveData[] {
-    const dives: DiveData[] = [];
-
-    if (this.receivedFrames.length === 0) {
-      return dives;
-    }
-
-    let currentDive: DiveData | null = null;
-
-    for (const frame of this.receivedFrames) {
-      if (frame.length < 2) continue;
-
-      const recordType = frame[0];
-
       switch (recordType) {
-        case 0x01:
-          if (currentDive) {
-            dives.push(currentDive);
+        case 0x00: {
+          if (offset + 32 <= data.length) {
+            sampleInterval = data[offset + 3] || 10;
+            
+            for (let g = 0; g < 10; g++) {
+              const gasOffset = offset + 6 + g * 2;
+              if (gasOffset + 1 < data.length) {
+                const o2 = data[gasOffset];
+                const he = data[gasOffset + 1];
+                if (o2 > 0 && o2 <= 100) {
+                  gases.push({
+                    index: g,
+                    o2,
+                    he,
+                    n2: 100 - o2 - he,
+                    name: he > 0 ? `TX${o2}/${he}` : o2 === 21 ? 'Air' : `EAN${o2}`,
+                  });
+                }
+              }
+            }
           }
-          currentDive = this.parseDiveHeader(frame);
+          offset += 32;
           break;
-
+        }
+        
+        case 0x01: {
+          if (offset + 32 <= data.length) {
+            const depth = arrayUint16BE(data, offset + 2) / 100;
+            const temp = arrayUint16BE(data, offset + 8);
+            const tempC = temp > 0 ? (temp / 10) - 273.15 : undefined;
+            const ndl = data[offset + 14];
+            const ceiling = arrayUint16BE(data, offset + 16) / 100;
+            const ppo2 = data[offset + 10] / 100;
+            const cns = data[offset + 22];
+            
+            samples.push({
+              time: currentTime,
+              depth,
+              temperature: tempC,
+              ndl: ndl < 255 ? ndl : undefined,
+              ceiling: ceiling > 0 ? ceiling : undefined,
+              ppo2: ppo2 > 0 ? ppo2 : undefined,
+              cns: cns > 0 ? cns : undefined,
+            });
+            
+            if (depth > maxDepth) {
+              maxDepth = depth;
+            }
+            
+            currentTime += sampleInterval;
+            duration = currentTime;
+          }
+          offset += 32;
+          break;
+        }
+        
         case 0x02:
-          if (currentDive) {
-            const sample = this.parseSample(frame);
-            if (sample) {
-              currentDive.samples.push(sample);
-            }
-          }
-          break;
-
         case 0x03:
-          if (currentDive) {
-            const gasMix = this.parseGasMix(frame);
-            if (gasMix) {
-              currentDive.gasMixes.push(gasMix);
-            }
+        case 0x04:
+        case 0x05:
+        case 0x06:
+        case 0x07: {
+          if (offset + 32 <= data.length) {
+            const eventType = this.getEventType(recordType);
+            const eventValue = arrayUint16BE(data, offset + 2);
+            
+            events.push({
+              time: currentTime,
+              type: eventType,
+              value: eventValue,
+            });
           }
+          offset += 32;
           break;
-
-        case 0xFF:
-          if (currentDive) {
-            dives.push(currentDive);
-            currentDive = null;
-          }
+        }
+        
+        default:
+          offset += 32;
           break;
       }
     }
-
-    if (currentDive) {
-      dives.push(currentDive);
-    }
-
-    return dives;
-  }
-
-  private parseDiveHeader(frame: number[]): DiveData {
-    const diveNumber = frame.length > 2 ? (frame[1] << 8) | frame[2] : 0;
-    const timestamp = frame.length > 6 
-      ? new Date(((frame[3] << 24) | (frame[4] << 16) | (frame[5] << 8) | frame[6]) * 1000)
-      : new Date();
-    const duration = frame.length > 8 ? (frame[7] << 8) | frame[8] : 0;
-    const maxDepth = frame.length > 10 ? ((frame[9] << 8) | frame[10]) / 100 : 0;
-
+    
     return {
-      header: {
-        diveNumber,
-        timestamp,
-        duration,
-        maxDepth,
-      },
-      samples: [],
-      gasMixes: [],
+      diveNumber,
+      datetime,
+      duration,
+      maxDepth,
+      samples,
+      gases,
+      events,
+      rawData: data,
     };
   }
-
-  private parseSample(frame: number[]): { time_seconds: number; depth_meters: number; temperature_celsius: number | null } | null {
-    if (frame.length < 5) return null;
-
-    const time = (frame[1] << 8) | frame[2];
-    const depth = ((frame[3] << 8) | frame[4]) / 100;
-    const temperature = frame.length > 6 ? (((frame[5] << 8) | frame[6]) / 10) - 273.15 : null;
-
-    return {
-      time_seconds: time,
-      depth_meters: depth,
-      temperature_celsius: temperature,
-    };
-  }
-
-  private parseGasMix(frame: number[]): { name: string; o2: number; he: number } | null {
-    if (frame.length < 4) return null;
-
-    const o2 = frame[2];
-    const he = frame.length > 3 ? frame[3] : 0;
-
-    return {
-      name: he > 0 ? `TX${o2}/${he}` : o2 === 21 ? 'Air' : `EAN${o2}`,
-      o2,
-      he,
-    };
-  }
-
-  private updateProgress(progress: DownloadProgress): void {
-    if (this.progressCallback) {
-      this.progressCallback(progress);
+  
+  private getEventType(recordType: number): string {
+    switch (recordType) {
+      case 0x02: return 'gas_switch';
+      case 0x03: return 'setpoint_change';
+      case 0x04: return 'deco_violation';
+      case 0x05: return 'ppo2_warning';
+      case 0x06: return 'ceiling_violation';
+      case 0x07: return 'surface';
+      default: return `unknown_${recordType}`;
     }
-  }
-
-  private cleanup(): void {
-    this.isDownloading = false;
-    if (this.waitIntervalId) {
-      clearInterval(this.waitIntervalId);
-      this.waitIntervalId = null;
-    }
-    if (this.monitorSubscription) {
-      this.monitorSubscription();
-      this.monitorSubscription = null;
-    }
-    this.dataBuffer = [];
-    this.progressCallback = null;
-    this.waitResolve = null;
-  }
-
-  cancel(): void {
-    this.isCancelled = true;
-    if (this.waitIntervalId) {
-      clearInterval(this.waitIntervalId);
-      this.waitIntervalId = null;
-    }
-    if (this.waitResolve) {
-      this.waitResolve();
-      this.waitResolve = null;
-    }
-    this.cleanup();
   }
 }
 
