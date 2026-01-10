@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -60,33 +60,14 @@ export default function ImportDiveLogScreen() {
     router.push('/ble-connect');
   };
 
-  const handleImportFile = async () => {
+  const handleWebFileSelect = async (event: any) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    
+    setImporting(true);
     try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: '*/*',
-        copyToCacheDirectory: Platform.OS !== 'web',
-      });
-
-      if (result.canceled || !result.assets?.[0]) {
-        return;
-      }
-
-      const file = result.assets[0];
-      setImporting(true);
-
       const formData = new FormData();
-      
-      if (Platform.OS === 'web') {
-        const response = await fetch(file.uri);
-        const blob = await response.blob();
-        formData.append('file', blob, file.name);
-      } else {
-        formData.append('file', {
-          uri: file.uri,
-          name: file.name,
-          type: file.mimeType || 'application/octet-stream',
-        } as any);
-      }
+      formData.append('file', file, file.name);
 
       const uploadResponse = await fetch(`${getApiUrl()}/api/dive-logs/import`, {
         method: 'POST',
@@ -103,21 +84,65 @@ export default function ImportDiveLogScreen() {
       }
 
       const importedCount = data.dives?.length || 0;
-      const message = `Imported ${importedCount} dive${importedCount !== 1 ? 's' : ''} from ${file.name}`;
-      
-      if (Platform.OS === 'web') {
-        alert(message);
-        router.back();
-      } else {
-        Alert.alert('Import Successful', message, [{ text: 'OK', onPress: () => router.back() }]);
-      }
+      alert(`Imported ${importedCount} dive${importedCount !== 1 ? 's' : ''} from ${file.name}`);
+      router.back();
     } catch (error: any) {
-      const errorMessage = error.message || 'Failed to import dive logs';
-      if (Platform.OS === 'web') {
-        alert(`Import Error: ${errorMessage}`);
-      } else {
-        Alert.alert('Import Error', errorMessage);
+      alert(`Import Error: ${error.message || 'Failed to import dive logs'}`);
+    } finally {
+      setImporting(false);
+      event.target.value = '';
+    }
+  };
+
+  const handleImportFile = async () => {
+    if (Platform.OS === 'web') {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.onchange = handleWebFileSelect;
+      input.click();
+      return;
+    }
+
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: '*/*',
+        copyToCacheDirectory: true,
+      });
+
+      if (result.canceled || !result.assets?.[0]) {
+        return;
       }
+
+      const file = result.assets[0];
+      setImporting(true);
+
+      const formData = new FormData();
+      formData.append('file', {
+        uri: file.uri,
+        name: file.name,
+        type: file.mimeType || 'application/octet-stream',
+      } as any);
+
+      const uploadResponse = await fetch(`${getApiUrl()}/api/dive-logs/import`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      const data = await uploadResponse.json();
+
+      if (!uploadResponse.ok) {
+        throw new Error(data.error || 'Import failed');
+      }
+
+      const importedCount = data.dives?.length || 0;
+      Alert.alert('Import Successful', `Imported ${importedCount} dive${importedCount !== 1 ? 's' : ''} from ${file.name}`, [
+        { text: 'OK', onPress: () => router.back() }
+      ]);
+    } catch (error: any) {
+      Alert.alert('Import Error', error.message || 'Failed to import dive logs');
     } finally {
       setImporting(false);
     }
