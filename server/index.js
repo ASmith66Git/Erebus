@@ -1974,6 +1974,35 @@ app.get('/api/dive-logs', authenticateToken, async (req, res) => {
   }
 });
 
+app.get('/api/dive-logs/stats', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT 
+        COUNT(*) as total_dives,
+        SUM(duration_seconds) as total_duration_seconds,
+        MAX(max_depth_meters) as deepest_dive_meters,
+        AVG(max_depth_meters) as avg_max_depth_meters,
+        MIN(min_temperature_celsius) as coldest_temp,
+        MAX(max_temperature_celsius) as warmest_temp
+      FROM dive_logs
+      WHERE user_id = $1 AND deleted_at IS NULL
+    `, [req.user.id]);
+
+    const stats = result.rows[0];
+    res.json({
+      totalDives: parseInt(stats.total_dives) || 0,
+      totalDurationSeconds: parseInt(stats.total_duration_seconds) || 0,
+      deepestDiveMeters: stats.deepest_dive_meters ? parseFloat(stats.deepest_dive_meters) : null,
+      avgMaxDepthMeters: stats.avg_max_depth_meters ? parseFloat(stats.avg_max_depth_meters) : null,
+      coldestTemp: stats.coldest_temp ? parseFloat(stats.coldest_temp) : null,
+      warmestTemp: stats.warmest_temp ? parseFloat(stats.warmest_temp) : null
+    });
+  } catch (error) {
+    console.error('Get dive stats error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 app.get('/api/dive-logs/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
@@ -2224,35 +2253,6 @@ app.delete('/api/dive-logs/:id', authenticateToken, async (req, res) => {
     res.json({ message: 'Dive log deleted successfully' });
   } catch (error) {
     console.error('Delete dive log error:', error);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
-app.get('/api/dive-logs/stats', authenticateToken, async (req, res) => {
-  try {
-    const result = await pool.query(`
-      SELECT 
-        COUNT(*) as total_dives,
-        SUM(duration_seconds) as total_duration_seconds,
-        MAX(max_depth_meters) as deepest_dive_meters,
-        AVG(max_depth_meters) as avg_max_depth_meters,
-        MIN(min_temperature_celsius) as coldest_temp,
-        MAX(max_temperature_celsius) as warmest_temp
-      FROM dive_logs
-      WHERE user_id = $1 AND deleted_at IS NULL
-    `, [req.user.id]);
-
-    const stats = result.rows[0];
-    res.json({
-      totalDives: parseInt(stats.total_dives) || 0,
-      totalDurationSeconds: parseInt(stats.total_duration_seconds) || 0,
-      deepestDiveMeters: stats.deepest_dive_meters ? parseFloat(stats.deepest_dive_meters) : null,
-      avgMaxDepthMeters: stats.avg_max_depth_meters ? parseFloat(stats.avg_max_depth_meters) : null,
-      coldestTemp: stats.coldest_temp ? parseFloat(stats.coldest_temp) : null,
-      warmestTemp: stats.warmest_temp ? parseFloat(stats.warmest_temp) : null
-    });
-  } catch (error) {
-    console.error('Get dive stats error:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });

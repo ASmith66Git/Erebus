@@ -5,14 +5,14 @@ class DiveLogParser {
   async parseFile(fileContent, filename, mimeType) {
     const ext = filename.toLowerCase().split('.').pop();
     
-    if (ext === 'xml' || mimeType === 'application/xml' || mimeType === 'text/xml') {
+    if (ext === 'xml' || ext === 'uddf' || mimeType === 'application/xml' || mimeType === 'text/xml') {
       return await this.parseXML(fileContent);
     } else if (ext === 'csv' || mimeType === 'text/csv') {
       return await this.parseCSV(fileContent);
     } else if (ext === 'ssrf') {
       return await this.parseSubsurface(fileContent);
     } else {
-      throw new Error(`Unsupported file format: ${ext}`);
+      throw new Error(`Unsupported file format: ${ext}. Supported formats: XML, UDDF, CSV, SSRF`);
     }
   }
 
