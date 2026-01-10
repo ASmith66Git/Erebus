@@ -282,8 +282,9 @@ function DiveProfileChart({ samples, colors, showTemp, showNdl, showGf99 }: {
     y: padding + innerHeight - ((getGf99(s) || 0) / maxGf99) * innerHeight,
   }))) : '';
 
-  const handleTouch = (event: GestureResponderEvent) => {
-    const { locationX } = event.nativeEvent;
+  const [isDragging, setIsDragging] = useState(false);
+  
+  const calculateScrubberPosition = (locationX: number) => {
     const clampedX = Math.max(padding, Math.min(locationX, chartWidth - padding));
     const timeAtX = ((clampedX - padding) / innerWidth) * maxTime;
     
@@ -301,9 +302,40 @@ function DiveProfileChart({ samples, colors, showTemp, showNdl, showGf99 }: {
     setScrubberSample(closest);
   };
 
+  const handleTouch = (event: GestureResponderEvent) => {
+    const { locationX } = event.nativeEvent;
+    calculateScrubberPosition(locationX);
+  };
+
   const handleTouchEnd = () => {
     setScrubberX(null);
     setScrubberSample(null);
+    setIsDragging(false);
+  };
+
+  const handleMouseDown = (event: React.MouseEvent) => {
+    if (Platform.OS !== 'web') return;
+    setIsDragging(true);
+    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+    const locationX = event.clientX - rect.left;
+    calculateScrubberPosition(locationX);
+  };
+
+  const handleMouseMove = (event: React.MouseEvent) => {
+    if (Platform.OS !== 'web' || !isDragging) return;
+    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+    const locationX = event.clientX - rect.left;
+    calculateScrubberPosition(locationX);
+  };
+
+  const handleMouseUp = () => {
+    if (Platform.OS !== 'web') return;
+    handleTouchEnd();
+  };
+
+  const handleMouseLeave = () => {
+    if (Platform.OS !== 'web') return;
+    handleTouchEnd();
   };
 
   return (
@@ -364,13 +396,20 @@ function DiveProfileChart({ samples, colors, showTemp, showNdl, showGf99 }: {
           borderWidth: 1,
           borderColor: colors.border,
           overflow: 'hidden',
-        }}
+          cursor: Platform.OS === 'web' ? 'crosshair' : undefined,
+        } as any}
         onStartShouldSetResponder={() => true}
         onMoveShouldSetResponder={() => true}
         onResponderGrant={handleTouch}
         onResponderMove={handleTouch}
         onResponderRelease={handleTouchEnd}
         onResponderTerminate={handleTouchEnd}
+        {...(Platform.OS === 'web' ? {
+          onMouseDown: handleMouseDown,
+          onMouseMove: handleMouseMove,
+          onMouseUp: handleMouseUp,
+          onMouseLeave: handleMouseLeave,
+        } : {})}
       >
         <Svg width={chartWidth} height={chartHeight}>
           {[0.25, 0.5, 0.75].map((ratio, i) => (
