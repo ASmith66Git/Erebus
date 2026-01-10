@@ -116,7 +116,7 @@ export default function ImportDiveLogScreen() {
   };
 
   const handleManualEntry = () => {
-    Alert.alert('Coming Soon', 'Manual dive log entry will be available in a future update.');
+    router.push('/manual-dive-entry');
   };
 
   const getImportGuidance = () => {
