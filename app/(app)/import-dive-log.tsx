@@ -63,7 +63,7 @@ export default function ImportDiveLogScreen() {
   const handleImportFile = async () => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
-        type: ['application/xml', 'text/xml', 'text/csv', 'application/octet-stream', '*/*'],
+        type: '*/*',
         copyToCacheDirectory: true,
       });
 
