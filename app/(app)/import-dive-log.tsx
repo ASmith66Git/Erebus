@@ -98,7 +98,13 @@ export default function ImportDiveLogScreen() {
     if (Platform.OS === 'web') {
       const input = document.createElement('input');
       input.type = 'file';
-      input.onchange = handleWebFileSelect;
+      input.accept = '.uddf,.xml,.csv,.ssrf,application/xml,text/xml,text/csv,*/*';
+      input.style.display = 'none';
+      document.body.appendChild(input);
+      input.onchange = (e) => {
+        handleWebFileSelect(e);
+        document.body.removeChild(input);
+      };
       input.click();
       return;
     }
