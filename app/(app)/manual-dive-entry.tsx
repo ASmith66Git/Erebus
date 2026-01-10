@@ -101,9 +101,14 @@ export default function ManualDiveEntryScreen() {
         throw new Error(data.error || 'Failed to save dive log');
       }
 
-      Alert.alert('Success', 'Dive log saved successfully!', [
-        { text: 'OK', onPress: () => router.back() }
-      ]);
+      if (Platform.OS === 'web') {
+        alert('Dive log saved successfully!');
+        router.back();
+      } else {
+        Alert.alert('Success', 'Dive log saved successfully!', [
+          { text: 'OK', onPress: () => router.back() }
+        ]);
+      }
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to save dive log');
     } finally {
