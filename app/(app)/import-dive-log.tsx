@@ -98,7 +98,7 @@ export default function ImportDiveLogScreen() {
     if (Platform.OS === 'web') {
       const input = document.createElement('input');
       input.type = 'file';
-      input.accept = '.uddf,.xml,.csv,.ssrf,application/xml,text/xml,text/csv,*/*';
+      input.accept = '*/*';
       input.style.display = 'none';
       document.body.appendChild(input);
       input.onchange = (e) => {
