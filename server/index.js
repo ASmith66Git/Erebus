@@ -8,6 +8,8 @@ const multer = require('multer');
 const { Pool } = require('pg');
 const { Resend } = require('resend');
 const diveLogParser = require('./services/diveLogParser');
+const diveLogParserV2 = require('./services/diveLogParserV2');
+const DiveLogPersistenceService = require('./services/diveLogPersistence');
 const diveComputerCatalog = require('./data/diveComputerCatalog');
 
 const upload = multer({ 
@@ -21,6 +23,8 @@ const PORT = process.env.PORT || 3001;
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
 });
+
+const diveLogPersistence = new DiveLogPersistenceService(pool);
 
 const JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(64).toString('hex');
 
@@ -2148,6 +2152,179 @@ app.post('/api/dive-logs/import', authenticateToken, upload.single('file'), asyn
   } catch (error) {
     console.error('Import dive logs error:', error);
     res.status(500).json({ error: error.message || 'Server error during import' });
+  }
+});
+
+app.post('/api/dive-logs/import/v2', authenticateToken, upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    const fileContent = req.file.buffer.toString('utf-8');
+    const filename = req.file.originalname;
+    const mimeType = req.file.mimetype;
+
+    const dtos = await diveLogParserV2.parseFile(fileContent, filename, mimeType);
+
+    if (!dtos || dtos.length === 0) {
+      return res.status(400).json({ error: 'No dives found in file' });
+    }
+
+    const insertedDives = [];
+    
+    for (const dto of dtos) {
+      try {
+        const diveLogId = await diveLogPersistence.saveDiveImport(dto, req.user.id);
+        insertedDives.push({
+          id: diveLogId,
+          diveDateTime: dto.header.dive_datetime,
+          maxDepthMeters: dto.header.max_depth_meters,
+          durationSeconds: dto.header.duration_seconds,
+          samplesCount: dto.samples.length,
+          gasesCount: dto.gases.length,
+          eventsCount: dto.events.length
+        });
+      } catch (diveError) {
+        console.error('Error saving individual dive:', diveError);
+      }
+    }
+
+    res.status(201).json({
+      message: `Successfully imported ${insertedDives.length} dive(s) with full details`,
+      dives: insertedDives,
+      format: dtos[0]?.import_metadata?.source_format
+    });
+  } catch (error) {
+    console.error('Import V2 dive logs error:', error);
+    res.status(500).json({ error: error.message || 'Server error during import' });
+  }
+});
+
+app.get('/api/dive-logs/:id/detailed', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const diveLog = await diveLogPersistence.getDiveLogWithDetails(id, req.user.id);
+    
+    if (!diveLog) {
+      return res.status(404).json({ error: 'Dive log not found' });
+    }
+    
+    res.json({
+      id: diveLog.id,
+      userId: diveLog.user_id,
+      diveSiteId: diveLog.dive_site_id,
+      diveDateTime: diveLog.dive_datetime,
+      durationSeconds: diveLog.duration_seconds,
+      maxDepthMeters: diveLog.max_depth_meters ? parseFloat(diveLog.max_depth_meters) : null,
+      avgDepthMeters: diveLog.avg_depth_meters ? parseFloat(diveLog.avg_depth_meters) : null,
+      minTemperatureCelsius: diveLog.min_temperature_celsius ? parseFloat(diveLog.min_temperature_celsius) : null,
+      maxTemperatureCelsius: diveLog.max_temperature_celsius ? parseFloat(diveLog.max_temperature_celsius) : null,
+      deviceManufacturer: diveLog.device_manufacturer,
+      deviceModel: diveLog.device_model,
+      deviceSerial: diveLog.device_serial,
+      diveComputerId: diveLog.dive_computer_id,
+      catalogManufacturer: diveLog.catalog_manufacturer,
+      catalogModel: diveLog.catalog_model,
+      computerFamily: diveLog.family,
+      computerProtocol: diveLog.protocol,
+      hasBle: diveLog.has_ble,
+      hasAi: diveLog.has_ai,
+      sampleFields: diveLog.sample_fields,
+      notes: diveLog.notes,
+      rating: diveLog.rating,
+      importSource: diveLog.import_source,
+      importFilename: diveLog.import_filename,
+      diveNumber: diveLog.dive_number,
+      surfaceIntervalSeconds: diveLog.surface_interval_seconds,
+      surfacePressureMbar: diveLog.surface_pressure_mbar,
+      diveMode: diveLog.dive_mode,
+      surfaceConditions: diveLog.surface_conditions,
+      weatherConditions: diveLog.weather_conditions,
+      workload: diveLog.workload,
+      thermalComfort: diveLog.thermal_comfort,
+      buddy: diveLog.buddy,
+      decompressionSymptoms: diveLog.decompression_symptoms,
+      problemNotes: diveLog.problem_notes,
+      createdAt: diveLog.created_at,
+      updatedAt: diveLog.updated_at,
+      samples: diveLog.samples,
+      gasMixes: diveLog.gas_mixes,
+      gasPressures: diveLog.gas_pressures || [],
+      equipmentIssues: diveLog.equipment_issues || [],
+      skillsPracticed: diveLog.skills_practiced || [],
+      detailedSamples: diveLog.detailed_samples,
+      detailedGases: diveLog.detailed_gases,
+      events: diveLog.events,
+      tankPressureHistory: diveLog.tank_pressure_history,
+      computerSettings: diveLog.computer_settings,
+      importInfo: diveLog.import_info
+    });
+  } catch (error) {
+    console.error('Get detailed dive log error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.get('/api/dive-computers/catalog', authenticateToken, async (req, res) => {
+  try {
+    const { manufacturer, has_ble } = req.query;
+    
+    let query = 'SELECT * FROM dive_computer_catalog WHERE 1=1';
+    const params = [];
+    
+    if (manufacturer) {
+      params.push(manufacturer);
+      query += ` AND LOWER(manufacturer) = LOWER($${params.length})`;
+    }
+    
+    if (has_ble === 'true') {
+      query += ' AND has_ble = true';
+    }
+    
+    query += ' ORDER BY manufacturer, model';
+    
+    const result = await pool.query(query, params);
+    
+    res.json({
+      computers: result.rows,
+      total: result.rows.length
+    });
+  } catch (error) {
+    console.error('Get dive computer catalog error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.get('/api/dive-computers/catalog/manufacturers', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT DISTINCT manufacturer, COUNT(*) as model_count 
+      FROM dive_computer_catalog 
+      GROUP BY manufacturer 
+      ORDER BY manufacturer
+    `);
+    
+    res.json({
+      manufacturers: result.rows
+    });
+  } catch (error) {
+    console.error('Get manufacturers error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.post('/api/dive-logs/:id/migrate', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const result = await diveLogPersistence.migrateExistingDiveLog(id, req.user.id);
+    
+    res.json(result);
+  } catch (error) {
+    console.error('Migrate dive log error:', error);
+    res.status(500).json({ error: error.message || 'Server error' });
   }
 });
 
