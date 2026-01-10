@@ -98,7 +98,6 @@ export default function ImportDiveLogScreen() {
     if (Platform.OS === 'web') {
       const input = document.createElement('input');
       input.type = 'file';
-      input.accept = '*/*';
       input.style.display = 'none';
       document.body.appendChild(input);
       input.onchange = (e) => {
