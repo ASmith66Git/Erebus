@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   menuButton: {
-    padding: 4,
+    padding: 8,
   },
   headerCenter: {
     flexDirection: 'row',
@@ -133,6 +133,6 @@ const styles = StyleSheet.create({
     width: 36,
   },
   themeButton: {
-    padding: 4,
+    padding: 8,
   },
 });
