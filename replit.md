@@ -44,6 +44,11 @@ The application is built using Expo React Native, targeting both iOS and Android
 - **Wreck Site Specifics**: Dedicated fields and a conditional "Wreck" tab for detailed wreck information and external resource links.
 - **Weather Forecast**: Integrates 7-day weather forecasts, including marine and atmospheric data, based on dive site location.
 - **Dive Log Management**: Allows users to log dives, import from various formats (UDDF, Subsurface XML, CSV), and track personal dive statistics.
+- **Bluetooth Dive Computer Sync**: Direct BLE connectivity to dive computers (Shearwater, Suunto, Mares) for automated dive log downloads.
+  - Requires EAS Build for native app (not available in Expo Go or web).
+  - Dive computer catalog with 140+ models and BLE capability flags.
+  - User can select their dive computer in Profile settings.
+  - App shows appropriate import method (BLE for supported models, file upload for others).
 
 ## External Dependencies
 - **PostgreSQL**: Primary database for storing user data, dive sites, images, and dive logs.

@@ -8,6 +8,7 @@ const multer = require('multer');
 const { Pool } = require('pg');
 const { Resend } = require('resend');
 const diveLogParser = require('./services/diveLogParser');
+const diveComputerCatalog = require('./data/diveComputerCatalog');
 
 const upload = multer({ 
   storage: multer.memoryStorage(),
@@ -96,6 +97,14 @@ async function initDatabase() {
     
     await client.query(`
       ALTER TABLE users ADD COLUMN IF NOT EXISTS password_reset_expires TIMESTAMP;
+    `).catch(() => {});
+    
+    await client.query(`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS dive_computer_brand VARCHAR(100);
+    `).catch(() => {});
+    
+    await client.query(`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS dive_computer_model VARCHAR(100);
     `).catch(() => {});
     
     await client.query(`
@@ -632,6 +641,109 @@ app.delete('/api/admin/users/:id', authenticateToken, requireAdmin, async (req, 
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', service: 'Erebus API' });
+});
+
+app.get('/api/dive-computers', (req, res) => {
+  res.json({
+    manufacturers: diveComputerCatalog.getAllManufacturersForSelect()
+  });
+});
+
+app.get('/api/dive-computers/:brandId/models', (req, res) => {
+  const { brandId } = req.params;
+  const models = diveComputerCatalog.getModelsForSelect(brandId);
+  res.json({ models });
+});
+
+app.get('/api/dive-computers/:brandId/:modelId', (req, res) => {
+  const { brandId, modelId } = req.params;
+  const model = diveComputerCatalog.getModel(brandId, modelId);
+  if (!model) {
+    return res.status(404).json({ error: 'Dive computer model not found' });
+  }
+  const manufacturer = diveComputerCatalog.getManufacturer(brandId);
+  res.json({
+    brand: { id: manufacturer.id, name: manufacturer.name },
+    model
+  });
+});
+
+app.get('/api/user/dive-computer', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT dive_computer_brand, dive_computer_model FROM users WHERE id = $1',
+      [req.user.id]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    const user = result.rows[0];
+    const brand = user.dive_computer_brand;
+    const model = user.dive_computer_model;
+    
+    let capabilities = null;
+    if (brand && model) {
+      const modelInfo = diveComputerCatalog.getModel(brand, model);
+      const manufacturerInfo = diveComputerCatalog.getManufacturer(brand);
+      if (modelInfo && manufacturerInfo) {
+        capabilities = {
+          brand: { id: manufacturerInfo.id, name: manufacturerInfo.name },
+          model: modelInfo
+        };
+      }
+    }
+    
+    res.json({
+      dive_computer_brand: brand,
+      dive_computer_model: model,
+      capabilities
+    });
+  } catch (error) {
+    console.error('Get user dive computer error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.put('/api/user/dive-computer', authenticateToken, async (req, res) => {
+  const { brand, model } = req.body;
+  
+  try {
+    if (brand && model) {
+      const modelInfo = diveComputerCatalog.getModel(brand, model);
+      if (!modelInfo) {
+        return res.status(400).json({ error: 'Invalid dive computer brand or model' });
+      }
+    }
+    
+    await pool.query(
+      'UPDATE users SET dive_computer_brand = $1, dive_computer_model = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3',
+      [brand || null, model || null, req.user.id]
+    );
+    
+    let capabilities = null;
+    if (brand && model) {
+      const modelInfo = diveComputerCatalog.getModel(brand, model);
+      const manufacturerInfo = diveComputerCatalog.getManufacturer(brand);
+      if (modelInfo && manufacturerInfo) {
+        capabilities = {
+          brand: { id: manufacturerInfo.id, name: manufacturerInfo.name },
+          model: modelInfo
+        };
+      }
+    }
+    
+    res.json({
+      message: 'Dive computer preference updated',
+      dive_computer_brand: brand || null,
+      dive_computer_model: model || null,
+      capabilities
+    });
+  } catch (error) {
+    console.error('Update user dive computer error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
 });
 
 app.get('/api/dive-sites', authenticateToken, async (req, res) => {

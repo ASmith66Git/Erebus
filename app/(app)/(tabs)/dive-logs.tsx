@@ -43,6 +43,17 @@ interface DiveStats {
   avgMaxDepthMeters: number | null;
 }
 
+interface DiveComputerCapabilities {
+  brand: { id: string; name: string } | null;
+  model: {
+    id: string;
+    name: string;
+    has_ble: boolean;
+    export_formats: string[];
+    note?: string;
+  } | null;
+}
+
 function formatDuration(seconds: number | null): string {
   if (!seconds) return '--';
   const minutes = Math.floor(seconds / 60);
@@ -183,6 +194,7 @@ export default function DiveLogsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [importing, setImporting] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [diveComputer, setDiveComputer] = useState<DiveComputerCapabilities | null>(null);
 
   const fetchLogs = useCallback(async () => {
     if (!token) return;
@@ -228,10 +240,33 @@ export default function DiveLogsScreen() {
     }
   }, [token]);
 
+  const fetchDiveComputer = useCallback(async () => {
+    if (!token) return;
+
+    try {
+      const response = await fetch(`${getApiUrl()}/api/user/dive-computer`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setDiveComputer({
+          brand: data.capabilities?.brand || null,
+          model: data.capabilities?.model || null,
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching dive computer:', error);
+    }
+  }, [token]);
+
   useEffect(() => {
     fetchLogs();
     fetchStats();
-  }, [fetchLogs, fetchStats]);
+    fetchDiveComputer();
+  }, [fetchLogs, fetchStats, fetchDiveComputer]);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -302,6 +337,29 @@ export default function DiveLogsScreen() {
     router.push('/dive-log/new' as any);
   };
 
+  const handleBluetoothConnect = () => {
+    Alert.alert(
+      'Bluetooth Sync',
+      'Bluetooth connectivity requires a native app build. Please use EAS Build to create a development build, then you can connect to your dive computer via Bluetooth.',
+      [{ text: 'OK' }]
+    );
+  };
+
+  const hasBleSupport = diveComputer?.model?.has_ble ?? false;
+  const diveComputerName = diveComputer?.brand && diveComputer?.model 
+    ? `${diveComputer.brand.name} ${diveComputer.model.name}` 
+    : null;
+
+  const getImportGuidance = () => {
+    if (!diveComputer?.model) {
+      return 'Select your dive computer in Profile settings for personalized import options.';
+    }
+    if (hasBleSupport) {
+      return `Your ${diveComputerName} supports Bluetooth sync. Use the native app build to connect directly.`;
+    }
+    return `Your ${diveComputerName} requires file import. Export your dives from ${diveComputer.brand?.name}'s software.`;
+  };
+
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
       <Feather name="book" size={64} color={colors.textSecondary} />
@@ -312,22 +370,39 @@ export default function DiveLogsScreen() {
           : 'Import from your dive computer or add a manual entry'}
       </Text>
       {!searchQuery && (
-        <View style={styles.emptyActions}>
-          <Pressable
-            style={[styles.importButton, { backgroundColor: colors.primary }]}
-            onPress={handleImport}
-          >
-            <Feather name="upload" size={20} color="#FFFFFF" />
-            <Text style={styles.importButtonText}>Import Dive Logs</Text>
-          </Pressable>
-          <Pressable
-            style={[styles.manualButton, { borderColor: colors.primary }]}
-            onPress={handleAddManual}
-          >
-            <Feather name="plus" size={20} color={colors.primary} />
-            <Text style={[styles.manualButtonText, { color: colors.primary }]}>Add Manual Entry</Text>
-          </Pressable>
-        </View>
+        <>
+          <View style={styles.emptyActions}>
+            {hasBleSupport && (
+              <Pressable
+                style={[styles.bleButton, { backgroundColor: '#3B82F6' }]}
+                onPress={handleBluetoothConnect}
+              >
+                <Feather name="bluetooth" size={20} color="#FFFFFF" />
+                <Text style={styles.importButtonText}>Connect via Bluetooth</Text>
+              </Pressable>
+            )}
+            <Pressable
+              style={[styles.importButton, { backgroundColor: colors.primary }]}
+              onPress={handleImport}
+            >
+              <Feather name="upload" size={20} color="#FFFFFF" />
+              <Text style={styles.importButtonText}>Import from File</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.manualButton, { borderColor: colors.primary }]}
+              onPress={handleAddManual}
+            >
+              <Feather name="plus" size={20} color={colors.primary} />
+              <Text style={[styles.manualButtonText, { color: colors.primary }]}>Add Manual Entry</Text>
+            </Pressable>
+          </View>
+          <View style={[styles.guidanceBox, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Feather name="info" size={16} color={colors.textSecondary} />
+            <Text style={[styles.guidanceText, { color: colors.textSecondary }]}>
+              {getImportGuidance()}
+            </Text>
+          </View>
+        </>
       )}
     </View>
   );
@@ -597,5 +672,27 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
+  },
+  bleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 12,
+  },
+  guidanceBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    marginTop: 20,
+    padding: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  guidanceText: {
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 18,
   },
 });

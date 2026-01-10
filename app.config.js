@@ -9,14 +9,27 @@ module.exports = {
     userInterfaceStyle: "automatic",
     newArchEnabled: true,
     ios: {
-      supportsTablet: true
+      supportsTablet: true,
+      bundleIdentifier: "com.erebus.diveapp",
+      infoPlist: {
+        NSBluetoothAlwaysUsageDescription: "Erebus needs Bluetooth access to connect to your dive computer and download dive logs.",
+        NSBluetoothPeripheralUsageDescription: "Erebus needs Bluetooth access to connect to your dive computer."
+      }
     },
     android: {
       adaptiveIcon: {
         foregroundImage: "./assets/images/adaptive-icon.png",
         backgroundColor: "#ffffff"
       },
-      edgeToEdgeEnabled: true
+      edgeToEdgeEnabled: true,
+      package: "com.erebus.diveapp",
+      permissions: [
+        "android.permission.BLUETOOTH",
+        "android.permission.BLUETOOTH_ADMIN",
+        "android.permission.BLUETOOTH_SCAN",
+        "android.permission.BLUETOOTH_CONNECT",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ]
     },
     web: {
       bundler: "metro",
@@ -32,6 +45,14 @@ module.exports = {
           imageWidth: 200,
           resizeMode: "contain",
           backgroundColor: "#ffffff"
+        }
+      ],
+      [
+        "react-native-ble-plx",
+        {
+          isBackgroundEnabled: false,
+          modes: ["central"],
+          bluetoothAlwaysPermission: "Allow Erebus to connect to your dive computer via Bluetooth"
         }
       ]
     ],
