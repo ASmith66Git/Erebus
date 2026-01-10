@@ -96,6 +96,13 @@ class DiveLogParser {
       if (wp.cns) sample.cns_pct = parseFloat(wp.cns) * 100;
       if (wp.otu) sample.otu = parseFloat(wp.otu);
       if (wp.setpo2) sample.setpoint_bar = parseFloat(wp.setpo2);
+      if (wp.tts) sample.tts_min = Math.round(parseInt(wp.tts) / 60);
+      if (wp.ceiling) sample.ceiling_m = parseFloat(wp.ceiling);
+      if (wp.decostop) {
+        sample.stop_depth_m = parseFloat(wp.decostop.depth || wp.decostop.$.depth);
+        sample.stop_time_min = parseInt(wp.decostop.duration || wp.decostop.$.duration) / 60;
+      }
+      if (wp.gradientfactor) sample.gf99_pct = parseFloat(wp.gradientfactor);
       
       return sample;
     }).filter(s => s.time_seconds !== null);
@@ -183,11 +190,31 @@ class DiveLogParser {
     
     const samples = Array.isArray(sampleData) ? sampleData : [sampleData];
     
-    return samples.map(s => ({
-      time_seconds: this.parseDuration(s.$.time),
-      depth_meters: this.parseDepth(s.$.depth),
-      temperature_celsius: this.parseTemperature(s.$.temp)
-    })).filter(s => s.time_seconds !== null && s.depth_meters !== null);
+    return samples.map(s => {
+      const sample = {
+        time_seconds: this.parseDuration(s.$.time),
+        depth_meters: this.parseDepth(s.$.depth),
+        temperature_celsius: this.parseTemperature(s.$.temp)
+      };
+      
+      if (s.$.ndl) sample.ndl_min = this.parseDuration(s.$.ndl) / 60;
+      if (s.$.tts) sample.tts_min = this.parseDuration(s.$.tts) / 60;
+      if (s.$.stopdepth) sample.stop_depth_m = this.parseDepth(s.$.stopdepth);
+      if (s.$.stoptime) sample.stop_time_min = this.parseDuration(s.$.stoptime) / 60;
+      if (s.$.ceiling) sample.ceiling_m = this.parseDepth(s.$.ceiling);
+      if (s.$.gfline) sample.gf99_pct = parseFloat(s.$.gfline);
+      if (s.$.po2) sample.ppo2_bar = parseFloat(s.$.po2);
+      if (s.$.pressure) sample.tank_pressure_bar = this.parsePressure(s.$.pressure);
+      if (s.$.cns) sample.cns_pct = parseFloat(s.$.cns);
+      
+      return sample;
+    }).filter(s => s.time_seconds !== null && s.depth_meters !== null);
+  }
+  
+  parsePressure(pressureStr) {
+    if (!pressureStr) return null;
+    const match = pressureStr.match(/([\d.]+)/);
+    return match ? parseFloat(match[1]) : null;
   }
 
   parseSubsurfaceGasMixes(cylinderData) {

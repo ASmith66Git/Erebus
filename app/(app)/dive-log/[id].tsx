@@ -84,6 +84,7 @@ interface Sample {
   ceiling_m?: number | null;
   ppo2_bar?: number | null;
   cns_pct?: number | null;
+  cns_percent?: number | null;
   otu?: number | null;
   battery_voltage?: number | null;
   tts_minutes?: number | null;
@@ -91,6 +92,10 @@ interface Sample {
   tts_seconds?: number | null;
   stop_depth_m?: number | null;
   stop_time_min?: number | null;
+  tank_pressure_bar?: number | null;
+  setpoint_bar?: number | null;
+  sac_lpm?: number | null;
+  heartrate_bpm?: number | null;
 }
 
 interface GasMix {
