@@ -83,11 +83,22 @@ class DiveLogParser {
       ? samplesData.waypoint 
       : [samplesData.waypoint];
 
-    return waypoints.map(wp => ({
-      time_seconds: this.parseTime(wp.divetime),
-      depth_meters: parseFloat(wp.depth) || 0,
-      temperature_celsius: wp.temperature ? parseFloat(wp.temperature) - 273.15 : null
-    })).filter(s => s.time_seconds !== null);
+    return waypoints.map(wp => {
+      const sample = {
+        time_seconds: this.parseTime(wp.divetime),
+        depth_meters: parseFloat(wp.depth) || 0,
+        temperature_celsius: wp.temperature ? parseFloat(wp.temperature) - 273.15 : null,
+      };
+      
+      if (wp.nodecotime) sample.ndl_seconds = parseInt(wp.nodecotime);
+      if (wp.calculatedpo2) sample.ppo2_bar = parseFloat(wp.calculatedpo2);
+      if (wp.batterychargecondition) sample.battery_voltage = parseFloat(wp.batterychargecondition);
+      if (wp.cns) sample.cns_pct = parseFloat(wp.cns) * 100;
+      if (wp.otu) sample.otu = parseFloat(wp.otu);
+      if (wp.setpo2) sample.setpoint_bar = parseFloat(wp.setpo2);
+      
+      return sample;
+    }).filter(s => s.time_seconds !== null);
   }
 
   extractUDDFDateTime(dive) {

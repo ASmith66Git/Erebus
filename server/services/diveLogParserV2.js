@@ -218,7 +218,12 @@ class UDDFAdapter extends BaseAdapter {
         dto.addEvent(time, EVENT_TYPES.GAS_SWITCH, { payload: { mix: wp.switchmix } });
       }
       
-      if (wp.nodecotime) metrics.ndl_min = parseInt(wp.nodecotime);
+      if (wp.nodecotime) metrics.ndl_min = Math.round(parseInt(wp.nodecotime) / 60);
+      if (wp.calculatedpo2) metrics.ppo2_bar = parseFloat(wp.calculatedpo2);
+      if (wp.batterychargecondition) metrics.battery_voltage = parseFloat(wp.batterychargecondition);
+      if (wp.cns) metrics.cns_pct = parseFloat(wp.cns) * 100;
+      if (wp.otu) metrics.otu = parseFloat(wp.otu);
+      if (wp.setpo2) metrics.setpoint_bar = parseFloat(wp.setpo2);
       if (wp.decostop) {
         metrics.stop_depth_m = parseFloat(wp.decostop.depth);
         metrics.stop_time_min = parseInt(wp.decostop.duration);

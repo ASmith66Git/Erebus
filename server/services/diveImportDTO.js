@@ -210,6 +210,7 @@ const CANONICAL_METRICS = {
   sac_rate: 'Surface Air Consumption (liters per minute)',
   heading_deg: 'Compass Heading (degrees)',
   bearing_deg: 'Bearing (degrees)',
+  battery_voltage: 'Battery Voltage (V)',
 };
 
 const EVENT_TYPES = {
