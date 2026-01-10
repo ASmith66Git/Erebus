@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
   Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -262,11 +263,13 @@ export default function DiveLogsScreen() {
     }
   }, [token]);
 
-  useEffect(() => {
-    fetchLogs();
-    fetchStats();
-    fetchDiveComputer();
-  }, [fetchLogs, fetchStats, fetchDiveComputer]);
+  useFocusEffect(
+    useCallback(() => {
+      fetchLogs();
+      fetchStats();
+      fetchDiveComputer();
+    }, [fetchLogs, fetchStats, fetchDiveComputer])
+  );
 
   const onRefresh = () => {
     setRefreshing(true);
