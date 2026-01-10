@@ -235,6 +235,21 @@ async function initDatabase() {
         EXECUTE FUNCTION update_updated_at_column();
     `).catch(() => {});
     
+    await client.query(`ALTER TABLE dive_logs ADD COLUMN IF NOT EXISTS dive_number INTEGER;`).catch(() => {});
+    await client.query(`ALTER TABLE dive_logs ADD COLUMN IF NOT EXISTS surface_interval_seconds INTEGER;`).catch(() => {});
+    await client.query(`ALTER TABLE dive_logs ADD COLUMN IF NOT EXISTS surface_pressure_mbar INTEGER;`).catch(() => {});
+    await client.query(`ALTER TABLE dive_logs ADD COLUMN IF NOT EXISTS dive_mode VARCHAR(50);`).catch(() => {});
+    await client.query(`ALTER TABLE dive_logs ADD COLUMN IF NOT EXISTS surface_conditions TEXT;`).catch(() => {});
+    await client.query(`ALTER TABLE dive_logs ADD COLUMN IF NOT EXISTS weather_conditions TEXT;`).catch(() => {});
+    await client.query(`ALTER TABLE dive_logs ADD COLUMN IF NOT EXISTS workload VARCHAR(50);`).catch(() => {});
+    await client.query(`ALTER TABLE dive_logs ADD COLUMN IF NOT EXISTS thermal_comfort VARCHAR(50);`).catch(() => {});
+    await client.query(`ALTER TABLE dive_logs ADD COLUMN IF NOT EXISTS gas_pressures JSONB DEFAULT '[]';`).catch(() => {});
+    await client.query(`ALTER TABLE dive_logs ADD COLUMN IF NOT EXISTS equipment_issues JSONB DEFAULT '[]';`).catch(() => {});
+    await client.query(`ALTER TABLE dive_logs ADD COLUMN IF NOT EXISTS skills_practiced JSONB DEFAULT '[]';`).catch(() => {});
+    await client.query(`ALTER TABLE dive_logs ADD COLUMN IF NOT EXISTS buddy TEXT;`).catch(() => {});
+    await client.query(`ALTER TABLE dive_logs ADD COLUMN IF NOT EXISTS decompression_symptoms BOOLEAN DEFAULT FALSE;`).catch(() => {});
+    await client.query(`ALTER TABLE dive_logs ADD COLUMN IF NOT EXISTS problem_notes TEXT;`).catch(() => {});
+    
     const adminCheck = await client.query("SELECT id FROM users WHERE email = 'admin@erebus.app'");
     if (adminCheck.rows.length === 0) {
       const hashedPassword = await bcrypt.hash('admin123', 10);
@@ -2026,8 +2041,8 @@ app.get('/api/dive-logs/:id', authenticateToken, async (req, res) => {
       diveSiteName: row.dive_site_name,
       diveDateTime: row.dive_datetime,
       durationSeconds: row.duration_seconds,
-      maxDepthMeters: parseFloat(row.max_depth_meters),
-      avgDepthMeters: parseFloat(row.avg_depth_meters),
+      maxDepthMeters: row.max_depth_meters ? parseFloat(row.max_depth_meters) : null,
+      avgDepthMeters: row.avg_depth_meters ? parseFloat(row.avg_depth_meters) : null,
       minTemperatureCelsius: row.min_temperature_celsius ? parseFloat(row.min_temperature_celsius) : null,
       maxTemperatureCelsius: row.max_temperature_celsius ? parseFloat(row.max_temperature_celsius) : null,
       deviceManufacturer: row.device_manufacturer,
@@ -2039,6 +2054,20 @@ app.get('/api/dive-logs/:id', authenticateToken, async (req, res) => {
       rating: row.rating,
       importSource: row.import_source,
       importFilename: row.import_filename,
+      diveNumber: row.dive_number,
+      surfaceIntervalSeconds: row.surface_interval_seconds,
+      surfacePressureMbar: row.surface_pressure_mbar,
+      diveMode: row.dive_mode,
+      surfaceConditions: row.surface_conditions,
+      weatherConditions: row.weather_conditions,
+      workload: row.workload,
+      thermalComfort: row.thermal_comfort,
+      gasPressures: row.gas_pressures || [],
+      equipmentIssues: row.equipment_issues || [],
+      skillsPracticed: row.skills_practiced || [],
+      buddy: row.buddy,
+      decompressionSymptoms: row.decompression_symptoms,
+      problemNotes: row.problem_notes,
       createdAt: row.created_at,
       updatedAt: row.updated_at
     });

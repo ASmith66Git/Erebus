@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,12 +8,30 @@ import {
   Pressable,
   Alert,
   Platform,
+  TextInput,
+  Dimensions,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
+import Svg, { Circle, Path, Line, Text as SvgText } from 'react-native-svg';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { getApiUrl } from '@/utils/apiConfig';
+
+const TABS = ['Dive', 'Profile', 'Computer', 'Notes', 'Team'] as const;
+type TabType = typeof TABS[number];
+
+const EQUIPMENT_OPTIONS = [
+  'None', 'First Stages', 'Second Stages', 'Gas Hoses', 'Wing', 'Harness',
+  'Torches', 'Weights', 'SMBs', 'Reels', 'Suit Inflation', 'Suit Venting',
+  'Fins', 'Masks', 'CCR O2', 'CCR Dil', 'CCR CO2', 'Dive Computer', 'Other'
+];
+
+const SKILLS_OPTIONS = [
+  'Bailout', 'Gas switch', 'SMB launch', 'Mask clearing', 'Backward manoeuvring',
+  'Buoyancy', 'Breathing', 'Gas Shut down', 'High PO2', 'Low PO2',
+  'Manual PO2', 'Line laying with markers'
+];
 
 interface DiveLog {
   id: number;
@@ -28,34 +46,80 @@ interface DiveLog {
   deviceManufacturer: string | null;
   deviceModel: string | null;
   deviceSerial: string | null;
-  samples: any[] | null;
-  gasMixes: any[] | null;
+  samples: Sample[] | null;
+  gasMixes: GasMix[] | null;
   notes: string | null;
   rating: number | null;
   importSource: string;
   importFilename: string | null;
+  diveNumber: number | null;
+  surfaceIntervalSeconds: number | null;
+  surfacePressureMbar: number | null;
+  diveMode: string | null;
+  surfaceConditions: string | null;
+  weatherConditions: string | null;
+  workload: string | null;
+  thermalComfort: string | null;
+  gasPressures: GasPressure[] | null;
+  equipmentIssues: string[] | null;
+  skillsPracticed: string[] | null;
+  buddy: string | null;
+  decompressionSymptoms: boolean | null;
+  problemNotes: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+interface Sample {
+  time_seconds: number;
+  depth_meters: number;
+  temperature_celsius: number | null;
+  ndl_minutes?: number | null;
+  gf99_percent?: number | null;
+  ceiling_meters?: number | null;
+}
+
+interface GasMix {
+  name?: string;
+  o2?: number;
+  he?: number;
+}
+
+interface GasPressure {
+  tankId: string;
+  label: string;
+  startBar: number;
+  endBar: number;
+  o2Percent: number;
+  hePercent?: number;
 }
 
 function formatDuration(seconds: number | null): string {
   if (!seconds) return '--';
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
-  const secs = seconds % 60;
   if (hours > 0) {
     return `${hours}h ${minutes}m`;
   }
-  return `${minutes}m ${secs}s`;
+  return `${minutes} min`;
+}
+
+function formatSurfaceInterval(seconds: number | null): string {
+  if (!seconds) return '--';
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  if (hours > 0) {
+    return `${hours}h ${minutes}m`;
+  }
+  return `${minutes}m`;
 }
 
 function formatDate(dateStr: string): string {
   const date = new Date(dateStr);
   return date.toLocaleDateString(undefined, {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
+    month: 'short',
     day: 'numeric',
+    year: 'numeric',
   });
 }
 
@@ -77,73 +141,568 @@ function formatEndTime(startStr: string, durationSeconds: number | null): string
   });
 }
 
-interface Sample {
-  time_seconds: number;
-  depth_meters: number;
-  temperature_celsius: number | null;
+function CircularGauge({ 
+  startBar, 
+  endBar, 
+  o2Percent, 
+  hePercent = 0, 
+  label, 
+  colors 
+}: { 
+  startBar: number; 
+  endBar: number; 
+  o2Percent: number; 
+  hePercent?: number; 
+  label: string; 
+  colors: any;
+}) {
+  const size = 100;
+  const strokeWidth = 8;
+  const radius = (size - strokeWidth) / 2;
+  const center = size / 2;
+  const circumference = 2 * Math.PI * radius;
+  
+  const remainingPercent = startBar > 0 ? (endBar / startBar) * 100 : 100;
+  const usedPercent = 100 - remainingPercent;
+  const strokeDashoffset = circumference - (remainingPercent / 100) * circumference;
+  
+  const progressColor = remainingPercent > 50 ? '#4CAF50' : remainingPercent > 25 ? '#FFC107' : '#f44336';
+  
+  return (
+    <View style={styles.gaugeContainer}>
+      <Text style={[styles.gaugeLabel, { color: colors.textSecondary }]}>{label}</Text>
+      <View style={styles.gaugeWrapper}>
+        <Svg width={size} height={size}>
+          <Circle
+            cx={center}
+            cy={center}
+            r={radius}
+            stroke={colors.border || '#333'}
+            strokeWidth={strokeWidth}
+            fill="none"
+          />
+          <Circle
+            cx={center}
+            cy={center}
+            r={radius}
+            stroke={progressColor}
+            strokeWidth={strokeWidth}
+            fill="none"
+            strokeDasharray={circumference}
+            strokeDashoffset={strokeDashoffset}
+            strokeLinecap="round"
+            transform={`rotate(-90 ${center} ${center})`}
+          />
+        </Svg>
+        <View style={[styles.gaugeCenter, { position: 'absolute' }]}>
+          <Text style={[styles.gaugeMix, { color: colors.text }]}>
+            {Math.round(o2Percent)}/{hePercent || 0}
+          </Text>
+          <Text style={[styles.gaugeStart, { color: colors.textSecondary }]}>
+            {startBar} bar
+          </Text>
+          <Text style={[styles.gaugeEnd, { color: colors.textSecondary }]}>
+            {endBar} bar
+          </Text>
+        </View>
+      </View>
+      <Text style={[styles.gaugeUsed, { color: colors.textSecondary }]}>
+        {Math.round(usedPercent)}% used
+      </Text>
+    </View>
+  );
 }
 
-function DiveProfileChart({ samples, colors }: { samples: Sample[]; colors: any }) {
+function DiveProfileChart({ samples, colors, showTemp, showNdl, showGf99 }: { 
+  samples: Sample[]; 
+  colors: any;
+  showTemp: boolean;
+  showNdl: boolean;
+  showGf99: boolean;
+}) {
   if (!samples || samples.length === 0) return null;
   
-  const maxDepth = Math.max(...samples.map(s => s.depth_meters));
-  const maxTime = samples[samples.length - 1]?.time_seconds || 1;
-  const chartHeight = 120;
-  const chartWidth = 300;
+  const chartHeight = 200;
+  const padding = 30;
+  const screenWidth = Dimensions.get('window').width - 64;
+  const chartWidth = Math.max(screenWidth, 300);
+  const innerWidth = chartWidth - padding * 2;
+  const innerHeight = chartHeight - padding * 2;
   
-  const points = samples.map((s, i) => {
-    const x = (s.time_seconds / maxTime) * chartWidth;
-    const y = (s.depth_meters / maxDepth) * chartHeight;
-    return { x, y, sample: s };
-  });
+  const maxDepth = Math.max(...samples.map(s => s.depth_meters || 0)) || 1;
+  const maxTime = samples[samples.length - 1]?.time_seconds || 1;
+  
+  const tempSamples = samples.filter(s => s.temperature_celsius != null);
+  const ndlSamples = samples.filter(s => s.ndl_minutes != null);
+  const gf99Samples = samples.filter(s => s.gf99_percent != null);
+  
+  const minTemp = tempSamples.length > 0 ? Math.min(...tempSamples.map(s => s.temperature_celsius!)) : 0;
+  const maxTemp = tempSamples.length > 0 ? Math.max(...tempSamples.map(s => s.temperature_celsius!)) : 1;
+  const tempRange = maxTemp - minTemp || 1;
+  
+  const maxNdl = ndlSamples.length > 0 ? Math.max(...ndlSamples.map(s => s.ndl_minutes!)) : 99;
+  const maxGf99 = 100;
+  
+  const createPath = (points: {x: number, y: number}[]) => {
+    if (points.length === 0) return '';
+    return points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+  };
+  
+  const depthPath = createPath(samples.map((s) => ({
+    x: padding + (s.time_seconds / maxTime) * innerWidth,
+    y: padding + (s.depth_meters / maxDepth) * innerHeight,
+  })));
+
+  const tempPath = showTemp && tempSamples.length > 0 ? createPath(tempSamples.map((s) => ({
+    x: padding + (s.time_seconds / maxTime) * innerWidth,
+    y: padding + innerHeight - ((s.temperature_celsius! - minTemp) / tempRange) * innerHeight,
+  }))) : '';
+
+  const ndlPath = showNdl && ndlSamples.length > 0 ? createPath(ndlSamples.map((s) => ({
+    x: padding + (s.time_seconds / maxTime) * innerWidth,
+    y: padding + innerHeight - (Math.min(s.ndl_minutes!, maxNdl) / maxNdl) * innerHeight,
+  }))) : '';
+
+  const gf99Path = showGf99 && gf99Samples.length > 0 ? createPath(gf99Samples.map((s) => ({
+    x: padding + (s.time_seconds / maxTime) * innerWidth,
+    y: padding + innerHeight - (s.gf99_percent! / maxGf99) * innerHeight,
+  }))) : '';
 
   return (
     <View style={{ marginTop: 8 }}>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
-        <Text style={{ fontSize: 10, color: colors.textSecondary }}>0m</Text>
-        <Text style={{ fontSize: 10, color: colors.textSecondary }}>
-          {Math.floor(maxTime / 60)}min
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
+        <Text style={{ fontSize: 12, color: colors.textSecondary }}>0 min</Text>
+        <Text style={{ fontSize: 12, color: colors.textSecondary }}>
+          {Math.round(maxTime / 60)} min
         </Text>
       </View>
       <View 
         style={{ 
           height: chartHeight, 
-          backgroundColor: colors.primary + '10',
-          borderRadius: 8,
+          backgroundColor: colors.surface,
+          borderRadius: 12,
+          borderWidth: 1,
+          borderColor: colors.border,
           overflow: 'hidden',
-          position: 'relative',
         }}
       >
-        {points.map((point, i) => (
-          <View
-            key={i}
-            style={{
-              position: 'absolute',
-              left: `${(point.x / chartWidth) * 100}%`,
-              top: point.y,
-              width: 3,
-              height: 3,
-              borderRadius: 1.5,
-              backgroundColor: colors.primary,
-            }}
+        <Svg width={chartWidth} height={chartHeight}>
+          {[0.25, 0.5, 0.75].map((ratio, i) => (
+            <Line
+              key={`grid-${i}`}
+              x1={padding}
+              y1={padding + ratio * innerHeight}
+              x2={chartWidth - padding}
+              y2={padding + ratio * innerHeight}
+              stroke={colors.border || '#333'}
+              strokeWidth={0.5}
+              strokeDasharray="4,4"
+            />
+          ))}
+          <Path
+            d={depthPath}
+            stroke="#2196F3"
+            strokeWidth={2}
+            fill="none"
           />
-        ))}
-        <View
-          style={{
-            position: 'absolute',
-            bottom: 4,
-            right: 4,
-          }}
-        >
-          <Text style={{ fontSize: 10, color: colors.textSecondary }}>
-            {maxDepth.toFixed(1)}m max
+          {tempPath && (
+            <Path
+              d={tempPath}
+              stroke="#4CAF50"
+              strokeWidth={2}
+              fill="none"
+            />
+          )}
+          {ndlPath && (
+            <Path
+              d={ndlPath}
+              stroke="#FFC107"
+              strokeWidth={2}
+              fill="none"
+            />
+          )}
+          {gf99Path && (
+            <Path
+              d={gf99Path}
+              stroke="#9C27B0"
+              strokeWidth={2}
+              fill="none"
+            />
+          )}
+          <SvgText
+            x={padding - 5}
+            y={padding + 5}
+            fontSize={10}
+            fill={colors.textSecondary || '#666'}
+            textAnchor="end"
+          >
+            0m
+          </SvgText>
+          <SvgText
+            x={padding - 5}
+            y={padding + innerHeight}
+            fontSize={10}
+            fill={colors.textSecondary || '#666'}
+            textAnchor="end"
+          >
+            {maxDepth.toFixed(0)}m
+          </SvgText>
+        </Svg>
+      </View>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 12, justifyContent: 'center' }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+          <View style={{ width: 12, height: 3, backgroundColor: '#2196F3', borderRadius: 1 }} />
+          <Text style={{ fontSize: 11, color: colors.textSecondary }}>Depth (m)</Text>
+        </View>
+        {showTemp && tempSamples.length > 0 && (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <View style={{ width: 12, height: 3, backgroundColor: '#4CAF50', borderRadius: 1 }} />
+            <Text style={{ fontSize: 11, color: colors.textSecondary }}>Temp (C)</Text>
+          </View>
+        )}
+        {showNdl && ndlSamples.length > 0 && (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <View style={{ width: 12, height: 3, backgroundColor: '#FFC107', borderRadius: 1 }} />
+            <Text style={{ fontSize: 11, color: colors.textSecondary }}>NDL (min)</Text>
+          </View>
+        )}
+        {showGf99 && gf99Samples.length > 0 && (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <View style={{ width: 12, height: 3, backgroundColor: '#9C27B0', borderRadius: 1 }} />
+            <Text style={{ fontSize: 11, color: colors.textSecondary }}>GF99 (%)</Text>
+          </View>
+        )}
+      </View>
+    </View>
+  );
+}
+
+function DiveTab({ diveLog, colors }: { diveLog: DiveLog; colors: any }) {
+  return (
+    <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
+      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <View style={styles.fieldRow}>
+          <Feather name="map-pin" size={16} color={colors.textSecondary} />
+          <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Dive Site</Text>
+        </View>
+        <View style={[styles.fieldValue, { backgroundColor: colors.background, borderColor: colors.border }]}>
+          <Text style={[styles.fieldValueText, { color: colors.text }]}>
+            {diveLog.diveSiteName || 'Not specified'}
+          </Text>
+          {diveLog.diveSiteName && <Feather name="external-link" size={16} color={colors.textSecondary} />}
+        </View>
+      </View>
+
+      <View style={styles.rowCards}>
+        <View style={[styles.halfCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <View style={styles.fieldRow}>
+            <Feather name="wind" size={16} color={colors.textSecondary} />
+            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Surface Conditions</Text>
+          </View>
+          <Text style={[styles.cardValue, { color: colors.text }]}>
+            {diveLog.surfaceConditions || 'Not set'}
+          </Text>
+        </View>
+        <View style={[styles.halfCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <View style={styles.fieldRow}>
+            <Feather name="sun" size={16} color={colors.textSecondary} />
+            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Dive Weather</Text>
+          </View>
+          <Text style={[styles.cardValue, { color: colors.text }]}>
+            {diveLog.weatherConditions || 'Not set'}
           </Text>
         </View>
       </View>
-      <Text style={{ fontSize: 10, color: colors.textSecondary, marginTop: 4, textAlign: 'center' }}>
-        {samples.length} sample points recorded
-      </Text>
-    </View>
+
+      <View style={styles.rowCards}>
+        <View style={[styles.halfCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <View style={styles.fieldRow}>
+            <Feather name="arrow-down" size={16} color={colors.textSecondary} />
+            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Max Depth</Text>
+          </View>
+          <Text style={[styles.cardValue, { color: colors.text }]}>
+            {diveLog.maxDepthMeters ? `${diveLog.maxDepthMeters.toFixed(0)}m` : '--'}
+          </Text>
+        </View>
+        <View style={[styles.halfCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <View style={styles.fieldRow}>
+            <Feather name="clock" size={16} color={colors.textSecondary} />
+            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Duration</Text>
+          </View>
+          <Text style={[styles.cardValue, { color: colors.text }]}>
+            {formatDuration(diveLog.durationSeconds)}
+          </Text>
+        </View>
+      </View>
+
+      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <View style={styles.fieldRow}>
+          <Feather name="thermometer" size={16} color={colors.textSecondary} />
+          <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Temperature</Text>
+        </View>
+        <Text style={[styles.cardValue, { color: colors.text }]}>
+          {diveLog.minTemperatureCelsius ? `${diveLog.minTemperatureCelsius.toFixed(0)}°C` : '--'}
+        </Text>
+      </View>
+
+      {diveLog.gasPressures && diveLog.gasPressures.length > 0 && (
+        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <View style={styles.fieldRow}>
+            <Feather name="circle" size={16} color={colors.textSecondary} />
+            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Gas Pressures (bar)</Text>
+          </View>
+          <View style={styles.gaugesRow}>
+            {diveLog.gasPressures.map((gas, index) => (
+              <CircularGauge
+                key={index}
+                label={gas.label}
+                startBar={gas.startBar}
+                endBar={gas.endBar}
+                o2Percent={gas.o2Percent}
+                hePercent={gas.hePercent}
+                colors={colors}
+              />
+            ))}
+          </View>
+        </View>
+      )}
+
+      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <View style={styles.fieldRow}>
+          <Feather name="alert-triangle" size={16} color={colors.textSecondary} />
+          <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Dive Problems</Text>
+        </View>
+        
+        <Text style={[styles.subLabel, { color: colors.textSecondary }]}>Thermal Comfort</Text>
+        <View style={[styles.fieldValue, { backgroundColor: colors.background, borderColor: colors.border }]}>
+          <Text style={[styles.fieldValueText, { color: colors.text }]}>
+            {diveLog.thermalComfort || 'Neutral'}
+          </Text>
+        </View>
+
+        <Text style={[styles.subLabel, { color: colors.textSecondary, marginTop: 12 }]}>Workload</Text>
+        <View style={[styles.fieldValue, { backgroundColor: colors.background, borderColor: colors.border }]}>
+          <Text style={[styles.fieldValueText, { color: colors.text }]}>
+            {diveLog.workload || 'Moderate'}
+          </Text>
+        </View>
+
+        <Text style={[styles.subLabel, { color: colors.textSecondary, marginTop: 12 }]}>Equipment Malfunction</Text>
+        <View style={styles.checkboxGrid}>
+          {EQUIPMENT_OPTIONS.map((option) => {
+            const isChecked = diveLog.equipmentIssues?.includes(option) || (option === 'None' && (!diveLog.equipmentIssues || diveLog.equipmentIssues.length === 0));
+            return (
+              <View key={option} style={styles.checkboxItem}>
+                <View style={[styles.checkbox, { borderColor: colors.border, backgroundColor: isChecked ? colors.primary + '20' : 'transparent' }]}>
+                  {isChecked && <Feather name="check" size={12} color={colors.primary} />}
+                </View>
+                <Text style={[styles.checkboxLabel, { color: colors.text }]}>{option}</Text>
+              </View>
+            );
+          })}
+        </View>
+
+        <Text style={[styles.subLabel, { color: colors.textSecondary, marginTop: 16 }]}>Decompression Symptoms</Text>
+        <View style={styles.radioRow}>
+          <View style={styles.radioItem}>
+            <View style={[styles.radio, { borderColor: colors.border, backgroundColor: !diveLog.decompressionSymptoms ? colors.primary : 'transparent' }]} />
+            <Text style={[styles.radioLabel, { color: colors.text }]}>No</Text>
+          </View>
+          <View style={styles.radioItem}>
+            <View style={[styles.radio, { borderColor: colors.border, backgroundColor: diveLog.decompressionSymptoms ? colors.primary : 'transparent' }]} />
+            <Text style={[styles.radioLabel, { color: colors.text }]}>Yes</Text>
+          </View>
+        </View>
+
+        <Text style={[styles.subLabel, { color: colors.textSecondary, marginTop: 16 }]}>Problem Notes</Text>
+        <View style={[styles.textArea, { backgroundColor: colors.background, borderColor: colors.border }]}>
+          <Text style={[styles.textAreaText, { color: diveLog.problemNotes ? colors.text : colors.textSecondary }]}>
+            {diveLog.problemNotes || 'Describe any problems encountered during the dive...'}
+          </Text>
+        </View>
+      </View>
+
+      <View style={{ height: 40 }} />
+    </ScrollView>
+  );
+}
+
+function ProfileTab({ diveLog, colors }: { diveLog: DiveLog; colors: any }) {
+  const [showTemp, setShowTemp] = useState(true);
+  const [showNdl, setShowNdl] = useState(true);
+  const [showGf99, setShowGf99] = useState(true);
+
+  return (
+    <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
+      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>Dive Profile</Text>
+        
+        <View style={styles.toggleRow}>
+          <Pressable
+            style={[styles.toggleButton, showTemp && { backgroundColor: colors.primary + '20', borderColor: colors.primary }]}
+            onPress={() => setShowTemp(!showTemp)}
+          >
+            <Text style={[styles.toggleText, { color: showTemp ? colors.primary : colors.textSecondary }]}>Temp</Text>
+          </Pressable>
+          <Pressable
+            style={[styles.toggleButton, showNdl && { backgroundColor: colors.primary + '20', borderColor: colors.primary }]}
+            onPress={() => setShowNdl(!showNdl)}
+          >
+            <Text style={[styles.toggleText, { color: showNdl ? colors.primary : colors.textSecondary }]}>NDL</Text>
+          </Pressable>
+          <Pressable
+            style={[styles.toggleButton, showGf99 && { backgroundColor: colors.primary + '20', borderColor: colors.primary }]}
+            onPress={() => setShowGf99(!showGf99)}
+          >
+            <Text style={[styles.toggleText, { color: showGf99 ? colors.primary : colors.textSecondary }]}>GF99</Text>
+          </Pressable>
+        </View>
+
+        {diveLog.samples && diveLog.samples.length > 0 ? (
+          <DiveProfileChart 
+            samples={diveLog.samples} 
+            colors={colors} 
+            showTemp={showTemp}
+            showNdl={showNdl}
+            showGf99={showGf99}
+          />
+        ) : (
+          <View style={styles.noDataContainer}>
+            <Feather name="activity" size={48} color={colors.textSecondary} />
+            <Text style={[styles.noDataText, { color: colors.textSecondary }]}>
+              No dive profile data available
+            </Text>
+          </View>
+        )}
+      </View>
+      <View style={{ height: 40 }} />
+    </ScrollView>
+  );
+}
+
+function ComputerTab({ diveLog, colors }: { diveLog: DiveLog; colors: any }) {
+  return (
+    <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
+      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <View style={styles.fieldRow}>
+          <Feather name="cpu" size={16} color={colors.textSecondary} />
+          <Text style={[styles.cardTitle, { color: colors.text }]}>Dive Computer</Text>
+        </View>
+        <Text style={[styles.metaLabel, { color: colors.textSecondary }]}>Model: <Text style={{ color: colors.text }}>{diveLog.deviceModel || 'Unknown'}</Text></Text>
+        <Text style={[styles.metaLabel, { color: colors.textSecondary }]}>Serial: <Text style={{ color: colors.text }}>{diveLog.deviceSerial || 'Unknown'}</Text></Text>
+        <Text style={[styles.metaLabel, { color: colors.textSecondary }]}>Manufacturer: <Text style={{ color: colors.text }}>{diveLog.deviceManufacturer || 'Unknown'}</Text></Text>
+      </View>
+
+      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>Dive Metadata</Text>
+        <View style={styles.metaGrid}>
+          <View style={styles.metaItem}>
+            <Text style={[styles.metaLabel, { color: colors.textSecondary }]}># Dive Number</Text>
+            <Text style={[styles.metaValue, { color: colors.text }]}>#{diveLog.diveNumber || '--'}</Text>
+          </View>
+          <View style={styles.metaItem}>
+            <Text style={[styles.metaLabel, { color: colors.textSecondary }]}>Surface Interval</Text>
+            <Text style={[styles.metaValue, { color: colors.text }]}>{formatSurfaceInterval(diveLog.surfaceIntervalSeconds)}</Text>
+          </View>
+          <View style={styles.metaItem}>
+            <Text style={[styles.metaLabel, { color: colors.textSecondary }]}>Surface Pressure</Text>
+            <Text style={[styles.metaValue, { color: colors.text }]}>{diveLog.surfacePressureMbar ? `${diveLog.surfacePressureMbar} mbar` : '--'}</Text>
+          </View>
+          <View style={styles.metaItem}>
+            <Text style={[styles.metaLabel, { color: colors.textSecondary }]}>Dive Mode</Text>
+            <Text style={[styles.metaValue, { color: colors.text }]}>{diveLog.diveMode || 'Open Circuit'}</Text>
+          </View>
+          <View style={styles.metaItem}>
+            <Text style={[styles.metaLabel, { color: colors.textSecondary }]}>Start Time</Text>
+            <Text style={[styles.metaValue, { color: colors.text }]}>{formatTime(diveLog.diveDateTime)}</Text>
+          </View>
+          <View style={styles.metaItem}>
+            <Text style={[styles.metaLabel, { color: colors.textSecondary }]}>End Time</Text>
+            <Text style={[styles.metaValue, { color: colors.text }]}>{formatEndTime(diveLog.diveDateTime, diveLog.durationSeconds)}</Text>
+          </View>
+        </View>
+      </View>
+
+      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>Gas Mixes</Text>
+        {diveLog.gasMixes && diveLog.gasMixes.length > 0 ? (
+          <View style={styles.gasMixGrid}>
+            {diveLog.gasMixes.map((mix, index) => (
+              <View key={index} style={[styles.gasMixCard, { backgroundColor: colors.background, borderColor: colors.border }]}>
+                <Text style={[styles.gasMixName, { color: colors.text }]}>{mix.name || `Mix ${index + 1}`}</Text>
+                <Text style={[styles.gasMixInfo, { color: colors.textSecondary }]}>
+                  O₂: {mix.o2?.toFixed(0) || 21}%{mix.he ? ` He: ${mix.he.toFixed(0)}%` : ''}
+                </Text>
+              </View>
+            ))}
+          </View>
+        ) : (
+          <Text style={[styles.noDataText, { color: colors.textSecondary }]}>No gas mix data available</Text>
+        )}
+      </View>
+
+      <View style={{ height: 40 }} />
+    </ScrollView>
+  );
+}
+
+function NotesTab({ diveLog, colors }: { diveLog: DiveLog; colors: any }) {
+  return (
+    <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
+      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <View style={styles.fieldRow}>
+          <Feather name="file-text" size={16} color={colors.textSecondary} />
+          <Text style={[styles.cardTitle, { color: colors.text }]}>Dive Notes</Text>
+        </View>
+        <View style={[styles.textArea, { backgroundColor: colors.background, borderColor: colors.border, minHeight: 120 }]}>
+          <Text style={[styles.textAreaText, { color: diveLog.notes ? colors.text : colors.textSecondary }]}>
+            {diveLog.notes || 'Add your dive notes here...'}
+          </Text>
+        </View>
+      </View>
+
+      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <View style={styles.fieldRow}>
+          <Feather name="award" size={16} color={colors.textSecondary} />
+          <Text style={[styles.cardTitle, { color: colors.text }]}>Skills Practised</Text>
+        </View>
+        <View style={styles.checkboxGrid}>
+          {SKILLS_OPTIONS.map((skill) => {
+            const isChecked = diveLog.skillsPracticed?.includes(skill);
+            return (
+              <View key={skill} style={styles.checkboxItem}>
+                <View style={[styles.checkbox, { borderColor: colors.border, backgroundColor: isChecked ? colors.primary + '20' : 'transparent' }]}>
+                  {isChecked && <Feather name="check" size={12} color={colors.primary} />}
+                </View>
+                <Text style={[styles.checkboxLabel, { color: colors.text }]}>{skill}</Text>
+              </View>
+            );
+          })}
+        </View>
+      </View>
+
+      <View style={{ height: 40 }} />
+    </ScrollView>
+  );
+}
+
+function TeamTab({ diveLog, colors }: { diveLog: DiveLog; colors: any }) {
+  return (
+    <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
+      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <View style={styles.fieldRow}>
+          <Feather name="users" size={16} color={colors.textSecondary} />
+          <Text style={[styles.cardTitle, { color: colors.text }]}>Team / Buddy</Text>
+        </View>
+        <View style={[styles.textArea, { backgroundColor: colors.background, borderColor: colors.border, minHeight: 120 }]}>
+          <Text style={[styles.textAreaText, { color: diveLog.buddy ? colors.text : colors.textSecondary }]}>
+            {diveLog.buddy || 'Add buddy or team members...'}
+          </Text>
+        </View>
+      </View>
+
+      <View style={{ height: 40 }} />
+    </ScrollView>
   );
 }
 
@@ -155,72 +714,81 @@ export default function DiveLogDetailScreen() {
   const [diveLog, setDiveLog] = useState<DiveLog | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<TabType>('Dive');
 
-  useEffect(() => {
-    if (id) {
-      fetchDiveLog();
-    }
-  }, [id]);
-
-  const fetchDiveLog = async () => {
+  const fetchDiveLog = useCallback(async () => {
+    if (!id || !token) return;
+    
+    setLoading(true);
+    setError(null);
+    
     try {
-      setLoading(true);
-      setError(null);
       const response = await fetch(`${getApiUrl()}/api/dive-logs/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
-
+      
       if (!response.ok) {
-        throw new Error('Dive log not found');
+        throw new Error('Failed to fetch dive log');
       }
-
+      
       const data = await response.json();
       setDiveLog(data);
-    } catch (err: any) {
-      setError(err.message || 'Failed to load dive log');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, token]);
+
+  useEffect(() => {
+    fetchDiveLog();
+  }, [fetchDiveLog]);
 
   const handleDelete = () => {
-    const doDelete = async () => {
+    const confirmDelete = async () => {
       try {
         const response = await fetch(`${getApiUrl()}/api/dive-logs/${id}`, {
           method: 'DELETE',
-          headers: { Authorization: `Bearer ${token}` },
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         });
-
-        if (!response.ok) {
-          throw new Error('Failed to delete dive log');
-        }
-
-        if (Platform.OS === 'web') {
-          alert('Dive log deleted');
+        
+        if (response.ok) {
           router.back();
         } else {
-          Alert.alert('Success', 'Dive log deleted', [
-            { text: 'OK', onPress: () => router.back() },
-          ]);
+          const errorMessage = 'Failed to delete dive log';
+          if (Platform.OS === 'web') {
+            alert(errorMessage);
+          } else {
+            Alert.alert('Error', errorMessage);
+          }
         }
-      } catch (err: any) {
+      } catch (err) {
+        const errorMessage = 'An error occurred while deleting';
         if (Platform.OS === 'web') {
-          alert(err.message || 'Failed to delete dive log');
+          alert(errorMessage);
         } else {
-          Alert.alert('Error', err.message || 'Failed to delete dive log');
+          Alert.alert('Error', errorMessage);
         }
       }
     };
 
     if (Platform.OS === 'web') {
       if (confirm('Are you sure you want to delete this dive log?')) {
-        doDelete();
+        confirmDelete();
       }
     } else {
-      Alert.alert('Delete Dive Log', 'Are you sure you want to delete this dive log?', [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete', style: 'destructive', onPress: doDelete },
-      ]);
+      Alert.alert(
+        'Delete Dive Log',
+        'Are you sure you want to delete this dive log?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Delete', style: 'destructive', onPress: confirmDelete },
+        ]
+      );
     }
   };
 
@@ -239,7 +807,7 @@ export default function DiveLogDetailScreen() {
           <Pressable style={styles.backButton} onPress={() => router.back()}>
             <Feather name="arrow-left" size={24} color={colors.text} />
           </Pressable>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Dive Log</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Dive Details</Text>
           <View style={styles.headerRight} />
         </View>
         <View style={[styles.centered, { flex: 1 }]}>
@@ -258,184 +826,75 @@ export default function DiveLogDetailScreen() {
     );
   }
 
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'Dive':
+        return <DiveTab diveLog={diveLog} colors={colors} />;
+      case 'Profile':
+        return <ProfileTab diveLog={diveLog} colors={colors} />;
+      case 'Computer':
+        return <ComputerTab diveLog={diveLog} colors={colors} />;
+      case 'Notes':
+        return <NotesTab diveLog={diveLog} colors={colors} />;
+      case 'Team':
+        return <TeamTab diveLog={diveLog} colors={colors} />;
+      default:
+        return null;
+    }
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <Pressable style={styles.backButton} onPress={() => router.back()}>
           <Feather name="arrow-left" size={24} color={colors.text} />
         </Pressable>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Dive Log</Text>
-        <Pressable style={styles.deleteButton} onPress={handleDelete}>
-          <Feather name="trash-2" size={20} color={colors.error || '#D22F00'} />
-        </Pressable>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Dive Details</Text>
+        <View style={styles.headerActions}>
+          <Pressable style={styles.headerButton}>
+            <Feather name="edit-2" size={18} color={colors.text} />
+          </Pressable>
+          <Pressable style={styles.headerButton} onPress={handleDelete}>
+            <Feather name="trash-2" size={18} color={colors.error || '#D22F00'} />
+          </Pressable>
+        </View>
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={[styles.heroCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <View style={[styles.heroIcon, { backgroundColor: colors.primary + '20' }]}>
-            <Feather name="activity" size={32} color={colors.primary} />
-          </View>
-          <Text style={[styles.heroDate, { color: colors.text }]}>
-            {formatDate(diveLog.diveDateTime)}
+      <View style={styles.diveHeader}>
+        <Text style={[styles.diveTitle, { color: colors.text }]}>
+          Dive #{diveLog.diveNumber || diveLog.id}
+        </Text>
+        <View style={styles.dateRow}>
+          <Feather name="calendar" size={14} color={colors.textSecondary} />
+          <Text style={[styles.dateText, { color: colors.textSecondary }]}>
+            {formatDate(diveLog.diveDateTime)} • {formatTime(diveLog.diveDateTime)}
           </Text>
-          <Text style={[styles.heroTime, { color: colors.textSecondary }]}>
-            {formatTime(diveLog.diveDateTime)}
-          </Text>
-          {diveLog.diveSiteName && (
-            <View style={styles.locationRow}>
-              <Feather name="map-pin" size={14} color={colors.primary} />
-              <Text style={[styles.locationText, { color: colors.text }]}>
-                {diveLog.diveSiteName}
-              </Text>
-            </View>
-          )}
         </View>
+      </View>
 
-        <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Timing</Text>
-          <View style={styles.timingGrid}>
-            <View style={styles.timingItem}>
-              <Feather name="play" size={16} color={colors.primary} />
-              <Text style={[styles.timingLabel, { color: colors.textSecondary }]}>Start</Text>
-              <Text style={[styles.timingValue, { color: colors.text }]}>
-                {formatTime(diveLog.diveDateTime)}
-              </Text>
-            </View>
-            <View style={styles.timingItem}>
-              <Feather name="square" size={16} color={colors.primary} />
-              <Text style={[styles.timingLabel, { color: colors.textSecondary }]}>End</Text>
-              <Text style={[styles.timingValue, { color: colors.text }]}>
-                {formatEndTime(diveLog.diveDateTime, diveLog.durationSeconds)}
-              </Text>
-            </View>
-            <View style={styles.timingItem}>
-              <Feather name="clock" size={16} color={colors.primary} />
-              <Text style={[styles.timingLabel, { color: colors.textSecondary }]}>Duration</Text>
-              <Text style={[styles.timingValue, { color: colors.text }]}>
-                {formatDuration(diveLog.durationSeconds)}
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        <View style={styles.statsGrid}>
-          <View style={[styles.statCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Feather name="arrow-down" size={20} color={colors.primary} />
-            <Text style={[styles.statValue, { color: colors.text }]}>
-              {diveLog.maxDepthMeters?.toFixed(1) || '--'}
+      <View style={[styles.tabBar, { borderBottomColor: colors.border }]}>
+        {TABS.map((tab) => (
+          <Pressable
+            key={tab}
+            style={[
+              styles.tabItem,
+              activeTab === tab && { borderBottomColor: colors.primary, borderBottomWidth: 2 },
+            ]}
+            onPress={() => setActiveTab(tab)}
+          >
+            <Text
+              style={[
+                styles.tabText,
+                { color: activeTab === tab ? colors.primary : colors.textSecondary },
+              ]}
+            >
+              {tab}
             </Text>
-            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Max Depth (m)</Text>
-          </View>
+          </Pressable>
+        ))}
+      </View>
 
-          <View style={[styles.statCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Feather name="trending-down" size={20} color={colors.primary} />
-            <Text style={[styles.statValue, { color: colors.text }]}>
-              {diveLog.avgDepthMeters?.toFixed(1) || '--'}
-            </Text>
-            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Avg Depth (m)</Text>
-          </View>
-
-          <View style={[styles.statCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Feather name="thermometer" size={20} color={colors.primary} />
-            <Text style={[styles.statValue, { color: colors.text }]}>
-              {diveLog.minTemperatureCelsius?.toFixed(1) || '--'}
-            </Text>
-            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Min Temp (C)</Text>
-          </View>
-
-          <View style={[styles.statCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Feather name="thermometer" size={20} color={colors.primary} />
-            <Text style={[styles.statValue, { color: colors.text }]}>
-              {diveLog.maxTemperatureCelsius?.toFixed(1) || '--'}
-            </Text>
-            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Max Temp (C)</Text>
-          </View>
-        </View>
-
-        {diveLog.samples && diveLog.samples.length > 0 && (
-          <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Dive Profile</Text>
-            <DiveProfileChart samples={diveLog.samples} colors={colors} />
-          </View>
-        )}
-
-        {diveLog.rating && (
-          <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Rating</Text>
-            <View style={styles.ratingRow}>
-              {[1, 2, 3, 4, 5].map((star) => (
-                <Feather
-                  key={star}
-                  name="star"
-                  size={24}
-                  color={star <= diveLog.rating! ? colors.primary : colors.border}
-                  style={{ marginRight: 4 }}
-                />
-              ))}
-            </View>
-          </View>
-        )}
-
-        {diveLog.notes && (
-          <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Notes</Text>
-            <Text style={[styles.notesText, { color: colors.textSecondary }]}>
-              {diveLog.notes}
-            </Text>
-          </View>
-        )}
-
-        {(diveLog.deviceManufacturer || diveLog.deviceModel) && (
-          <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Dive Computer</Text>
-            <View style={styles.deviceRow}>
-              <Feather name="cpu" size={16} color={colors.textSecondary} />
-              <Text style={[styles.deviceText, { color: colors.textSecondary }]}>
-                {[diveLog.deviceManufacturer, diveLog.deviceModel].filter(Boolean).join(' ')}
-              </Text>
-            </View>
-            {diveLog.deviceSerial && (
-              <Text style={[styles.serialText, { color: colors.textSecondary }]}>
-                S/N: {diveLog.deviceSerial}
-              </Text>
-            )}
-          </View>
-        )}
-
-        {diveLog.gasMixes && diveLog.gasMixes.length > 0 && (
-          <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Gas Mixes</Text>
-            {diveLog.gasMixes.map((mix, index) => (
-              <View key={index} style={styles.gasMixRow}>
-                <Feather name="wind" size={16} color={colors.textSecondary} />
-                <Text style={[styles.gasMixText, { color: colors.textSecondary }]}>
-                  {mix.name}: O2 {mix.o2?.toFixed(0) || 21}%{mix.he ? `, He ${mix.he.toFixed(0)}%` : ''}
-                </Text>
-              </View>
-            ))}
-          </View>
-        )}
-
-        <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Import Details</Text>
-          <View style={styles.importRow}>
-            <Text style={[styles.importLabel, { color: colors.textSecondary }]}>Source:</Text>
-            <Text style={[styles.importValue, { color: colors.text }]}>
-              {diveLog.importSource.toUpperCase()}
-            </Text>
-          </View>
-          {diveLog.importFilename && (
-            <View style={styles.importRow}>
-              <Text style={[styles.importLabel, { color: colors.textSecondary }]}>File:</Text>
-              <Text style={[styles.importValue, { color: colors.text }]} numberOfLines={1}>
-                {diveLog.importFilename}
-              </Text>
-            </View>
-          )}
-        </View>
-
-        <View style={{ height: 40 }} />
-      </ScrollView>
+      {renderTabContent()}
     </View>
   );
 }
@@ -465,136 +924,271 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   headerRight: {
-    width: 40,
+    width: 72,
   },
-  deleteButton: {
+  headerActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  headerButton: {
     padding: 8,
   },
-  content: {
-    flex: 1,
-    padding: 16,
+  diveHeader: {
+    paddingHorizontal: 16,
+    paddingVertical: 16,
   },
-  heroCard: {
-    borderRadius: 16,
-    borderWidth: 1,
-    padding: 24,
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  heroIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  heroDate: {
-    fontSize: 20,
-    fontWeight: '600',
-  },
-  heroTime: {
-    fontSize: 16,
-    marginTop: 4,
-  },
-  locationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 12,
-    gap: 6,
-  },
-  locationText: {
-    fontSize: 16,
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    marginBottom: 16,
-  },
-  statCard: {
-    flex: 1,
-    minWidth: '45%',
-    borderRadius: 12,
-    borderWidth: 1,
-    padding: 16,
-    alignItems: 'center',
-  },
-  statValue: {
+  diveTitle: {
     fontSize: 24,
     fontWeight: '700',
-    marginTop: 8,
   },
-  statLabel: {
-    fontSize: 12,
+  dateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     marginTop: 4,
   },
-  section: {
+  dateText: {
+    fontSize: 14,
+  },
+  tabBar: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    paddingHorizontal: 8,
+  },
+  tabItem: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  tabText: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  tabContent: {
+    flex: 1,
+    padding: 16,
+  },
+  card: {
     borderRadius: 12,
     borderWidth: 1,
     padding: 16,
     marginBottom: 12,
   },
-  sectionTitle: {
+  cardTitle: {
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 12,
   },
-  timingGrid: {
+  rowCards: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    gap: 12,
+    marginBottom: 12,
   },
-  timingItem: {
+  halfCard: {
+    flex: 1,
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 16,
+  },
+  fieldRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 8,
+    marginBottom: 8,
   },
-  timingLabel: {
+  fieldLabel: {
     fontSize: 12,
+    textTransform: 'uppercase',
   },
-  timingValue: {
-    fontSize: 16,
+  fieldValue: {
+    borderRadius: 8,
+    borderWidth: 1,
+    padding: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  fieldValueText: {
+    fontSize: 15,
+  },
+  cardValue: {
+    fontSize: 18,
     fontWeight: '600',
   },
-  ratingRow: {
-    flexDirection: 'row',
+  subLabel: {
+    fontSize: 12,
+    marginBottom: 8,
   },
-  notesText: {
+  textArea: {
+    borderRadius: 8,
+    borderWidth: 1,
+    padding: 12,
+  },
+  textAreaText: {
     fontSize: 14,
     lineHeight: 20,
   },
-  deviceRow: {
+  checkboxGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  checkboxItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '50%',
+    paddingVertical: 6,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 1,
+    marginRight: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxLabel: {
+    fontSize: 13,
+  },
+  radioRow: {
+    flexDirection: 'row',
+    gap: 24,
+  },
+  radioItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
-  deviceText: {
+  radio: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+  },
+  radioLabel: {
     fontSize: 14,
   },
-  serialText: {
+  gaugesRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-around',
+    marginTop: 8,
+  },
+  gaugeContainer: {
+    alignItems: 'center',
+    padding: 8,
+  },
+  gaugeLabel: {
     fontSize: 12,
-    marginTop: 4,
-    marginLeft: 24,
+    marginBottom: 8,
   },
-  gasMixRow: {
-    flexDirection: 'row',
+  gaugeWrapper: {
+    width: 100,
+    height: 100,
+    justifyContent: 'center',
     alignItems: 'center',
-    gap: 8,
-    marginBottom: 4,
   },
-  gasMixText: {
-    fontSize: 14,
+  gaugeSvgContainer: {
+    position: 'absolute',
+    width: 100,
+    height: 100,
   },
-  importRow: {
+  gaugeBackground: {
+    position: 'absolute',
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    borderWidth: 8,
+    left: 5,
+    top: 5,
+  },
+  gaugeProgress: {
+    position: 'absolute',
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    borderWidth: 8,
+    left: 5,
+    top: 5,
+    borderTopColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderBottomColor: 'transparent',
+  },
+  gaugeCenter: {
+    alignItems: 'center',
+  },
+  gaugeMix: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  gaugeStart: {
+    fontSize: 11,
+  },
+  gaugeEnd: {
+    fontSize: 11,
+  },
+  gaugeUsed: {
+    fontSize: 11,
+    marginTop: 4,
+  },
+  toggleRow: {
     flexDirection: 'row',
+    gap: 8,
+    marginBottom: 16,
+  },
+  toggleButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  toggleText: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  noDataContainer: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  noDataText: {
+    fontSize: 14,
+    marginTop: 12,
+  },
+  metaGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  metaItem: {
+    width: '50%',
+    paddingVertical: 8,
+  },
+  metaLabel: {
+    fontSize: 12,
     marginBottom: 4,
   },
-  importLabel: {
-    fontSize: 14,
-    width: 60,
+  metaValue: {
+    fontSize: 16,
+    fontWeight: '600',
   },
-  importValue: {
+  gasMixGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  gasMixCard: {
+    borderRadius: 8,
+    borderWidth: 1,
+    padding: 12,
+    minWidth: '45%',
+  },
+  gasMixName: {
     fontSize: 14,
-    flex: 1,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  gasMixInfo: {
+    fontSize: 12,
   },
   errorText: {
     fontSize: 16,
@@ -608,8 +1202,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   retryButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
+    color: 'white',
     fontWeight: '600',
   },
 });
