@@ -86,6 +86,11 @@ interface Sample {
   cns_pct?: number | null;
   otu?: number | null;
   battery_voltage?: number | null;
+  tts_minutes?: number | null;
+  tts_min?: number | null;
+  tts_seconds?: number | null;
+  stop_depth_m?: number | null;
+  stop_time_min?: number | null;
 }
 
 interface GasMix {
@@ -259,6 +264,9 @@ function DiveProfileChart({ samples, colors, showTemp, showNdl, showGf99, showPp
   const ndlSamples = samples.filter(s => (s.ndl_minutes ?? s.ndl_min ?? (s.ndl_seconds != null ? s.ndl_seconds / 60 : null)) != null);
   const gf99Samples = samples.filter(s => (s.gf99_percent ?? s.gf99_pct) != null);
   const ppo2Samples = samples.filter(s => s.ppo2_bar != null);
+  const ttsSamples = samples.filter(s => (s.tts_minutes ?? s.tts_min ?? (s.tts_seconds != null ? s.tts_seconds / 60 : null)) != null);
+  const ceilingSamples = samples.filter(s => (s.ceiling_meters ?? s.ceiling_m) != null);
+  const decoSamples = samples.filter(s => s.stop_depth_m != null && s.stop_time_min != null);
   
   const minTemp = tempSamples.length > 0 ? Math.min(...tempSamples.map(s => s.temperature_celsius!)) : 0;
   const maxTemp = tempSamples.length > 0 ? Math.max(...tempSamples.map(s => s.temperature_celsius!)) : 1;
@@ -266,9 +274,28 @@ function DiveProfileChart({ samples, colors, showTemp, showNdl, showGf99, showPp
   
   const getNdl = (s: Sample) => s.ndl_minutes ?? s.ndl_min ?? (s.ndl_seconds != null ? s.ndl_seconds / 60 : null);
   const getGf99 = (s: Sample) => s.gf99_percent ?? s.gf99_pct ?? null;
+  const getTts = (s: Sample) => s.tts_minutes ?? s.tts_min ?? (s.tts_seconds != null ? s.tts_seconds / 60 : null);
+  const getCeiling = (s: Sample) => s.ceiling_meters ?? s.ceiling_m ?? null;
   const maxNdl = ndlSamples.length > 0 ? Math.max(...ndlSamples.map(s => getNdl(s) || 0)) : 99;
   const maxGf99 = 100;
   const maxPpo2 = 1.6;
+  
+  const findLastValueAtTime = <T,>(
+    sparseList: Sample[],
+    timeSeconds: number,
+    getter: (s: Sample) => T | null | undefined
+  ): T | null => {
+    let lastVal: T | null = null;
+    for (const s of sparseList) {
+      if (s.time_seconds <= timeSeconds) {
+        const v = getter(s);
+        if (v != null) lastVal = v;
+      } else {
+        break;
+      }
+    }
+    return lastVal;
+  };
   
   const createPath = (points: {x: number, y: number}[]) => {
     if (points.length === 0) return '';
@@ -368,46 +395,72 @@ function DiveProfileChart({ samples, colors, showTemp, showNdl, showGf99, showPp
         </Text>
       </View>
       
-      {scrubberSample && (
-        <View style={{ 
-          flexDirection: 'row', 
-          flexWrap: 'wrap',
-          gap: 8, 
-          marginBottom: 8,
-          padding: 8,
-          backgroundColor: colors.surface,
-          borderRadius: 8,
-          borderWidth: 1,
-          borderColor: colors.primary,
-        }}>
-          <Text style={{ fontSize: 12, color: colors.primary, fontWeight: '600' }}>
-            {Math.floor(scrubberSample.time_seconds / 60)}:{String(Math.floor(scrubberSample.time_seconds % 60)).padStart(2, '0')}
-          </Text>
-          <Text style={{ fontSize: 12, color: '#2196F3' }}>
-            Depth: {scrubberSample.depth_meters.toFixed(1)}m
-          </Text>
-          {scrubberSample.temperature_celsius != null && showTemp && (
-            <Text style={{ fontSize: 12, color: '#4CAF50' }}>
-              Temp: {scrubberSample.temperature_celsius.toFixed(1)}°C
+      {scrubberSample && (() => {
+        const t = scrubberSample.time_seconds;
+        const tempVal = findLastValueAtTime(tempSamples, t, s => s.temperature_celsius);
+        const ndlVal = findLastValueAtTime(ndlSamples, t, getNdl);
+        const gf99Val = findLastValueAtTime(gf99Samples, t, getGf99);
+        const ppo2Val = findLastValueAtTime(ppo2Samples, t, s => s.ppo2_bar);
+        const ttsVal = findLastValueAtTime(ttsSamples, t, getTts);
+        const ceilingVal = findLastValueAtTime(ceilingSamples, t, getCeiling);
+        const decoSample = decoSamples.filter(s => s.time_seconds <= t).pop();
+        
+        return (
+          <View style={{ 
+            flexDirection: 'row', 
+            flexWrap: 'wrap',
+            gap: 8, 
+            marginBottom: 8,
+            padding: 8,
+            backgroundColor: colors.surface,
+            borderRadius: 8,
+            borderWidth: 1,
+            borderColor: colors.primary,
+          }}>
+            <Text style={{ fontSize: 12, color: colors.primary, fontWeight: '600' }}>
+              {Math.floor(t / 60)}:{String(Math.floor(t % 60)).padStart(2, '0')}
             </Text>
-          )}
-          {getNdl(scrubberSample) != null && showNdl && (
-            <Text style={{ fontSize: 12, color: '#FFC107' }}>
-              NDL: {Math.round(getNdl(scrubberSample)!)} min
+            <Text style={{ fontSize: 12, color: '#2196F3' }}>
+              Depth: {scrubberSample.depth_meters.toFixed(1)}m
             </Text>
-          )}
-          {getGf99(scrubberSample) != null && showGf99 && (
-            <Text style={{ fontSize: 12, color: '#9C27B0' }}>
-              GF99: {Math.round(getGf99(scrubberSample)!)}%
-            </Text>
-          )}
-          {scrubberSample.ppo2_bar != null && showPpo2 && (
-            <Text style={{ fontSize: 12, color: '#FF5722' }}>
-              PPO2: {scrubberSample.ppo2_bar.toFixed(2)} bar
-            </Text>
-          )}
-        </View>
-      )}
+            {tempVal != null && showTemp && (
+              <Text style={{ fontSize: 12, color: '#4CAF50' }}>
+                Temp: {tempVal.toFixed(1)}°C
+              </Text>
+            )}
+            {ndlVal != null && showNdl && (
+              <Text style={{ fontSize: 12, color: '#FFC107' }}>
+                NDL: {Math.round(ndlVal)} min
+              </Text>
+            )}
+            {gf99Val != null && showGf99 && (
+              <Text style={{ fontSize: 12, color: '#9C27B0' }}>
+                GF99: {Math.round(gf99Val)}%
+              </Text>
+            )}
+            {ppo2Val != null && showPpo2 && (
+              <Text style={{ fontSize: 12, color: '#FF5722' }}>
+                PPO2: {ppo2Val.toFixed(2)} bar
+              </Text>
+            )}
+            {ttsVal != null && (
+              <Text style={{ fontSize: 12, color: '#00BCD4' }}>
+                TTS: {Math.round(ttsVal)} min
+              </Text>
+            )}
+            {ceilingVal != null && ceilingVal > 0 && (
+              <Text style={{ fontSize: 12, color: '#E91E63' }}>
+                Ceiling: {ceilingVal.toFixed(1)}m
+              </Text>
+            )}
+            {decoSample && decoSample.stop_depth_m != null && decoSample.stop_time_min != null && (
+              <Text style={{ fontSize: 12, color: '#E91E63' }}>
+                Deco: {decoSample.stop_depth_m}m @ {decoSample.stop_time_min}min
+              </Text>
+            )}
+          </View>
+        );
+      })()}
       
       <View 
         style={{ 
