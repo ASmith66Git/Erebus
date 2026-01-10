@@ -222,12 +222,13 @@ function CircularGauge({
   );
 }
 
-function DiveProfileChart({ samples, colors, showTemp, showNdl, showGf99 }: { 
+function DiveProfileChart({ samples, colors, showTemp, showNdl, showGf99, showPpo2 }: { 
   samples: Sample[]; 
   colors: any;
   showTemp: boolean;
   showNdl: boolean;
   showGf99: boolean;
+  showPpo2: boolean;
 }) {
   const [scrubberX, setScrubberX] = useState<number | null>(null);
   const [scrubberSample, setScrubberSample] = useState<Sample | null>(null);
@@ -247,6 +248,7 @@ function DiveProfileChart({ samples, colors, showTemp, showNdl, showGf99 }: {
   const tempSamples = samples.filter(s => s.temperature_celsius != null);
   const ndlSamples = samples.filter(s => (s.ndl_minutes ?? s.ndl_min ?? (s.ndl_seconds != null ? s.ndl_seconds / 60 : null)) != null);
   const gf99Samples = samples.filter(s => (s.gf99_percent ?? s.gf99_pct) != null);
+  const ppo2Samples = samples.filter(s => s.ppo2_bar != null);
   
   const minTemp = tempSamples.length > 0 ? Math.min(...tempSamples.map(s => s.temperature_celsius!)) : 0;
   const maxTemp = tempSamples.length > 0 ? Math.max(...tempSamples.map(s => s.temperature_celsius!)) : 1;
@@ -256,6 +258,7 @@ function DiveProfileChart({ samples, colors, showTemp, showNdl, showGf99 }: {
   const getGf99 = (s: Sample) => s.gf99_percent ?? s.gf99_pct ?? null;
   const maxNdl = ndlSamples.length > 0 ? Math.max(...ndlSamples.map(s => getNdl(s) || 0)) : 99;
   const maxGf99 = 100;
+  const maxPpo2 = 1.6;
   
   const createPath = (points: {x: number, y: number}[]) => {
     if (points.length === 0) return '';
@@ -280,6 +283,11 @@ function DiveProfileChart({ samples, colors, showTemp, showNdl, showGf99 }: {
   const gf99Path = showGf99 && gf99Samples.length > 0 ? createPath(gf99Samples.map((s) => ({
     x: padding + (s.time_seconds / maxTime) * innerWidth,
     y: padding + innerHeight - ((getGf99(s) || 0) / maxGf99) * innerHeight,
+  }))) : '';
+
+  const ppo2Path = showPpo2 && ppo2Samples.length > 0 ? createPath(ppo2Samples.map((s) => ({
+    x: padding + (s.time_seconds / maxTime) * innerWidth,
+    y: padding + innerHeight - (Math.min(s.ppo2_bar!, maxPpo2) / maxPpo2) * innerHeight,
   }))) : '';
 
   const isDraggingRef = useRef(false);
@@ -459,6 +467,14 @@ function DiveProfileChart({ samples, colors, showTemp, showNdl, showGf99 }: {
               fill="none"
             />
           )}
+          {ppo2Path && (
+            <Path
+              d={ppo2Path}
+              stroke="#FF5722"
+              strokeWidth={2}
+              fill="none"
+            />
+          )}
           {scrubberX != null && (
             <Line
               x1={scrubberX}
@@ -511,6 +527,12 @@ function DiveProfileChart({ samples, colors, showTemp, showNdl, showGf99 }: {
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
             <View style={{ width: 12, height: 3, backgroundColor: '#9C27B0', borderRadius: 1 }} />
             <Text style={{ fontSize: 11, color: colors.textSecondary }}>GF99 (%)</Text>
+          </View>
+        )}
+        {showPpo2 && ppo2Samples.length > 0 && (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <View style={{ width: 12, height: 3, backgroundColor: '#FF5722', borderRadius: 1 }} />
+            <Text style={{ fontSize: 11, color: colors.textSecondary }}>PPO2 (bar)</Text>
           </View>
         )}
       </View>
@@ -675,6 +697,7 @@ function ProfileTab({ diveLog, colors }: { diveLog: DiveLog; colors: any }) {
   const [showTemp, setShowTemp] = useState(true);
   const [showNdl, setShowNdl] = useState(true);
   const [showGf99, setShowGf99] = useState(true);
+  const [showPpo2, setShowPpo2] = useState(true);
 
   return (
     <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
@@ -700,6 +723,12 @@ function ProfileTab({ diveLog, colors }: { diveLog: DiveLog; colors: any }) {
           >
             <Text style={[styles.toggleText, { color: showGf99 ? colors.primary : colors.textSecondary }]}>GF99</Text>
           </Pressable>
+          <Pressable
+            style={[styles.toggleButton, showPpo2 && { backgroundColor: colors.primary + '20', borderColor: colors.primary }]}
+            onPress={() => setShowPpo2(!showPpo2)}
+          >
+            <Text style={[styles.toggleText, { color: showPpo2 ? colors.primary : colors.textSecondary }]}>PPO2</Text>
+          </Pressable>
         </View>
 
         {diveLog.samples && diveLog.samples.length > 0 ? (
@@ -709,6 +738,7 @@ function ProfileTab({ diveLog, colors }: { diveLog: DiveLog; colors: any }) {
             showTemp={showTemp}
             showNdl={showNdl}
             showGf99={showGf99}
+            showPpo2={showPpo2}
           />
         ) : (
           <View style={styles.noDataContainer}>
