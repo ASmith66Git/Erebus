@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -282,7 +282,7 @@ function DiveProfileChart({ samples, colors, showTemp, showNdl, showGf99 }: {
     y: padding + innerHeight - ((getGf99(s) || 0) / maxGf99) * innerHeight,
   }))) : '';
 
-  const [isDragging, setIsDragging] = useState(false);
+  const isDraggingRef = useRef(false);
   
   const calculateScrubberPosition = (locationX: number) => {
     const clampedX = Math.max(padding, Math.min(locationX, chartWidth - padding));
@@ -310,19 +310,24 @@ function DiveProfileChart({ samples, colors, showTemp, showNdl, showGf99 }: {
   const handleTouchEnd = () => {
     setScrubberX(null);
     setScrubberSample(null);
-    setIsDragging(false);
+    isDraggingRef.current = false;
   };
 
   const handleMouseDown = (event: React.MouseEvent) => {
     if (Platform.OS !== 'web') return;
-    setIsDragging(true);
+    event.preventDefault();
+    isDraggingRef.current = true;
     const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
     const locationX = event.clientX - rect.left;
     calculateScrubberPosition(locationX);
   };
 
   const handleMouseMove = (event: React.MouseEvent) => {
-    if (Platform.OS !== 'web' || !isDragging) return;
+    if (Platform.OS !== 'web') return;
+    if (!isDraggingRef.current && event.buttons !== 1) return;
+    if (event.buttons === 1) {
+      isDraggingRef.current = true;
+    }
     const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
     const locationX = event.clientX - rect.left;
     calculateScrubberPosition(locationX);
