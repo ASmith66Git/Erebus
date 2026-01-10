@@ -142,8 +142,8 @@ class UDDFAdapter extends BaseAdapter {
         dto.import_metadata.source_format = 'uddf';
         dto.import_metadata.raw_data_hash = this.hashContent(content);
         
-        dto.header.dive_datetime = this.parseUDDFDateTime(dive.$.date, dive.$.time) || new Date().toISOString();
-        dto.header.duration_seconds = this.parseDuration(dive.$.duration);
+        dto.header.dive_datetime = this.extractUDDFDateTime(dive) || new Date().toISOString();
+        dto.header.duration_seconds = this.parseDuration(dive.$?.duration);
         dto.header.notes = dive.notes || null;
         
         if (uddf.generator) {
@@ -162,6 +162,23 @@ class UDDFAdapter extends BaseAdapter {
     }
     
     return dtos;
+  }
+  
+  extractUDDFDateTime(dive) {
+    if (dive.informationbeforedive?.datetime) {
+      try {
+        return new Date(dive.informationbeforedive.datetime).toISOString();
+      } catch {}
+    }
+    
+    if (dive.$?.date) {
+      try {
+        const datetime = dive.$.time ? `${dive.$.date}T${dive.$.time}` : dive.$.date;
+        return new Date(datetime).toISOString();
+      } catch {}
+    }
+    
+    return null;
   }
   
   parseUDDFDateTime(dateStr, timeStr) {

@@ -52,11 +52,11 @@ class DiveLogParser {
         const samples = this.parseUDDFSamples(dive.samples);
         const { maxDepth, avgDepth, minTemp, maxTemp } = this.calculateDiveStats(samples);
         
-        const parsedDuration = this.parseDuration(dive.$.duration);
+        const parsedDuration = this.parseDuration(dive.$?.duration);
         const fallbackDuration = samples.length > 0 ? samples[samples.length - 1]?.time_seconds : null;
         
         dives.push({
-          dive_datetime: this.parseUDDFDateTime(dive.$.date, dive.$.time) || new Date().toISOString(),
+          dive_datetime: this.extractUDDFDateTime(dive) || new Date().toISOString(),
           duration_seconds: parsedDuration ?? fallbackDuration,
           max_depth_meters: maxDepth,
           avg_depth_meters: avgDepth,
@@ -88,6 +88,23 @@ class DiveLogParser {
       depth_meters: parseFloat(wp.depth) || 0,
       temperature_celsius: wp.temperature ? parseFloat(wp.temperature) - 273.15 : null
     })).filter(s => s.time_seconds !== null);
+  }
+
+  extractUDDFDateTime(dive) {
+    if (dive.informationbeforedive?.datetime) {
+      try {
+        return new Date(dive.informationbeforedive.datetime).toISOString();
+      } catch {}
+    }
+    
+    if (dive.$?.date) {
+      try {
+        const datetime = dive.$.time ? `${dive.$.date}T${dive.$.time}` : dive.$.date;
+        return new Date(datetime).toISOString();
+      } catch {}
+    }
+    
+    return null;
   }
 
   parseUDDFDateTime(dateStr, timeStr) {
