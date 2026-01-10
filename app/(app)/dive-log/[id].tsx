@@ -230,17 +230,27 @@ function DiveProfileChart({ samples, colors, showTemp, showNdl, showGf99, showPp
   showGf99: boolean;
   showPpo2: boolean;
 }) {
-  const [scrubberX, setScrubberX] = useState<number | null>(null);
-  const [scrubberSample, setScrubberSample] = useState<Sample | null>(null);
-  
-  if (!samples || samples.length === 0) return null;
-  
   const chartHeight = 200;
   const padding = 30;
   const screenWidth = Dimensions.get('window').width - 64;
   const chartWidth = Math.max(screenWidth, 300);
   const innerWidth = chartWidth - padding * 2;
   const innerHeight = chartHeight - padding * 2;
+  
+  const getDefaultScrubberX = () => padding + innerWidth / 2;
+  const getDefaultSample = () => samples.length > 0 ? samples[Math.floor(samples.length / 2)] : null;
+  
+  const [scrubberX, setScrubberX] = useState<number>(getDefaultScrubberX());
+  const [scrubberSample, setScrubberSample] = useState<Sample | null>(getDefaultSample());
+  
+  useEffect(() => {
+    if (samples.length > 0 && !scrubberSample) {
+      setScrubberX(getDefaultScrubberX());
+      setScrubberSample(getDefaultSample());
+    }
+  }, [samples]);
+  
+  if (!samples || samples.length === 0) return null;
   
   const maxDepth = Math.max(...samples.map(s => s.depth_meters || 0)) || 1;
   const maxTime = samples[samples.length - 1]?.time_seconds || 1;
@@ -316,8 +326,6 @@ function DiveProfileChart({ samples, colors, showTemp, showNdl, showGf99, showPp
   };
 
   const handleTouchEnd = () => {
-    setScrubberX(null);
-    setScrubberSample(null);
     isDraggingRef.current = false;
   };
 
@@ -393,8 +401,8 @@ function DiveProfileChart({ samples, colors, showTemp, showNdl, showGf99, showPp
               GF99: {Math.round(getGf99(scrubberSample)!)}%
             </Text>
           )}
-          {scrubberSample.ppo2_bar != null && (
-            <Text style={{ fontSize: 12, color: colors.text }}>
+          {scrubberSample.ppo2_bar != null && showPpo2 && (
+            <Text style={{ fontSize: 12, color: '#FF5722' }}>
               PPO2: {scrubberSample.ppo2_bar.toFixed(2)} bar
             </Text>
           )}
@@ -537,7 +545,7 @@ function DiveProfileChart({ samples, colors, showTemp, showNdl, showGf99, showPp
         )}
       </View>
       <Text style={{ fontSize: 10, color: colors.textSecondary, textAlign: 'center', marginTop: 8, fontStyle: 'italic' }}>
-        Touch and drag on chart to see values at any point
+        Drag scrubber to see values at any point
       </Text>
     </View>
   );
