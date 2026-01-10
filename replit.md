@@ -46,7 +46,7 @@ The application is built using Expo React Native, targeting both iOS and Android
 - **Dive Log Management**: Allows users to log dives, import from various formats (UDDF, Subsurface XML, CSV), and track personal dive statistics.
 - **Dive Log Detail View**: Comprehensive 5-tab interface matching Shearwater Perdix PWA functionality:
   - **Dive Tab**: Dive site, surface conditions, weather, depth, duration, temperature, gas pressures with SVG circular gauges, dive problems (thermal comfort, workload, equipment malfunctions, decompression symptoms).
-  - **Profile Tab**: Interactive SVG multi-line chart displaying depth, temperature, NDL, and GF99 with toggleable data series.
+  - **Profile Tab**: Interactive SVG multi-line chart displaying depth, temperature, NDL, and GF99 with toggleable data series and touch-based scrubber for viewing values at any point.
   - **Computer Tab**: Dive computer metadata (model, serial, manufacturer), dive number, surface interval, surface pressure, dive mode, start/end times, and gas mixes.
   - **Notes Tab**: Dive notes and skills practiced checkboxes (bailout, gas switch, SMB launch, etc.).
   - **Team Tab**: Buddy/team member information.
@@ -156,6 +156,9 @@ services/protocols/
 4. Same persistence layer saves to database tables
 
 ## Recent Changes
+- 2026-01-10: Added interactive scrubber to dive profile chart - touch and drag to see values at any point.
+- 2026-01-10: Created dive log edit page with comprehensive field editing (notes, rating, buddy, conditions, skills, equipment issues).
+- 2026-01-10: Fixed UDDF parser to extract calculatedpo2, nodecotime (NDL), batterychargecondition, cns, otu, setpo2 fields.
 - 2026-01-10: Implemented JavaScript Shearwater BLE protocol with SLIP framing and RLE/XOR decompression.
 - 2026-01-10: Created modular BLE protocol architecture with base class for vendor reuse.
 - 2026-01-10: Added BLE import adapter to integrate with V2 import pipeline.
