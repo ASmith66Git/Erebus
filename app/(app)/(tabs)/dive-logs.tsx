@@ -431,17 +431,6 @@ export default function DiveLogsScreen() {
             </Pressable>
           ) : null}
         </View>
-        <Pressable
-          style={[styles.importIconButton, { backgroundColor: colors.primary }]}
-          onPress={handleImport}
-          disabled={importing}
-        >
-          {importing ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
-          ) : (
-            <Feather name="upload" size={20} color="#FFFFFF" />
-          )}
-        </Pressable>
       </View>
 
       {loading ? (
@@ -467,7 +456,7 @@ export default function DiveLogsScreen() {
 
       <Pressable
         style={[styles.fab, { backgroundColor: colors.primary }]}
-        onPress={handleAddManual}
+        onPress={() => router.push('/import-dive-log')}
       >
         <Feather name="plus" size={24} color="#FFFFFF" />
       </Pressable>

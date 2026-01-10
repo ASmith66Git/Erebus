@@ -72,6 +72,15 @@ export default function TabLayout() {
           }}
         />
         <Tabs.Screen
+          name="dive-logs"
+          options={{
+            title: 'Dive Logs',
+            tabBarIcon: ({ focused }) => (
+              <Ionicons name={focused ? 'journal' : 'journal-outline'} size={24} color={colors.primary} />
+            ),
+          }}
+        />
+        <Tabs.Screen
           name="profile"
           options={{
             title: 'Profile',
