@@ -3,6 +3,7 @@ import { useFonts } from 'expo-font';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
+import { Platform } from 'react-native';
 import 'react-native-reanimated';
 
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
@@ -10,6 +11,12 @@ import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
 import { SyncProvider } from '@/contexts/SyncContext';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { errorLogger } from '@/services/errorLogger';
+
+if (Platform.OS === 'web' && typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then(registrations => {
+    registrations.forEach(registration => registration.unregister());
+  });
+}
 
 function RootLayoutNav() {
   const { colorScheme, isDark } = useTheme();
