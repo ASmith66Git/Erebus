@@ -103,13 +103,21 @@ export default function ImportDiveLogScreen() {
       }
 
       const importedCount = data.dives?.length || 0;
-      Alert.alert(
-        'Import Successful',
-        `Imported ${importedCount} dive${importedCount !== 1 ? 's' : ''} from ${file.name}`,
-        [{ text: 'OK', onPress: () => router.back() }]
-      );
+      const message = `Imported ${importedCount} dive${importedCount !== 1 ? 's' : ''} from ${file.name}`;
+      
+      if (Platform.OS === 'web') {
+        alert(message);
+        router.back();
+      } else {
+        Alert.alert('Import Successful', message, [{ text: 'OK', onPress: () => router.back() }]);
+      }
     } catch (error: any) {
-      Alert.alert('Import Error', error.message || 'Failed to import dive logs');
+      const errorMessage = error.message || 'Failed to import dive logs';
+      if (Platform.OS === 'web') {
+        alert(`Import Error: ${errorMessage}`);
+      } else {
+        Alert.alert('Import Error', errorMessage);
+      }
     } finally {
       setImporting(false);
     }
