@@ -3,8 +3,7 @@ import { View, Text, StyleSheet, ScrollView, Pressable, Switch, Modal, ActivityI
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
-
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3001';
+import { getApiUrl } from '@/utils/apiConfig';
 
 interface Manufacturer {
   id: string;
@@ -57,7 +56,7 @@ export default function ProfileScreen() {
 
   const loadManufacturers = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/dive-computers`);
+      const response = await fetch(`${getApiUrl()}/api/dive-computers`);
       const data = await response.json();
       setManufacturers(data.manufacturers || []);
     } catch (error) {
@@ -67,7 +66,7 @@ export default function ProfileScreen() {
 
   const loadModels = async (brandId: string) => {
     try {
-      const response = await fetch(`${API_URL}/api/dive-computers/${brandId}/models`);
+      const response = await fetch(`${getApiUrl()}/api/dive-computers/${brandId}/models`);
       const data = await response.json();
       setModels(data.models || []);
     } catch (error) {
@@ -77,7 +76,7 @@ export default function ProfileScreen() {
 
   const loadUserDiveComputer = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/user/dive-computer`, {
+      const response = await fetch(`${getApiUrl()}/api/user/dive-computer`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
@@ -92,7 +91,7 @@ export default function ProfileScreen() {
   const saveDiveComputer = async (brand: string | null, model: string | null) => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/api/user/dive-computer`, {
+      const response = await fetch(`${getApiUrl()}/api/user/dive-computer`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
