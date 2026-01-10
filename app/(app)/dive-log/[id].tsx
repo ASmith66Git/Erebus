@@ -13,7 +13,8 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import Svg, { Circle, Path, Line, Text as SvgText } from 'react-native-svg';
+import Svg, { Circle, Path, Line, Text as SvgText, Rect, G } from 'react-native-svg';
+import { GestureResponderEvent, PanResponder } from 'react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { getApiUrl } from '@/utils/apiConfig';
@@ -75,8 +76,16 @@ interface Sample {
   depth_meters: number;
   temperature_celsius: number | null;
   ndl_minutes?: number | null;
+  ndl_min?: number | null;
+  ndl_seconds?: number | null;
   gf99_percent?: number | null;
+  gf99_pct?: number | null;
   ceiling_meters?: number | null;
+  ceiling_m?: number | null;
+  ppo2_bar?: number | null;
+  cns_pct?: number | null;
+  otu?: number | null;
+  battery_voltage?: number | null;
 }
 
 interface GasMix {
@@ -220,6 +229,9 @@ function DiveProfileChart({ samples, colors, showTemp, showNdl, showGf99 }: {
   showNdl: boolean;
   showGf99: boolean;
 }) {
+  const [scrubberX, setScrubberX] = useState<number | null>(null);
+  const [scrubberSample, setScrubberSample] = useState<Sample | null>(null);
+  
   if (!samples || samples.length === 0) return null;
   
   const chartHeight = 200;
@@ -233,14 +245,16 @@ function DiveProfileChart({ samples, colors, showTemp, showNdl, showGf99 }: {
   const maxTime = samples[samples.length - 1]?.time_seconds || 1;
   
   const tempSamples = samples.filter(s => s.temperature_celsius != null);
-  const ndlSamples = samples.filter(s => s.ndl_minutes != null);
-  const gf99Samples = samples.filter(s => s.gf99_percent != null);
+  const ndlSamples = samples.filter(s => (s.ndl_minutes ?? s.ndl_min ?? (s.ndl_seconds != null ? s.ndl_seconds / 60 : null)) != null);
+  const gf99Samples = samples.filter(s => (s.gf99_percent ?? s.gf99_pct) != null);
   
   const minTemp = tempSamples.length > 0 ? Math.min(...tempSamples.map(s => s.temperature_celsius!)) : 0;
   const maxTemp = tempSamples.length > 0 ? Math.max(...tempSamples.map(s => s.temperature_celsius!)) : 1;
   const tempRange = maxTemp - minTemp || 1;
   
-  const maxNdl = ndlSamples.length > 0 ? Math.max(...ndlSamples.map(s => s.ndl_minutes!)) : 99;
+  const getNdl = (s: Sample) => s.ndl_minutes ?? s.ndl_min ?? (s.ndl_seconds != null ? s.ndl_seconds / 60 : null);
+  const getGf99 = (s: Sample) => s.gf99_percent ?? s.gf99_pct ?? null;
+  const maxNdl = ndlSamples.length > 0 ? Math.max(...ndlSamples.map(s => getNdl(s) || 0)) : 99;
   const maxGf99 = 100;
   
   const createPath = (points: {x: number, y: number}[]) => {
@@ -260,13 +274,37 @@ function DiveProfileChart({ samples, colors, showTemp, showNdl, showGf99 }: {
 
   const ndlPath = showNdl && ndlSamples.length > 0 ? createPath(ndlSamples.map((s) => ({
     x: padding + (s.time_seconds / maxTime) * innerWidth,
-    y: padding + innerHeight - (Math.min(s.ndl_minutes!, maxNdl) / maxNdl) * innerHeight,
+    y: padding + innerHeight - (Math.min(getNdl(s) || 0, maxNdl) / maxNdl) * innerHeight,
   }))) : '';
 
   const gf99Path = showGf99 && gf99Samples.length > 0 ? createPath(gf99Samples.map((s) => ({
     x: padding + (s.time_seconds / maxTime) * innerWidth,
-    y: padding + innerHeight - (s.gf99_percent! / maxGf99) * innerHeight,
+    y: padding + innerHeight - ((getGf99(s) || 0) / maxGf99) * innerHeight,
   }))) : '';
+
+  const handleTouch = (event: GestureResponderEvent) => {
+    const { locationX } = event.nativeEvent;
+    const clampedX = Math.max(padding, Math.min(locationX, chartWidth - padding));
+    const timeAtX = ((clampedX - padding) / innerWidth) * maxTime;
+    
+    let closest = samples[0];
+    let closestDist = Math.abs(samples[0].time_seconds - timeAtX);
+    for (const s of samples) {
+      const dist = Math.abs(s.time_seconds - timeAtX);
+      if (dist < closestDist) {
+        closest = s;
+        closestDist = dist;
+      }
+    }
+    
+    setScrubberX(clampedX);
+    setScrubberSample(closest);
+  };
+
+  const handleTouchEnd = () => {
+    setScrubberX(null);
+    setScrubberSample(null);
+  };
 
   return (
     <View style={{ marginTop: 8 }}>
@@ -276,6 +314,48 @@ function DiveProfileChart({ samples, colors, showTemp, showNdl, showGf99 }: {
           {Math.round(maxTime / 60)} min
         </Text>
       </View>
+      
+      {scrubberSample && (
+        <View style={{ 
+          flexDirection: 'row', 
+          flexWrap: 'wrap',
+          gap: 8, 
+          marginBottom: 8,
+          padding: 8,
+          backgroundColor: colors.surface,
+          borderRadius: 8,
+          borderWidth: 1,
+          borderColor: colors.primary,
+        }}>
+          <Text style={{ fontSize: 12, color: colors.primary, fontWeight: '600' }}>
+            {Math.floor(scrubberSample.time_seconds / 60)}:{String(Math.floor(scrubberSample.time_seconds % 60)).padStart(2, '0')}
+          </Text>
+          <Text style={{ fontSize: 12, color: '#2196F3' }}>
+            Depth: {scrubberSample.depth_meters.toFixed(1)}m
+          </Text>
+          {scrubberSample.temperature_celsius != null && showTemp && (
+            <Text style={{ fontSize: 12, color: '#4CAF50' }}>
+              Temp: {scrubberSample.temperature_celsius.toFixed(1)}°C
+            </Text>
+          )}
+          {getNdl(scrubberSample) != null && showNdl && (
+            <Text style={{ fontSize: 12, color: '#FFC107' }}>
+              NDL: {Math.round(getNdl(scrubberSample)!)} min
+            </Text>
+          )}
+          {getGf99(scrubberSample) != null && showGf99 && (
+            <Text style={{ fontSize: 12, color: '#9C27B0' }}>
+              GF99: {Math.round(getGf99(scrubberSample)!)}%
+            </Text>
+          )}
+          {scrubberSample.ppo2_bar != null && (
+            <Text style={{ fontSize: 12, color: colors.text }}>
+              PPO2: {scrubberSample.ppo2_bar.toFixed(2)} bar
+            </Text>
+          )}
+        </View>
+      )}
+      
       <View 
         style={{ 
           height: chartHeight, 
@@ -285,6 +365,12 @@ function DiveProfileChart({ samples, colors, showTemp, showNdl, showGf99 }: {
           borderColor: colors.border,
           overflow: 'hidden',
         }}
+        onStartShouldSetResponder={() => true}
+        onMoveShouldSetResponder={() => true}
+        onResponderGrant={handleTouch}
+        onResponderMove={handleTouch}
+        onResponderRelease={handleTouchEnd}
+        onResponderTerminate={handleTouchEnd}
       >
         <Svg width={chartWidth} height={chartHeight}>
           {[0.25, 0.5, 0.75].map((ratio, i) => (
@@ -327,6 +413,17 @@ function DiveProfileChart({ samples, colors, showTemp, showNdl, showGf99 }: {
               stroke="#9C27B0"
               strokeWidth={2}
               fill="none"
+            />
+          )}
+          {scrubberX != null && (
+            <Line
+              x1={scrubberX}
+              y1={padding}
+              x2={scrubberX}
+              y2={padding + innerHeight}
+              stroke={colors.primary}
+              strokeWidth={1.5}
+              strokeDasharray="3,3"
             />
           )}
           <SvgText
@@ -373,6 +470,9 @@ function DiveProfileChart({ samples, colors, showTemp, showNdl, showGf99 }: {
           </View>
         )}
       </View>
+      <Text style={{ fontSize: 10, color: colors.textSecondary, textAlign: 'center', marginTop: 8, fontStyle: 'italic' }}>
+        Touch and drag on chart to see values at any point
+      </Text>
     </View>
   );
 }
@@ -851,7 +951,7 @@ export default function DiveLogDetailScreen() {
         </Pressable>
         <Text style={[styles.headerTitle, { color: colors.text }]}>Dive Details</Text>
         <View style={styles.headerActions}>
-          <Pressable style={styles.headerButton}>
+          <Pressable style={styles.headerButton} onPress={() => router.push(`/dive-log/${id}/edit`)}>
             <Feather name="edit-2" size={18} color={colors.text} />
           </Pressable>
           <Pressable style={styles.headerButton} onPress={handleDelete}>
