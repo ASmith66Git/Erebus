@@ -72,3 +72,41 @@ The application is built using Expo React Native, targeting both iOS and Android
 - **Google Maps JavaScript API**: For displaying interactive maps and Places Autocomplete search on the web.
 - **bcrypt**: For hashing user passwords.
 - **react-native-svg**: For rendering SVG graphics (dive profile charts, gas pressure gauges).
+
+## Database Schema (Enhanced Dive Log Tables)
+
+### Core Dive Log Tables
+- **dive_logs**: Main dive log entries with header data, device info, and legacy JSON fields for backwards compatibility.
+- **dive_computer_catalog**: 90+ dive computer models with manufacturer, family, protocol, BLE/AI capability flags, and supported sample fields.
+
+### Detailed Dive Data Tables (V2 Import Schema)
+- **dive_log_samples**: Time-series sample data with JSONB `metrics` column for flexible storage of depth, temperature, NDL, GF99, ceiling, TTS, PPO2, SAC, heartrate, CNS, OTU, tank pressure, and setpoint.
+- **dive_log_gases**: Gas mix definitions with O2/He/N2 percentages, diluent/bailout flags, tank info, and transmitter serial.
+- **dive_log_events**: Dive events including alarms, bookmarks, gas switches, violations, and user markers with timestamp and payload.
+- **dive_log_tank_pressures**: AI transmitter time-series data for multi-tank pressure tracking.
+- **dive_log_settings**: Dive computer settings captured at dive time (deco model, GF low/high, conservatism, PPO2 limits, firmware version, battery status).
+- **dive_log_imports**: Import metadata including source type/format, parser version, raw data hash for reproducibility, and unmapped fields.
+
+### Database Indexes
+- GIN index on `dive_log_samples.metrics` for efficient JSONB queries.
+- Composite index on `(dive_log_id, sample_time_seconds)` for fast time-series retrieval.
+
+## API Endpoints (Dive Log Import V2)
+- `POST /api/dive-logs/import/v2`: Enhanced import endpoint using strategy-based parser with full sample/event/gas extraction.
+- `GET /api/dive-logs/:id/detailed`: Returns complete dive data including samples, gases, events, tank pressures, settings, and import metadata.
+- `GET /api/dive-computers/catalog`: Lists dive computer models with optional manufacturer and BLE filters.
+- `GET /api/dive-computers/catalog/manufacturers`: Returns distinct manufacturers with model counts.
+- `POST /api/dive-logs/:id/migrate`: Migrates legacy dive logs to new detailed table structure.
+
+## Import Parser Architecture (V2)
+- **FormatDetector**: Automatically detects UDDF, Subsurface XML, CSV, or binary formats.
+- **BaseAdapter**: Abstract base class defining canonical DiveImportDTO output structure.
+- **UDDFAdapter**: Parses UDDF 3.x format with sample and gas extraction.
+- **SubsurfaceAdapter**: Parses Subsurface XML with full sample metrics (NDL, GF99, ceiling, tank pressures, events).
+- **CSVAdapter**: Flexible CSV import with column mapping for various dive computer exports.
+- **DiveImportDTO**: Canonical structure with header, samples, gases, events, tank_pressures, settings, and import_metadata sections.
+
+## Recent Changes
+- 2026-01-10: Implemented V2 import parser with strategy pattern and 6 new database tables for detailed dive data storage.
+- 2026-01-10: Added dive computer catalog with 90 models and capability flags.
+- 2026-01-10: Enhanced legacy JSON fields to include full sample metrics for backwards compatibility.

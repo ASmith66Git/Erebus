@@ -2172,8 +2172,10 @@ app.post('/api/dive-logs/import/v2', authenticateToken, upload.single('file'), a
     }
 
     const insertedDives = [];
+    const errors = [];
     
-    for (const dto of dtos) {
+    for (let i = 0; i < dtos.length; i++) {
+      const dto = dtos[i];
       try {
         const diveLogId = await diveLogPersistence.saveDiveImport(dto, req.user.id);
         insertedDives.push({
@@ -2186,15 +2188,33 @@ app.post('/api/dive-logs/import/v2', authenticateToken, upload.single('file'), a
           eventsCount: dto.events.length
         });
       } catch (diveError) {
-        console.error('Error saving individual dive:', diveError);
+        console.error(`Error saving dive ${i + 1}:`, diveError);
+        errors.push({
+          diveIndex: i,
+          diveDateTime: dto.header.dive_datetime,
+          error: diveError.message
+        });
       }
     }
 
-    res.status(201).json({
-      message: `Successfully imported ${insertedDives.length} dive(s) with full details`,
+    if (insertedDives.length === 0) {
+      return res.status(500).json({
+        error: 'Failed to import any dives',
+        details: errors
+      });
+    }
+
+    const response = {
+      message: `Successfully imported ${insertedDives.length} of ${dtos.length} dive(s) with full details`,
       dives: insertedDives,
       format: dtos[0]?.import_metadata?.source_format
-    });
+    };
+    
+    if (errors.length > 0) {
+      response.warnings = errors;
+    }
+    
+    res.status(201).json(response);
   } catch (error) {
     console.error('Import V2 dive logs error:', error);
     res.status(500).json({ error: error.message || 'Server error during import' });
