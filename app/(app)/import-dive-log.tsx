@@ -96,11 +96,15 @@ export default function ImportDiveLogScreen() {
 
   const handleImportFile = async () => {
     if (Platform.OS === 'web') {
+      console.log('[DEBUG] Using native HTML file input on web');
       const input = document.createElement('input');
       input.type = 'file';
+      input.accept = '.uddf,.xml,.csv,.ssrf,.zip,.log,.txt,application/xml,application/octet-stream';
       input.style.display = 'none';
       document.body.appendChild(input);
+      console.log('[DEBUG] Input accept attribute:', input.accept);
       input.onchange = (e) => {
+        console.log('[DEBUG] File selected');
         handleWebFileSelect(e);
         document.body.removeChild(input);
       };

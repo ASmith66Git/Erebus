@@ -281,10 +281,58 @@ export default function DiveLogsScreen() {
     router.push(`/dive-log/${log.id}` as any);
   };
 
+  const handleWebFileSelect = async (event: any) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    
+    setImporting(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file, file.name);
+
+      const uploadResponse = await fetch(`${getApiUrl()}/api/dive-logs/import`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      const data = await uploadResponse.json();
+
+      if (uploadResponse.ok) {
+        alert(`Import Successful: Imported ${data.dives?.length || 0} dive(s)`);
+        onRefresh();
+      } else {
+        alert(`Import Failed: ${data.error || 'Failed to import dive logs'}`);
+      }
+    } catch (error) {
+      console.error('Import error:', error);
+      alert('Import Error: An error occurred while importing the file');
+    } finally {
+      setImporting(false);
+      event.target.value = '';
+    }
+  };
+
   const handleImport = async () => {
+    if (Platform.OS === 'web') {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.uddf,.xml,.csv,.ssrf,.zip,.log,.txt,application/xml,application/octet-stream';
+      input.style.display = 'none';
+      document.body.appendChild(input);
+      input.onchange = (e) => {
+        handleWebFileSelect(e);
+        document.body.removeChild(input);
+      };
+      input.click();
+      return;
+    }
+
     try {
       const result = await DocumentPicker.getDocumentAsync({
-        type: ['text/xml', 'application/xml', 'text/csv', 'text/*', '*/*'],
+        type: '*/*',
         copyToCacheDirectory: true,
       });
 
@@ -296,18 +344,11 @@ export default function DiveLogsScreen() {
       setImporting(true);
 
       const formData = new FormData();
-      
-      if (Platform.OS === 'web') {
-        const response = await fetch(file.uri);
-        const blob = await response.blob();
-        formData.append('file', blob, file.name);
-      } else {
-        formData.append('file', {
-          uri: file.uri,
-          type: file.mimeType || 'application/octet-stream',
-          name: file.name,
-        } as any);
-      }
+      formData.append('file', {
+        uri: file.uri,
+        type: file.mimeType || 'application/octet-stream',
+        name: file.name,
+      } as any);
 
       const uploadResponse = await fetch(`${getApiUrl()}/api/dive-logs/import`, {
         method: 'POST',
