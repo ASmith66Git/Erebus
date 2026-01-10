@@ -67,6 +67,86 @@ function formatTime(dateStr: string): string {
   });
 }
 
+function formatEndTime(startStr: string, durationSeconds: number | null): string {
+  if (!durationSeconds) return '--';
+  const start = new Date(startStr);
+  const end = new Date(start.getTime() + durationSeconds * 1000);
+  return end.toLocaleTimeString(undefined, {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+interface Sample {
+  time_seconds: number;
+  depth_meters: number;
+  temperature_celsius: number | null;
+}
+
+function DiveProfileChart({ samples, colors }: { samples: Sample[]; colors: any }) {
+  if (!samples || samples.length === 0) return null;
+  
+  const maxDepth = Math.max(...samples.map(s => s.depth_meters));
+  const maxTime = samples[samples.length - 1]?.time_seconds || 1;
+  const chartHeight = 120;
+  const chartWidth = 300;
+  
+  const points = samples.map((s, i) => {
+    const x = (s.time_seconds / maxTime) * chartWidth;
+    const y = (s.depth_meters / maxDepth) * chartHeight;
+    return { x, y, sample: s };
+  });
+
+  return (
+    <View style={{ marginTop: 8 }}>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+        <Text style={{ fontSize: 10, color: colors.textSecondary }}>0m</Text>
+        <Text style={{ fontSize: 10, color: colors.textSecondary }}>
+          {Math.floor(maxTime / 60)}min
+        </Text>
+      </View>
+      <View 
+        style={{ 
+          height: chartHeight, 
+          backgroundColor: colors.primary + '10',
+          borderRadius: 8,
+          overflow: 'hidden',
+          position: 'relative',
+        }}
+      >
+        {points.map((point, i) => (
+          <View
+            key={i}
+            style={{
+              position: 'absolute',
+              left: `${(point.x / chartWidth) * 100}%`,
+              top: point.y,
+              width: 3,
+              height: 3,
+              borderRadius: 1.5,
+              backgroundColor: colors.primary,
+            }}
+          />
+        ))}
+        <View
+          style={{
+            position: 'absolute',
+            bottom: 4,
+            right: 4,
+          }}
+        >
+          <Text style={{ fontSize: 10, color: colors.textSecondary }}>
+            {maxDepth.toFixed(1)}m max
+          </Text>
+        </View>
+      </View>
+      <Text style={{ fontSize: 10, color: colors.textSecondary, marginTop: 4, textAlign: 'center' }}>
+        {samples.length} sample points recorded
+      </Text>
+    </View>
+  );
+}
+
 export default function DiveLogDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -211,6 +291,33 @@ export default function DiveLogDetailScreen() {
           )}
         </View>
 
+        <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Timing</Text>
+          <View style={styles.timingGrid}>
+            <View style={styles.timingItem}>
+              <Feather name="play" size={16} color={colors.primary} />
+              <Text style={[styles.timingLabel, { color: colors.textSecondary }]}>Start</Text>
+              <Text style={[styles.timingValue, { color: colors.text }]}>
+                {formatTime(diveLog.diveDateTime)}
+              </Text>
+            </View>
+            <View style={styles.timingItem}>
+              <Feather name="square" size={16} color={colors.primary} />
+              <Text style={[styles.timingLabel, { color: colors.textSecondary }]}>End</Text>
+              <Text style={[styles.timingValue, { color: colors.text }]}>
+                {formatEndTime(diveLog.diveDateTime, diveLog.durationSeconds)}
+              </Text>
+            </View>
+            <View style={styles.timingItem}>
+              <Feather name="clock" size={16} color={colors.primary} />
+              <Text style={[styles.timingLabel, { color: colors.textSecondary }]}>Duration</Text>
+              <Text style={[styles.timingValue, { color: colors.text }]}>
+                {formatDuration(diveLog.durationSeconds)}
+              </Text>
+            </View>
+          </View>
+        </View>
+
         <View style={styles.statsGrid}>
           <View style={[styles.statCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <Feather name="arrow-down" size={20} color={colors.primary} />
@@ -221,11 +328,11 @@ export default function DiveLogDetailScreen() {
           </View>
 
           <View style={[styles.statCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Feather name="clock" size={20} color={colors.primary} />
+            <Feather name="trending-down" size={20} color={colors.primary} />
             <Text style={[styles.statValue, { color: colors.text }]}>
-              {formatDuration(diveLog.durationSeconds)}
+              {diveLog.avgDepthMeters?.toFixed(1) || '--'}
             </Text>
-            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Duration</Text>
+            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Avg Depth (m)</Text>
           </View>
 
           <View style={[styles.statCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -233,17 +340,24 @@ export default function DiveLogDetailScreen() {
             <Text style={[styles.statValue, { color: colors.text }]}>
               {diveLog.minTemperatureCelsius?.toFixed(1) || '--'}
             </Text>
-            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Temp (C)</Text>
+            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Min Temp (C)</Text>
           </View>
 
           <View style={[styles.statCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Feather name="trending-down" size={20} color={colors.primary} />
+            <Feather name="thermometer" size={20} color={colors.primary} />
             <Text style={[styles.statValue, { color: colors.text }]}>
-              {diveLog.avgDepthMeters?.toFixed(1) || '--'}
+              {diveLog.maxTemperatureCelsius?.toFixed(1) || '--'}
             </Text>
-            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Avg Depth (m)</Text>
+            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Max Temp (C)</Text>
           </View>
         </View>
+
+        {diveLog.samples && diveLog.samples.length > 0 && (
+          <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Dive Profile</Text>
+            <DiveProfileChart samples={diveLog.samples} colors={colors} />
+          </View>
+        )}
 
         {diveLog.rating && (
           <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -425,6 +539,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 12,
+  },
+  timingGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  timingItem: {
+    alignItems: 'center',
+    gap: 4,
+  },
+  timingLabel: {
+    fontSize: 12,
+  },
+  timingValue: {
+    fontSize: 16,
+    fontWeight: '600',
   },
   ratingRow: {
     flexDirection: 'row',
