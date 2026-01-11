@@ -2571,7 +2571,7 @@ app.delete('/api/dive-logs/:id', authenticateToken, async (req, res) => {
   }
 });
 
-const distPath = path.join(__dirname, '..', 'dist');
+const distPath = path.join(__dirname, '..', 'dist', 'web');
 
 if (process.env.NODE_ENV === 'production' || process.env.PORT) {
   app.use(express.static(distPath));
