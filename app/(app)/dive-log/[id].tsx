@@ -232,13 +232,14 @@ function CircularGauge({
   );
 }
 
-function DiveProfileChart({ samples, colors, showTemp, showNdl, showGf99, showPpo2 }: { 
+function DiveProfileChart({ samples, colors, showTemp, showNdl, showGf99, showPpo2, showCns }: { 
   samples: Sample[]; 
   colors: any;
   showTemp: boolean;
   showNdl: boolean;
   showGf99: boolean;
   showPpo2: boolean;
+  showCns: boolean;
 }) {
   const chartHeight = 200;
   const padding = 30;
@@ -272,6 +273,7 @@ function DiveProfileChart({ samples, colors, showTemp, showNdl, showGf99, showPp
   const ttsSamples = samples.filter(s => (s.tts_minutes ?? s.tts_min ?? (s.tts_seconds != null ? s.tts_seconds / 60 : null)) != null);
   const ceilingSamples = samples.filter(s => (s.ceiling_meters ?? s.ceiling_m) != null);
   const decoSamples = samples.filter(s => s.stop_depth_m != null && s.stop_time_min != null);
+  const cnsSamples = samples.filter(s => (s.cns_pct ?? s.cns_percent) != null);
   
   const minTemp = tempSamples.length > 0 ? Math.min(...tempSamples.map(s => s.temperature_celsius!)) : 0;
   const maxTemp = tempSamples.length > 0 ? Math.max(...tempSamples.map(s => s.temperature_celsius!)) : 1;
@@ -281,9 +283,14 @@ function DiveProfileChart({ samples, colors, showTemp, showNdl, showGf99, showPp
   const getGf99 = (s: Sample) => s.gf99_percent ?? s.gf99_pct ?? null;
   const getTts = (s: Sample) => s.tts_minutes ?? s.tts_min ?? (s.tts_seconds != null ? s.tts_seconds / 60 : null);
   const getCeiling = (s: Sample) => s.ceiling_meters ?? s.ceiling_m ?? null;
+  const getCns = (s: Sample) => {
+    const val = s.cns_pct ?? s.cns_percent;
+    return val != null ? val / 100 : null;
+  };
   const maxNdl = ndlSamples.length > 0 ? Math.max(...ndlSamples.map(s => getNdl(s) || 0)) : 99;
   const maxGf99 = 100;
   const maxPpo2 = 1.6;
+  const maxCns = Math.max(100, cnsSamples.length > 0 ? Math.max(...cnsSamples.map(s => (s.cns_pct ?? s.cns_percent ?? 0) / 100)) : 100);
   
   const findLastValueAtTime = <T,>(
     sparseList: Sample[],
@@ -330,6 +337,11 @@ function DiveProfileChart({ samples, colors, showTemp, showNdl, showGf99, showPp
   const ppo2Path = showPpo2 && ppo2Samples.length > 0 ? createPath(ppo2Samples.map((s) => ({
     x: padding + (s.time_seconds / maxTime) * innerWidth,
     y: padding + innerHeight - (Math.min(s.ppo2_bar!, maxPpo2) / maxPpo2) * innerHeight,
+  }))) : '';
+
+  const cnsPath = showCns && cnsSamples.length > 0 ? createPath(cnsSamples.map((s) => ({
+    x: padding + (s.time_seconds / maxTime) * innerWidth,
+    y: padding + innerHeight - (Math.min(getCns(s) || 0, maxCns) / maxCns) * innerHeight,
   }))) : '';
 
   const isDraggingRef = useRef(false);
@@ -408,6 +420,7 @@ function DiveProfileChart({ samples, colors, showTemp, showNdl, showGf99, showPp
         const ppo2Val = findLastValueAtTime(ppo2Samples, t, s => s.ppo2_bar);
         const ttsVal = findLastValueAtTime(ttsSamples, t, getTts);
         const ceilingVal = findLastValueAtTime(ceilingSamples, t, getCeiling);
+        const cnsVal = findLastValueAtTime(cnsSamples, t, getCns);
         const decoSample = decoSamples.filter(s => s.time_seconds <= t).pop();
         
         return (
@@ -456,6 +469,11 @@ function DiveProfileChart({ samples, colors, showTemp, showNdl, showGf99, showPp
             {ceilingVal != null && ceilingVal > 0 && (
               <Text style={{ fontSize: 12, color: '#E91E63' }}>
                 Ceiling: {ceilingVal.toFixed(1)}m
+              </Text>
+            )}
+            {cnsVal != null && showCns && (
+              <Text style={{ fontSize: 12, color: '#795548' }}>
+                CNS: {Math.round(cnsVal)}%
               </Text>
             )}
             {decoSample && decoSample.stop_depth_m != null && decoSample.stop_time_min != null && (
@@ -537,6 +555,14 @@ function DiveProfileChart({ samples, colors, showTemp, showNdl, showGf99, showPp
             <Path
               d={ppo2Path}
               stroke="#FF5722"
+              strokeWidth={2}
+              fill="none"
+            />
+          )}
+          {cnsPath && (
+            <Path
+              d={cnsPath}
+              stroke="#795548"
               strokeWidth={2}
               fill="none"
             />
@@ -764,6 +790,7 @@ function ProfileTab({ diveLog, colors }: { diveLog: DiveLog; colors: any }) {
   const [showNdl, setShowNdl] = useState(true);
   const [showGf99, setShowGf99] = useState(true);
   const [showPpo2, setShowPpo2] = useState(true);
+  const [showCns, setShowCns] = useState(true);
 
   return (
     <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
@@ -795,6 +822,12 @@ function ProfileTab({ diveLog, colors }: { diveLog: DiveLog; colors: any }) {
           >
             <Text style={[styles.toggleText, { color: showPpo2 ? colors.primary : colors.textSecondary }]}>PPO2</Text>
           </Pressable>
+          <Pressable
+            style={[styles.toggleButton, showCns && { backgroundColor: colors.primary + '20', borderColor: colors.primary }]}
+            onPress={() => setShowCns(!showCns)}
+          >
+            <Text style={[styles.toggleText, { color: showCns ? colors.primary : colors.textSecondary }]}>CNS</Text>
+          </Pressable>
         </View>
 
         {diveLog.samples && diveLog.samples.length > 0 ? (
@@ -805,6 +838,7 @@ function ProfileTab({ diveLog, colors }: { diveLog: DiveLog; colors: any }) {
             showNdl={showNdl}
             showGf99={showGf99}
             showPpo2={showPpo2}
+            showCns={showCns}
           />
         ) : (
           <View style={styles.noDataContainer}>
