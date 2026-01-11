@@ -72,7 +72,6 @@ async function getUncachableResendClient() {
 app.use(cors());
 app.use(express.json());
 
-
 async function initDatabase() {
   const client = await pool.connect();
   try {
@@ -266,10 +265,8 @@ async function initDatabase() {
     }
     
     console.log('Database initialized successfully');
-    dbReady = true;
   } catch (error) {
     console.error('Database initialization error:', error);
-    dbInitError = error;
   } finally {
     client.release();
   }
@@ -659,6 +656,10 @@ app.delete('/api/admin/users/:id', authenticateToken, requireAdmin, async (req, 
     console.error('Delete user error:', error);
     res.status(500).json({ error: 'Server error' });
   }
+});
+
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', service: 'Erebus API' });
 });
 
 app.get('/api/dive-computers', (req, res) => {
@@ -2598,11 +2599,5 @@ if (process.env.NODE_ENV === 'production' || process.env.PORT) {
 initDatabase().then(() => {
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`Erebus API server running on port ${PORT}`);
-  });
-}).catch((err) => {
-  console.error('Failed to initialize database:', err.message);
-  console.log('Starting server without database initialization...');
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Erebus API server running on port ${PORT} (DB init failed)`);
   });
 });
