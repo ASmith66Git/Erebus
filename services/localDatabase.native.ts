@@ -1,4 +1,5 @@
 import * as SQLite from 'expo-sqlite';
+import * as FileSystem from 'expo-file-system/legacy';
 import { Platform } from 'react-native';
 
 export interface LocalDiveSite {
@@ -58,11 +59,9 @@ export interface SyncMeta {
 let db: SQLite.SQLiteDatabase | null = null;
 let dbInitFailed = false;
 let dbInitAttempts = 0;
-let hasAttemptedCleanup = false;
 const MAX_INIT_ATTEMPTS = 3;
-const DB_NAME = 'erebus_local.db';
-const FALLBACK_DB_NAME = 'erebus_v2.db';
-let currentDbName = DB_NAME;
+const DB_NAME = 'erebus_v3.db';
+const CUSTOM_DB_DIR = 'erebus_data';
 
 export function isDatabaseAvailable(): boolean {
   return db !== null && !dbInitFailed;
@@ -80,80 +79,100 @@ async function closeDatabase(): Promise<void> {
   }
 }
 
-async function cleanupCorruptedDatabase(): Promise<boolean> {
-  if (hasAttemptedCleanup) {
-    return false;
+async function ensureDatabaseDirectory(): Promise<string> {
+  const baseDir = FileSystem.documentDirectory;
+  if (!baseDir) {
+    throw new Error('Document directory not available');
   }
-  hasAttemptedCleanup = true;
+  
+  const dbDir = `${baseDir}${CUSTOM_DB_DIR}`;
+  const dbPath = `${dbDir}/${DB_NAME}`;
   
   try {
-    console.log('Attempting to cleanup corrupted database...');
+    const dirInfo = await FileSystem.getInfoAsync(dbDir);
     
+    if (dirInfo.exists && !dirInfo.isDirectory) {
+      console.log('Found non-directory file at database path, removing...');
+      await FileSystem.deleteAsync(dbDir, { idempotent: true });
+    }
+    
+    if (!dirInfo.exists || !dirInfo.isDirectory) {
+      console.log('Creating database directory:', dbDir);
+      await FileSystem.makeDirectoryAsync(dbDir, { intermediates: true });
+    }
+    
+    const fileInfo = await FileSystem.getInfoAsync(dbPath);
+    if (fileInfo.exists && fileInfo.isDirectory) {
+      console.log('Found directory at database file path, removing...');
+      await FileSystem.deleteAsync(dbPath, { idempotent: true });
+    }
+    
+    console.log('Database path ready:', dbPath);
+    return dbPath;
+  } catch (error: any) {
+    console.error('Error ensuring database directory:', error?.message);
+    throw error;
+  }
+}
+
+async function cleanupAndRetry(): Promise<boolean> {
+  try {
+    console.log('Attempting full database cleanup...');
     await closeDatabase();
     
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
-    try {
-      await SQLite.deleteDatabaseAsync(DB_NAME);
-      console.log('Primary database file cleanup successful');
-      return true;
-    } catch (deleteError: any) {
-      console.warn('Could not delete primary database:', deleteError?.message);
-      
-      console.log('Switching to fallback database name...');
-      currentDbName = FALLBACK_DB_NAME;
-      return true;
+    const baseDir = FileSystem.documentDirectory;
+    if (baseDir) {
+      const dbDir = `${baseDir}${CUSTOM_DB_DIR}`;
+      try {
+        await FileSystem.deleteAsync(dbDir, { idempotent: true });
+        console.log('Deleted database directory');
+      } catch (e) {
+        console.warn('Could not delete database directory:', e);
+      }
     }
-  } catch (cleanupError: any) {
-    console.error('Database cleanup failed:', cleanupError?.message || cleanupError);
-    currentDbName = FALLBACK_DB_NAME;
+    
     return true;
+  } catch (error: any) {
+    console.error('Cleanup failed:', error?.message);
+    return false;
   }
 }
 
 export async function getDatabase(): Promise<SQLite.SQLiteDatabase> {
   if (db) return db;
   if (dbInitFailed && dbInitAttempts >= MAX_INIT_ATTEMPTS) {
-    throw new Error('Local database initialization failed after multiple attempts. Please clear app data and restart.');
+    throw new Error('Local database initialization failed. The app will work in online-only mode.');
   }
   
   dbInitAttempts++;
   
   try {
-    const newDb = await SQLite.openDatabaseAsync(currentDbName);
+    const dbPath = await ensureDatabaseDirectory();
+    
+    const newDb = await SQLite.openDatabaseAsync(dbPath);
     if (!newDb) {
       throw new Error('Database open returned null');
     }
     await initializeLocalDatabase(newDb);
     db = newDb;
     dbInitFailed = false;
-    console.log(`Database initialized successfully: ${currentDbName}`);
+    console.log(`Database initialized successfully at: ${dbPath}`);
     return db;
   } catch (error: any) {
     const errorMessage = error?.message || String(error);
     console.error(`SQLite initialization attempt ${dbInitAttempts} failed:`, errorMessage);
     
-    const isConflictError = errorMessage.includes('Path already points to a non-normal file') || 
-        errorMessage.includes("Couldn't create directory") ||
-        errorMessage.includes('unexpected file') ||
-        errorMessage.includes('NullPointerException') ||
-        errorMessage.includes('Could not open database');
-    
-    if (isConflictError && !hasAttemptedCleanup) {
-      console.log('Detected database conflict, attempting automatic cleanup...');
-      const cleanupSuccess = await cleanupCorruptedDatabase();
-      
+    if (dbInitAttempts < MAX_INIT_ATTEMPTS) {
+      console.log('Attempting cleanup and retry...');
+      const cleanupSuccess = await cleanupAndRetry();
       if (cleanupSuccess) {
-        dbInitAttempts = 0;
         return getDatabase();
       }
     }
     
     if (dbInitAttempts >= MAX_INIT_ATTEMPTS) {
       dbInitFailed = true;
-      if (isConflictError) {
-        throw new Error('Database storage conflict. Please go to Settings > Apps > Erebus > Clear Data, then reopen the app.');
-      }
+      console.error('Database initialization failed permanently, app will run in online-only mode');
     }
     throw error;
   }
