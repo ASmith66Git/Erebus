@@ -1572,6 +1572,12 @@ app.post('/api/dive-sites/:id/images/import-url', authenticateToken, async (req,
     });
     
     if (!response.ok) {
+      if (response.status === 403 || response.status === 401) {
+        return res.status(400).json({ 
+          error: 'This website blocks image downloads from apps. Please download the image to your device first, then use the Upload button.',
+          code: 'HOTLINK_BLOCKED'
+        });
+      }
       return res.status(400).json({ error: `Failed to fetch image from URL (HTTP ${response.status})` });
     }
     
