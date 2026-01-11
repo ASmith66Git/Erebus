@@ -57,24 +57,43 @@ export interface SyncMeta {
 
 let db: SQLite.SQLiteDatabase | null = null;
 let dbInitFailed = false;
+let dbInitAttempts = 0;
+const MAX_INIT_ATTEMPTS = 3;
+
+export function isDatabaseAvailable(): boolean {
+  return db !== null && !dbInitFailed;
+}
 
 export async function getDatabase(): Promise<SQLite.SQLiteDatabase> {
   if (db) return db;
-  if (dbInitFailed) {
-    throw new Error('Local database initialization previously failed. Please clear app data and restart.');
+  if (dbInitFailed && dbInitAttempts >= MAX_INIT_ATTEMPTS) {
+    throw new Error('Local database initialization failed after multiple attempts. Please clear app data and restart.');
   }
   
+  dbInitAttempts++;
+  
   try {
-    db = await SQLite.openDatabaseAsync('erebus_local.db');
-    await initializeLocalDatabase(db);
+    const newDb = await SQLite.openDatabaseAsync('erebus_local.db');
+    if (!newDb) {
+      throw new Error('Database open returned null');
+    }
+    await initializeLocalDatabase(newDb);
+    db = newDb;
+    dbInitFailed = false;
     return db;
   } catch (error: any) {
-    dbInitFailed = true;
     const errorMessage = error?.message || String(error);
+    console.error(`SQLite initialization attempt ${dbInitAttempts} failed:`, errorMessage);
+    
     if (errorMessage.includes('Path already points to a non-normal file') || 
-        errorMessage.includes("Couldn't create directory")) {
-      console.error('SQLite database path conflict. User needs to clear app data.');
+        errorMessage.includes("Couldn't create directory") ||
+        errorMessage.includes('NullPointerException')) {
+      dbInitFailed = true;
       throw new Error('Database storage conflict. Please go to Settings > Apps > Erebus > Clear Data, then reopen the app.');
+    }
+    
+    if (dbInitAttempts >= MAX_INIT_ATTEMPTS) {
+      dbInitFailed = true;
     }
     throw error;
   }

@@ -1,90 +1,63 @@
-export interface DiveSiteLocal {
+export function isDatabaseAvailable(): boolean {
+  return false;
+}
+
+export interface LocalDiveSite {
   id: number;
-  userId: number;
+  serverId: number | null;
+  userId: number | null;
   name: string;
   description: string | null;
-  siteType: string | null;
+  siteType: string;
   latitude: number | null;
   longitude: number | null;
   country: string | null;
   region: string | null;
-  waterType: string | null;
+  waterType: string;
   depthMin: number | null;
   depthMax: number | null;
   visibilityMin: number | null;
   visibilityMax: number | null;
-  difficulty: string | null;
+  difficulty: string;
   currentStrength: string | null;
   accessNotes: string | null;
-  facilities: any | null;
-  hazards: any | null;
+  facilities: string;
+  hazards: string;
   bestSeason: string | null;
-  ratingAvg: number | null;
+  ratingAvg: number;
   ratingsCount: number;
   wikipediaUrl: string | null;
   externalInfo: string | null;
   imageUrl: string | null;
+  isArchived: boolean;
   isWreck: boolean;
+  wreckInfo: string | null;
   wreckName: string | null;
   wreckUrl: string | null;
-  wreckInfo: string | null;
-  isArchived: boolean;
   createdAt: string;
   updatedAt: string;
   deletedAt: string | null;
-  localId?: string;
-  syncStatus: 'synced' | 'pending_create' | 'pending_update' | 'pending_delete';
+  isSynced: boolean;
 }
 
 export interface PendingMutation {
   id: number;
+  clientMutationId: string;
   entityType: string;
-  entityId: string;
-  operation: 'create' | 'update' | 'delete';
-  payload: string;
+  entityId: number;
+  action: 'create' | 'update' | 'delete';
+  data: string;
   createdAt: string;
+  retryCount: number;
+}
+
+export interface SyncMeta {
+  key: string;
+  value: string;
 }
 
 export async function getDatabase(): Promise<null> {
   return null;
-}
-
-export async function initializeDatabase(): Promise<void> {
-}
-
-export async function getAllDiveSites(): Promise<DiveSiteLocal[]> {
-  return [];
-}
-
-export async function getDiveSiteById(id: number): Promise<DiveSiteLocal | null> {
-  return null;
-}
-
-export async function saveDiveSites(sites: DiveSiteLocal[]): Promise<void> {
-}
-
-export async function upsertDiveSite(site: Partial<DiveSiteLocal>): Promise<void> {
-}
-
-export async function deleteDiveSiteLocally(id: number): Promise<void> {
-}
-
-export async function queueMutation(
-  entityType: string,
-  entityId: string,
-  operation: 'create' | 'update' | 'delete',
-  payload: any
-): Promise<void> {
-}
-
-export async function getPendingMutations(): Promise<PendingMutation[]> {
-  return [];
-}
-
-export async function removePendingMutation(id: number): Promise<void> {
-}
-
-export async function clearAllPendingMutations(): Promise<void> {
 }
 
 export async function getLastSyncTime(): Promise<string | null> {
@@ -94,5 +67,52 @@ export async function getLastSyncTime(): Promise<string | null> {
 export async function setLastSyncTime(timestamp: string): Promise<void> {
 }
 
-export async function clearLocalData(): Promise<void> {
+export async function getAllLocalDiveSites(): Promise<LocalDiveSite[]> {
+  return [];
+}
+
+export async function getLocalDiveSiteById(id: number): Promise<LocalDiveSite | null> {
+  return null;
+}
+
+export async function getLocalDiveSiteByServerId(serverId: number): Promise<LocalDiveSite | null> {
+  return null;
+}
+
+export async function upsertLocalDiveSite(site: Partial<LocalDiveSite> & { serverId?: number }): Promise<number> {
+  return 0;
+}
+
+export async function markLocalDiveSiteDeleted(id: number): Promise<void> {
+}
+
+export async function getUnsyncedDiveSites(): Promise<LocalDiveSite[]> {
+  return [];
+}
+
+export async function addPendingMutation(mutation: Omit<PendingMutation, 'id' | 'createdAt' | 'retryCount'>): Promise<number> {
+  return 0;
+}
+
+export async function getPendingMutations(): Promise<PendingMutation[]> {
+  return [];
+}
+
+export async function removePendingMutation(clientMutationId: string): Promise<void> {
+}
+
+export async function incrementMutationRetryCount(clientMutationId: string): Promise<void> {
+}
+
+export async function updateLocalSiteServerId(localId: number, serverId: number): Promise<void> {
+}
+
+export async function markLocalSiteSynced(localId: number): Promise<void> {
+}
+
+export async function clearLocalDatabase(): Promise<void> {
+}
+
+export function generateClientMutationId(): string {
+  return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 }

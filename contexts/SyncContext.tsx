@@ -3,7 +3,7 @@ import { AppState, AppStateStatus, Platform } from 'react-native';
 import { useAuth } from './AuthContext';
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import { performFullSync } from '@/services/syncService';
-import { getPendingMutations, getLastSyncTime } from '@/services/localDatabase';
+import { getPendingMutations, getLastSyncTime, isDatabaseAvailable } from '@/services/localDatabase';
 
 const isNative = Platform.OS !== 'web';
 
@@ -41,8 +41,14 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
     try {
       const mutations = await getPendingMutations();
       setSyncState(prev => ({ ...prev, pendingChanges: mutations.length }));
-    } catch (error) {
-      console.error('Error getting pending mutations:', error);
+    } catch (error: any) {
+      const errorMsg = error?.message || String(error);
+      if (errorMsg.includes('clear app data') || errorMsg.includes('NullPointerException')) {
+        setSyncState(prev => ({ 
+          ...prev, 
+          errors: ['Database unavailable. Please clear app data and restart.']
+        }));
+      }
     }
   }, []);
 
@@ -51,8 +57,14 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
     try {
       const lastSync = await getLastSyncTime();
       setSyncState(prev => ({ ...prev, lastSyncTime: lastSync }));
-    } catch (error) {
-      console.error('Error getting last sync time:', error);
+    } catch (error: any) {
+      const errorMsg = error?.message || String(error);
+      if (errorMsg.includes('clear app data') || errorMsg.includes('NullPointerException')) {
+        setSyncState(prev => ({ 
+          ...prev, 
+          errors: ['Database unavailable. Please clear app data and restart.']
+        }));
+      }
     }
   }, []);
 
