@@ -2605,7 +2605,8 @@ app.delete('/api/dive-logs/:id', authenticateToken, async (req, res) => {
 const distPath = path.join(__dirname, '..', 'dist');
 
 if (process.env.NODE_ENV === 'production' || process.env.PORT) {
-  app.use(express.static(distPath));
+  // Disable index serving so health check at / works
+  app.use(express.static(distPath, { index: false }));
   
   app.use((req, res, next) => {
     // Skip API routes, objects, and root health check
