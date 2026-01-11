@@ -2,7 +2,7 @@ import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 
 const PRODUCTION_API_URL = process.env.EXPO_PUBLIC_API_URL || 
-  'https://erebus-dive-app.replit.app';
+  'https://expo-erebus--anthony606.replit.app';
 
 export function getApiUrl(): string {
   if (Platform.OS === 'web' && typeof window !== 'undefined') {
