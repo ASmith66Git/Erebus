@@ -72,6 +72,15 @@ async function getUncachableResendClient() {
 app.use(cors());
 app.use(express.json());
 
+// Health check endpoint for deployment - must be before other routes
+app.get('/', (req, res) => {
+  res.status(200).json({ status: 'ok', service: 'erebus-api' });
+});
+
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'ok', service: 'erebus-api' });
+});
+
 async function initDatabase() {
   const client = await pool.connect();
   try {
@@ -2577,7 +2586,8 @@ if (process.env.NODE_ENV === 'production' || process.env.PORT) {
   app.use(express.static(distPath));
   
   app.use((req, res, next) => {
-    if (req.path.startsWith('/api/') || req.path.startsWith('/objects/')) {
+    // Skip API routes, objects, and root health check
+    if (req.path === '/' || req.path.startsWith('/api/') || req.path.startsWith('/objects/')) {
       return next();
     }
     if (req.method === 'GET') {
