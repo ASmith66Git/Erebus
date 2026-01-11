@@ -20,7 +20,7 @@ module.exports = {
       versionCode: 2,
       adaptiveIcon: {
         foregroundImage: "./assets/images/adaptive-icon.png",
-        backgroundColor: "#ffffff"
+        backgroundColor: "#000000"
       },
       edgeToEdgeEnabled: true,
       package: "com.erebus.diveapp",
@@ -46,7 +46,7 @@ module.exports = {
           image: "./assets/images/splash-icon.png",
           imageWidth: 200,
           resizeMode: "contain",
-          backgroundColor: "#ffffff"
+          backgroundColor: "#000000"
         }
       ],
       [
