@@ -382,11 +382,15 @@ export default function DiveLogsScreen() {
   };
 
   const handleBluetoothConnect = () => {
-    Alert.alert(
-      'Bluetooth Sync',
-      'Bluetooth connectivity requires a native app build. Please use EAS Build to create a development build, then you can connect to your dive computer via Bluetooth.',
-      [{ text: 'OK' }]
-    );
+    if (Platform.OS === 'web') {
+      Alert.alert(
+        'Bluetooth Sync',
+        'Bluetooth connectivity is not available on web. Please use the mobile app to connect to your dive computer.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+    router.push('/ble-connect' as any);
   };
 
   const hasBleSupport = diveComputer?.model?.has_ble ?? false;
