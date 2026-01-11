@@ -22,6 +22,9 @@ const PORT = process.env.PORT || 3001;
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
+  connectionTimeoutMillis: 5000,
+  idleTimeoutMillis: 30000,
+  max: 10,
 });
 
 // Database readiness state
@@ -2629,14 +2632,14 @@ if (process.env.NODE_ENV === 'production' || process.env.PORT) {
   });
 }
 
-// Start server immediately for health checks, then initialize database asynchronously
-app.listen(PORT, '0.0.0.0', () => {
+// Start server immediately for health checks
+const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`Erebus API server running on port ${PORT}`);
-  
-  // Use setImmediate to fully decouple database initialization from server startup
-  setImmediate(() => {
-    initDatabase().catch((err) => {
-      console.error('Failed to initialize database:', err.message);
-    });
-  });
 });
+
+// Initialize database completely separately after server is listening
+setTimeout(() => {
+  initDatabase().catch((err) => {
+    console.error('Failed to initialize database:', err.message);
+  });
+}, 100);
