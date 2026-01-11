@@ -55,6 +55,13 @@ module.exports = {
           modes: ["central"],
           bluetoothAlwaysPermission: "Allow Erebus to connect to your dive computer via Bluetooth"
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          icon: "./assets/images/notification-icon.png",
+          color: "#D22F00"
+        }
       ]
     ],
     experiments: {

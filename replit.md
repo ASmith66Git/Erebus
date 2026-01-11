@@ -59,6 +59,12 @@ The application is built using Expo React Native, targeting both iOS and Android
   - Dive computer catalog with 140+ models and BLE capability flags.
   - User can select their dive computer in Profile settings.
   - App shows appropriate import method (BLE for supported models, file upload for others).
+- **Push Notifications** (Android):
+  - Uses Expo Notifications with Firebase Cloud Messaging (FCM).
+  - Automatic token registration on login and token cleanup on logout.
+  - Three notification channels: Default, Dive Reminders, Sync Updates.
+  - Supports local scheduled notifications for dive reminders.
+  - Requires EAS Build for native push notification support.
 
 ## External Dependencies
 - **PostgreSQL**: Primary database for storing user data, dive sites, images, and dive logs.
@@ -160,6 +166,9 @@ services/protocols/
 4. Same persistence layer saves to database tables
 
 ## Recent Changes
+- 2026-01-11: Added push notification support for Android with FCM integration, automatic token management, and notification channels.
+- 2026-01-11: Fixed Bluetooth button to navigate to BLE connect screen on native builds.
+- 2026-01-11: Added automatic SQLite database cleanup for Android "unexpected file" errors.
 - 2026-01-11: Added image import from URL feature - download images from any URL and store in object storage.
 - 2026-01-11: Added "Search Web" button to open Google Images for finding dive site photos.
 - 2026-01-11: Redesigned Media tab with improved button layout (Search Web, Import URL, Upload, and separate Pexels link).

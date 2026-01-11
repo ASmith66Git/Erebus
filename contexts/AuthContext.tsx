@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useCa
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import { getApiUrl } from '@/utils/apiConfig';
+import notificationService from '@/services/notificationService';
 
 let SecureStore: typeof import('expo-secure-store') | null = null;
 if (Platform.OS !== 'web') {
@@ -146,6 +147,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setIsOfflineSession(false);
         
         await cacheSession(authToken, userData);
+        
+        initializeNotifications(authToken);
       } else if (response.status === 401) {
         await clearSession();
         setToken(null);
@@ -227,6 +230,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setToken(data.token);
         setUser(data.user);
         setIsOfflineSession(false);
+        
+        initializeNotifications(data.token);
+        
         return { success: true };
       } else {
         return { success: false, error: data.error || 'Login failed' };
@@ -237,6 +243,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { success: false, error: 'Connection timed out. Please check your internet connection.' };
       }
       return { success: false, error: 'No network connection. Please connect to the internet to log in for the first time.' };
+    }
+  }
+  
+  async function initializeNotifications(authToken: string) {
+    try {
+      const result = await notificationService.initialize();
+      if (result.token) {
+        await notificationService.registerTokenWithServer(authToken);
+      }
+    } catch (error) {
+      console.log('Notification initialization failed:', error);
     }
   }
 
@@ -283,6 +300,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function logout() {
     try {
+      if (token) {
+        await notificationService.unregisterTokenFromServer(token);
+        notificationService.removeListeners();
+      }
       await clearSession();
       setToken(null);
       setUser(null);

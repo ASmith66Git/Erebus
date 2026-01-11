@@ -254,6 +254,24 @@ async function initDatabase() {
     await client.query(`ALTER TABLE dive_logs ADD COLUMN IF NOT EXISTS decompression_symptoms BOOLEAN DEFAULT FALSE;`).catch(() => {});
     await client.query(`ALTER TABLE dive_logs ADD COLUMN IF NOT EXISTS problem_notes TEXT;`).catch(() => {});
     
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS push_tokens (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        token TEXT NOT NULL,
+        platform VARCHAR(20) NOT NULL,
+        device_name VARCHAR(255),
+        is_active BOOLEAN DEFAULT TRUE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(user_id, token)
+      );
+    `).catch(() => {});
+    
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_push_tokens_user_id ON push_tokens(user_id);
+    `).catch(() => {});
+    
     const adminCheck = await client.query("SELECT id FROM users WHERE email = 'admin@erebus.app'");
     if (adminCheck.rows.length === 0) {
       const hashedPassword = await bcrypt.hash('admin123', 10);
@@ -761,6 +779,63 @@ app.put('/api/user/dive-computer', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     console.error('Update user dive computer error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.post('/api/push-tokens', authenticateToken, async (req, res) => {
+  const { token, platform, deviceName } = req.body;
+  
+  if (!token || !platform) {
+    return res.status(400).json({ error: 'Token and platform are required' });
+  }
+  
+  try {
+    await pool.query(
+      `INSERT INTO push_tokens (user_id, token, platform, device_name, is_active, updated_at)
+       VALUES ($1, $2, $3, $4, TRUE, CURRENT_TIMESTAMP)
+       ON CONFLICT (user_id, token) 
+       DO UPDATE SET is_active = TRUE, device_name = $4, updated_at = CURRENT_TIMESTAMP`,
+      [req.user.id, token, platform, deviceName || null]
+    );
+    
+    res.json({ message: 'Push token registered successfully' });
+  } catch (error) {
+    console.error('Register push token error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.delete('/api/push-tokens', authenticateToken, async (req, res) => {
+  const { token } = req.body;
+  
+  if (!token) {
+    return res.status(400).json({ error: 'Token is required' });
+  }
+  
+  try {
+    await pool.query(
+      'UPDATE push_tokens SET is_active = FALSE, updated_at = CURRENT_TIMESTAMP WHERE user_id = $1 AND token = $2',
+      [req.user.id, token]
+    );
+    
+    res.json({ message: 'Push token unregistered successfully' });
+  } catch (error) {
+    console.error('Unregister push token error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.get('/api/push-tokens', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT id, platform, device_name, is_active, created_at, updated_at FROM push_tokens WHERE user_id = $1 ORDER BY updated_at DESC',
+      [req.user.id]
+    );
+    
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Get push tokens error:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });
