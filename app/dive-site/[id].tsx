@@ -711,29 +711,37 @@ export default function DiveSiteDetailScreen() {
   const deleteImage = async (imageId: number) => {
     if (!token || !site?.id) return;
 
-    Alert.alert('Delete Image', 'Are you sure you want to delete this image?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            const response = await fetch(`${getApiUrl()}/api/dive-sites/${site.id}/images/${imageId}`, {
-              method: 'DELETE',
-              headers: { Authorization: `Bearer ${token}` },
-            });
+    const doDelete = async () => {
+      try {
+        const response = await fetch(`${getApiUrl()}/api/dive-sites/${site.id}/images/${imageId}`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` },
+        });
 
-            if (response.ok) {
-              fetchSiteImages();
-              setShowImageModal(false);
-              Alert.alert('Success', 'Image deleted');
-            }
-          } catch (error) {
-            console.error('Error deleting image:', error);
+        if (response.ok) {
+          fetchSiteImages();
+          setShowImageModal(false);
+          if (Platform.OS === 'web') {
+            alert('Image deleted successfully');
+          } else {
+            Alert.alert('Success', 'Image deleted');
           }
-        },
-      },
-    ]);
+        }
+      } catch (error) {
+        console.error('Error deleting image:', error);
+      }
+    };
+
+    if (Platform.OS === 'web') {
+      if (window.confirm('Are you sure you want to delete this image?')) {
+        doDelete();
+      }
+    } else {
+      Alert.alert('Delete Image', 'Are you sure you want to delete this image?', [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: doDelete },
+      ]);
+    }
   };
 
   const handleSave = async () => {
