@@ -159,7 +159,10 @@ class BleService {
     try {
       this.stopScanning();
 
-      const device = await this.manager.connectToDevice(deviceId);
+      const device = await this.manager.connectToDevice(deviceId, {
+        timeout: 10000,
+        requestMTU: 512,
+      });
       await device.discoverAllServicesAndCharacteristics();
       
       this.connectedDevice = device;
@@ -180,10 +183,45 @@ class BleService {
       });
 
       return true;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Connection error:', error);
-      throw error;
+      const friendlyMessage = this.parseBleError(error);
+      throw new Error(friendlyMessage);
     }
+  }
+
+  private parseBleError(error: any): string {
+    const errorMessage = error?.message || error?.toString() || 'Unknown error';
+    const errorReason = error?.reason || '';
+    
+    if (errorMessage.includes('Unknown error') || errorMessage.includes('This is probably a bug')) {
+      if (errorReason) {
+        return `Connection failed: ${errorReason}. Try moving closer to your dive computer or restarting Bluetooth.`;
+      }
+      return 'Connection failed unexpectedly. Please try: 1) Move closer to the device, 2) Turn Bluetooth off and on, 3) Put dive computer in transfer mode, 4) Restart the app.';
+    }
+    
+    if (errorMessage.includes('timeout') || errorMessage.includes('Timeout')) {
+      return 'Connection timed out. Make sure your dive computer is in transfer mode and close to your phone.';
+    }
+    
+    if (errorMessage.includes('disconnected') || errorMessage.includes('Disconnected')) {
+      return 'Device disconnected during connection. Please try again and keep devices close together.';
+    }
+    
+    if (errorMessage.includes('not found') || errorMessage.includes('Not found')) {
+      return 'Device not found. Please scan again and make sure your dive computer is discoverable.';
+    }
+    
+    if (errorMessage.includes('pairing') || errorMessage.includes('Pairing')) {
+      return 'Pairing required. Check your phone for a pairing request from the dive computer.';
+    }
+    
+    if (errorMessage.includes('services') || errorMessage.includes('characteristics')) {
+      return 'Could not read device services. Your dive computer may not support direct BLE downloads.';
+    }
+    
+    return `Connection error: ${errorMessage}`;
   }
 
   async disconnect(): Promise<void> {
