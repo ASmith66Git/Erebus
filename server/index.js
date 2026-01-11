@@ -2571,7 +2571,7 @@ app.delete('/api/dive-logs/:id', authenticateToken, async (req, res) => {
   }
 });
 
-const distPath = path.join(__dirname, '..', 'dist', 'web');
+const distPath = path.join(__dirname, '..', 'dist');
 
 if (process.env.NODE_ENV === 'production' || process.env.PORT) {
   app.use(express.static(distPath));
@@ -2599,5 +2599,11 @@ if (process.env.NODE_ENV === 'production' || process.env.PORT) {
 initDatabase().then(() => {
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`Erebus API server running on port ${PORT}`);
+  });
+}).catch((err) => {
+  console.error('Failed to initialize database:', err.message);
+  console.log('Starting server without database initialization...');
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Erebus API server running on port ${PORT} (DB init failed)`);
   });
 });
