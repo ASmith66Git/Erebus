@@ -60,8 +60,9 @@ let dbInitFailed = false;
 let dbInitAttempts = 0;
 const MAX_INIT_ATTEMPTS = 3;
 
-// Use simple database name - let expo-sqlite handle directory management (SDK 51+ best practice)
-const DB_NAME = 'erebus_v4.db';
+// Use simple database name without subdirectory - avoids conflict with old SQLite file
+// Using underscore prefix to store in app root, not SQLite subdirectory
+const DB_NAME = 'erebus_dive_v5.db';
 
 export function isDatabaseAvailable(): boolean {
   return db !== null && !dbInitFailed;
