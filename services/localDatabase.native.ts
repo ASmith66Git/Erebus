@@ -58,10 +58,29 @@ export interface SyncMeta {
 let db: SQLite.SQLiteDatabase | null = null;
 let dbInitFailed = false;
 let dbInitAttempts = 0;
+let hasAttemptedCleanup = false;
 const MAX_INIT_ATTEMPTS = 3;
+const DB_NAME = 'erebus_local.db';
 
 export function isDatabaseAvailable(): boolean {
   return db !== null && !dbInitFailed;
+}
+
+async function cleanupCorruptedDatabase(): Promise<boolean> {
+  if (hasAttemptedCleanup) {
+    return false;
+  }
+  hasAttemptedCleanup = true;
+  
+  try {
+    console.log('Attempting to cleanup corrupted database file...');
+    await SQLite.deleteDatabaseAsync(DB_NAME);
+    console.log('Database file cleanup successful');
+    return true;
+  } catch (cleanupError: any) {
+    console.error('Database cleanup failed:', cleanupError?.message || cleanupError);
+    return false;
+  }
 }
 
 export async function getDatabase(): Promise<SQLite.SQLiteDatabase> {
@@ -73,7 +92,7 @@ export async function getDatabase(): Promise<SQLite.SQLiteDatabase> {
   dbInitAttempts++;
   
   try {
-    const newDb = await SQLite.openDatabaseAsync('erebus_local.db');
+    const newDb = await SQLite.openDatabaseAsync(DB_NAME);
     if (!newDb) {
       throw new Error('Database open returned null');
     }
@@ -85,15 +104,26 @@ export async function getDatabase(): Promise<SQLite.SQLiteDatabase> {
     const errorMessage = error?.message || String(error);
     console.error(`SQLite initialization attempt ${dbInitAttempts} failed:`, errorMessage);
     
-    if (errorMessage.includes('Path already points to a non-normal file') || 
+    const isConflictError = errorMessage.includes('Path already points to a non-normal file') || 
         errorMessage.includes("Couldn't create directory") ||
-        errorMessage.includes('NullPointerException')) {
-      dbInitFailed = true;
-      throw new Error('Database storage conflict. Please go to Settings > Apps > Erebus > Clear Data, then reopen the app.');
+        errorMessage.includes('unexpected file') ||
+        errorMessage.includes('NullPointerException');
+    
+    if (isConflictError && !hasAttemptedCleanup) {
+      console.log('Detected database conflict, attempting automatic cleanup...');
+      const cleanupSuccess = await cleanupCorruptedDatabase();
+      
+      if (cleanupSuccess) {
+        dbInitAttempts = 0;
+        return getDatabase();
+      }
     }
     
     if (dbInitAttempts >= MAX_INIT_ATTEMPTS) {
       dbInitFailed = true;
+      if (isConflictError) {
+        throw new Error('Database storage conflict. Please go to Settings > Apps > Erebus > Clear Data, then reopen the app.');
+      }
     }
     throw error;
   }
