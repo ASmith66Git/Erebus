@@ -669,7 +669,8 @@ export default function DiveSiteDetailScreen() {
 
   const handleUrlChange = (url: string) => {
     setImportUrl(url);
-    if (url.match(/\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i) || url.includes('images')) {
+    // Try to show preview for any URL that starts with http
+    if (url.startsWith('http://') || url.startsWith('https://')) {
       setUrlPreview(url);
     } else {
       setUrlPreview(null);

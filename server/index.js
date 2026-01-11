@@ -1542,20 +1542,82 @@ app.post('/api/dive-sites/:id/images/import-url', authenticateToken, async (req,
     }
     
     const fetch = (await import('node-fetch')).default;
+    
+    // Follow redirects and handle various URL types (including Google share links)
     const response = await fetch(imageUrl, {
       timeout: 30000,
+      redirect: 'follow',
       headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; ErebusDiveApp/1.0)'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'image/*,*/*;q=0.8'
       }
     });
     
     if (!response.ok) {
-      return res.status(400).json({ error: 'Failed to fetch image from URL' });
+      return res.status(400).json({ error: `Failed to fetch image from URL (HTTP ${response.status})` });
     }
     
-    const contentType = response.headers.get('content-type');
-    if (!contentType || !contentType.startsWith('image/')) {
-      return res.status(400).json({ error: 'URL does not point to a valid image' });
+    const contentType = response.headers.get('content-type') || '';
+    const isImage = contentType.startsWith('image/') || 
+                   contentType.includes('jpeg') || 
+                   contentType.includes('png') || 
+                   contentType.includes('gif') || 
+                   contentType.includes('webp');
+    
+    if (!isImage) {
+      // Try to detect image from first bytes (magic numbers)
+      const buffer = await response.buffer();
+      const isJpeg = buffer[0] === 0xFF && buffer[1] === 0xD8;
+      const isPng = buffer[0] === 0x89 && buffer[1] === 0x50;
+      const isGif = buffer[0] === 0x47 && buffer[1] === 0x49;
+      const isWebp = buffer[0] === 0x52 && buffer[1] === 0x49;
+      
+      if (!isJpeg && !isPng && !isGif && !isWebp) {
+        return res.status(400).json({ error: 'URL does not point to a valid image. Try using a direct image link (right-click image → Copy image address)' });
+      }
+      
+      // Continue with detected image
+      const detectedType = isJpeg ? 'jpeg' : isPng ? 'png' : isGif ? 'gif' : 'webp';
+      const ext = detectedType;
+      const filename = `dive-site-${id}-${Date.now()}.${ext}`;
+      const objectPath = `/objects/dive-sites/${filename}`;
+      
+      const { Client } = await import('@replit/object-storage');
+      const storageClient = new Client();
+      await storageClient.uploadFromBuffer(objectPath, buffer, { contentType: `image/${detectedType}` });
+      
+      const client2 = await pool.connect();
+      try {
+        await client2.query('BEGIN');
+        
+        if (isPrimary) {
+          await client2.query('UPDATE dive_site_images SET is_primary = FALSE WHERE dive_site_id = $1', [id]);
+        }
+        
+        const result = await client2.query(
+          'INSERT INTO dive_site_images (dive_site_id, image_url, caption, is_primary, is_stock, attribution) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+          [id, objectPath, caption || null, isPrimary || false, false, `Imported from: ${new URL(imageUrl).hostname}`]
+        );
+        
+        await client2.query('COMMIT');
+        
+        const img = result.rows[0];
+        return res.status(201).json({
+          id: img.id,
+          diveSiteId: img.dive_site_id,
+          imageUrl: img.image_url,
+          caption: img.caption,
+          isPrimary: img.is_primary,
+          isStock: false,
+          attribution: img.attribution,
+          createdAt: img.created_at
+        });
+      } catch (err) {
+        await client2.query('ROLLBACK');
+        throw err;
+      } finally {
+        client2.release();
+      }
     }
     
     const imageBuffer = await response.buffer();
