@@ -199,18 +199,34 @@ class BleService {
     const iosErrorCode = error?.iosErrorCode;
     const attErrorCode = error?.attErrorCode;
     
-    // Log full error details for debugging
-    console.error('BLE Error Details:', {
+    // Log full error details for debugging - this is critical for diagnosis
+    console.error('BLE Error Details:', JSON.stringify({
       message: errorMessage,
       reason: errorReason,
       errorCode,
       androidErrorCode,
       iosErrorCode,
       attErrorCode,
-      fullError: JSON.stringify(error, Object.getOwnPropertyNames(error), 2)
-    });
+      name: error?.name,
+      stack: error?.stack?.substring(0, 500)
+    }, null, 2));
     
-    // Handle Android-specific error codes
+    // PRIORITY 1: Check the reason property first - this often contains the actual error
+    if (errorReason && errorReason.length > 0) {
+      // Check for common reason patterns
+      if (errorReason.includes('MissingBackpressureException')) {
+        return `Buffer overflow - device sending data too fast. Try again. (reason: ${errorReason})`;
+      }
+      if (errorReason.includes('GATT_')) {
+        return `GATT error: ${errorReason}`;
+      }
+      if (errorReason.includes('status')) {
+        return `BLE status error: ${errorReason}`;
+      }
+      return `BLE error: ${errorReason}`;
+    }
+    
+    // PRIORITY 2: Handle Android-specific error codes
     if (androidErrorCode !== undefined && androidErrorCode !== null) {
       const androidErrors: Record<number, string> = {
         0: 'Success (unexpected)',
@@ -235,15 +251,9 @@ class BleService {
       return `Android Bluetooth error ${androidErrorCode}: ${errorMessage}`;
     }
     
-    // Handle reason property (common in react-native-ble-plx)
-    if (errorReason) {
-      return `Connection failed: ${errorReason}`;
-    }
-    
-    // Handle errorCode from react-native-ble-plx
-    if (errorCode !== undefined && errorCode !== null) {
+    // PRIORITY 3: Handle errorCode from react-native-ble-plx
+    if (errorCode !== undefined && errorCode !== null && errorCode !== 0) {
       const bleErrorCodes: Record<number, string> = {
-        0: 'Unknown error',
         1: 'Bluetooth manager destroyed',
         2: 'Operation cancelled',
         3: 'Invalid IDs or UUIDs',
@@ -275,10 +285,18 @@ class BleService {
       if (bleMessage) {
         return `${bleMessage} (error code ${errorCode})`;
       }
+      return `BLE error code ${errorCode}: ${errorMessage}`;
     }
     
+    // PRIORITY 4: For errorCode 0 with "Unknown error", show a helpful message with all available info
     if (errorMessage.includes('Unknown error') || errorMessage.includes('This is probably a bug')) {
-      return 'Connection failed unexpectedly. Please try: 1) Move closer to the device, 2) Turn Bluetooth off and on, 3) Put dive computer in transfer mode, 4) Restart the app.';
+      const details = [
+        errorCode !== undefined ? `code=${errorCode}` : '',
+        androidErrorCode !== undefined ? `android=${androidErrorCode}` : '',
+        attErrorCode !== undefined ? `att=${attErrorCode}` : '',
+      ].filter(Boolean).join(', ');
+      
+      return `Unexpected BLE error${details ? ` (${details})` : ''}. Try: 1) Move closer to device, 2) Toggle Bluetooth off/on, 3) Put dive computer in transfer mode`;
     }
     
     if (errorMessage.includes('timeout') || errorMessage.includes('Timeout')) {
@@ -362,16 +380,18 @@ class BleService {
           data
         );
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Write error:', error);
-      throw error;
+      const friendlyMessage = this.parseBleError(error);
+      throw new Error(`Write failed: ${friendlyMessage}`);
     }
   }
 
   async monitorCharacteristic(
     serviceUUID: string,
     characteristicUUID: string,
-    onData: (data: string) => void
+    onData: (data: string) => void,
+    onError?: (error: Error) => void
   ): Promise<() => void> {
     if (!this.connectedDevice) {
       throw new Error('No device connected');
@@ -382,7 +402,11 @@ class BleService {
       characteristicUUID,
       (error: any, characteristic: any) => {
         if (error) {
-          console.error('Monitor error:', error);
+          const friendlyMessage = this.parseBleError(error);
+          console.error('Monitor error (parsed):', friendlyMessage);
+          if (onError) {
+            onError(new Error(`Monitor failed: ${friendlyMessage}`));
+          }
           return;
         }
         if (characteristic && characteristic.value) {

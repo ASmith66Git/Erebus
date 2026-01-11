@@ -104,12 +104,19 @@ export abstract class BaseDiveComputerProtocol {
       this.monitorSubscription = await bleService.monitorCharacteristic(
         this.serviceUUID,
         this.characteristicUUID,
-        (data: string) => this.handleIncomingData(data)
+        (data: string) => this.handleIncomingData(data),
+        (error: Error) => {
+          console.error('BLE Monitor error in protocol:', error.message);
+          // Store error for later retrieval if needed
+          this.lastMonitorError = error;
+        }
       );
     }
     
     return connected;
   }
+  
+  protected lastMonitorError: Error | null = null;
   
   async disconnect(): Promise<void> {
     if (this.monitorSubscription) {
