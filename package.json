@@ -10,7 +10,8 @@
     "web": "expo start --web",
     "web:build": "expo export --platform web",
     "test": "jest --watchAll",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "postinstall": "patch-package"
   },
   "jest": {
     "preset": "jest-expo"
@@ -62,6 +63,7 @@
     "multer": "^2.0.2",
     "node-fetch": "^3.3.2",
     "papaparse": "^5.5.3",
+    "patch-package": "^8.0.1",
     "pg": "^8.16.3",
     "react": "19.1.0",
     "react-dom": "19.1.0",
