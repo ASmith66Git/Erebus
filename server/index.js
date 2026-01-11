@@ -1592,13 +1592,23 @@ app.post('/api/dive-sites/:id/images', authenticateToken, async (req, res) => {
     try {
       await client.query('BEGIN');
       
-      if (isPrimary) {
+      // Check if this will be the first image for the dive site
+      const existingImages = await client.query(
+        'SELECT COUNT(*) as count FROM dive_site_images WHERE dive_site_id = $1',
+        [id]
+      );
+      const isFirstImage = parseInt(existingImages.rows[0].count) === 0;
+      
+      // Auto-set as primary if it's the first image OR if explicitly requested
+      const shouldBePrimary = isPrimary || isFirstImage;
+      
+      if (shouldBePrimary) {
         await client.query('UPDATE dive_site_images SET is_primary = FALSE WHERE dive_site_id = $1', [id]);
       }
       
       const result = await client.query(
         'INSERT INTO dive_site_images (dive_site_id, image_url, caption, is_primary, is_stock, attribution) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-        [id, imageUrl, caption || null, isPrimary || false, isStock || false, attribution || null]
+        [id, imageUrl, caption || null, shouldBePrimary, isStock || false, attribution || null]
       );
       
       await client.query('COMMIT');
@@ -1718,13 +1728,21 @@ app.post('/api/dive-sites/:id/images/import-url', authenticateToken, async (req,
       try {
         await client2.query('BEGIN');
         
-        if (isPrimary) {
+        // Check if this will be the first image for the dive site
+        const existingImages = await client2.query(
+          'SELECT COUNT(*) as count FROM dive_site_images WHERE dive_site_id = $1',
+          [id]
+        );
+        const isFirstImage = parseInt(existingImages.rows[0].count) === 0;
+        const shouldBePrimary = isPrimary || isFirstImage;
+        
+        if (shouldBePrimary) {
           await client2.query('UPDATE dive_site_images SET is_primary = FALSE WHERE dive_site_id = $1', [id]);
         }
         
         const result = await client2.query(
           'INSERT INTO dive_site_images (dive_site_id, image_url, caption, is_primary, is_stock, attribution) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-          [id, objectPath, caption || null, isPrimary || false, false, `Imported from: ${new URL(imageUrl).hostname}`]
+          [id, objectPath, caption || null, shouldBePrimary, false, `Imported from: ${new URL(imageUrl).hostname}`]
         );
         
         await client2.query('COMMIT');
@@ -1766,13 +1784,21 @@ app.post('/api/dive-sites/:id/images/import-url', authenticateToken, async (req,
     try {
       await client2.query('BEGIN');
       
-      if (isPrimary) {
+      // Check if this will be the first image for the dive site
+      const existingImages = await client2.query(
+        'SELECT COUNT(*) as count FROM dive_site_images WHERE dive_site_id = $1',
+        [id]
+      );
+      const isFirstImage = parseInt(existingImages.rows[0].count) === 0;
+      const shouldBePrimary = isPrimary || isFirstImage;
+      
+      if (shouldBePrimary) {
         await client2.query('UPDATE dive_site_images SET is_primary = FALSE WHERE dive_site_id = $1', [id]);
       }
       
       const result = await client2.query(
         'INSERT INTO dive_site_images (dive_site_id, image_url, caption, is_primary, is_stock, attribution) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-        [id, objectPath, caption || null, isPrimary || false, false, `Imported from: ${new URL(imageUrl).hostname}`]
+        [id, objectPath, caption || null, shouldBePrimary, false, `Imported from: ${new URL(imageUrl).hostname}`]
       );
       
       await client2.query('COMMIT');
