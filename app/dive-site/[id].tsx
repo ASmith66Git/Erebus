@@ -2001,22 +2001,22 @@ const styles = StyleSheet.create({
   dateButtonsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 6,
   },
   dateButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
     borderRadius: 8,
     borderWidth: 1,
     alignItems: 'center',
-    minWidth: 60,
+    minWidth: 50,
   },
   dateButtonText: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '500',
   },
   dateButtonDate: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
   },
   locationInfo: {
@@ -2052,22 +2052,20 @@ const styles = StyleSheet.create({
   conditionsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
-    justifyContent: 'space-between',
+    gap: 8,
   },
   conditionCard: {
     width: '48%',
-    minWidth: 140,
-    padding: 16,
-    borderRadius: 12,
+    padding: 12,
+    borderRadius: 10,
     alignItems: 'center',
-    gap: 8,
+    gap: 4,
   },
   conditionLabel: {
-    fontSize: 12,
+    fontSize: 11,
   },
   conditionValue: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
     textAlign: 'center',
   },
