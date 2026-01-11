@@ -91,6 +91,12 @@ interface WikipediaInfo {
   url: string | null;
 }
 
+interface TideData {
+  time: string;
+  height: number;
+  type: 'high' | 'low';
+}
+
 interface WeatherData {
   temperature?: number;
   temperatureMax?: number;
@@ -110,6 +116,7 @@ interface WeatherData {
   currentVelocity?: number;
   currentVelocityUnit?: string;
   currentDirection?: number;
+  tides?: TideData[];
   isMarine?: boolean;
   isToday?: boolean;
   forecastDate?: string;
@@ -1165,6 +1172,36 @@ export default function DiveSiteDetailScreen() {
                   </>
                 )}
 
+                {weatherData.tides && weatherData.tides.length > 0 && (
+                  <>
+                    <Text style={[styles.subsectionTitle, { color: colors.text }]}>Tides</Text>
+                    <View style={styles.tidesContainer}>
+                      {weatherData.tides.map((tide, index) => (
+                        <View key={index} style={[styles.tideCard, { backgroundColor: colors.surface }]}>
+                          <View style={styles.tideIconContainer}>
+                            <Feather 
+                              name={tide.type === 'high' ? 'arrow-up' : 'arrow-down'} 
+                              size={20} 
+                              color={tide.type === 'high' ? '#4CAF50' : '#2196F3'} 
+                            />
+                          </View>
+                          <View style={styles.tideInfo}>
+                            <Text style={[styles.tideType, { color: colors.text }]}>
+                              {tide.type === 'high' ? 'High Tide' : 'Low Tide'}
+                            </Text>
+                            <Text style={[styles.tideTime, { color: colors.textSecondary }]}>
+                              {new Date(tide.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </Text>
+                          </View>
+                          <Text style={[styles.tideHeight, { color: colors.primary }]}>
+                            {tide.height.toFixed(2)}m
+                          </Text>
+                        </View>
+                      ))}
+                    </View>
+                  </>
+                )}
+
                 {weatherData.fetchedAt && (
                   <Text style={[styles.weatherTimestamp, { color: colors.textSecondary }]}>
                     Updated: {new Date(weatherData.fetchedAt).toLocaleTimeString()}
@@ -2079,6 +2116,38 @@ const styles = StyleSheet.create({
   },
   weatherPlaceholderText: {
     fontSize: 14,
+  },
+  tidesContainer: {
+    gap: 8,
+  },
+  tideCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 10,
+    gap: 12,
+  },
+  tideIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tideInfo: {
+    flex: 1,
+  },
+  tideType: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  tideTime: {
+    fontSize: 12,
+  },
+  tideHeight: {
+    fontSize: 16,
+    fontWeight: '700',
   },
   editConditionsNotice: {
     flexDirection: 'row',

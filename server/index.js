@@ -1202,6 +1202,35 @@ app.get('/api/dive-sites/:id/weather', authenticateToken, async (req, res) => {
     weatherData.forecastDate = requestedDate;
     weatherData.fetchedAt = new Date().toISOString();
     
+    if (isMarine && process.env.STORMGLASS_API_KEY) {
+      try {
+        const startDate = new Date(requestedDate);
+        startDate.setHours(0, 0, 0, 0);
+        const endDate = new Date(requestedDate);
+        endDate.setHours(23, 59, 59, 999);
+        
+        const tideUrl = `https://api.stormglass.io/v2/tide/extremes/point?lat=${lat}&lng=${lon}&start=${startDate.toISOString()}&end=${endDate.toISOString()}`;
+        const tideResponse = await fetch(tideUrl, {
+          headers: {
+            'Authorization': process.env.STORMGLASS_API_KEY
+          }
+        });
+        
+        if (tideResponse.ok) {
+          const tideData = await tideResponse.json();
+          if (tideData.data && tideData.data.length > 0) {
+            weatherData.tides = tideData.data.map(tide => ({
+              time: tide.time,
+              height: tide.height,
+              type: tide.type
+            }));
+          }
+        }
+      } catch (tideError) {
+        console.error('Tide fetch error:', tideError.message);
+      }
+    }
+    
     res.json(weatherData);
   } catch (error) {
     console.error('Weather fetch error:', error);
