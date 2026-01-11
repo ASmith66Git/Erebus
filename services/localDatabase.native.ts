@@ -56,13 +56,28 @@ export interface SyncMeta {
 }
 
 let db: SQLite.SQLiteDatabase | null = null;
+let dbInitFailed = false;
 
 export async function getDatabase(): Promise<SQLite.SQLiteDatabase> {
   if (db) return db;
+  if (dbInitFailed) {
+    throw new Error('Local database initialization previously failed. Please clear app data and restart.');
+  }
   
-  db = await SQLite.openDatabaseAsync('erebus_local.db');
-  await initializeLocalDatabase(db);
-  return db;
+  try {
+    db = await SQLite.openDatabaseAsync('erebus_local.db');
+    await initializeLocalDatabase(db);
+    return db;
+  } catch (error: any) {
+    dbInitFailed = true;
+    const errorMessage = error?.message || String(error);
+    if (errorMessage.includes('Path already points to a non-normal file') || 
+        errorMessage.includes("Couldn't create directory")) {
+      console.error('SQLite database path conflict. User needs to clear app data.');
+      throw new Error('Database storage conflict. Please go to Settings > Apps > Erebus > Clear Data, then reopen the app.');
+    }
+    throw error;
+  }
 }
 
 async function initializeLocalDatabase(database: SQLite.SQLiteDatabase): Promise<void> {
