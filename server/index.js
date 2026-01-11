@@ -2596,8 +2596,16 @@ if (process.env.NODE_ENV === 'production' || process.env.PORT) {
   });
 }
 
-initDatabase().then(() => {
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Erebus API server running on port ${PORT}`);
+initDatabase()
+  .then(() => {
+    console.log('Database initialized successfully');
+  })
+  .catch((err) => {
+    console.error('Database initialization failed:', err.message);
+    console.log('Server will start without database - API calls will fail until DB is available');
+  })
+  .finally(() => {
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`Erebus API server running on port ${PORT}`);
+    });
   });
-});
