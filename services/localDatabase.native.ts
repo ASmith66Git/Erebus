@@ -1,5 +1,4 @@
 import * as SQLite from 'expo-sqlite';
-import * as FileSystem from 'expo-file-system/legacy';
 import { Platform } from 'react-native';
 
 export interface LocalDiveSite {
@@ -60,8 +59,9 @@ let db: SQLite.SQLiteDatabase | null = null;
 let dbInitFailed = false;
 let dbInitAttempts = 0;
 const MAX_INIT_ATTEMPTS = 3;
-const DB_NAME = 'erebus_v3.db';
-const CUSTOM_DB_DIR = 'erebus_data';
+
+// Use simple database name - let expo-sqlite handle directory management (SDK 51+ best practice)
+const DB_NAME = 'erebus_v4.db';
 
 export function isDatabaseAvailable(): boolean {
   return db !== null && !dbInitFailed;
@@ -79,65 +79,6 @@ async function closeDatabase(): Promise<void> {
   }
 }
 
-async function ensureDatabaseDirectory(): Promise<string> {
-  const baseDir = FileSystem.documentDirectory;
-  if (!baseDir) {
-    throw new Error('Document directory not available');
-  }
-  
-  const dbDir = `${baseDir}${CUSTOM_DB_DIR}`;
-  const dbPath = `${dbDir}/${DB_NAME}`;
-  
-  try {
-    const dirInfo = await FileSystem.getInfoAsync(dbDir);
-    
-    if (dirInfo.exists && !dirInfo.isDirectory) {
-      console.log('Found non-directory file at database path, removing...');
-      await FileSystem.deleteAsync(dbDir, { idempotent: true });
-    }
-    
-    if (!dirInfo.exists || !dirInfo.isDirectory) {
-      console.log('Creating database directory:', dbDir);
-      await FileSystem.makeDirectoryAsync(dbDir, { intermediates: true });
-    }
-    
-    const fileInfo = await FileSystem.getInfoAsync(dbPath);
-    if (fileInfo.exists && fileInfo.isDirectory) {
-      console.log('Found directory at database file path, removing...');
-      await FileSystem.deleteAsync(dbPath, { idempotent: true });
-    }
-    
-    console.log('Database path ready:', dbPath);
-    return dbPath;
-  } catch (error: any) {
-    console.error('Error ensuring database directory:', error?.message);
-    throw error;
-  }
-}
-
-async function cleanupAndRetry(): Promise<boolean> {
-  try {
-    console.log('Attempting full database cleanup...');
-    await closeDatabase();
-    
-    const baseDir = FileSystem.documentDirectory;
-    if (baseDir) {
-      const dbDir = `${baseDir}${CUSTOM_DB_DIR}`;
-      try {
-        await FileSystem.deleteAsync(dbDir, { idempotent: true });
-        console.log('Deleted database directory');
-      } catch (e) {
-        console.warn('Could not delete database directory:', e);
-      }
-    }
-    
-    return true;
-  } catch (error: any) {
-    console.error('Cleanup failed:', error?.message);
-    return false;
-  }
-}
-
 export async function getDatabase(): Promise<SQLite.SQLiteDatabase> {
   if (db) return db;
   if (dbInitFailed && dbInitAttempts >= MAX_INIT_ATTEMPTS) {
@@ -147,32 +88,39 @@ export async function getDatabase(): Promise<SQLite.SQLiteDatabase> {
   dbInitAttempts++;
   
   try {
-    const dbPath = await ensureDatabaseDirectory();
+    console.log(`Attempting to open database: ${DB_NAME} (attempt ${dbInitAttempts})`);
     
-    const newDb = await SQLite.openDatabaseAsync(dbPath);
+    // Modern expo-sqlite API (SDK 51+): just pass the database name
+    // The library handles directory creation automatically in the default SQLite location
+    const newDb = await SQLite.openDatabaseAsync(DB_NAME);
+    
     if (!newDb) {
       throw new Error('Database open returned null');
     }
+    
+    console.log('Database opened, initializing tables...');
     await initializeLocalDatabase(newDb);
+    
     db = newDb;
     dbInitFailed = false;
-    console.log(`Database initialized successfully at: ${dbPath}`);
+    console.log(`Database initialized successfully: ${DB_NAME}`);
     return db;
   } catch (error: any) {
     const errorMessage = error?.message || String(error);
     console.error(`SQLite initialization attempt ${dbInitAttempts} failed:`, errorMessage);
+    console.error('Full error:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
     
     if (dbInitAttempts < MAX_INIT_ATTEMPTS) {
-      console.log('Attempting cleanup and retry...');
-      const cleanupSuccess = await cleanupAndRetry();
-      if (cleanupSuccess) {
-        return getDatabase();
-      }
+      console.log('Retrying database initialization...');
+      await closeDatabase();
+      // Small delay before retry
+      await new Promise(resolve => setTimeout(resolve, 500));
+      return getDatabase();
     }
     
     if (dbInitAttempts >= MAX_INIT_ATTEMPTS) {
       dbInitFailed = true;
-      console.error('Database initialization failed permanently, app will run in online-only mode');
+      console.error('Database initialization failed permanently after', MAX_INIT_ATTEMPTS, 'attempts. App will run in online-only mode.');
     }
     throw error;
   }
