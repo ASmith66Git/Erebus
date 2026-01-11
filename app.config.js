@@ -1,7 +1,7 @@
 module.exports = {
   expo: {
-    name: "expo-on-replit",
-    slug: "expo-on-replit",
+    name: "Erebus",
+    slug: "erebus-dive-app",
     version: "1.0.0",
     orientation: "portrait",
     icon: "./assets/images/icon.png",
