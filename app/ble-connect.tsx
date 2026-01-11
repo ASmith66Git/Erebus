@@ -14,6 +14,7 @@ import { Feather } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { getApiUrl } from '@/utils/apiConfig';
+import bleService from '@/services/bleService';
 
 interface BleDevice {
   id: string;
@@ -53,8 +54,7 @@ export default function BleConnectScreen() {
     }
 
     try {
-      const bleService = await import('@/services/bleService');
-      const initialized = await bleService.default.initialize();
+      const initialized = await bleService.initialize();
       setBleAvailable(initialized);
       
       if (!initialized) {
@@ -75,16 +75,14 @@ export default function BleConnectScreen() {
     setError(null);
 
     try {
-      const bleService = await import('@/services/bleService');
-      
-      const hasPermission = await bleService.default.requestPermissions();
+      const hasPermission = await bleService.requestPermissions();
       if (!hasPermission) {
         setError('Bluetooth permissions not granted. Please enable them in settings.');
         setIsScanning(false);
         return;
       }
 
-      await bleService.default.startScanning(null, (device: BleDevice) => {
+      await bleService.startScanning(null, (device: BleDevice) => {
         setDevices(prev => {
           const exists = prev.some(d => d.id === device.id);
           if (exists) return prev;
@@ -104,8 +102,7 @@ export default function BleConnectScreen() {
 
   const stopScanning = useCallback(async () => {
     try {
-      const bleService = await import('@/services/bleService');
-      bleService.default.stopScanning();
+      bleService.stopScanning();
     } catch (err) {
       console.error('Stop scanning error:', err);
     }
@@ -122,19 +119,15 @@ export default function BleConnectScreen() {
       message: `Connecting to ${device.name}...`,
     });
 
-    let bleServiceModule: typeof import('@/services/bleService') | null = null;
-
     try {
-      bleServiceModule = await import('@/services/bleService');
-      
-      const connected = await bleServiceModule.default.connect(device.id);
+      const connected = await bleService.connect(device.id);
       if (!connected) {
         throw new Error('Failed to connect to device');
       }
 
-      const shearwaterProtocol = await import('@/services/protocols/shearwaterProtocol');
+      const shearwaterProtocol = require('@/services/protocols/shearwaterProtocol').default;
       
-      const dives = await shearwaterProtocol.default.downloadDives((prog) => {
+      const dives = await shearwaterProtocol.downloadDives((prog: DownloadProgress) => {
         setProgress(prog);
       });
 
@@ -163,12 +156,10 @@ export default function BleConnectScreen() {
         message: err instanceof Error ? err.message : 'Download failed',
       });
     } finally {
-      if (bleServiceModule) {
-        try {
-          await bleServiceModule.default.disconnect();
-        } catch (disconnectErr) {
-          console.error('Error disconnecting:', disconnectErr);
-        }
+      try {
+        await bleService.disconnect();
+      } catch (disconnectErr) {
+        console.error('Error disconnecting:', disconnectErr);
       }
     }
   }, [token, router]);

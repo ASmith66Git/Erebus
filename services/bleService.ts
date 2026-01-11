@@ -3,6 +3,15 @@ import { Platform, PermissionsAndroid } from 'react-native';
 let BleManager: any = null;
 let bleManagerInstance: any = null;
 
+if (Platform.OS !== 'web') {
+  try {
+    const blePlx = require('react-native-ble-plx');
+    BleManager = blePlx.BleManager;
+  } catch (e) {
+    console.warn('react-native-ble-plx not available:', e);
+  }
+}
+
 export interface BleDevice {
   id: string;
   name: string | null;
@@ -41,12 +50,12 @@ class BleService {
       return false;
     }
 
-    try {
-      if (!BleManager) {
-        const blePlx = await import('react-native-ble-plx');
-        BleManager = blePlx.BleManager;
-      }
+    if (!BleManager) {
+      console.error('BLE library not loaded - react-native-ble-plx may not be installed properly');
+      return false;
+    }
 
+    try {
       if (!bleManagerInstance) {
         bleManagerInstance = new BleManager();
       }
