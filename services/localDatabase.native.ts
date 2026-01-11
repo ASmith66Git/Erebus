@@ -61,9 +61,23 @@ let dbInitAttempts = 0;
 let hasAttemptedCleanup = false;
 const MAX_INIT_ATTEMPTS = 3;
 const DB_NAME = 'erebus_local.db';
+const FALLBACK_DB_NAME = 'erebus_v2.db';
+let currentDbName = DB_NAME;
 
 export function isDatabaseAvailable(): boolean {
   return db !== null && !dbInitFailed;
+}
+
+async function closeDatabase(): Promise<void> {
+  if (db) {
+    try {
+      await db.closeAsync();
+      console.log('Database closed successfully');
+    } catch (closeError: any) {
+      console.warn('Error closing database:', closeError?.message);
+    }
+    db = null;
+  }
 }
 
 async function cleanupCorruptedDatabase(): Promise<boolean> {
@@ -73,13 +87,27 @@ async function cleanupCorruptedDatabase(): Promise<boolean> {
   hasAttemptedCleanup = true;
   
   try {
-    console.log('Attempting to cleanup corrupted database file...');
-    await SQLite.deleteDatabaseAsync(DB_NAME);
-    console.log('Database file cleanup successful');
-    return true;
+    console.log('Attempting to cleanup corrupted database...');
+    
+    await closeDatabase();
+    
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    try {
+      await SQLite.deleteDatabaseAsync(DB_NAME);
+      console.log('Primary database file cleanup successful');
+      return true;
+    } catch (deleteError: any) {
+      console.warn('Could not delete primary database:', deleteError?.message);
+      
+      console.log('Switching to fallback database name...');
+      currentDbName = FALLBACK_DB_NAME;
+      return true;
+    }
   } catch (cleanupError: any) {
     console.error('Database cleanup failed:', cleanupError?.message || cleanupError);
-    return false;
+    currentDbName = FALLBACK_DB_NAME;
+    return true;
   }
 }
 
@@ -92,13 +120,14 @@ export async function getDatabase(): Promise<SQLite.SQLiteDatabase> {
   dbInitAttempts++;
   
   try {
-    const newDb = await SQLite.openDatabaseAsync(DB_NAME);
+    const newDb = await SQLite.openDatabaseAsync(currentDbName);
     if (!newDb) {
       throw new Error('Database open returned null');
     }
     await initializeLocalDatabase(newDb);
     db = newDb;
     dbInitFailed = false;
+    console.log(`Database initialized successfully: ${currentDbName}`);
     return db;
   } catch (error: any) {
     const errorMessage = error?.message || String(error);
@@ -107,7 +136,8 @@ export async function getDatabase(): Promise<SQLite.SQLiteDatabase> {
     const isConflictError = errorMessage.includes('Path already points to a non-normal file') || 
         errorMessage.includes("Couldn't create directory") ||
         errorMessage.includes('unexpected file') ||
-        errorMessage.includes('NullPointerException');
+        errorMessage.includes('NullPointerException') ||
+        errorMessage.includes('Could not open database');
     
     if (isConflictError && !hasAttemptedCleanup) {
       console.log('Detected database conflict, attempting automatic cleanup...');
