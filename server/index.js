@@ -20,22 +20,9 @@ const upload = multer({
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Create pool with lazy connection - don't connect until first query
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  connectionTimeoutMillis: 10000,
-  idleTimeoutMillis: 30000,
-  max: 10,
 });
-
-// Handle pool errors gracefully without crashing
-pool.on('error', (err) => {
-  console.error('Database pool error:', err.message);
-});
-
-// Database readiness state
-let dbReady = false;
-let dbInitError = null;
 
 const diveLogPersistence = new DiveLogPersistenceService(pool);
 
@@ -85,52 +72,9 @@ async function getUncachableResendClient() {
 app.use(cors());
 app.use(express.json());
 
-// Health check endpoint for deployment - must be before all other routes
-app.get('/', (req, res) => {
-  res.type('text/plain').status(200).send('ok');
-});
 
-app.get('/api/health', (req, res) => {
-  res.type('text/plain').status(200).send('ok');
-});
-
-// Middleware to check database readiness for DB-dependent routes
-const requireDatabaseReady = (req, res, next) => {
-  // Always allow health checks
-  if (req.path === '/' || req.path === '/api/health') {
-    return next();
-  }
-  if (dbInitError) {
-    return res.status(500).json({ error: 'Database initialization failed' });
-  }
-  if (!dbReady) {
-    return res.status(503).json({ error: 'Service is warming up' });
-  }
-  return next();
-};
-
-// Apply database readiness check to all API routes
-app.use('/api', requireDatabaseReady);
-
-async function initDatabase(retryCount = 0) {
-  const maxRetries = 3;
-  dbReady = false;
-  dbInitError = null;
-  
-  let client;
-  try {
-    client = await pool.connect();
-  } catch (connectionError) {
-    console.error(`Database connection failed (attempt ${retryCount + 1}/${maxRetries}):`, connectionError.message);
-    if (retryCount < maxRetries - 1) {
-      console.log(`Retrying in 5 seconds...`);
-      setTimeout(() => initDatabase(retryCount + 1), 5000);
-      return;
-    }
-    dbInitError = connectionError;
-    console.error('All database connection attempts failed');
-    return;
-  }
+async function initDatabase() {
+  const client = await pool.connect();
   try {
     await client.query(`
       CREATE TABLE IF NOT EXISTS users (
@@ -2629,12 +2573,10 @@ app.delete('/api/dive-logs/:id', authenticateToken, async (req, res) => {
 const distPath = path.join(__dirname, '..', 'dist');
 
 if (process.env.NODE_ENV === 'production' || process.env.PORT) {
-  // Disable index serving so health check at / works
-  app.use(express.static(distPath, { index: false }));
+  app.use(express.static(distPath));
   
   app.use((req, res, next) => {
-    // Skip API routes, objects, and root health check
-    if (req.path === '/' || req.path.startsWith('/api/') || req.path.startsWith('/objects/')) {
+    if (req.path.startsWith('/api/') || req.path.startsWith('/objects/')) {
       return next();
     }
     if (req.method === 'GET') {
@@ -2653,14 +2595,14 @@ if (process.env.NODE_ENV === 'production' || process.env.PORT) {
   });
 }
 
-// Start server immediately for health checks
-const server = app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Erebus API server running on port ${PORT}`);
-});
-
-// Initialize database completely separately after server is listening
-setTimeout(() => {
-  initDatabase().catch((err) => {
-    console.error('Failed to initialize database:', err.message);
+initDatabase().then(() => {
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Erebus API server running on port ${PORT}`);
   });
-}, 100);
+}).catch((err) => {
+  console.error('Failed to initialize database:', err.message);
+  console.log('Starting server without database initialization...');
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Erebus API server running on port ${PORT} (DB init failed)`);
+  });
+});
