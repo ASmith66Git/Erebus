@@ -623,11 +623,17 @@ export default function DiveSiteDetailScreen() {
   };
 
   const handleImportFromUrl = async () => {
-    if (!token || !site?.id || !importUrl.trim()) return;
+    console.log('handleImportFromUrl called', { token: !!token, siteId: site?.id, importUrl });
+    if (!token || !site?.id || !importUrl.trim()) {
+      console.log('Early return - missing data');
+      return;
+    }
 
     setImportingUrl(true);
     try {
-      const response = await fetch(`${getApiUrl()}/api/dive-sites/${site.id}/images/import-url`, {
+      const apiUrl = `${getApiUrl()}/api/dive-sites/${site.id}/images/import-url`;
+      console.log('Calling API:', apiUrl);
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -639,6 +645,7 @@ export default function DiveSiteDetailScreen() {
         }),
       });
 
+      console.log('Response status:', response.status);
       if (response.ok) {
         fetchSiteImages();
         setShowUrlModal(false);
@@ -647,6 +654,7 @@ export default function DiveSiteDetailScreen() {
         Alert.alert('Success', 'Image imported successfully');
       } else {
         const error = await response.json();
+        console.log('Error response:', error);
         Alert.alert('Error', error.error || 'Failed to import image');
       }
     } catch (error) {
@@ -1409,8 +1417,17 @@ export default function DiveSiteDetailScreen() {
               )}
 
               <Pressable
-                onPress={handleImportFromUrl}
-                style={[styles.importButton, { backgroundColor: colors.primary, opacity: importUrl.trim() ? 1 : 0.5 }]}
+                onPress={() => {
+                  console.log('Import button pressed');
+                  handleImportFromUrl();
+                }}
+                style={({ pressed }) => [
+                  styles.importButton, 
+                  { 
+                    backgroundColor: colors.primary, 
+                    opacity: (!importUrl.trim() || importingUrl) ? 0.5 : pressed ? 0.7 : 1 
+                  }
+                ]}
                 disabled={!importUrl.trim() || importingUrl}
               >
                 {importingUrl ? (
