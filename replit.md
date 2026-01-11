@@ -20,6 +20,10 @@ The application is built using Expo React Native, targeting both iOS and Android
 
 ### Technical Implementations
 - **User Authentication**: JWT-based session management handles user signup, login, and logout.
+  - **Offline Authentication**: Sessions are cached securely (expo-secure-store on native, AsyncStorage on web) for 14-day offline validity.
+  - Users who have previously logged in can access the app without network connectivity.
+  - Background token refresh occurs when connectivity returns.
+  - First-time login requires internet connection; subsequent access works offline.
 - **Admin Panel**: Provides user management functionalities, accessible only to administrators.
 - **Dive Sites Management**:
     - Displays dive sites in a card-based list with search and filter capabilities.

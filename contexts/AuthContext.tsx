@@ -1,6 +1,16 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 import { getApiUrl } from '@/utils/apiConfig';
+
+let SecureStore: typeof import('expo-secure-store') | null = null;
+if (Platform.OS !== 'web') {
+  try {
+    SecureStore = require('expo-secure-store');
+  } catch (e) {
+    console.warn('expo-secure-store not available');
+  }
+}
 
 interface User {
   id: number;
@@ -10,12 +20,20 @@ interface User {
   role: 'user' | 'admin';
 }
 
+interface CachedSession {
+  token: string;
+  user: User;
+  cachedAt: number;
+  expiresAt: number;
+}
+
 interface AuthContextType {
   user: User | null;
   token: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
   isAdmin: boolean;
+  isOfflineSession: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   signup: (email: string, password: string, firstName?: string, lastName?: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
@@ -24,10 +42,53 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const OFFLINE_SESSION_VALIDITY_DAYS = 14;
+const SESSION_STORAGE_KEY = 'cached_session';
+const TOKEN_STORAGE_KEY = 'auth_token';
+
+async function secureGet(key: string): Promise<string | null> {
+  if (Platform.OS !== 'web' && SecureStore) {
+    try {
+      return await SecureStore.getItemAsync(key);
+    } catch (e) {
+      console.warn('SecureStore get failed, falling back to AsyncStorage');
+    }
+  }
+  return await AsyncStorage.getItem(key);
+}
+
+async function secureSet(key: string, value: string): Promise<void> {
+  if (Platform.OS !== 'web' && SecureStore) {
+    try {
+      await SecureStore.setItemAsync(key, value);
+      return;
+    } catch (e) {
+      console.warn('SecureStore set failed, falling back to AsyncStorage');
+    }
+  }
+  await AsyncStorage.setItem(key, value);
+}
+
+async function secureDelete(key: string): Promise<void> {
+  if (Platform.OS !== 'web' && SecureStore) {
+    try {
+      await SecureStore.deleteItemAsync(key);
+    } catch (e) {
+      console.warn('SecureStore delete failed');
+    }
+  }
+  try {
+    await AsyncStorage.removeItem(key);
+  } catch (e) {
+    console.warn('AsyncStorage remove failed');
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isOfflineSession, setIsOfflineSession] = useState(false);
 
   useEffect(() => {
     loadStoredAuth();
@@ -35,10 +96,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function loadStoredAuth() {
     try {
-      const storedToken = await AsyncStorage.getItem('auth_token');
-      if (storedToken) {
-        setToken(storedToken);
-        await fetchUser(storedToken);
+      const cachedSessionStr = await secureGet(SESSION_STORAGE_KEY);
+      
+      if (cachedSessionStr) {
+        const cachedSession: CachedSession = JSON.parse(cachedSessionStr);
+        const now = Date.now();
+        const offlineValidityMs = OFFLINE_SESSION_VALIDITY_DAYS * 24 * 60 * 60 * 1000;
+        
+        if (now - cachedSession.cachedAt < offlineValidityMs) {
+          setToken(cachedSession.token);
+          setUser(cachedSession.user);
+          setIsOfflineSession(true);
+          
+          refreshUserInBackground(cachedSession.token);
+        } else {
+          await clearSession();
+        }
+      } else {
+        const storedToken = await secureGet(TOKEN_STORAGE_KEY);
+        if (storedToken) {
+          setToken(storedToken);
+          await fetchUser(storedToken);
+        }
       }
     } catch (error) {
       console.error('Error loading auth:', error);
@@ -47,17 +126,58 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  async function fetchUser(authToken: string) {
+  async function refreshUserInBackground(authToken: string) {
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      
       const response = await fetch(`${getApiUrl()}/api/auth/me`, {
         headers: {
           'Authorization': `Bearer ${authToken}`,
         },
+        signal: controller.signal,
       });
+      
+      clearTimeout(timeoutId);
 
       if (response.ok) {
         const userData = await response.json();
         setUser(userData);
+        setIsOfflineSession(false);
+        
+        await cacheSession(authToken, userData);
+      } else if (response.status === 401) {
+        await clearSession();
+        setToken(null);
+        setUser(null);
+      }
+    } catch (error: any) {
+      if (error.name !== 'AbortError') {
+        console.log('Background refresh failed (offline mode):', error.message);
+      }
+    }
+  }
+
+  async function fetchUser(authToken: string) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      
+      const response = await fetch(`${getApiUrl()}/api/auth/me`, {
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+        },
+        signal: controller.signal,
+      });
+      
+      clearTimeout(timeoutId);
+
+      if (response.ok) {
+        const userData = await response.json();
+        setUser(userData);
+        setIsOfflineSession(false);
+        
+        await cacheSession(authToken, userData);
       } else {
         await logout();
       }
@@ -66,29 +186,57 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  async function cacheSession(authToken: string, userData: User) {
+    const now = Date.now();
+    const session: CachedSession = {
+      token: authToken,
+      user: userData,
+      cachedAt: now,
+      expiresAt: now + (OFFLINE_SESSION_VALIDITY_DAYS * 24 * 60 * 60 * 1000),
+    };
+    
+    await secureSet(SESSION_STORAGE_KEY, JSON.stringify(session));
+    await secureSet(TOKEN_STORAGE_KEY, authToken);
+  }
+
+  async function clearSession() {
+    await secureDelete(SESSION_STORAGE_KEY);
+    await secureDelete(TOKEN_STORAGE_KEY);
+  }
+
   async function login(email: string, password: string): Promise<{ success: boolean; error?: string }> {
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
+      
       const response = await fetch(`${getApiUrl()}/api/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ email, password }),
+        signal: controller.signal,
       });
+      
+      clearTimeout(timeoutId);
 
       const data = await response.json();
 
       if (response.ok) {
-        await AsyncStorage.setItem('auth_token', data.token);
+        await cacheSession(data.token, data.user);
         setToken(data.token);
         setUser(data.user);
+        setIsOfflineSession(false);
         return { success: true };
       } else {
         return { success: false, error: data.error || 'Login failed' };
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Login error:', error);
-      return { success: false, error: 'Network error. Please try again.' };
+      if (error.name === 'AbortError') {
+        return { success: false, error: 'Connection timed out. Please check your internet connection.' };
+      }
+      return { success: false, error: 'No network connection. Please connect to the internet to log in for the first time.' };
     }
   }
 
@@ -99,45 +247,56 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     lastName?: string
   ): Promise<{ success: boolean; error?: string }> {
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
+      
       const response = await fetch(`${getApiUrl()}/api/auth/signup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ email, password, firstName, lastName }),
+        signal: controller.signal,
       });
+      
+      clearTimeout(timeoutId);
 
       const data = await response.json();
 
       if (response.ok) {
-        await AsyncStorage.setItem('auth_token', data.token);
+        await cacheSession(data.token, data.user);
         setToken(data.token);
         setUser(data.user);
+        setIsOfflineSession(false);
         return { success: true };
       } else {
         return { success: false, error: data.error || 'Signup failed' };
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Signup error:', error);
-      return { success: false, error: 'Network error. Please try again.' };
+      if (error.name === 'AbortError') {
+        return { success: false, error: 'Connection timed out. Please check your internet connection.' };
+      }
+      return { success: false, error: 'No network connection. Please connect to the internet to create an account.' };
     }
   }
 
   async function logout() {
     try {
-      await AsyncStorage.removeItem('auth_token');
+      await clearSession();
       setToken(null);
       setUser(null);
+      setIsOfflineSession(false);
     } catch (error) {
       console.error('Logout error:', error);
     }
   }
 
-  async function refreshUser() {
+  const refreshUser = useCallback(async () => {
     if (token) {
       await fetchUser(token);
     }
-  }
+  }, [token]);
 
   const value: AuthContextType = {
     user,
@@ -145,6 +304,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isLoading,
     isAuthenticated: !!user,
     isAdmin: user?.role === 'admin',
+    isOfflineSession,
     login,
     signup,
     logout,
