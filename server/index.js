@@ -24,6 +24,10 @@ const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
 });
 
+// Database readiness state
+let dbReady = false;
+let dbInitError = null;
+
 const diveLogPersistence = new DiveLogPersistenceService(pool);
 
 const JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(64).toString('hex');
@@ -81,7 +85,27 @@ app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'ok' });
 });
 
+// Middleware to check database readiness for DB-dependent routes
+const requireDatabaseReady = (req, res, next) => {
+  // Always allow health checks
+  if (req.path === '/' || req.path === '/api/health') {
+    return next();
+  }
+  if (dbInitError) {
+    return res.status(500).json({ error: 'Database initialization failed' });
+  }
+  if (!dbReady) {
+    return res.status(503).json({ error: 'Service is warming up' });
+  }
+  return next();
+};
+
+// Apply database readiness check to all API routes
+app.use('/api', requireDatabaseReady);
+
 async function initDatabase() {
+  dbReady = false;
+  dbInitError = null;
   const client = await pool.connect();
   try {
     await client.query(`
@@ -274,8 +298,10 @@ async function initDatabase() {
     }
     
     console.log('Database initialized successfully');
+    dbReady = true;
   } catch (error) {
     console.error('Database initialization error:', error);
+    dbInitError = error;
   } finally {
     client.release();
   }
@@ -2606,12 +2632,10 @@ if (process.env.NODE_ENV === 'production' || process.env.PORT) {
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Erebus API server running on port ${PORT}`);
   
-  // Initialize database asynchronously after server starts
-  initDatabase()
-    .then(() => {
-      console.log('Database initialized successfully');
-    })
-    .catch((err) => {
+  // Use setImmediate to fully decouple database initialization from server startup
+  setImmediate(() => {
+    initDatabase().catch((err) => {
       console.error('Failed to initialize database:', err.message);
     });
+  });
 });
