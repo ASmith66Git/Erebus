@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { getApiUrl } from '@/utils/apiConfig';
+import biometricService from '@/services/biometricService';
 
 interface Manufacturer {
   id: string;
@@ -30,7 +31,7 @@ interface DiveComputerCapabilities {
 
 export default function ProfileScreen() {
   const { colors, isDark, toggleTheme } = useTheme();
-  const { user, logout, isAdmin, token } = useAuth();
+  const { user, logout, isAdmin, token, biometricCapability, isBiometricEnabled, setBiometricEnabled } = useAuth();
   
   const [manufacturers, setManufacturers] = useState<Manufacturer[]>([]);
   const [models, setModels] = useState<DiveComputerModel[]>([]);
@@ -204,6 +205,34 @@ export default function ProfileScreen() {
             thumbColor="#FFFFFF"
           />
         </View>
+        
+        {biometricCapability?.isSupported && biometricCapability?.isEnrolled && Platform.OS !== 'web' && (
+          <View style={styles.themeRow}>
+            <View style={styles.themeLeft}>
+              <View style={[styles.menuIcon, { backgroundColor: colors.primary + '20' }]}>
+                <Ionicons 
+                  name={biometricCapability?.biometricTypeName?.includes('Face') ? 'scan-outline' : 'finger-print-outline'} 
+                  size={20} 
+                  color={colors.primary} 
+                />
+              </View>
+              <View>
+                <Text style={[styles.menuTitle, { color: colors.text }]}>
+                  {biometricCapability?.biometricTypeName || 'Biometric'} Login
+                </Text>
+                <Text style={[styles.menuDescription, { color: colors.textSecondary }]}>
+                  {isBiometricEnabled ? 'Quick login enabled' : 'Use biometrics to login'}
+                </Text>
+              </View>
+            </View>
+            <Switch
+              value={isBiometricEnabled}
+              onValueChange={setBiometricEnabled}
+              trackColor={{ false: colors.border, true: colors.primary }}
+              thumbColor="#FFFFFF"
+            />
+          </View>
+        )}
       </View>
 
       <View style={[styles.section, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>

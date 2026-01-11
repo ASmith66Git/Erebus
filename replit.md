@@ -1,7 +1,7 @@
 # Erebus - Dive Management App
 
 ## Overview
-Erebus is a cross-platform mobile application built with Expo React Native for Android and iOS, designed to serve as a comprehensive dive management tool. It aims to provide divers with features for logging dives, managing dive sites, and accessing relevant information. The project envisions becoming a leading mobile solution for the global diving community, offering a robust, user-friendly, and feature-rich experience. Key capabilities include user authentication, dark/light theme support, an intuitive ocean-blue UI, and an administrative panel for user oversight.
+Erebus is a cross-platform mobile application for Android and iOS, built with Expo React Native, designed as a comprehensive dive management tool. It enables divers to log dives, manage dive sites, and access relevant information. The project aims to be a leading mobile solution for the global diving community by offering a robust, user-friendly, and feature-rich experience. Key features include user authentication, dark/light theme support, an intuitive ocean-blue UI, and an administrative panel for user oversight.
 
 ## User Preferences
 I prefer detailed explanations and clear communication. I want iterative development where I am consulted before major architectural or feature changes are implemented. I prioritize clean, readable code and robust error handling.
@@ -10,174 +10,43 @@ I prefer detailed explanations and clear communication. I want iterative develop
 The application is built using Expo React Native, targeting both iOS and Android platforms.
 
 ### UI/UX Decisions
-- **Color Scheme**: Inspired by nammu-tech.com, utilizing white, black, and a primary red (`#D22F00`).
+- **Color Scheme**: Uses white, black, and a primary red (`#D22F00`).
 - **Theming**: Supports both dark (`#000000` background) and light (`#FFFFFF` background) themes.
-- **Navigation**:
-    - A root `Stack` navigator manages the authentication flow.
-    - A `Drawer` navigator (using `expo-router/drawer` with `@react-navigation/drawer`) provides a custom side menu with native gestures and animations.
-    - A `Tab` navigator is nested within the drawer for primary app screens (Home, Explore, Profile).
-- **Design Patterns**: Employs sticky headers, hamburger menus, and card-based layouts for content display.
+- **Navigation**: Features a root `Stack` navigator for authentication, a `Drawer` navigator for a custom side menu, and a `Tab` navigator for primary app screens (Home, Explore, Profile).
+- **Design Patterns**: Employs sticky headers, hamburger menus, and card-based layouts.
 
 ### Technical Implementations
-- **User Authentication**: JWT-based session management handles user signup, login, and logout.
-  - **Offline Authentication**: Sessions are cached securely (expo-secure-store on native, AsyncStorage on web) for 14-day offline validity.
-  - Users who have previously logged in can access the app without network connectivity.
-  - Background token refresh occurs when connectivity returns.
-  - First-time login requires internet connection; subsequent access works offline.
-- **Admin Panel**: Provides user management functionalities, accessible only to administrators.
-- **Dive Sites Management**:
-    - Displays dive sites in a card-based list with search and filter capabilities.
-    - Features a tabbed detail view for each dive site (Overview, Conditions, Media, Notes).
-    - Supports inline editing with save/cancel functionality.
-    - Integrates Wikipedia for wreck site information.
-    - Implements a soft-delete (archive) pattern for dive sites.
-- **Offline Capabilities**:
-    - Utilizes `expo-sqlite` for local data storage, mirroring server tables.
-    - Implements an offline-first synchronization flow with incremental updates and pending mutation queues.
-    - Detects network connectivity using `@react-native-community/netinfo`.
-    - Automatically syncs data on reconnection and app resume.
-- **In-App Debugging**:
-    - Incorporates an error logging service with persistent storage using `AsyncStorage`.
-    - Automatically captures `console.error`, `console.warn`, uncaught errors, and unhandled promise rejections.
-    - Provides an in-app debug log screen (admin-only) with filtering and sharing options.
+- **User Authentication**: JWT-based session management with secure offline caching (14-day validity) and background token refresh.
+- **Admin Panel**: Provides user management functionalities for administrators.
+- **Dive Sites Management**: Offers card-based listing with search/filter, a tabbed detail view, inline editing, Wikipedia integration for wreck sites, and soft-delete functionality.
+- **Offline Capabilities**: Uses `expo-sqlite` for local data storage and implements an offline-first synchronization flow with incremental updates and pending mutation queues. Network connectivity is detected via `@react-native-community/netinfo`, and data syncs automatically on reconnection.
+- **In-App Debugging**: Incorporates an error logging service with persistent storage using `AsyncStorage`, capturing `console.error`, `console.warn`, uncaught errors, and unhandled promise rejections, accessible via an admin-only debug log screen.
+- **Dive Log Management**: Allows logging dives, importing from UDDF, Subsurface XML, and CSV, and tracking personal statistics.
+- **Dive Log Detail View**: A 5-tab interface (Dive, Profile, Computer, Notes, Team) provides comprehensive dive data, including interactive SVG charts for depth/temperature profiles and gas pressure gauges.
+- **Bluetooth Dive Computer Sync**: Direct BLE connectivity to dive computers (e.g., Shearwater, Suunto, Mares) for automated dive log downloads. Requires EAS Build for native app. Includes a dive computer catalog.
+- **Push Notifications** (Android): Uses Expo Notifications with FCM for various channels (Default, Dive Reminders, Sync Updates) and supports local scheduled notifications. Requires EAS Build.
+- **Biometric Authentication** (Android/iOS): Integrates `expo-local-authentication` for fingerprint and Face ID support, offering biometric login after initial password authentication.
 
 ### Feature Specifications
-- **User Management**: Admin users can view, block/unblock, change roles, and reset passwords for other users.
-- **Dive Site Details**: Includes comprehensive fields such as site type, water type, difficulty, access notes, hazards, and best season.
-- **Dive Site Images**: Supports image uploads to Replit Object Storage via presigned URLs, primary image selection, Pexels stock photo integration, image import from URL, and "Search Web" button for finding photos via Google Images.
-- **Wreck Site Specifics**: Dedicated fields and a conditional "Wreck" tab for detailed wreck information and external resource links.
-- **Weather Forecast**: Integrates 7-day weather forecasts, including marine and atmospheric data, based on dive site location.
-- **Dive Log Management**: Allows users to log dives, import from various formats (UDDF, Subsurface XML, CSV), and track personal dive statistics.
-- **Dive Log Detail View**: Comprehensive 5-tab interface matching Shearwater Perdix PWA functionality:
-  - **Dive Tab**: Dive site, surface conditions, weather, depth, duration, temperature, gas pressures with SVG circular gauges, dive problems (thermal comfort, workload, equipment malfunctions, decompression symptoms).
-  - **Profile Tab**: Interactive SVG multi-line chart displaying depth, temperature, NDL, and GF99 with toggleable data series and touch-based scrubber for viewing values at any point.
-  - **Computer Tab**: Dive computer metadata (model, serial, manufacturer), dive number, surface interval, surface pressure, dive mode, start/end times, and gas mixes.
-  - **Notes Tab**: Dive notes and skills practiced checkboxes (bailout, gas switch, SMB launch, etc.).
-  - **Team Tab**: Buddy/team member information.
-- **Bluetooth Dive Computer Sync**: Direct BLE connectivity to dive computers (Shearwater, Suunto, Mares) for automated dive log downloads.
-  - Requires EAS Build for native app (not available in Expo Go or web).
-  - Dive computer catalog with 140+ models and BLE capability flags.
-  - User can select their dive computer in Profile settings.
-  - App shows appropriate import method (BLE for supported models, file upload for others).
-- **Push Notifications** (Android):
-  - Uses Expo Notifications with Firebase Cloud Messaging (FCM).
-  - Automatic token registration on login and token cleanup on logout.
-  - Three notification channels: Default, Dive Reminders, Sync Updates.
-  - Supports local scheduled notifications for dive reminders.
-  - Requires EAS Build for native push notification support.
+- **User Management**: Admin users can view, block/unblock, change roles, and reset passwords.
+- **Dive Site Details**: Comprehensive fields including site type, water type, difficulty, access notes, hazards, and best season.
+- **Dive Site Images**: Supports image uploads to Replit Object Storage via presigned URLs, primary image selection, Pexels integration, URL import, and "Search Web" for Google Images.
+- **Wreck Site Specifics**: Dedicated fields and a conditional "Wreck" tab.
+- **Weather Forecast**: Integrates 7-day marine and atmospheric weather forecasts based on dive site location using Open-Meteo API.
 
 ## External Dependencies
-- **PostgreSQL**: Primary database for storing user data, dive sites, images, and dive logs.
-- **Express.js**: Backend API server for handling requests.
-- **Expo React Native**: Framework for building the mobile application.
-- **@react-navigation/drawer**: Used for native drawer navigation gestures and animations.
-- **Replit Object Storage**: For storing and managing uploaded dive site images.
-- **Pexels API**: For searching and integrating stock photos (requires `PEXELS_API_KEY`).
-- **Wikipedia API**: For fetching information about wreck dive sites.
-- **Open-Meteo API**: For retrieving 7-day weather forecasts (marine and atmospheric).
-- **expo-sqlite**: For local SQLite database storage and offline data management.
-- **@react-native-community/netinfo**: For detecting network connectivity status.
-- **expo-location**: For accessing user's location (e.g., "Use My Location" feature).
-- **react-native-maps**: For displaying interactive maps and selecting coordinates on native platforms.
-- **Google Maps JavaScript API**: For displaying interactive maps and Places Autocomplete search on the web.
-- **bcrypt**: For hashing user passwords.
-- **react-native-svg**: For rendering SVG graphics (dive profile charts, gas pressure gauges).
-
-## Database Schema (Enhanced Dive Log Tables)
-
-### Core Dive Log Tables
-- **dive_logs**: Main dive log entries with header data, device info, and legacy JSON fields for backwards compatibility.
-- **dive_computer_catalog**: 90+ dive computer models with manufacturer, family, protocol, BLE/AI capability flags, and supported sample fields.
-
-### Detailed Dive Data Tables (V2 Import Schema)
-- **dive_log_samples**: Time-series sample data with JSONB `metrics` column for flexible storage of depth, temperature, NDL, GF99, ceiling, TTS, PPO2, SAC, heartrate, CNS, OTU, tank pressure, and setpoint.
-- **dive_log_gases**: Gas mix definitions with O2/He/N2 percentages, diluent/bailout flags, tank info, and transmitter serial.
-- **dive_log_events**: Dive events including alarms, bookmarks, gas switches, violations, and user markers with timestamp and payload.
-- **dive_log_tank_pressures**: AI transmitter time-series data for multi-tank pressure tracking.
-- **dive_log_settings**: Dive computer settings captured at dive time (deco model, GF low/high, conservatism, PPO2 limits, firmware version, battery status).
-- **dive_log_imports**: Import metadata including source type/format, parser version, raw data hash for reproducibility, and unmapped fields.
-
-### Database Indexes
-- GIN index on `dive_log_samples.metrics` for efficient JSONB queries.
-- Composite index on `(dive_log_id, sample_time_seconds)` for fast time-series retrieval.
-
-## API Endpoints (Dive Log Import V2)
-- `POST /api/dive-logs/import/v2`: Enhanced import endpoint using strategy-based parser with full sample/event/gas extraction.
-- `GET /api/dive-logs/:id/detailed`: Returns complete dive data including samples, gases, events, tank pressures, settings, and import metadata.
-- `GET /api/dive-computers/catalog`: Lists dive computer models with optional manufacturer and BLE filters.
-- `GET /api/dive-computers/catalog/manufacturers`: Returns distinct manufacturers with model counts.
-- `POST /api/dive-logs/:id/migrate`: Migrates legacy dive logs to new detailed table structure.
-
-## Import Parser Architecture (V2)
-- **FormatDetector**: Automatically detects UDDF, Subsurface XML, CSV, or binary formats.
-- **BaseAdapter**: Abstract base class defining canonical DiveImportDTO output structure.
-- **UDDFAdapter**: Parses UDDF 3.x format with sample and gas extraction.
-- **SubsurfaceAdapter**: Parses Subsurface XML with full sample metrics (NDL, GF99, ceiling, tank pressures, events).
-- **CSVAdapter**: Flexible CSV import with column mapping for various dive computer exports.
-- **DiveImportDTO**: Canonical structure with header, samples, gases, events, tank_pressures, settings, and import_metadata sections.
-
-## BLE Dive Computer Protocol Architecture
-
-### Overview
-Custom JavaScript BLE protocol implementations for direct Bluetooth download from modern dive computers. Built as a modular, extensible system that can be expanded to support additional manufacturers.
-
-### Protocol Stack
-```
-services/protocols/
-├── index.ts              # Protocol registry and factory
-├── slipCodec.ts          # SLIP framing encoder/decoder (shared)
-├── baseProtocol.ts       # Abstract base class with common BLE operations
-├── shearwaterProtocol.ts # Shearwater Petrel/Perdix/Teric implementation
-├── bleImportAdapter.ts   # Converts raw BLE data to DiveImportDTO
-└── (future) suuntoProtocol.ts, maresProtocol.ts
-```
-
-### Shearwater Protocol Implementation
-- **Service UUID**: `fe25c237-0ece-443c-b0aa-e02033e7029d`
-- **Characteristic UUID**: `27b7570b-359e-45a3-91bb-cf7e70049bd2`
-- **Framing**: SLIP (Serial Line Internet Protocol) with BLE chunking
-- **Compression**: 9-bit RLE + 32-byte XOR decompression
-- **Commands**:
-  - `RDBI (0x22)`: Read device info (serial, firmware, hardware)
-  - `Download Init (0x35)`: Start memory download with address/size
-  - `Download Block (0x36)`: Request next data block
-  - `Download Quit (0x37)`: End download session
-- **Supported Models**: Petrel, Petrel 2/3, Perdix, Perdix AI, Perdix 2, Teric, Nerd 2, Peregrine
-
-### Code Reuse Strategy
-- `BaseDiveComputerProtocol`: Abstract class with shared BLE operations (~60% reuse)
-  - Device scanning, connection, packet buffering
-  - SLIP encoding/decoding via shared codec
-  - Progress callbacks and cancellation
-- Vendor-specific protocols extend base class (~200-300 lines each)
-- All protocols output canonical `RawDiveData` structure
-- `bleImportAdapter` converts to `DiveImportDTO` for V2 import pipeline
-
-### Requirements
-- **EAS Build Required**: Native BLE not available in Expo Go or web
-- **iOS**: BLE only (Apple platform restriction)
-- **Android**: BLE and Bluetooth Classic supported
-- **Permissions**: Bluetooth, Location (Android)
-
-### Integration with V2 Import Pipeline
-1. BLE protocol downloads raw dive data from device
-2. Protocol parses binary data into `RawDiveData` structure
-3. `bleImportAdapter` converts to `DiveImportDTO`
-4. Same persistence layer saves to database tables
-
-## Recent Changes
-- 2026-01-11: Added push notification support for Android with FCM integration, automatic token management, and notification channels.
-- 2026-01-11: Fixed Bluetooth button to navigate to BLE connect screen on native builds.
-- 2026-01-11: Added automatic SQLite database cleanup for Android "unexpected file" errors.
-- 2026-01-11: Added image import from URL feature - download images from any URL and store in object storage.
-- 2026-01-11: Added "Search Web" button to open Google Images for finding dive site photos.
-- 2026-01-11: Redesigned Media tab with improved button layout (Search Web, Import URL, Upload, and separate Pexels link).
-- 2026-01-10: Added interactive scrubber to dive profile chart - touch and drag to see values at any point.
-- 2026-01-10: Created dive log edit page with comprehensive field editing (notes, rating, buddy, conditions, skills, equipment issues).
-- 2026-01-10: Fixed UDDF parser to extract calculatedpo2, nodecotime (NDL), batterychargecondition, cns, otu, setpo2 fields.
-- 2026-01-10: Implemented JavaScript Shearwater BLE protocol with SLIP framing and RLE/XOR decompression.
-- 2026-01-10: Created modular BLE protocol architecture with base class for vendor reuse.
-- 2026-01-10: Added BLE import adapter to integrate with V2 import pipeline.
-- 2026-01-10: Implemented V2 import parser with strategy pattern and 6 new database tables for detailed dive data storage.
-- 2026-01-10: Added dive computer catalog with 90 models and capability flags.
-- 2026-01-10: Enhanced legacy JSON fields to include full sample metrics for backwards compatibility.
+- **PostgreSQL**: Primary database.
+- **Express.js**: Backend API server.
+- **Expo React Native**: Mobile application framework.
+- **@react-navigation/drawer**: For drawer navigation.
+- **Replit Object Storage**: For dive site image storage.
+- **Pexels API**: For stock photos.
+- **Wikipedia API**: For wreck site information.
+- **Open-Meteo API**: For weather forecasts.
+- **expo-sqlite**: For local SQLite database.
+- **@react-native-community/netinfo**: For network connectivity detection.
+- **expo-location**: For user location access.
+- **react-native-maps**: For interactive maps on native platforms.
+- **Google Maps JavaScript API**: For maps and Places Autocomplete on the web.
+- **bcrypt**: For password hashing.
+- **react-native-svg**: For rendering SVG graphics.

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -16,11 +16,32 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { getApiUrl } from '@/utils/apiConfig';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function LoginScreen() {
   const { colors, isDark } = useTheme();
-  const { login } = useAuth();
+  const { login, loginWithBiometric, biometricCapability, isBiometricEnabled } = useAuth();
   const router = useRouter();
+  const [hasCachedSession, setHasCachedSession] = useState(false);
+  const [biometricLoading, setBiometricLoading] = useState(false);
+
+  useEffect(() => {
+    checkCachedSession();
+  }, []);
+
+  const checkCachedSession = async () => {
+    try {
+      const session = await AsyncStorage.getItem('cached_session');
+      setHasCachedSession(!!session);
+    } catch (error) {
+      setHasCachedSession(false);
+    }
+  };
+
+  const canUseBiometric = biometricCapability?.isSupported && 
+    biometricCapability?.isEnrolled && 
+    isBiometricEnabled && 
+    hasCachedSession;
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -53,6 +74,19 @@ export default function LoginScreen() {
 
     if (!result.success) {
       setError(result.error || 'Login failed');
+    }
+  };
+
+  const handleBiometricLogin = async () => {
+    setError('');
+    setBiometricLoading(true);
+
+    const result = await loginWithBiometric();
+
+    setBiometricLoading(false);
+
+    if (!result.success) {
+      setError(result.error || 'Biometric login failed');
     }
   };
 
@@ -182,6 +216,29 @@ export default function LoginScreen() {
               <Text style={styles.loginButtonText}>Sign In</Text>
             )}
           </Pressable>
+
+          {canUseBiometric && (
+            <Pressable
+              style={[styles.biometricButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
+              onPress={handleBiometricLogin}
+              disabled={biometricLoading}
+            >
+              {biometricLoading ? (
+                <ActivityIndicator color={colors.primary} />
+              ) : (
+                <>
+                  <Ionicons 
+                    name={biometricCapability?.biometricTypeName?.includes('Face') ? 'scan-outline' : 'finger-print-outline'} 
+                    size={24} 
+                    color={colors.primary} 
+                  />
+                  <Text style={[styles.biometricButtonText, { color: colors.text }]}>
+                    Login with {biometricCapability?.biometricTypeName || 'Biometric'}
+                  </Text>
+                </>
+              )}
+            </Pressable>
+          )}
 
           <View style={styles.signupContainer}>
             <Text style={[styles.signupText, { color: colors.textSecondary }]}>
@@ -370,6 +427,20 @@ const styles = StyleSheet.create({
   },
   loginButtonText: {
     color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  biometricButton: {
+    height: 52,
+    borderRadius: 12,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 12,
+    borderWidth: 1,
+    gap: 8,
+  },
+  biometricButtonText: {
     fontSize: 16,
     fontWeight: '600',
   },

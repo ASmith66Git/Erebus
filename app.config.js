@@ -62,6 +62,12 @@ module.exports = {
           icon: "./assets/images/notification-icon.png",
           color: "#D22F00"
         }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          faceIDPermission: "Allow Erebus to use Face ID for quick login."
+        }
       ]
     ],
     experiments: {

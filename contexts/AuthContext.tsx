@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import { getApiUrl } from '@/utils/apiConfig';
 import notificationService from '@/services/notificationService';
+import biometricService, { BiometricCapability } from '@/services/biometricService';
 
 let SecureStore: typeof import('expo-secure-store') | null = null;
 if (Platform.OS !== 'web') {
@@ -35,10 +36,15 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isAdmin: boolean;
   isOfflineSession: boolean;
+  biometricCapability: BiometricCapability | null;
+  isBiometricEnabled: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  loginWithBiometric: () => Promise<{ success: boolean; error?: string }>;
   signup: (email: string, password: string, firstName?: string, lastName?: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
+  setBiometricEnabled: (enabled: boolean) => Promise<void>;
+  checkBiometricCapability: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -90,9 +96,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isOfflineSession, setIsOfflineSession] = useState(false);
+  const [biometricCapability, setBiometricCapability] = useState<BiometricCapability | null>(null);
+  const [isBiometricEnabled, setIsBiometricEnabled] = useState(false);
 
   useEffect(() => {
     loadStoredAuth();
+    checkBiometricCapability();
   }, []);
 
   async function loadStoredAuth() {
@@ -257,6 +266,58 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  async function checkBiometricCapability() {
+    try {
+      const capability = await biometricService.checkCapability();
+      setBiometricCapability(capability);
+      
+      const enabled = await biometricService.isBiometricEnabled();
+      setIsBiometricEnabled(enabled);
+    } catch (error) {
+      console.log('Biometric capability check failed:', error);
+    }
+  }
+
+  async function handleSetBiometricEnabled(enabled: boolean) {
+    await biometricService.setBiometricEnabled(enabled);
+    setIsBiometricEnabled(enabled);
+  }
+
+  async function loginWithBiometric(): Promise<{ success: boolean; error?: string }> {
+    try {
+      const cachedSessionStr = await secureGet(SESSION_STORAGE_KEY);
+      
+      if (!cachedSessionStr) {
+        return { success: false, error: 'No saved session. Please log in with your password first.' };
+      }
+
+      const cachedSession: CachedSession = JSON.parse(cachedSessionStr);
+      const now = Date.now();
+      const offlineValidityMs = OFFLINE_SESSION_VALIDITY_DAYS * 24 * 60 * 60 * 1000;
+      
+      if (now - cachedSession.cachedAt >= offlineValidityMs) {
+        return { success: false, error: 'Session expired. Please log in with your password.' };
+      }
+
+      const authResult = await biometricService.authenticate('Authenticate to login');
+      
+      if (!authResult.success) {
+        return { success: false, error: authResult.error || 'Authentication failed' };
+      }
+
+      setToken(cachedSession.token);
+      setUser(cachedSession.user);
+      setIsOfflineSession(true);
+      
+      refreshUserInBackground(cachedSession.token);
+      
+      return { success: true };
+    } catch (error: any) {
+      console.error('Biometric login error:', error);
+      return { success: false, error: error.message || 'Biometric authentication failed' };
+    }
+  }
+
   async function signup(
     email: string, 
     password: string, 
@@ -326,10 +387,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isAuthenticated: !!user,
     isAdmin: user?.role === 'admin',
     isOfflineSession,
+    biometricCapability,
+    isBiometricEnabled,
     login,
+    loginWithBiometric,
     signup,
     logout,
     refreshUser,
+    setBiometricEnabled: handleSetBiometricEnabled,
+    checkBiometricCapability,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
