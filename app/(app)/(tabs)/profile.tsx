@@ -233,6 +233,15 @@ export default function ProfileScreen() {
             />
           </View>
         )}
+        
+        {Platform.OS === 'web' && (
+          <View style={styles.mobileOnlyNote}>
+            <Ionicons name="finger-print-outline" size={16} color={colors.textSecondary} />
+            <Text style={[styles.mobileOnlyText, { color: colors.textSecondary }]}>
+              Biometric login (fingerprint/Face ID) is available in the mobile app
+            </Text>
+          </View>
+        )}
       </View>
 
       <View style={[styles.section, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
@@ -507,6 +516,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+  },
+  mobileOnlyNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(128, 128, 128, 0.2)',
+  },
+  mobileOnlyText: {
+    fontSize: 13,
+    fontStyle: 'italic',
+    flex: 1,
   },
   menuRow: {
     flexDirection: 'row',
