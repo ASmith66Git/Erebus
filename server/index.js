@@ -81,11 +81,11 @@ app.use(express.json());
 
 // Health check endpoint for deployment - must be before all other routes
 app.get('/', (req, res) => {
-  res.status(200).json({ status: 'ok' });
+  res.type('text/plain').status(200).send('ok');
 });
 
 app.get('/api/health', (req, res) => {
-  res.status(200).json({ status: 'ok' });
+  res.type('text/plain').status(200).send('ok');
 });
 
 // Middleware to check database readiness for DB-dependent routes
