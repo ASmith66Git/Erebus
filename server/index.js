@@ -72,13 +72,13 @@ async function getUncachableResendClient() {
 app.use(cors());
 app.use(express.json());
 
-// Health check endpoint for deployment - must be before other routes
+// Health check endpoint for deployment - must be before all other routes
 app.get('/', (req, res) => {
-  res.status(200).json({ status: 'ok', service: 'erebus-api' });
+  res.type('text/plain').send('ok');
 });
 
 app.get('/api/health', (req, res) => {
-  res.status(200).json({ status: 'ok', service: 'erebus-api' });
+  res.type('text/plain').send('ok');
 });
 
 async function initDatabase() {
@@ -665,10 +665,6 @@ app.delete('/api/admin/users/:id', authenticateToken, requireAdmin, async (req, 
     console.error('Delete user error:', error);
     res.status(500).json({ error: 'Server error' });
   }
-});
-
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', service: 'Erebus API' });
 });
 
 app.get('/api/dive-computers', (req, res) => {
