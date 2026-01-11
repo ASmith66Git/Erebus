@@ -1383,7 +1383,7 @@ export default function DiveSiteDetailScreen() {
 
             <View style={styles.urlModalContent}>
               <Text style={[styles.urlInstructions, { color: colors.textSecondary }]}>
-                Find an image online, then paste the image URL below. Tip: Right-click an image and select "Copy image address".
+                Paste a direct image URL below. Important: Google share links won't work - you need the actual image URL. Right-click an image and select "Copy image address" to get the direct link.
               </Text>
 
               <TextInput
