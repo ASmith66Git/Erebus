@@ -146,14 +146,37 @@ export default function BleConnectScreen() {
       setTimeout(() => {
         router.back();
       }, 2000);
-    } catch (err) {
+    } catch (err: any) {
+      // Log full error details for debugging
       console.error('Download error:', err);
+      console.error('Download error details:', {
+        message: err?.message,
+        reason: err?.reason,
+        errorCode: err?.errorCode,
+        androidErrorCode: err?.androidErrorCode,
+        iosErrorCode: err?.iosErrorCode,
+        attErrorCode: err?.attErrorCode,
+        name: err?.name,
+        stack: err?.stack,
+        fullError: JSON.stringify(err, Object.getOwnPropertyNames(err || {}), 2)
+      });
+      
+      // Extract the most useful error message
+      let errorMessage = 'Download failed';
+      if (err instanceof Error) {
+        errorMessage = err.message;
+      } else if (err?.reason) {
+        errorMessage = `Error: ${err.reason}`;
+      } else if (err?.androidErrorCode) {
+        errorMessage = `Android error ${err.androidErrorCode}: ${err?.message || 'Unknown'}`;
+      }
+      
       setProgress({
         current: 0,
         total: 100,
         percentage: 0,
         status: 'error',
-        message: err instanceof Error ? err.message : 'Download failed',
+        message: errorMessage,
       });
     } finally {
       try {

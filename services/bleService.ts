@@ -191,13 +191,93 @@ class BleService {
   }
 
   private parseBleError(error: any): string {
+    // Extract all available error properties from BleError
     const errorMessage = error?.message || error?.toString() || 'Unknown error';
     const errorReason = error?.reason || '';
+    const errorCode = error?.errorCode;
+    const androidErrorCode = error?.androidErrorCode;
+    const iosErrorCode = error?.iosErrorCode;
+    const attErrorCode = error?.attErrorCode;
+    
+    // Log full error details for debugging
+    console.error('BLE Error Details:', {
+      message: errorMessage,
+      reason: errorReason,
+      errorCode,
+      androidErrorCode,
+      iosErrorCode,
+      attErrorCode,
+      fullError: JSON.stringify(error, Object.getOwnPropertyNames(error), 2)
+    });
+    
+    // Handle Android-specific error codes
+    if (androidErrorCode !== undefined && androidErrorCode !== null) {
+      const androidErrors: Record<number, string> = {
+        0: 'Success (unexpected)',
+        1: 'GATT read not permitted',
+        2: 'GATT write not permitted', 
+        3: 'GATT request not supported',
+        5: 'GATT authentication failure - device may need pairing',
+        6: 'GATT request not supported',
+        7: 'GATT offset invalid',
+        13: 'GATT attribute length invalid',
+        14: 'GATT encryption insufficient',
+        133: 'GATT connection timeout or device out of range',
+        137: 'GATT characteristic unavailable',
+        143: 'GATT connection congested',
+        257: 'Bluetooth adapter not initialized',
+      };
+      
+      const androidMessage = androidErrors[androidErrorCode];
+      if (androidMessage) {
+        return `${androidMessage} (Android error ${androidErrorCode})`;
+      }
+      return `Android Bluetooth error ${androidErrorCode}: ${errorMessage}`;
+    }
+    
+    // Handle reason property (common in react-native-ble-plx)
+    if (errorReason) {
+      return `Connection failed: ${errorReason}`;
+    }
+    
+    // Handle errorCode from react-native-ble-plx
+    if (errorCode !== undefined && errorCode !== null) {
+      const bleErrorCodes: Record<number, string> = {
+        0: 'Unknown error',
+        1: 'Bluetooth manager destroyed',
+        2: 'Operation cancelled',
+        3: 'Invalid IDs or UUIDs',
+        4: 'Bluetooth not supported',
+        5: 'Bluetooth powered off',
+        6: 'Bluetooth unauthorized',
+        7: 'Bluetooth state resetting',
+        8: 'Bluetooth state unknown',
+        100: 'Device not connected',
+        101: 'Characteristic write failed',
+        102: 'Characteristic read failed',
+        103: 'Characteristic notify change failed',
+        104: 'Device mtu change failed',
+        105: 'Services discovery failed',
+        200: 'Scanning start failed',
+        201: 'Location services disabled',
+        300: 'Connection failed',
+        301: 'Device already connected',
+        302: 'Device not found',
+        303: 'Operation timeout',
+        304: 'Operation rejected',
+        305: 'Device disconnected',
+        600: 'Peripheral not found',
+        601: 'Service not found',
+        602: 'Characteristic not found',
+      };
+      
+      const bleMessage = bleErrorCodes[errorCode];
+      if (bleMessage) {
+        return `${bleMessage} (error code ${errorCode})`;
+      }
+    }
     
     if (errorMessage.includes('Unknown error') || errorMessage.includes('This is probably a bug')) {
-      if (errorReason) {
-        return `Connection failed: ${errorReason}. Try moving closer to your dive computer or restarting Bluetooth.`;
-      }
       return 'Connection failed unexpectedly. Please try: 1) Move closer to the device, 2) Turn Bluetooth off and on, 3) Put dive computer in transfer mode, 4) Restart the app.';
     }
     
