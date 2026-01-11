@@ -74,11 +74,11 @@ app.use(express.json());
 
 // Health check endpoint for deployment - must be before all other routes
 app.get('/', (req, res) => {
-  res.type('text/plain').send('ok');
+  res.status(200).json({ status: 'ok' });
 });
 
 app.get('/api/health', (req, res) => {
-  res.type('text/plain').send('ok');
+  res.status(200).json({ status: 'ok' });
 });
 
 async function initDatabase() {
@@ -2602,14 +2602,16 @@ if (process.env.NODE_ENV === 'production' || process.env.PORT) {
   });
 }
 
-initDatabase().then(() => {
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Erebus API server running on port ${PORT}`);
-  });
-}).catch((err) => {
-  console.error('Failed to initialize database:', err.message);
-  console.log('Starting server without database initialization...');
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Erebus API server running on port ${PORT} (DB init failed)`);
-  });
+// Start server immediately for health checks, then initialize database asynchronously
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Erebus API server running on port ${PORT}`);
+  
+  // Initialize database asynchronously after server starts
+  initDatabase()
+    .then(() => {
+      console.log('Database initialized successfully');
+    })
+    .catch((err) => {
+      console.error('Failed to initialize database:', err.message);
+    });
 });
