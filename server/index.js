@@ -20,11 +20,17 @@ const upload = multer({
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// Create pool with lazy connection - don't connect until first query
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  connectionTimeoutMillis: 5000,
+  connectionTimeoutMillis: 10000,
   idleTimeoutMillis: 30000,
   max: 10,
+});
+
+// Handle pool errors gracefully without crashing
+pool.on('error', (err) => {
+  console.error('Database pool error:', err.message);
 });
 
 // Database readiness state
@@ -106,10 +112,25 @@ const requireDatabaseReady = (req, res, next) => {
 // Apply database readiness check to all API routes
 app.use('/api', requireDatabaseReady);
 
-async function initDatabase() {
+async function initDatabase(retryCount = 0) {
+  const maxRetries = 3;
   dbReady = false;
   dbInitError = null;
-  const client = await pool.connect();
+  
+  let client;
+  try {
+    client = await pool.connect();
+  } catch (connectionError) {
+    console.error(`Database connection failed (attempt ${retryCount + 1}/${maxRetries}):`, connectionError.message);
+    if (retryCount < maxRetries - 1) {
+      console.log(`Retrying in 5 seconds...`);
+      setTimeout(() => initDatabase(retryCount + 1), 5000);
+      return;
+    }
+    dbInitError = connectionError;
+    console.error('All database connection attempts failed');
+    return;
+  }
   try {
     await client.query(`
       CREATE TABLE IF NOT EXISTS users (
