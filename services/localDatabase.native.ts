@@ -190,12 +190,9 @@ async function initializeLocalDatabase(database: SQLite.SQLiteDatabase): Promise
 
 export async function getLastSyncTime(): Promise<string | null> {
   try {
-    if (!isDatabaseAvailable()) {
-      console.warn('Database not available, skipping getLastSyncTime');
-      return null;
-    }
-    const db = await getDatabase();
-    const result = await db.getFirstAsync<{ value: string }>(
+    // Always try to get database - this will initialize it if needed
+    const database = await getDatabase();
+    const result = await database.getFirstAsync<{ value: string }>(
       'SELECT value FROM sync_meta WHERE key = ?',
       ['last_sync_time']
     );
@@ -208,12 +205,8 @@ export async function getLastSyncTime(): Promise<string | null> {
 
 export async function setLastSyncTime(timestamp: string): Promise<void> {
   try {
-    if (!isDatabaseAvailable()) {
-      console.warn('Database not available, skipping setLastSyncTime');
-      return;
-    }
-    const db = await getDatabase();
-    await db.runAsync(
+    const database = await getDatabase();
+    await database.runAsync(
       'INSERT OR REPLACE INTO sync_meta (key, value) VALUES (?, ?)',
       ['last_sync_time', timestamp]
     );
@@ -340,12 +333,9 @@ export async function addPendingMutation(mutation: Omit<PendingMutation, 'id' | 
 
 export async function getPendingMutations(): Promise<PendingMutation[]> {
   try {
-    if (!isDatabaseAvailable()) {
-      console.warn('Database not available, returning empty pending mutations');
-      return [];
-    }
-    const db = await getDatabase();
-    const rows = await db.getAllAsync<any>(
+    // Always try to get database - this will initialize it if needed
+    const database = await getDatabase();
+    const rows = await database.getAllAsync<any>(
       'SELECT * FROM pending_mutations ORDER BY created_at ASC'
     );
     return rows.map(row => ({
