@@ -222,20 +222,37 @@ async function initializeLocalDatabase(database: SQLite.SQLiteDatabase): Promise
 }
 
 export async function getLastSyncTime(): Promise<string | null> {
-  const db = await getDatabase();
-  const result = await db.getFirstAsync<{ value: string }>(
-    'SELECT value FROM sync_meta WHERE key = ?',
-    ['last_sync_time']
-  );
-  return result?.value || null;
+  try {
+    if (!isDatabaseAvailable()) {
+      console.warn('Database not available, skipping getLastSyncTime');
+      return null;
+    }
+    const db = await getDatabase();
+    const result = await db.getFirstAsync<{ value: string }>(
+      'SELECT value FROM sync_meta WHERE key = ?',
+      ['last_sync_time']
+    );
+    return result?.value || null;
+  } catch (error: any) {
+    console.error('Error getting last sync time:', error?.message || error);
+    return null;
+  }
 }
 
 export async function setLastSyncTime(timestamp: string): Promise<void> {
-  const db = await getDatabase();
-  await db.runAsync(
-    'INSERT OR REPLACE INTO sync_meta (key, value) VALUES (?, ?)',
-    ['last_sync_time', timestamp]
-  );
+  try {
+    if (!isDatabaseAvailable()) {
+      console.warn('Database not available, skipping setLastSyncTime');
+      return;
+    }
+    const db = await getDatabase();
+    await db.runAsync(
+      'INSERT OR REPLACE INTO sync_meta (key, value) VALUES (?, ?)',
+      ['last_sync_time', timestamp]
+    );
+  } catch (error: any) {
+    console.error('Error setting last sync time:', error?.message || error);
+  }
 }
 
 export async function getAllLocalDiveSites(): Promise<LocalDiveSite[]> {
@@ -355,20 +372,29 @@ export async function addPendingMutation(mutation: Omit<PendingMutation, 'id' | 
 }
 
 export async function getPendingMutations(): Promise<PendingMutation[]> {
-  const db = await getDatabase();
-  const rows = await db.getAllAsync<any>(
-    'SELECT * FROM pending_mutations ORDER BY created_at ASC'
-  );
-  return rows.map(row => ({
-    id: row.id,
-    clientMutationId: row.client_mutation_id,
-    entityType: row.entity_type,
-    entityId: row.entity_id,
-    action: row.action,
-    data: row.data,
-    createdAt: row.created_at,
-    retryCount: row.retry_count
-  }));
+  try {
+    if (!isDatabaseAvailable()) {
+      console.warn('Database not available, returning empty pending mutations');
+      return [];
+    }
+    const db = await getDatabase();
+    const rows = await db.getAllAsync<any>(
+      'SELECT * FROM pending_mutations ORDER BY created_at ASC'
+    );
+    return rows.map(row => ({
+      id: row.id,
+      clientMutationId: row.client_mutation_id,
+      entityType: row.entity_type,
+      entityId: row.entity_id,
+      action: row.action,
+      data: row.data,
+      createdAt: row.created_at,
+      retryCount: row.retry_count
+    }));
+  } catch (error: any) {
+    console.error('Error getting pending mutations:', error?.message || error);
+    return [];
+  }
 }
 
 export async function removePendingMutation(clientMutationId: string): Promise<void> {
