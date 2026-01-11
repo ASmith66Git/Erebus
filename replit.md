@@ -40,7 +40,7 @@ The application is built using Expo React Native, targeting both iOS and Android
 ### Feature Specifications
 - **User Management**: Admin users can view, block/unblock, change roles, and reset passwords for other users.
 - **Dive Site Details**: Includes comprehensive fields such as site type, water type, difficulty, access notes, hazards, and best season.
-- **Dive Site Images**: Supports image uploads to Replit Object Storage via presigned URLs, primary image selection, and Pexels stock photo integration.
+- **Dive Site Images**: Supports image uploads to Replit Object Storage via presigned URLs, primary image selection, Pexels stock photo integration, image import from URL, and "Search Web" button for finding photos via Google Images.
 - **Wreck Site Specifics**: Dedicated fields and a conditional "Wreck" tab for detailed wreck information and external resource links.
 - **Weather Forecast**: Integrates 7-day weather forecasts, including marine and atmospheric data, based on dive site location.
 - **Dive Log Management**: Allows users to log dives, import from various formats (UDDF, Subsurface XML, CSV), and track personal dive statistics.
@@ -156,6 +156,9 @@ services/protocols/
 4. Same persistence layer saves to database tables
 
 ## Recent Changes
+- 2026-01-11: Added image import from URL feature - download images from any URL and store in object storage.
+- 2026-01-11: Added "Search Web" button to open Google Images for finding dive site photos.
+- 2026-01-11: Redesigned Media tab with improved button layout (Search Web, Import URL, Upload, and separate Pexels link).
 - 2026-01-10: Added interactive scrubber to dive profile chart - touch and drag to see values at any point.
 - 2026-01-10: Created dive log edit page with comprehensive field editing (notes, rating, buddy, conditions, skills, equipment issues).
 - 2026-01-10: Fixed UDDF parser to extract calculatedpo2, nodecotime (NDL), batterychargecondition, cns, otu, setpo2 fields.

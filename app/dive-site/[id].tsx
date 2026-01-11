@@ -380,6 +380,10 @@ export default function DiveSiteDetailScreen() {
   const [showStockModal, setShowStockModal] = useState(false);
   const [selectedImage, setSelectedImage] = useState<DiveSiteImage | null>(null);
   const [showImageModal, setShowImageModal] = useState(false);
+  const [showUrlModal, setShowUrlModal] = useState(false);
+  const [importUrl, setImportUrl] = useState('');
+  const [importingUrl, setImportingUrl] = useState(false);
+  const [urlPreview, setUrlPreview] = useState<string | null>(null);
 
   const isNewSite = id === 'new';
 
@@ -615,6 +619,60 @@ export default function DiveSiteDetailScreen() {
     } catch (error) {
       console.error('Error adding stock photo:', error);
       Alert.alert('Error', 'Failed to add stock photo');
+    }
+  };
+
+  const handleImportFromUrl = async () => {
+    if (!token || !site?.id || !importUrl.trim()) return;
+
+    setImportingUrl(true);
+    try {
+      const response = await fetch(`${getApiUrl()}/api/dive-sites/${site.id}/images/import-url`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          imageUrl: importUrl.trim(),
+          isPrimary: siteImages.length === 0,
+        }),
+      });
+
+      if (response.ok) {
+        fetchSiteImages();
+        setShowUrlModal(false);
+        setImportUrl('');
+        setUrlPreview(null);
+        Alert.alert('Success', 'Image imported successfully');
+      } else {
+        const error = await response.json();
+        Alert.alert('Error', error.error || 'Failed to import image');
+      }
+    } catch (error) {
+      console.error('Error importing image from URL:', error);
+      Alert.alert('Error', 'Failed to import image');
+    } finally {
+      setImportingUrl(false);
+    }
+  };
+
+  const handleSearchWeb = () => {
+    const searchQuery = encodeURIComponent(`${site?.name || 'dive site'} underwater photos`);
+    const url = `https://www.google.com/search?q=${searchQuery}&tbm=isch`;
+    if (Platform.OS === 'web') {
+      window.open(url, '_blank');
+    } else {
+      Linking.openURL(url);
+    }
+  };
+
+  const handleUrlChange = (url: string) => {
+    setImportUrl(url);
+    if (url.match(/\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i) || url.includes('images')) {
+      setUrlPreview(url);
+    } else {
+      setUrlPreview(null);
     }
   };
 
@@ -1123,32 +1181,49 @@ export default function DiveSiteDetailScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>Photos</Text>
-            {!loadingImages && (
-              <View style={{ flexDirection: 'row', gap: 8 }}>
-                <Pressable
-                  onPress={() => setShowStockModal(true)}
-                  style={[styles.mediaActionButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
-                >
-                  <Feather name="search" size={18} color={colors.primary} />
-                  <Text style={[styles.mediaActionText, { color: colors.primary }]}>Stock</Text>
-                </Pressable>
-                <Pressable
-                  onPress={handleImageUpload}
-                  style={[styles.mediaActionButton, { backgroundColor: colors.primary }]}
-                  disabled={uploadingImage}
-                >
-                  {uploadingImage ? (
-                    <ActivityIndicator size="small" color="#FFFFFF" />
-                  ) : (
-                    <>
-                      <Feather name="upload" size={18} color="#FFFFFF" />
-                      <Text style={[styles.mediaActionText, { color: '#FFFFFF' }]}>Upload</Text>
-                    </>
-                  )}
-                </Pressable>
-              </View>
-            )}
           </View>
+          
+          {!loadingImages && (
+            <View style={styles.mediaButtonRow}>
+              <Pressable
+                onPress={handleSearchWeb}
+                style={[styles.mediaActionButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
+              >
+                <Feather name="globe" size={18} color={colors.primary} />
+                <Text style={[styles.mediaActionText, { color: colors.primary }]}>Search Web</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => setShowUrlModal(true)}
+                style={[styles.mediaActionButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
+              >
+                <Feather name="link" size={18} color={colors.primary} />
+                <Text style={[styles.mediaActionText, { color: colors.primary }]}>Import URL</Text>
+              </Pressable>
+              <Pressable
+                onPress={handleImageUpload}
+                style={[styles.mediaActionButton, { backgroundColor: colors.primary }]}
+                disabled={uploadingImage}
+              >
+                {uploadingImage ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <>
+                    <Feather name="upload" size={18} color="#FFFFFF" />
+                    <Text style={[styles.mediaActionText, { color: '#FFFFFF' }]}>Upload</Text>
+                  </>
+                )}
+              </Pressable>
+            </View>
+          )}
+          
+          <Pressable
+            onPress={() => setShowStockModal(true)}
+            style={[styles.stockPhotosButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
+          >
+            <Feather name="camera" size={18} color={colors.textSecondary} />
+            <Text style={[styles.stockPhotosText, { color: colors.textSecondary }]}>Browse Pexels Stock Photos</Text>
+            <Feather name="chevron-right" size={18} color={colors.textSecondary} />
+          </Pressable>
 
           {loadingImages ? (
             <ActivityIndicator size="small" color={colors.primary} style={{ marginVertical: 20 }} />
@@ -1291,6 +1366,72 @@ export default function DiveSiteDetailScreen() {
             <Text style={[styles.pexelsAttribution, { color: colors.textSecondary }]}>
               Photos provided by Pexels
             </Text>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={showUrlModal} transparent animationType="slide">
+        <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
+          <View style={[styles.urlModal, { backgroundColor: colors.background }]}>
+            <View style={[styles.stockModalHeader, { borderBottomColor: colors.border }]}>
+              <Text style={[styles.stockModalTitle, { color: colors.text }]}>Import from URL</Text>
+              <Pressable onPress={() => { setShowUrlModal(false); setImportUrl(''); setUrlPreview(null); }}>
+                <Feather name="x" size={24} color={colors.text} />
+              </Pressable>
+            </View>
+
+            <View style={styles.urlModalContent}>
+              <Text style={[styles.urlInstructions, { color: colors.textSecondary }]}>
+                Find an image online, then paste the image URL below. Tip: Right-click an image and select "Copy image address".
+              </Text>
+
+              <TextInput
+                style={[styles.urlInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
+                value={importUrl}
+                onChangeText={handleUrlChange}
+                placeholder="https://example.com/image.jpg"
+                placeholderTextColor={colors.textSecondary}
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="url"
+              />
+
+              {urlPreview && (
+                <View style={[styles.urlPreviewContainer, { borderColor: colors.border }]}>
+                  <Image 
+                    source={{ uri: urlPreview }} 
+                    style={styles.urlPreviewImage} 
+                    resizeMode="contain"
+                    onError={() => setUrlPreview(null)}
+                  />
+                </View>
+              )}
+
+              <Pressable
+                onPress={handleImportFromUrl}
+                style={[styles.importButton, { backgroundColor: colors.primary, opacity: importUrl.trim() ? 1 : 0.5 }]}
+                disabled={!importUrl.trim() || importingUrl}
+              >
+                {importingUrl ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <>
+                    <Feather name="download" size={18} color="#FFFFFF" />
+                    <Text style={styles.importButtonText}>Import Image</Text>
+                  </>
+                )}
+              </Pressable>
+
+              <Pressable
+                onPress={handleSearchWeb}
+                style={[styles.searchWebLink, { borderColor: colors.border }]}
+              >
+                <Feather name="globe" size={16} color={colors.primary} />
+                <Text style={[styles.searchWebLinkText, { color: colors.primary }]}>
+                  Open Google Images to find photos
+                </Text>
+              </Pressable>
+            </View>
           </View>
         </View>
       </Modal>
@@ -2148,6 +2289,85 @@ const styles = StyleSheet.create({
   mediaActionText: {
     fontSize: 13,
     fontWeight: '600',
+  },
+  mediaButtonRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 12,
+  },
+  stockPhotosButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    marginBottom: 16,
+    gap: 8,
+  },
+  stockPhotosText: {
+    flex: 1,
+    fontSize: 14,
+  },
+  urlModal: {
+    width: '90%',
+    maxWidth: 500,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  urlModalContent: {
+    padding: 16,
+  },
+  urlInstructions: {
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 16,
+  },
+  urlInput: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    fontSize: 16,
+    marginBottom: 16,
+  },
+  urlPreviewContainer: {
+    borderWidth: 1,
+    borderRadius: 8,
+    overflow: 'hidden',
+    marginBottom: 16,
+  },
+  urlPreviewImage: {
+    width: '100%',
+    height: 200,
+  },
+  importButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    borderRadius: 8,
+    gap: 8,
+    marginBottom: 16,
+  },
+  importButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  searchWebLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    gap: 8,
+  },
+  searchWebLinkText: {
+    fontSize: 14,
+    fontWeight: '500',
   },
   imageGrid: {
     flexDirection: 'row',

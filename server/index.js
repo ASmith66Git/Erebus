@@ -1522,6 +1522,94 @@ app.post('/api/dive-sites/:id/images', authenticateToken, async (req, res) => {
   }
 });
 
+app.post('/api/dive-sites/:id/images/import-url', authenticateToken, async (req, res) => {
+  const { id } = req.params;
+  const { imageUrl, caption, isPrimary } = req.body;
+  
+  if (!imageUrl) {
+    return res.status(400).json({ error: 'Image URL is required' });
+  }
+  
+  try {
+    const siteCheck = await pool.query('SELECT id, user_id FROM dive_sites WHERE id = $1 AND is_archived = FALSE', [id]);
+    if (siteCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Dive site not found' });
+    }
+    
+    const canModify = await canModifyDiveSite(id, req.user.id, req.user.role);
+    if (!canModify) {
+      return res.status(403).json({ error: 'You do not have permission to modify this dive site' });
+    }
+    
+    const fetch = (await import('node-fetch')).default;
+    const response = await fetch(imageUrl, {
+      timeout: 30000,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; ErebusDiveApp/1.0)'
+      }
+    });
+    
+    if (!response.ok) {
+      return res.status(400).json({ error: 'Failed to fetch image from URL' });
+    }
+    
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.startsWith('image/')) {
+      return res.status(400).json({ error: 'URL does not point to a valid image' });
+    }
+    
+    const imageBuffer = await response.buffer();
+    
+    if (imageBuffer.length > 10 * 1024 * 1024) {
+      return res.status(400).json({ error: 'Image is too large (max 10MB)' });
+    }
+    
+    const ext = contentType.split('/')[1]?.split(';')[0] || 'jpg';
+    const filename = `dive-site-${id}-${Date.now()}.${ext}`;
+    const objectPath = `/objects/dive-sites/${filename}`;
+    
+    const { Client } = await import('@replit/object-storage');
+    const client = new Client();
+    await client.uploadFromBuffer(objectPath, imageBuffer, { contentType });
+    
+    const client2 = await pool.connect();
+    try {
+      await client2.query('BEGIN');
+      
+      if (isPrimary) {
+        await client2.query('UPDATE dive_site_images SET is_primary = FALSE WHERE dive_site_id = $1', [id]);
+      }
+      
+      const result = await client2.query(
+        'INSERT INTO dive_site_images (dive_site_id, image_url, caption, is_primary, is_stock, attribution) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+        [id, objectPath, caption || null, isPrimary || false, false, `Imported from: ${new URL(imageUrl).hostname}`]
+      );
+      
+      await client2.query('COMMIT');
+      
+      const img = result.rows[0];
+      res.status(201).json({
+        id: img.id,
+        diveSiteId: img.dive_site_id,
+        imageUrl: img.image_url,
+        caption: img.caption,
+        isPrimary: img.is_primary,
+        isStock: false,
+        attribution: img.attribution,
+        createdAt: img.created_at
+      });
+    } catch (err) {
+      await client2.query('ROLLBACK');
+      throw err;
+    } finally {
+      client2.release();
+    }
+  } catch (error) {
+    console.error('Import image from URL error:', error);
+    res.status(500).json({ error: error.message || 'Server error' });
+  }
+});
+
 app.put('/api/dive-sites/:siteId/images/:imageId', authenticateToken, async (req, res) => {
   const { siteId, imageId } = req.params;
   const { caption, isPrimary } = req.body;
