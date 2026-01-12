@@ -1,0 +1,387 @@
+{
+  "deviceInfo": {
+    "platform": "android",
+    "version": 35,
+    "timestamp": "2026-01-12T15:26:08.937Z"
+  },
+  "logs": [
+    {
+      "id": "1768231551050-f9059s41u",
+      "timestamp": "2026-01-12T15:25:51.050Z",
+      "level": "error",
+      "message": "Failed to register push token: 404",
+      "source": "console.error"
+    },
+    {
+      "id": "1768231550297-hs0o31jq1",
+      "timestamp": "2026-01-12T15:25:50.297Z",
+      "level": "warn",
+      "message": "SQLite directory check error (non-fatal): Method getInfoAsync imported from \"expo-file-system\" is deprecated.\nYou can migrate to the new filesystem API using \"File\" and \"Directory\" classes or import the legacy API from \"expo-file-system/legacy\".\nAPI reference and examples are available in the filesystem docs: https://docs.expo.dev/versions/v54.0.0/sdk/filesystem/",
+      "source": "console.warn"
+    },
+    {
+      "id": "1768231550296-vhn9th4jj",
+      "timestamp": "2026-01-12T15:25:50.296Z",
+      "level": "warn",
+      "message": "SQLite directory check error (non-fatal): Method getInfoAsync imported from \"expo-file-system\" is deprecated.\nYou can migrate to the new filesystem API using \"File\" and \"Directory\" classes or import the legacy API from \"expo-file-system/legacy\".\nAPI reference and examples are available in the filesystem docs: https://docs.expo.dev/versions/v54.0.0/sdk/filesystem/",
+      "source": "console.warn"
+    },
+    {
+      "id": "1768231550296-uojce5ooi",
+      "timestamp": "2026-01-12T15:25:50.296Z",
+      "level": "warn",
+      "message": "Method getInfoAsync imported from \"expo-file-system\" is deprecated.\nYou can migrate to the new filesystem API using \"File\" and \"Directory\" classes or import the legacy API from \"expo-file-system/legacy\".\nAPI reference and examples are available in the filesystem docs: https://docs.expo.dev/versions/v54.0.0/sdk/filesystem/",
+      "source": "console.warn"
+    },
+    {
+      "id": "1768231550295-zj4qb3ptk",
+      "timestamp": "2026-01-12T15:25:50.295Z",
+      "level": "warn",
+      "message": "Method getInfoAsync imported from \"expo-file-system\" is deprecated.\nYou can migrate to the new filesystem API using \"File\" and \"Directory\" classes or import the legacy API from \"expo-file-system/legacy\".\nAPI reference and examples are available in the filesystem docs: https://docs.expo.dev/versions/v54.0.0/sdk/filesystem/",
+      "source": "console.warn"
+    },
+    {
+      "id": "1768231545568-x2qzhnqv4",
+      "timestamp": "2026-01-12T15:25:45.568Z",
+      "level": "error",
+      "message": "Error getting last sync time: Call to function 'NativeDatabase.prepareAsync' has been rejected.\n→ Caused by: java.lang.NullPointerException: java.lang.NullPointerException",
+      "source": "console.error"
+    },
+    {
+      "id": "1768231545536-s3u1kpx83",
+      "timestamp": "2026-01-12T15:25:45.536Z",
+      "level": "error",
+      "message": "Error getting pending mutations: Call to function 'NativeDatabase.prepareAsync' has been rejected.\n→ Caused by: java.lang.NullPointerException: java.lang.NullPointerException",
+      "source": "console.error"
+    },
+    {
+      "id": "1768231542944-rodeip1mc",
+      "timestamp": "2026-01-12T15:25:42.944Z",
+      "level": "error",
+      "message": "Error getting last sync time: Call to function 'NativeDatabase.prepareAsync' has been rejected.\n→ Caused by: java.lang.NullPointerException: java.lang.NullPointerException",
+      "source": "console.error"
+    },
+    {
+      "id": "1768231542930-b9apubtud",
+      "timestamp": "2026-01-12T15:25:42.930Z",
+      "level": "error",
+      "message": "Error getting pending mutations: Call to function 'NativeDatabase.prepareAsync' has been rejected.\n→ Caused by: java.lang.NullPointerException: java.lang.NullPointerException",
+      "source": "console.error"
+    },
+    {
+      "id": "1768231529130-a8mz8ar6e",
+      "timestamp": "2026-01-12T15:25:29.131Z",
+      "level": "error",
+      "message": "Download error details: {\n  \"message\": \"Write failed: Device not found (error code 302)\",\n  \"name\": \"Error\",\n  \"stack\": \"Error: Write failed: Device not found (error code 302)\\n    at ?anon_0_ (address at index.android.bundle:1:2017397)\\n    at throw (native)\\n    at asyncGeneratorStep (address at index.android.bundle:1:559657)\\n    at _throw (address at index.android.bundle:1:559962)\\n    at tryCallOne (address at InternalBytecode.js:1:1180)\\n    at anonymous (address at InternalBytecode.js:1:1874)\",\n  \"fullError\": \"{\\n  \\\"message\\\": \\\"Write failed: Device not found (error code 302)\\\",\\n  \\\"stack\\\": \\\"Error: Write failed: Device not found (error code 302)\\\\n    at ?anon_0_ (address at index.android.bundle:1:2017397)\\\\n    at throw (native)\\\\n    at asyncGeneratorStep (address at index.android.bundle:1:559657)\\\\n    at _throw (address at index.android.bundle:1:559962)\\\\n    at tryCallOne (address at InternalBytecode.js:1:1180)\\\\n    at anonymous (address at InternalBytecode.js:1:1874)\\",
+      "source": "console.error"
+    },
+    {
+      "id": "1768231529128-8imn7y6qf",
+      "timestamp": "2026-01-12T15:25:29.128Z",
+      "level": "error",
+      "message": "Download error: Error: Write failed: Device not found (error code 302)\nError: Write failed: Device not found (error code 302)\n    at ?anon_0_ (address at index.android.bundle:1:2017397)\n    at throw (native)\n    at asyncGeneratorStep (address at index.android.bundle:1:559657)\n    at _throw (address at index.android.bundle:1:559962)\n    at tryCallOne (address at InternalBytecode.js:1:1180)\n    at anonymous (address at InternalBytecode.js:1:1874)",
+      "source": "console.error"
+    },
+    {
+      "id": "1768231529124-mbvpsuocv",
+      "timestamp": "2026-01-12T15:25:29.124Z",
+      "level": "error",
+      "message": "BLE Error Details: {\n  \"message\": \"Service fe25c237-0ece-443c-b0aa-e02033e7029d for device ? not found\",\n  \"reason\": \"\",\n  \"errorCode\": 302,\n  \"androidErrorCode\": null,\n  \"iosErrorCode\": null,\n  \"attErrorCode\": null,\n  \"name\": \"BleError\",\n  \"stack\": \"BleError: Service fe25c237-0ece-443c-b0aa-e02033e7029d for device ? not found\\n    at construct (native)\\n    at apply (native)\\n    at _construct (address at index.android.bundle:1:132194)\\n    at Wrapper (address at index.android.bundle:1:131847)\\n    at construct (native)\\n    at _callSuper (address at index.android.bundle:1:116739)\\n    at BleError (address at index.android.bundle:1:2020779)\\n    at parseBleError (address at index.android.bundle:1:2020583)\\n    at ?anon_0_ (address at index.android.b\"\n}",
+      "source": "console.error"
+    },
+    {
+      "id": "1768231529121-1yi6a8gms",
+      "timestamp": "2026-01-12T15:25:29.121Z",
+      "level": "error",
+      "message": "Write attempt 5/5 failed: Service fe25c237-0ece-443c-b0aa-e02033e7029d for device ? not found Code: 302",
+      "source": "console.error"
+    },
+    {
+      "id": "1768231528093-j5r6eno9a",
+      "timestamp": "2026-01-12T15:25:28.093Z",
+      "level": "error",
+      "message": "Write attempt 4/5 failed: Service fe25c237-0ece-443c-b0aa-e02033e7029d for device ? not found Code: 302",
+      "source": "console.error"
+    },
+    {
+      "id": "1768231527063-m54je5wwa",
+      "timestamp": "2026-01-12T15:25:27.063Z",
+      "level": "error",
+      "message": "Write attempt 3/5 failed: Service fe25c237-0ece-443c-b0aa-e02033e7029d for device ? not found Code: 302",
+      "source": "console.error"
+    },
+    {
+      "id": "1768231526033-8v0x2jjvb",
+      "timestamp": "2026-01-12T15:25:26.033Z",
+      "level": "error",
+      "message": "Write attempt 2/5 failed: Service fe25c237-0ece-443c-b0aa-e02033e7029d for device ? not found Code: 302",
+      "source": "console.error"
+    },
+    {
+      "id": "1768231525016-or03mvtze",
+      "timestamp": "2026-01-12T15:25:25.016Z",
+      "level": "error",
+      "message": "Write attempt 1/5 failed: Service fe25c237-0ece-443c-b0aa-e02033e7029d for device ? not found Code: 302",
+      "source": "console.error"
+    },
+    {
+      "id": "1768231466186-iauwv5awy",
+      "timestamp": "2026-01-12T15:24:26.186Z",
+      "level": "error",
+      "message": "Failed to register push token: 404",
+      "source": "console.error"
+    },
+    {
+      "id": "1768231463987-husdoacxe",
+      "timestamp": "2026-01-12T15:24:23.987Z",
+      "level": "warn",
+      "message": "SQLite directory check error (non-fatal): Method getInfoAsync imported from \"expo-file-system\" is deprecated.\nYou can migrate to the new filesystem API using \"File\" and \"Directory\" classes or import the legacy API from \"expo-file-system/legacy\".\nAPI reference and examples are available in the filesystem docs: https://docs.expo.dev/versions/v54.0.0/sdk/filesystem/",
+      "source": "console.warn"
+    },
+    {
+      "id": "1768231463987-vv5e04kdw",
+      "timestamp": "2026-01-12T15:24:23.987Z",
+      "level": "warn",
+      "message": "SQLite directory check error (non-fatal): Method getInfoAsync imported from \"expo-file-system\" is deprecated.\nYou can migrate to the new filesystem API using \"File\" and \"Directory\" classes or import the legacy API from \"expo-file-system/legacy\".\nAPI reference and examples are available in the filesystem docs: https://docs.expo.dev/versions/v54.0.0/sdk/filesystem/",
+      "source": "console.warn"
+    },
+    {
+      "id": "1768231463911-20wo2wqkw",
+      "timestamp": "2026-01-12T15:24:23.911Z",
+      "level": "warn",
+      "message": "Method getInfoAsync imported from \"expo-file-system\" is deprecated.\nYou can migrate to the new filesystem API using \"File\" and \"Directory\" classes or import the legacy API from \"expo-file-system/legacy\".\nAPI reference and examples are available in the filesystem docs: https://docs.expo.dev/versions/v54.0.0/sdk/filesystem/",
+      "source": "console.warn"
+    },
+    {
+      "id": "1768231463910-tzqfxwbrm",
+      "timestamp": "2026-01-12T15:24:23.910Z",
+      "level": "warn",
+      "message": "Method getInfoAsync imported from \"expo-file-system\" is deprecated.\nYou can migrate to the new filesystem API using \"File\" and \"Directory\" classes or import the legacy API from \"expo-file-system/legacy\".\nAPI reference and examples are available in the filesystem docs: https://docs.expo.dev/versions/v54.0.0/sdk/filesystem/",
+      "source": "console.warn"
+    },
+    {
+      "id": "1768170357683-5zeo9uy8d",
+      "timestamp": "2026-01-11T22:25:57.684Z",
+      "level": "error",
+      "message": "Error getting last sync time: Call to function 'NativeDatabase.prepareAsync' has been rejected.\n→ Caused by: java.lang.NullPointerException: java.lang.NullPointerException",
+      "source": "console.error"
+    },
+    {
+      "id": "1768170357646-bjkphxl35",
+      "timestamp": "2026-01-11T22:25:57.646Z",
+      "level": "error",
+      "message": "Error getting pending mutations: Call to function 'NativeDatabase.prepareAsync' has been rejected.\n→ Caused by: java.lang.NullPointerException: java.lang.NullPointerException",
+      "source": "console.error"
+    },
+    {
+      "id": "1768170357285-0iwocm0xw",
+      "timestamp": "2026-01-11T22:25:57.285Z",
+      "level": "error",
+      "message": "Error getting last sync time: Call to function 'NativeDatabase.prepareAsync' has been rejected.\n→ Caused by: java.lang.NullPointerException: java.lang.NullPointerException",
+      "source": "console.error"
+    },
+    {
+      "id": "1768170357211-7q3k1o6ee",
+      "timestamp": "2026-01-11T22:25:57.211Z",
+      "level": "error",
+      "message": "Error getting pending mutations: Call to function 'NativeDatabase.prepareAsync' has been rejected.\n→ Caused by: java.lang.NullPointerException: java.lang.NullPointerException",
+      "source": "console.error"
+    },
+    {
+      "id": "1768166951204-vs4o1vxov",
+      "timestamp": "2026-01-11T21:29:11.204Z",
+      "level": "error",
+      "message": "Error getting last sync time: Call to function 'NativeDatabase.prepareAsync' has been rejected.\n→ Caused by: java.lang.NullPointerException: java.lang.NullPointerException",
+      "source": "console.error"
+    },
+    {
+      "id": "1768166951165-higmx3y0l",
+      "timestamp": "2026-01-11T21:29:11.165Z",
+      "level": "error",
+      "message": "Error getting pending mutations: Call to function 'NativeDatabase.prepareAsync' has been rejected.\n→ Caused by: java.lang.NullPointerException: java.lang.NullPointerException",
+      "source": "console.error"
+    },
+    {
+      "id": "1768166950062-1o8134p5h",
+      "timestamp": "2026-01-11T21:29:10.062Z",
+      "level": "error",
+      "message": "Error getting last sync time: Call to function 'NativeDatabase.prepareAsync' has been rejected.\n→ Caused by: java.lang.NullPointerException: java.lang.NullPointerException",
+      "source": "console.error"
+    },
+    {
+      "id": "1768166949992-a38bj8x5a",
+      "timestamp": "2026-01-11T21:29:09.992Z",
+      "level": "error",
+      "message": "Error getting pending mutations: Call to function 'NativeDatabase.prepareAsync' has been rejected.\n→ Caused by: java.lang.NullPointerException: java.lang.NullPointerException",
+      "source": "console.error"
+    },
+    {
+      "id": "1768166524063-w1hyg070v",
+      "timestamp": "2026-01-11T21:22:04.063Z",
+      "level": "error",
+      "message": "Error getting push token: Error: Make sure to complete the guide at https://docs.expo.dev/push-notifications/fcm-credentials/ : Default FirebaseApp is not initialized in this process com.erebus.diveapp. Make sure to call FirebaseApp.initializeApp(Context) first.\nError: Make sure to complete the guide at https://docs.expo.dev/push-notifications/fcm-credentials/ : Default FirebaseApp is not initialized in this process com.erebus.diveapp. Make sure to call FirebaseApp.initializeApp(Context) first.\n    at construct (native)\n    at apply (native)\n    at _construct (address at index.android.bundle:1:131691)\n    at Wrapper (address at index.android.bundle:1:131344)\n    at construct (native)\n    at _callSuper (address at index.android.bundle:1:116236)\n    at CodedError (address at index.android.bundle:1:800334)",
+      "source": "console.error"
+    },
+    {
+      "id": "1768166513086-0f9g4003i",
+      "timestamp": "2026-01-11T21:21:53.086Z",
+      "level": "error",
+      "message": "Download error details: {\n  \"message\": \"Write failed: BLE error: Exception in HostFunction: Parameter specified as non-null is null: method com.facebook.react.bridge.PromiseImpl.reject, parameter code\",\n  \"name\": \"Error\",\n  \"stack\": \"Error: Write failed: BLE error: Exception in HostFunction: Parameter specified as non-null is null: method com.facebook.react.bridge.PromiseImpl.reject, parameter code\\n    at ?anon_0_ (address at index.android.bundle:1:2002532)\\n    at throw (native)\\n    at asyncGeneratorStep (address at index.android.bundle:1:559164)\\n    at _throw (address at index.android.bundle:1:559469)\\n    at tryCallOne (address at InternalBytecode.js:1:1180)\\n    at anonymous (address at InternalBytecode.js:1:1874)\",\n  \"fullError\": \"{\\n  \\\"message\\\": \\\"Write failed: BLE error: Exception in HostFunction: Parameter specified as non-null is null: method com.facebook.react.bridge.PromiseImpl.reject, parameter code\\\",\\n  \\\"stack\\\": \\\"Error: Write failed: BLE error: Exception in HostFu",
+      "source": "console.error"
+    },
+    {
+      "id": "1768166513085-0uwzm8abv",
+      "timestamp": "2026-01-11T21:21:53.085Z",
+      "level": "error",
+      "message": "Download error: Error: Write failed: BLE error: Exception in HostFunction: Parameter specified as non-null is null: method com.facebook.react.bridge.PromiseImpl.reject, parameter code\nError: Write failed: BLE error: Exception in HostFunction: Parameter specified as non-null is null: method com.facebook.react.bridge.PromiseImpl.reject, parameter code\n    at ?anon_0_ (address at index.android.bundle:1:2002532)\n    at throw (native)\n    at asyncGeneratorStep (address at index.android.bundle:1:559164)\n    at _throw (address at index.android.bundle:1:559469)\n    at tryCallOne (address at InternalBytecode.js:1:1180)\n    at anonymous (address at InternalBytecode.js:1:1874)",
+      "source": "console.error"
+    },
+    {
+      "id": "1768166513084-j6fsxmivn",
+      "timestamp": "2026-01-11T21:21:53.084Z",
+      "level": "error",
+      "message": "BLE Error Details: {\n  \"message\": \"Unknown error occurred. This is probably a bug! Check reason property.\",\n  \"reason\": \"Exception in HostFunction: Parameter specified as non-null is null: method com.facebook.react.bridge.PromiseImpl.reject, parameter code\",\n  \"errorCode\": 0,\n  \"androidErrorCode\": null,\n  \"iosErrorCode\": null,\n  \"attErrorCode\": null,\n  \"name\": \"BleError\",\n  \"stack\": \"BleError: Unknown error occurred. This is probably a bug! Check reason property.\\n    at construct (native)\\n    at apply (native)\\n    at _construct (address at index.android.bundle:1:131691)\\n    at Wrapper (address at index.android.bundle:1:131344)\\n    at construct (native)\\n    at _callSuper (address at index.android.bundle:1:116236)\\n    at BleError (address at index.android.bundle:1:2005582)\\n    at parseBleError (address at index.android.bundle:1:2005423)\\n    at ?anon_0_ (address at index.androi\"\n}",
+      "source": "console.error"
+    },
+    {
+      "id": "1768166513083-oij1yb7oj",
+      "timestamp": "2026-01-11T21:21:53.083Z",
+      "level": "error",
+      "message": "Write error: BleError: Unknown error occurred. This is probably a bug! Check reason property.\nBleError: Unknown error occurred. This is probably a bug! Check reason property.\n    at construct (native)\n    at apply (native)\n    at _construct (address at index.android.bundle:1:131691)\n    at Wrapper (address at index.android.bundle:1:131344)\n    at construct (native)\n    at _callSuper (address at index.android.bundle:1:116236)\n    at BleError (address at index.android.bundle:1:2005582)\n    at parseBleError (address at index.android.bundle:1:2005423)\n    at ?anon_0_ (address at index.android.bundle:1:2008923)\n    at throw (native)\n    at asyncGeneratorStep (address at index.android.bundle:1:559164)\n    at _throw (address at index.android.bundle:1:559469)\n    at tryCallOne (address at InternalBytecode.js:1:1180)\n    at anonymous (address at InternalBytecode.js:1:1874)",
+      "source": "console.error"
+    },
+    {
+      "id": "1768166497705-tadoneval",
+      "timestamp": "2026-01-11T21:21:37.705Z",
+      "level": "error",
+      "message": "Error getting last sync time: Call to function 'NativeDatabase.prepareAsync' has been rejected.\n→ Caused by: java.lang.NullPointerException: java.lang.NullPointerException",
+      "source": "console.error"
+    },
+    {
+      "id": "1768166497702-5m9xpig0l",
+      "timestamp": "2026-01-11T21:21:37.702Z",
+      "level": "error",
+      "message": "Error getting pending mutations: Call to function 'NativeDatabase.prepareAsync' has been rejected.\n→ Caused by: java.lang.NullPointerException: java.lang.NullPointerException",
+      "source": "console.error"
+    },
+    {
+      "id": "1768166497166-28yy0iq9i",
+      "timestamp": "2026-01-11T21:21:37.166Z",
+      "level": "error",
+      "message": "Error getting last sync time: Call to function 'NativeDatabase.prepareAsync' has been rejected.\n→ Caused by: java.lang.NullPointerException: java.lang.NullPointerException",
+      "source": "console.error"
+    },
+    {
+      "id": "1768166497157-6e70orchv",
+      "timestamp": "2026-01-11T21:21:37.157Z",
+      "level": "error",
+      "message": "Error getting pending mutations: Call to function 'NativeDatabase.prepareAsync' has been rejected.\n→ Caused by: java.lang.NullPointerException: java.lang.NullPointerException",
+      "source": "console.error"
+    },
+    {
+      "id": "1768166464543-u2cms9mrd",
+      "timestamp": "2026-01-11T21:21:04.543Z",
+      "level": "error",
+      "message": "Error getting last sync time: Call to function 'NativeDatabase.prepareAsync' has been rejected.\n→ Caused by: java.lang.NullPointerException: java.lang.NullPointerException",
+      "source": "console.error"
+    },
+    {
+      "id": "1768166464539-qkske5pxi",
+      "timestamp": "2026-01-11T21:21:04.539Z",
+      "level": "error",
+      "message": "Error getting pending mutations: Call to function 'NativeDatabase.prepareAsync' has been rejected.\n→ Caused by: java.lang.NullPointerException: java.lang.NullPointerException",
+      "source": "console.error"
+    },
+    {
+      "id": "1768166464202-man8spuqj",
+      "timestamp": "2026-01-11T21:21:04.202Z",
+      "level": "error",
+      "message": "Error getting last sync time: Call to function 'NativeDatabase.prepareAsync' has been rejected.\n→ Caused by: java.lang.NullPointerException: java.lang.NullPointerException",
+      "source": "console.error"
+    },
+    {
+      "id": "1768166464194-5n49vuxz1",
+      "timestamp": "2026-01-11T21:21:04.194Z",
+      "level": "error",
+      "message": "Error getting pending mutations: Call to function 'NativeDatabase.prepareAsync' has been rejected.\n→ Caused by: java.lang.NullPointerException: java.lang.NullPointerException",
+      "source": "console.error"
+    },
+    {
+      "id": "1768166463252-ocqtz52j1",
+      "timestamp": "2026-01-11T21:21:03.252Z",
+      "level": "error",
+      "message": "Error getting last sync time: Call to function 'NativeDatabase.prepareAsync' has been rejected.\n→ Caused by: java.lang.NullPointerException: java.lang.NullPointerException",
+      "source": "console.error"
+    },
+    {
+      "id": "1768166463252-29t0m9s3z",
+      "timestamp": "2026-01-11T21:21:03.252Z",
+      "level": "error",
+      "message": "Error getting pending mutations: Call to function 'NativeDatabase.prepareAsync' has been rejected.\n→ Caused by: java.lang.NullPointerException: java.lang.NullPointerException",
+      "source": "console.error"
+    },
+    {
+      "id": "1768166463170-o84uxhlul",
+      "timestamp": "2026-01-11T21:21:03.170Z",
+      "level": "error",
+      "message": "Error getting push token: Error: Make sure to complete the guide at https://docs.expo.dev/push-notifications/fcm-credentials/ : Default FirebaseApp is not initialized in this process com.erebus.diveapp. Make sure to call FirebaseApp.initializeApp(Context) first.\nError: Make sure to complete the guide at https://docs.expo.dev/push-notifications/fcm-credentials/ : Default FirebaseApp is not initialized in this process com.erebus.diveapp. Make sure to call FirebaseApp.initializeApp(Context) first.\n    at construct (native)\n    at apply (native)\n    at _construct (address at index.android.bundle:1:131691)\n    at Wrapper (address at index.android.bundle:1:131344)\n    at construct (native)\n    at _callSuper (address at index.android.bundle:1:116236)\n    at CodedError (address at index.android.bundle:1:800334)",
+      "source": "console.error"
+    },
+    {
+      "id": "1768166412410-nvohpcbtx",
+      "timestamp": "2026-01-11T21:20:12.410Z",
+      "level": "error",
+      "message": "Error getting last sync time: Call to function 'NativeDatabase.prepareAsync' has been rejected.\n→ Caused by: java.lang.NullPointerException: java.lang.NullPointerException",
+      "source": "console.error"
+    },
+    {
+      "id": "1768166412408-pdvv128xg",
+      "timestamp": "2026-01-11T21:20:12.408Z",
+      "level": "error",
+      "message": "Error getting pending mutations: Call to function 'NativeDatabase.prepareAsync' has been rejected.\n→ Caused by: java.lang.NullPointerException: java.lang.NullPointerException",
+      "source": "console.error"
+    },
+    {
+      "id": "1768166412111-xyva3zqbj",
+      "timestamp": "2026-01-11T21:20:12.111Z",
+      "level": "error",
+      "message": "Error getting last sync time: Call to function 'NativeDatabase.prepareAsync' has been rejected.\n→ Caused by: java.lang.NullPointerException: java.lang.NullPointerException",
+      "source": "console.error"
+    },
+    {
+      "id": "1768166412109-d0ss1sz3t",
+      "timestamp": "2026-01-11T21:20:12.109Z",
+      "level": "error",
+      "message": "Error getting pending mutations: Call to function 'NativeDatabase.prepareAsync' has been rejected.\n→ Caused by: java.lang.NullPointerException: java.lang.NullPointerException",
+      "source": "console.error"
+    },
+    {
+      "id": "1768160856843-n4ltrrp82",
+      "timestamp": "2026-01-11T19:47:36.843Z",
+      "level": "error",
+      "message": "Error getting push token: Error: Make sure to complete the guide at https://docs.expo.dev/push-notifications/fcm-credentials/ : Default FirebaseApp is not initialized in this process com.erebus.diveapp. Make sure to call FirebaseApp.initializeApp(Context) first.\nError: Make sure to complete the guide at https://docs.expo.dev/push-notifications/fcm-credentials/ : Default FirebaseApp is not initialized in this process com.erebus.diveapp. Make sure to call FirebaseApp.initializeApp(Context) first.\n    at construct (native)\n    at apply (native)\n    at _construct (address at index.android.bundle:1:131691)\n    at Wrapper (address at index.android.bundle:1:131344)\n    at construct (native)\n    at _callSuper (address at index.android.bundle:1:116236)\n    at CodedError (address at index.android.bundle:1:800334)",
+      "source": "console.error"
+    },
+    {
+      "id": "1768160775453-ggu7ja6my",
+      "timestamp": "2026-01-11T19:46:15.453Z",
+      "level": "error",
+      "message": "Error getting push token: Error: Make sure to complete the guide at https://docs.expo.dev/push-notifications/fcm-credentials/ : Default FirebaseApp is not initialized in this process com.erebus.diveapp. Make sure to call FirebaseApp.initializeApp(Context) first.\nError: Make sure to complete the guide at https://docs.expo.dev/push-notifications/fcm-credentials/ : Default FirebaseApp is not initialized in this process com.erebus.diveapp. Make sure to call FirebaseApp.initializeApp(Context) first.\n    at construct (native)\n    at apply (native)\n    at _construct (address at index.android.bundle:1:131691)\n    at Wrapper (address at index.android.bundle:1:131344)\n    at construct (native)\n    at _callSuper (address at index.android.bundle:1:116236)\n    at CodedError (address at index.android.bundle:1:800334)",
+      "source": "console.error"
+    },
+    {
+      "id": "1768160773618-s9gnsvybc",
+      "timestamp": "2026-01-11T19:46:13.618Z",
+      "level": "error",
+      "message": "Full error: {\n  \"message\": \"Call to function 'ExpoSQLite.ensureDatabasePathExistsAsync' has been rejected.\\n→ Caused by: Could not open database /data/data/com.erebus.diveapp/files/SQLite/erebus_v4.db. Couldn't create directory '/data/data/com.erebus.diveapp/files/SQLite'. Path already points to a non-normal file.\",\n  \"code\": \"ERR_OPEN_DATABASE\"\n}",
+      "source": "console.error"
+    },
+    {
+      "id": "1768160773617-095x2i3t9",
+      "timestamp": "2026-01-11T19:46:13.617Z",
+      "level": "error",
+      "message": "SQLite initialization attempt 2 failed: Call to function 'ExpoSQLite.ensureDatabasePathExistsAsync' has been rejected.\n→ Caused by: Could not open database /data/data/com.erebus.diveapp/files/SQLite/erebus_v4.db. Couldn't create directory '/data/data/com.erebus.diveapp/files/SQLite'. Path already points to a non-normal file.",
+      "source": "console.error"
+    }
+  ]
+}

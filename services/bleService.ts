@@ -389,12 +389,24 @@ class BleService {
       throw new Error('No device connected');
     }
 
-    const maxRetries = 5;
-    const retryDelay = 1000;
+    const maxRetries = 8;
+    const retryDelay = 1500;
     let lastError: Error | null = null;
+    const deviceId = this.connectedDevice?.id || 'unknown';
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
+        // Check if device is still connected before each attempt
+        if (!this.connectedDevice) {
+          throw new Error('Device disconnected during write operation');
+        }
+        
+        // Check connection state
+        const isConnected = await this.connectedDevice.isConnected();
+        if (!isConnected) {
+          throw new Error('Device is no longer connected');
+        }
+        
         if (withResponse) {
           await this.connectedDevice.writeCharacteristicWithResponseForService(
             serviceUUID,
@@ -414,17 +426,28 @@ class BleService {
         const errorMsg = error?.message || String(error);
         const errorCode = error?.errorCode || error?.code;
         
-        console.error(`Write attempt ${attempt}/${maxRetries} failed:`, errorMsg, 'Code:', errorCode);
+        console.error(`Write attempt ${attempt}/${maxRetries} to device ${deviceId} failed:`, errorMsg, 'Code:', errorCode);
         
         // Check if it's a service not found error (302) - retry with service re-discovery
         if (errorCode === 302 || errorMsg.includes('not found') || errorMsg.includes('302')) {
           if (attempt < maxRetries) {
-            console.log(`Service not ready, re-discovering and retrying in ${retryDelay}ms...`);
-            await new Promise(resolve => setTimeout(resolve, retryDelay));
-            await this.rediscoverServices();
+            // Increase delay progressively for later attempts
+            const currentDelay = retryDelay + (attempt * 500);
+            console.log(`Service not ready on device ${deviceId}, re-discovering and retrying in ${currentDelay}ms... (attempt ${attempt}/${maxRetries})`);
+            await new Promise(resolve => setTimeout(resolve, currentDelay));
+            
+            // Full re-discovery of services
+            try {
+              await this.rediscoverServices();
+            } catch (rediscoverError: any) {
+              console.warn('Re-discovery failed:', rediscoverError?.message);
+            }
           }
+        } else if (errorMsg.includes('disconnected') || errorMsg.includes('no longer connected')) {
+          // Device disconnected, don't retry
+          break;
         } else {
-          // Non-retryable error
+          // Other non-retryable error
           break;
         }
       }
