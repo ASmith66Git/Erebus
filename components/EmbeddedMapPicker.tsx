@@ -141,17 +141,29 @@ export default function EmbeddedMapPicker({
           handleMarkerChange(lat, lng);
         });
 
+        // Set up Places Autocomplete after a short delay to ensure DOM is ready
         setTimeout(() => {
           const searchInput = document.getElementById('map-search-input') as HTMLInputElement;
-          if (searchInput && google.maps.places?.Autocomplete) {
+          const placesGoogle = (window as any).google;
+          
+          console.log('Setting up Places Autocomplete:', { 
+            hasInput: !!searchInput, 
+            hasPlaces: !!placesGoogle?.maps?.places,
+            hasAutocomplete: !!placesGoogle?.maps?.places?.Autocomplete 
+          });
+          
+          if (searchInput && placesGoogle?.maps?.places?.Autocomplete) {
             try {
-              const autocomplete = new google.maps.places.Autocomplete(searchInput, {
+              const autocomplete = new placesGoogle.maps.places.Autocomplete(searchInput, {
                 types: ['geocode', 'establishment'],
+                fields: ['geometry', 'formatted_address', 'name'],
               });
               autocompleteRef.current = autocomplete;
+              console.log('Places Autocomplete initialized successfully');
 
               autocomplete.addListener('place_changed', () => {
                 const place = autocomplete.getPlace();
+                console.log('Place selected:', place);
                 if (place.geometry && place.geometry.location) {
                   const lat = place.geometry.location.lat();
                   const lng = place.geometry.location.lng();
@@ -163,8 +175,10 @@ export default function EmbeddedMapPicker({
                 }
               });
             } catch (e) {
-              console.log('Places Autocomplete not available');
+              console.error('Places Autocomplete error:', e);
             }
+          } else {
+            console.warn('Places Autocomplete not available - check if Places API is enabled in Google Cloud Console');
           }
         }, 500);
 
