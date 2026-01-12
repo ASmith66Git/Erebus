@@ -7,10 +7,12 @@ import {
   Platform,
   Pressable,
   ActivityIndicator,
+  Keyboard,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import Constants from 'expo-constants';
+import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
 
 interface EmbeddedMapPickerProps {
   latitude: number;
@@ -338,9 +340,75 @@ export default function EmbeddedMapPicker({
     );
   }
 
+  const handlePlaceSelect = useCallback((data: any, details: any) => {
+    if (details?.geometry?.location) {
+      const lat = details.geometry.location.lat;
+      const lng = details.geometry.location.lng;
+      handleMarkerChange(lat, lng);
+      
+      if (mapRef.current) {
+        mapRef.current.animateToRegion({
+          latitude: lat,
+          longitude: lng,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
+        });
+      }
+      Keyboard.dismiss();
+    }
+  }, [handleMarkerChange]);
+
   return (
     <View style={styles.container}>
       <View style={styles.searchRow}>
+        <View style={{ flex: 1, marginRight: 8 }}>
+          <GooglePlacesAutocomplete
+            placeholder="Search for a location..."
+            onPress={handlePlaceSelect}
+            fetchDetails={true}
+            query={{
+              key: apiKey,
+              language: 'en',
+            }}
+            styles={{
+              container: {
+                flex: 0,
+              },
+              textInputContainer: {
+                backgroundColor: colors.surface,
+                borderRadius: 8,
+                borderWidth: 1,
+                borderColor: colors.border,
+              },
+              textInput: {
+                height: 44,
+                color: colors.text,
+                fontSize: 16,
+                backgroundColor: 'transparent',
+              },
+              listView: {
+                backgroundColor: colors.surface,
+                borderRadius: 8,
+                marginTop: 4,
+                borderWidth: 1,
+                borderColor: colors.border,
+              },
+              row: {
+                backgroundColor: colors.surface,
+                padding: 13,
+              },
+              description: {
+                color: colors.text,
+              },
+              poweredContainer: {
+                display: 'none',
+              },
+            }}
+            enablePoweredByContainer={false}
+            minLength={2}
+            debounce={300}
+          />
+        </View>
         <Pressable
           style={[styles.locationButton, { backgroundColor: colors.primary }]}
           onPress={getCurrentLocation}
@@ -349,10 +417,7 @@ export default function EmbeddedMapPicker({
           {gettingLocation ? (
             <ActivityIndicator size="small" color="#FFFFFF" />
           ) : (
-            <>
-              <Feather name="crosshair" size={18} color="#FFFFFF" />
-              <Text style={styles.locationButtonText}>Use My Location</Text>
-            </>
+            <Feather name="crosshair" size={20} color="#FFFFFF" />
           )}
         </Pressable>
       </View>
