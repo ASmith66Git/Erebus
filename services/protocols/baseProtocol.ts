@@ -101,16 +101,44 @@ export abstract class BaseDiveComputerProtocol {
     const connected = await bleService.connect(deviceId);
     
     if (connected) {
-      this.monitorSubscription = await bleService.monitorCharacteristic(
-        this.serviceUUID,
-        this.characteristicUUID,
-        (data: string) => this.handleIncomingData(data),
-        (error: Error) => {
-          console.error('BLE Monitor error in protocol:', error.message);
-          // Store error for later retrieval if needed
-          this.lastMonitorError = error;
+      // Shearwater devices need time for all GATT services to enumerate
+      // Retry monitoring setup with delays if service not found initially
+      const maxRetries = 5;
+      const retryDelay = 1000; // 1 second between retries
+      
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          console.log(`Setting up BLE monitor (attempt ${attempt}/${maxRetries})...`);
+          this.monitorSubscription = await bleService.monitorCharacteristic(
+            this.serviceUUID,
+            this.characteristicUUID,
+            (data: string) => this.handleIncomingData(data),
+            (error: Error) => {
+              console.error('BLE Monitor error in protocol:', error.message);
+              this.lastMonitorError = error;
+            }
+          );
+          console.log('BLE monitor setup successful');
+          break; // Success, exit retry loop
+        } catch (error: any) {
+          const errorMsg = error?.message || '';
+          console.error(`Monitor setup attempt ${attempt} failed:`, errorMsg);
+          
+          // If service not found, wait and retry
+          if (errorMsg.includes('not found') || errorMsg.includes('302')) {
+            if (attempt < maxRetries) {
+              console.log(`Service not yet available, waiting ${retryDelay}ms before retry...`);
+              await new Promise(resolve => setTimeout(resolve, retryDelay));
+              // Re-discover services
+              await bleService.rediscoverServices();
+            } else {
+              throw new Error(`Shearwater service not found after ${maxRetries} attempts. Make sure your dive computer is in Bluetooth transfer mode.`);
+            }
+          } else {
+            throw error; // Other errors, don't retry
+          }
         }
-      );
+      }
     }
     
     return connected;

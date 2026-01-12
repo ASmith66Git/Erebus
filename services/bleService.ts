@@ -459,6 +459,22 @@ class BleService {
     return this.connectedDevice !== null;
   }
 
+  async rediscoverServices(): Promise<void> {
+    if (!this.connectedDevice) {
+      throw new Error('No device connected');
+    }
+    
+    console.log('BLE: Re-discovering services...');
+    await this.connectedDevice.discoverAllServicesAndCharacteristics();
+    
+    // Log discovered services again
+    const services = await this.connectedDevice.services();
+    console.log('BLE: Found', services.length, 'services after re-discovery');
+    for (const service of services) {
+      console.log('BLE: Service UUID:', service.uuid);
+    }
+  }
+
   getConnectedDevice(): BleDevice | null {
     if (!this.connectedDevice) return null;
     return {
