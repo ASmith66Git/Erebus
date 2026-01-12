@@ -2,7 +2,7 @@ module.exports = {
   expo: {
     name: "Erebus",
     slug: "erebus-dive-app",
-    version: "1.1.11",
+    version: "1.1.12",
     orientation: "portrait",
     icon: "./assets/images/icon.png",
     scheme: "myapp",
@@ -17,7 +17,7 @@ module.exports = {
       }
     },
     android: {
-      versionCode: 17,
+      versionCode: 18,
       adaptiveIcon: {
         foregroundImage: "./assets/images/adaptive-icon.png",
         backgroundColor: "#000000"
@@ -26,6 +26,11 @@ module.exports = {
       package: "com.erebus.diveapp",
       googleServicesFile: "./google-services.json",
       allowBackup: false,
+      config: {
+        googleMaps: {
+          apiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || ''
+        }
+      },
       permissions: [
         "android.permission.BLUETOOTH",
         "android.permission.BLUETOOTH_ADMIN",
