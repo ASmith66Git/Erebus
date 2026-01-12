@@ -444,23 +444,44 @@ class BleService {
         if ((isServiceError || isDisconnectError) && attempt < maxRetries && this.connectedDeviceId) {
           // Increase delay progressively for later attempts
           const currentDelay = retryDelay + (attempt * 500);
-          console.log(`BLE issue detected (${isDisconnectError ? 'disconnect' : 'service error'}), attempting reconnection in ${currentDelay}ms... (attempt ${attempt}/${maxRetries})`);
+          console.log(`BLE issue detected (${isDisconnectError ? 'disconnect' : 'service error'}), recovery in ${currentDelay}ms... (attempt ${attempt}/${maxRetries})`);
           await new Promise(resolve => setTimeout(resolve, currentDelay));
           
-          // Full reconnection using stored device ID
-          try {
-            await this.reconnect();
-            console.log('Reconnection successful, retrying write...');
-          } catch (reconnectError: any) {
-            console.warn('Reconnection failed:', reconnectError?.message);
-            // Try just re-discovery as fallback if we still have a device reference
-            if (this.connectedDevice) {
-              try {
-                await this.rediscoverServices();
-              } catch (rediscoverError: any) {
-                console.warn('Re-discovery also failed:', rediscoverError?.message);
+          // Strategy: Try GATT refresh first (faster), then full reconnect if that fails
+          let recovered = false;
+          
+          // First: Try re-discovery if we still have a device reference (GATT cache refresh)
+          if (this.connectedDevice && isServiceError) {
+            try {
+              console.log('BLE: Attempting GATT refresh (re-discovery)...');
+              const stillConnected = await this.connectedDevice.isConnected();
+              if (stillConnected) {
+                await this.connectedDevice.discoverAllServicesAndCharacteristics();
+                await new Promise(resolve => setTimeout(resolve, 500));
+                console.log('BLE: GATT refresh successful');
+                recovered = true;
+              } else {
+                console.log('BLE: Device reports disconnected, will do full reconnect');
               }
+            } catch (refreshError: any) {
+              console.log('BLE: GATT refresh failed:', refreshError?.message);
             }
+          }
+          
+          // Second: Full reconnection if GATT refresh didn't work
+          if (!recovered) {
+            try {
+              console.log('BLE: Attempting full reconnection...');
+              await this.reconnect();
+              console.log('BLE: Full reconnection successful');
+              recovered = true;
+            } catch (reconnectError: any) {
+              console.warn('BLE: Reconnection failed:', reconnectError?.message);
+            }
+          }
+          
+          if (recovered) {
+            console.log('BLE: Recovery successful, retrying write...');
           }
         } else if (isCancelledError) {
           // User cancelled, don't retry
