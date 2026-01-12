@@ -141,6 +141,33 @@ export default function EmbeddedMapPicker({
           handleMarkerChange(lat, lng);
         });
 
+        // Add CSS for Places Autocomplete dropdown to ensure it's visible
+        if (!document.getElementById('pac-container-styles')) {
+          const style = document.createElement('style');
+          style.id = 'pac-container-styles';
+          style.textContent = `
+            .pac-container {
+              z-index: 99999 !important;
+              background-color: #fff;
+              border-radius: 8px;
+              box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            }
+            .pac-item {
+              padding: 10px 12px;
+              cursor: pointer;
+              font-size: 14px;
+            }
+            .pac-item:hover {
+              background-color: #f0f0f0;
+            }
+            .pac-item-query {
+              font-weight: 500;
+            }
+          `;
+          document.head.appendChild(style);
+        }
+
         // Set up Places Autocomplete after a short delay to ensure DOM is ready
         setTimeout(() => {
           const searchInput = document.getElementById('map-search-input') as HTMLInputElement;
@@ -159,6 +186,10 @@ export default function EmbeddedMapPicker({
                 fields: ['geometry', 'formatted_address', 'name'],
               });
               autocompleteRef.current = autocomplete;
+              
+              // Bind autocomplete to map for better results
+              autocomplete.bindTo('bounds', map);
+              
               console.log('Places Autocomplete initialized successfully');
 
               autocomplete.addListener('place_changed', () => {
