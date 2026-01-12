@@ -197,12 +197,13 @@ class BleService {
       });
 
       device.onDisconnected(() => {
-        console.log('BLE: Device disconnected');
+        console.log('BLE: Device disconnected (ID preserved for reconnection:', this.connectedDeviceId, ')');
         this.connectedDevice = null;
-        this.connectedDeviceId = null;
+        // IMPORTANT: Do NOT clear connectedDeviceId here - it's needed for reconnection
+        // The ID will be cleared on explicit disconnect() call instead
         this.notifyConnectionState({
           connected: false,
-          deviceId: null,
+          deviceId: this.connectedDeviceId, // Keep the ID in state for potential reconnection
           deviceName: null,
         });
       });
@@ -357,6 +358,9 @@ class BleService {
       }
       this.connectedDevice = null;
     }
+    
+    // Clear device ID on explicit disconnect (user-initiated)
+    this.connectedDeviceId = null;
 
     this.notifyConnectionState({
       connected: false,
@@ -431,20 +435,26 @@ class BleService {
         
         console.error(`Write attempt ${attempt}/${maxRetries} to device ${deviceId} failed:`, errorMsg, 'Code:', errorCode);
         
-        // Check if it's a service not found error (302) - the device object may be stale
-        if (errorCode === 302 || errorMsg.includes('not found') || errorMsg.includes('302') || errorMsg.includes('device ?')) {
-          if (attempt < maxRetries && this.connectedDeviceId) {
-            // Increase delay progressively for later attempts
-            const currentDelay = retryDelay + (attempt * 500);
-            console.log(`Device reference stale (${deviceId}), full reconnection in ${currentDelay}ms... (attempt ${attempt}/${maxRetries})`);
-            await new Promise(resolve => setTimeout(resolve, currentDelay));
-            
-            // Full reconnection using stored device ID
-            try {
-              await this.reconnect();
-            } catch (reconnectError: any) {
-              console.warn('Reconnection failed:', reconnectError?.message);
-              // Try just re-discovery as fallback
+        // Check if we should attempt reconnection
+        const isServiceError = errorCode === 302 || errorMsg.includes('not found') || errorMsg.includes('302') || errorMsg.includes('device ?');
+        const isDisconnectError = errorMsg.includes('disconnected') || errorMsg.includes('no longer connected') || errorCode === 305;
+        const isCancelledError = errorCode === 2 || errorMsg.includes('cancelled');
+        
+        // Retry with reconnection for service errors and disconnection errors
+        if ((isServiceError || isDisconnectError) && attempt < maxRetries && this.connectedDeviceId) {
+          // Increase delay progressively for later attempts
+          const currentDelay = retryDelay + (attempt * 500);
+          console.log(`BLE issue detected (${isDisconnectError ? 'disconnect' : 'service error'}), attempting reconnection in ${currentDelay}ms... (attempt ${attempt}/${maxRetries})`);
+          await new Promise(resolve => setTimeout(resolve, currentDelay));
+          
+          // Full reconnection using stored device ID
+          try {
+            await this.reconnect();
+            console.log('Reconnection successful, retrying write...');
+          } catch (reconnectError: any) {
+            console.warn('Reconnection failed:', reconnectError?.message);
+            // Try just re-discovery as fallback if we still have a device reference
+            if (this.connectedDevice) {
               try {
                 await this.rediscoverServices();
               } catch (rediscoverError: any) {
@@ -452,11 +462,19 @@ class BleService {
               }
             }
           }
-        } else if (errorMsg.includes('disconnected') || errorMsg.includes('no longer connected')) {
-          // Device disconnected, don't retry
+        } else if (isCancelledError) {
+          // User cancelled, don't retry
+          console.log('Operation cancelled by user, stopping retries');
+          break;
+        } else if (!this.connectedDeviceId) {
+          // No device ID to reconnect to
+          console.log('No device ID available for reconnection, stopping retries');
           break;
         } else {
-          // Other non-retryable error
+          // Other non-retryable error or max retries reached
+          if (attempt >= maxRetries) {
+            console.log('Max retries reached');
+          }
           break;
         }
       }
