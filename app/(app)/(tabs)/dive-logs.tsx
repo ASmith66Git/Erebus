@@ -378,7 +378,7 @@ export default function DiveLogsScreen() {
   };
 
   const handleAddManual = () => {
-    router.push('/dive-log/new' as any);
+    router.push('/manual-dive-entry');
   };
 
   const handleBluetoothConnect = () => {
