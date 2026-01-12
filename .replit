@@ -115,5 +115,5 @@ PEXELS_API_KEY = "OcHCrP60cM9wXO33I9D6bl5ymzBHZjKbnMgQwM3JbnZ5rHzJhKstEIHO"
 
 [deployment]
 deploymentTarget = "autoscale"
-run = ["bash", "-c", "PORT=5000 node server/index.js"]
+run = ["node", "server/index.js"]
 build = ["bash", "-c", "npx expo export --platform web"]
