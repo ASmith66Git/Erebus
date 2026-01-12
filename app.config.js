@@ -24,12 +24,15 @@ module.exports = {
       },
       edgeToEdgeEnabled: true,
       package: "com.erebus.diveapp",
+      googleServicesFile: "./google-services.json",
       permissions: [
         "android.permission.BLUETOOTH",
         "android.permission.BLUETOOTH_ADMIN",
         "android.permission.BLUETOOTH_SCAN",
         "android.permission.BLUETOOTH_CONNECT",
-        "android.permission.ACCESS_FINE_LOCATION"
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.VIBRATE"
       ]
     },
     web: {
