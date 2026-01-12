@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -28,17 +28,16 @@ interface EmbeddedMapPickerProps {
   };
 }
 
-let MapView: any = null;
-let Marker: any = null;
-
-try {
-  if (Platform.OS !== 'web') {
-    const maps = require('react-native-maps');
-    MapView = maps.default;
-    Marker = maps.Marker;
+function loadMapsModule() {
+  try {
+    if (Platform.OS !== 'web') {
+      const maps = require('react-native-maps');
+      return { MapView: maps.default, Marker: maps.Marker };
+    }
+  } catch (e) {
+    console.log('react-native-maps not available:', e);
   }
-} catch (e) {
-  console.log('react-native-maps not available');
+  return { MapView: null, Marker: null };
 }
 
 export default function EmbeddedMapPicker({
@@ -59,6 +58,9 @@ export default function EmbeddedMapPicker({
   const autocompleteRef = useRef<any>(null);
 
   const apiKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || Constants.expoConfig?.extra?.googleMapsApiKey || '';
+
+  // Load maps module lazily inside the component to catch any initialization errors
+  const { MapView, Marker } = useMemo(() => loadMapsModule(), []);
 
   useEffect(() => {
     setMarkerPosition({ latitude, longitude });

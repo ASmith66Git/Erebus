@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   Platform,
   ActivityIndicator,
   Pressable,
+  Linking,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import Constants from 'expo-constants';
@@ -23,17 +24,16 @@ interface StaticMapViewProps {
   };
 }
 
-let MapView: any = null;
-let Marker: any = null;
-
-try {
-  if (Platform.OS !== 'web') {
-    const maps = require('react-native-maps');
-    MapView = maps.default;
-    Marker = maps.Marker;
+function loadMapsModule() {
+  try {
+    if (Platform.OS !== 'web') {
+      const maps = require('react-native-maps');
+      return { MapView: maps.default, Marker: maps.Marker };
+    }
+  } catch (e) {
+    console.log('react-native-maps not available:', e);
   }
-} catch (e) {
-  console.log('react-native-maps not available');
+  return { MapView: null, Marker: null };
 }
 
 export default function StaticMapView({
@@ -47,6 +47,9 @@ export default function StaticMapView({
   const googleMapRef = useRef<any>(null);
 
   const apiKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || Constants.expoConfig?.extra?.googleMapsApiKey || '';
+
+  // Load maps module lazily inside the component to catch any initialization errors
+  const { MapView, Marker } = useMemo(() => loadMapsModule(), []);
 
   useEffect(() => {
     if (Platform.OS !== 'web') return;

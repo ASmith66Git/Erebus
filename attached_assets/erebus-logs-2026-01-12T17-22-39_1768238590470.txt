@@ -1,0 +1,86 @@
+{
+  "deviceInfo": {
+    "platform": "android",
+    "version": 35,
+    "timestamp": "2026-01-12T17:22:39.614Z"
+  },
+  "logs": [
+    {
+      "id": "1768238535933-oydv2ru60",
+      "timestamp": "2026-01-12T17:22:15.933Z",
+      "level": "error",
+      "message": "Download error details: {\n  \"message\": \"Operation cancelled (error code 2)\",\n  \"name\": \"Error\",\n  \"stack\": \"Error: Operation cancelled (error code 2)\\n    at ?anon_0_ (address at index.android.bundle:1:2011239)\\n    at throw (native)\\n    at asyncGeneratorStep (address at index.android.bundle:1:559405)\\n    at _throw (address at index.android.bundle:1:559710)\\n    at tryCallOne (address at InternalBytecode.js:1:1180)\\n    at anonymous (address at InternalBytecode.js:1:1874)\",\n  \"fullError\": \"{\\n  \\\"message\\\": \\\"Operation cancelled (error code 2)\\\",\\n  \\\"stack\\\": \\\"Error: Operation cancelled (error code 2)\\\\n    at ?anon_0_ (address at index.android.bundle:1:2011239)\\\\n    at throw (native)\\\\n    at asyncGeneratorStep (address at index.android.bundle:1:559405)\\\\n    at _throw (address at index.android.bundle:1:559710)\\\\n    at tryCallOne (address at InternalBytecode.js:1:1180)\\\\n    at anonymous (address at InternalBytecode.js:1:1874)\\\"\\n}\"\n}",
+      "source": "console.error"
+    },
+    {
+      "id": "1768238535931-qs53pxve5",
+      "timestamp": "2026-01-12T17:22:15.931Z",
+      "level": "error",
+      "message": "Download error: Error: Operation cancelled (error code 2)\nError: Operation cancelled (error code 2)\n    at ?anon_0_ (address at index.android.bundle:1:2011239)\n    at throw (native)\n    at asyncGeneratorStep (address at index.android.bundle:1:559405)\n    at _throw (address at index.android.bundle:1:559710)\n    at tryCallOne (address at InternalBytecode.js:1:1180)\n    at anonymous (address at InternalBytecode.js:1:1874)",
+      "source": "console.error"
+    },
+    {
+      "id": "1768238535927-sso8qu1rf",
+      "timestamp": "2026-01-12T17:22:15.927Z",
+      "level": "error",
+      "message": "BLE Error Details: {\n  \"message\": \"Operation was cancelled\",\n  \"reason\": \"\",\n  \"errorCode\": 2,\n  \"androidErrorCode\": null,\n  \"iosErrorCode\": null,\n  \"attErrorCode\": null,\n  \"name\": \"BleError\",\n  \"stack\": \"BleError: Operation was cancelled\\n    at construct (native)\\n    at apply (native)\\n    at _construct (address at index.android.bundle:1:131942)\\n    at Wrapper (address at index.android.bundle:1:131595)\\n    at construct (native)\\n    at _callSuper (address at index.android.bundle:1:116487)\\n    at BleError (address at index.android.bundle:1:2018214)\\n    at parseBleError (address at index.android.bundle:1:2018018)\\n    at ?anon_0_ (address at index.android.bundle:1:2021555)\\n    at throw (native)\\n    a\"\n}",
+      "source": "console.error"
+    },
+    {
+      "id": "1768238535924-y9ygv3y79",
+      "timestamp": "2026-01-12T17:22:15.925Z",
+      "level": "error",
+      "message": "Connection error: BleError: Operation was cancelled\nBleError: Operation was cancelled\n    at construct (native)\n    at apply (native)\n    at _construct (address at index.android.bundle:1:131942)\n    at Wrapper (address at index.android.bundle:1:131595)\n    at construct (native)\n    at _callSuper (address at index.android.bundle:1:116487)\n    at BleError (address at index.android.bundle:1:2018214)\n    at parseBleError (address at index.android.bundle:1:2018018)\n    at ?anon_0_ (address at index.android.bundle:1:2021555)\n    at throw (native)\n    at asyncGeneratorStep (address at index.android.bundle:1:559405)\n    at _throw (address at index.android.bundle:1:559710)\n    at tryCallOne (address at InternalBytecode.js:1:1180)\n    at anonymous (address at InternalBytecode.js:1:1874)",
+      "source": "console.error"
+    },
+    {
+      "id": "1768238514613-juf9z3s0q",
+      "timestamp": "2026-01-12T17:21:54.613Z",
+      "level": "error",
+      "message": "Download error details: {\n  \"message\": \"Write failed: Device disconnected during connection. Please try again and keep devices close together.\",\n  \"name\": \"Error\",\n  \"stack\": \"Error: Write failed: Device disconnected during connection. Please try again and keep devices close together.\\n    at ?anon_0_ (address at index.android.bundle:1:2013449)\\n    at throw (native)\\n    at asyncGeneratorStep (address at index.android.bundle:1:559405)\\n    at _throw (address at index.android.bundle:1:559710)\\n    at tryCallOne (address at InternalBytecode.js:1:1180)\\n    at anonymous (address at InternalBytecode.js:1:1874)\",\n  \"fullError\": \"{\\n  \\\"message\\\": \\\"Write failed: Device disconnected during connection. Please try again and keep devices close together.\\\",\\n  \\\"stack\\\": \\\"Error: Write failed: Device disconnected during connection. Please try again and keep devices close together.\\\\n    at ?anon_0_ (address at index.android.bundle:1:2013449)\\\\n    at throw (native)\\\\n    at asyncGeneratorStep (",
+      "source": "console.error"
+    },
+    {
+      "id": "1768238514613-7lq31pmn6",
+      "timestamp": "2026-01-12T17:21:54.613Z",
+      "level": "error",
+      "message": "Download error: Error: Write failed: Device disconnected during connection. Please try again and keep devices close together.\nError: Write failed: Device disconnected during connection. Please try again and keep devices close together.\n    at ?anon_0_ (address at index.android.bundle:1:2013449)\n    at throw (native)\n    at asyncGeneratorStep (address at index.android.bundle:1:559405)\n    at _throw (address at index.android.bundle:1:559710)\n    at tryCallOne (address at InternalBytecode.js:1:1180)\n    at anonymous (address at InternalBytecode.js:1:1874)",
+      "source": "console.error"
+    },
+    {
+      "id": "1768238514612-5c2qug82m",
+      "timestamp": "2026-01-12T17:21:54.612Z",
+      "level": "error",
+      "message": "BLE Error Details: {\n  \"message\": \"Device disconnected during write operation\",\n  \"reason\": \"\",\n  \"name\": \"Error\",\n  \"stack\": \"Error: Device disconnected during write operation\\n    at ?anon_0__loop (address at index.android.bundle:1:2013531)\\n    at next (native)\\n    at ?anon_0_ (address at index.android.bundle:1:2013154)\\n    at throw (native)\\n    at asyncGeneratorStep (address at index.android.bundle:1:559405)\\n    at _throw (address at index.android.bundle:1:559710)\\n    at tryCallOne (address at InternalBytecode.js:1:1180)\\n    at anonymous (address at InternalBytecode.js:1:1874)\"\n}",
+      "source": "console.error"
+    },
+    {
+      "id": "1768238514611-mcmbplcy7",
+      "timestamp": "2026-01-12T17:21:54.611Z",
+      "level": "error",
+      "message": "Write attempt 2/8 to device 00:13:43:19:99:C8 failed: Device disconnected during write operation Code: undefined",
+      "source": "console.error"
+    },
+    {
+      "id": "1768238514610-gtja8ytco",
+      "timestamp": "2026-01-12T17:21:54.610Z",
+      "level": "warn",
+      "message": "Re-discovery also failed: No device connected",
+      "source": "console.warn"
+    },
+    {
+      "id": "1768238514609-n4o6mt8oz",
+      "timestamp": "2026-01-12T17:21:54.610Z",
+      "level": "warn",
+      "message": "Reconnection failed: Device 00:13:43:19:99:C8 was disconnected",
+      "source": "console.warn"
+    },
+    {
+      "id": "1768238511502-an8i2cef4",
+      "timestamp": "2026-01-12T17:21:51.502Z",
+      "level": "error",
+      "message": "Write attempt 1/8 to device 00:13:43:19:99:C8 failed: Service fe25c237-0ece-443c-b0aa-e02033e7029d for device ? not found Code: 302",
+      "source": "console.error"
+    }
+  ]
+}
