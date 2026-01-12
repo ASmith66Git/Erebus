@@ -1,7 +1,7 @@
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 
-const HARDCODED_PRODUCTION_URL = 'https://expo-erebus-anthony606.replit.app';
+const HARDCODED_PRODUCTION_URL = 'https://expo-erebus--anthony606.replit.app';
 const PRODUCTION_API_URL = process.env.EXPO_PUBLIC_API_URL || HARDCODED_PRODUCTION_URL;
 
 export function getApiUrl(): string {
