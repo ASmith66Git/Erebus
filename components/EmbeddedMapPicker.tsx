@@ -206,8 +206,6 @@ export default function EmbeddedMapPicker({
               padding: '8px 0',
               width: '100%',
             }}
-            value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
           />
         </View>
         <Pressable
