@@ -65,6 +65,7 @@ export abstract class BaseDiveComputerProtocol {
   protected monitorSubscription: (() => void) | null = null;
   protected pendingPackets: Uint8Array[] = [];
   protected packetResolver: ((packet: Uint8Array) => void) | null = null;
+  protected reconnectionCallback: (() => Promise<void>) | null = null;
   
   abstract get name(): string;
   abstract get serviceUUID(): string;
@@ -73,6 +74,30 @@ export abstract class BaseDiveComputerProtocol {
   
   constructor() {
     this.slipDecoder = new SlipDecoder(true);
+  }
+  
+  protected async setupMonitor(): Promise<void> {
+    // Clean up existing subscription if any
+    if (this.monitorSubscription) {
+      try {
+        this.monitorSubscription();
+      } catch (e) {
+        // Ignore cleanup errors
+      }
+      this.monitorSubscription = null;
+    }
+    
+    console.log('Protocol: Setting up BLE monitor for', this.name);
+    this.monitorSubscription = await bleService.monitorCharacteristic(
+      this.serviceUUID,
+      this.characteristicUUID,
+      (data: string) => this.handleIncomingData(data),
+      (error: Error) => {
+        console.error('BLE Monitor error in protocol:', error.message);
+        this.lastMonitorError = error;
+      }
+    );
+    console.log('Protocol: BLE monitor setup successful');
   }
   
   async scanForDevices(
@@ -109,16 +134,7 @@ export abstract class BaseDiveComputerProtocol {
       for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
           console.log(`Setting up BLE monitor (attempt ${attempt}/${maxRetries})...`);
-          this.monitorSubscription = await bleService.monitorCharacteristic(
-            this.serviceUUID,
-            this.characteristicUUID,
-            (data: string) => this.handleIncomingData(data),
-            (error: Error) => {
-              console.error('BLE Monitor error in protocol:', error.message);
-              this.lastMonitorError = error;
-            }
-          );
-          console.log('BLE monitor setup successful');
+          await this.setupMonitor();
           break; // Success, exit retry loop
         } catch (error: any) {
           const errorMsg = error?.message || '';
@@ -139,6 +155,14 @@ export abstract class BaseDiveComputerProtocol {
           }
         }
       }
+      
+      // Register reconnection callback to re-establish monitor after any reconnection
+      this.reconnectionCallback = async () => {
+        console.log('Protocol: Reconnection detected, re-establishing monitor...');
+        await this.setupMonitor();
+      };
+      bleService.registerReconnectionCallback(this.reconnectionCallback);
+      console.log('Protocol: Reconnection callback registered');
     }
     
     return connected;
@@ -147,8 +171,18 @@ export abstract class BaseDiveComputerProtocol {
   protected lastMonitorError: Error | null = null;
   
   async disconnect(): Promise<void> {
+    // Unregister reconnection callback
+    if (this.reconnectionCallback) {
+      bleService.unregisterReconnectionCallback(this.reconnectionCallback);
+      this.reconnectionCallback = null;
+    }
+    
     if (this.monitorSubscription) {
-      this.monitorSubscription();
+      try {
+        this.monitorSubscription();
+      } catch (e) {
+        // Ignore cleanup errors
+      }
       this.monitorSubscription = null;
     }
     await bleService.disconnect();
@@ -253,6 +287,7 @@ export abstract class BaseDiveComputerProtocol {
     this.pendingPackets = [];
     this.packetResolver = null;
     this.isCancelled = false;
+    this.lastMonitorError = null;
   }
   
   abstract downloadDives(onProgress: ProgressCallback): Promise<RawDiveData[]>;

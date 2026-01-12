@@ -36,6 +36,7 @@ export interface DownloadProgress {
 type DownloadProgressCallback = (progress: DownloadProgress) => void;
 type DeviceFoundCallback = (device: BleDevice) => void;
 type ConnectionStateCallback = (state: BleConnectionState) => void;
+type ReconnectionCallback = () => Promise<void>;
 
 class BleService {
   private manager: any = null;
@@ -44,6 +45,7 @@ class BleService {
   private isInitialized: boolean = false;
   private deviceFoundCallbacks: DeviceFoundCallback[] = [];
   private connectionStateCallbacks: ConnectionStateCallback[] = [];
+  private reconnectionCallbacks: ReconnectionCallback[] = [];
 
   async initialize(): Promise<boolean> {
     if (Platform.OS === 'web') {
@@ -617,7 +619,29 @@ class BleService {
       });
     });
     
+    // Invoke all reconnection callbacks to let protocols re-establish their subscriptions
+    console.log('BLE: Invoking', this.reconnectionCallbacks.length, 'reconnection callbacks...');
+    for (const callback of this.reconnectionCallbacks) {
+      try {
+        await callback();
+      } catch (e: any) {
+        console.error('BLE: Reconnection callback error:', e?.message);
+      }
+    }
+    console.log('BLE: Reconnection callbacks completed');
+    
     return true;
+  }
+  
+  registerReconnectionCallback(callback: ReconnectionCallback): void {
+    this.reconnectionCallbacks.push(callback);
+  }
+  
+  unregisterReconnectionCallback(callback: ReconnectionCallback): void {
+    const index = this.reconnectionCallbacks.indexOf(callback);
+    if (index > -1) {
+      this.reconnectionCallbacks.splice(index, 1);
+    }
   }
 
   async rediscoverServices(): Promise<void> {
