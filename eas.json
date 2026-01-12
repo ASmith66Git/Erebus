@@ -23,7 +23,7 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://YOUR_DEPLOYED_APP.replit.app"
+        "EXPO_PUBLIC_API_URL": "https://expo-erebus--anthony606.replit.app"
       }
     },
     "production": {
