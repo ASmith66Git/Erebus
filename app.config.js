@@ -2,7 +2,7 @@ module.exports = {
   expo: {
     name: "Erebus",
     slug: "erebus-dive-app",
-    version: "1.1.5",
+    version: "1.1.6",
     orientation: "portrait",
     icon: "./assets/images/icon.png",
     scheme: "myapp",
@@ -17,7 +17,7 @@ module.exports = {
       }
     },
     android: {
-      versionCode: 11,
+      versionCode: 12,
       adaptiveIcon: {
         foregroundImage: "./assets/images/adaptive-icon.png",
         backgroundColor: "#000000"
@@ -25,6 +25,7 @@ module.exports = {
       edgeToEdgeEnabled: true,
       package: "com.erebus.diveapp",
       googleServicesFile: "./google-services.json",
+      allowBackup: false,
       permissions: [
         "android.permission.BLUETOOTH",
         "android.permission.BLUETOOTH_ADMIN",
