@@ -40,6 +40,7 @@ type ConnectionStateCallback = (state: BleConnectionState) => void;
 class BleService {
   private manager: any = null;
   private connectedDevice: any = null;
+  private connectedDeviceId: string | null = null; // Store device ID separately for reconnection
   private isInitialized: boolean = false;
   private deviceFoundCallbacks: DeviceFoundCallback[] = [];
   private connectionStateCallbacks: ConnectionStateCallback[] = [];
@@ -187,6 +188,7 @@ class BleService {
       await new Promise(resolve => setTimeout(resolve, 500));
       
       this.connectedDevice = device;
+      this.connectedDeviceId = deviceId; // Store device ID for potential reconnection
 
       this.notifyConnectionState({
         connected: true,
@@ -197,6 +199,7 @@ class BleService {
       device.onDisconnected(() => {
         console.log('BLE: Device disconnected');
         this.connectedDevice = null;
+        this.connectedDeviceId = null;
         this.notifyConnectionState({
           connected: false,
           deviceId: null,
@@ -428,19 +431,25 @@ class BleService {
         
         console.error(`Write attempt ${attempt}/${maxRetries} to device ${deviceId} failed:`, errorMsg, 'Code:', errorCode);
         
-        // Check if it's a service not found error (302) - retry with service re-discovery
-        if (errorCode === 302 || errorMsg.includes('not found') || errorMsg.includes('302')) {
-          if (attempt < maxRetries) {
+        // Check if it's a service not found error (302) - the device object may be stale
+        if (errorCode === 302 || errorMsg.includes('not found') || errorMsg.includes('302') || errorMsg.includes('device ?')) {
+          if (attempt < maxRetries && this.connectedDeviceId) {
             // Increase delay progressively for later attempts
             const currentDelay = retryDelay + (attempt * 500);
-            console.log(`Service not ready on device ${deviceId}, re-discovering and retrying in ${currentDelay}ms... (attempt ${attempt}/${maxRetries})`);
+            console.log(`Device reference stale (${deviceId}), full reconnection in ${currentDelay}ms... (attempt ${attempt}/${maxRetries})`);
             await new Promise(resolve => setTimeout(resolve, currentDelay));
             
-            // Full re-discovery of services
+            // Full reconnection using stored device ID
             try {
-              await this.rediscoverServices();
-            } catch (rediscoverError: any) {
-              console.warn('Re-discovery failed:', rediscoverError?.message);
+              await this.reconnect();
+            } catch (reconnectError: any) {
+              console.warn('Reconnection failed:', reconnectError?.message);
+              // Try just re-discovery as fallback
+              try {
+                await this.rediscoverServices();
+              } catch (rediscoverError: any) {
+                console.warn('Re-discovery also failed:', rediscoverError?.message);
+              }
             }
           }
         } else if (errorMsg.includes('disconnected') || errorMsg.includes('no longer connected')) {
@@ -505,6 +514,47 @@ class BleService {
 
   isConnected(): boolean {
     return this.connectedDevice !== null;
+  }
+
+  async reconnect(): Promise<boolean> {
+    if (!this.connectedDeviceId) {
+      throw new Error('No device ID stored for reconnection');
+    }
+    
+    const deviceId = this.connectedDeviceId;
+    console.log('BLE: Full reconnection to device:', deviceId);
+    
+    // Cancel any existing connection first
+    try {
+      if (this.connectedDevice) {
+        await this.connectedDevice.cancelConnection();
+      }
+    } catch (e) {
+      // Ignore cancel errors
+    }
+    
+    this.connectedDevice = null;
+    
+    // Wait a moment before reconnecting
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Reconnect using stored device ID
+    const device = await this.manager.connectToDevice(deviceId, {
+      timeout: 15000,
+      requestMTU: 512,
+    });
+    
+    console.log('BLE: Reconnected, discovering services...');
+    await device.discoverAllServicesAndCharacteristics();
+    
+    // Wait for GATT to stabilize
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    const services = await device.services();
+    console.log('BLE: Found', services.length, 'services after reconnection');
+    
+    this.connectedDevice = device;
+    return true;
   }
 
   async rediscoverServices(): Promise<void> {
