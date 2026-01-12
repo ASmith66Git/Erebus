@@ -389,25 +389,50 @@ class BleService {
       throw new Error('No device connected');
     }
 
-    try {
-      if (withResponse) {
-        await this.connectedDevice.writeCharacteristicWithResponseForService(
-          serviceUUID,
-          characteristicUUID,
-          data
-        );
-      } else {
-        await this.connectedDevice.writeCharacteristicWithoutResponseForService(
-          serviceUUID,
-          characteristicUUID,
-          data
-        );
+    const maxRetries = 5;
+    const retryDelay = 1000;
+    let lastError: Error | null = null;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        if (withResponse) {
+          await this.connectedDevice.writeCharacteristicWithResponseForService(
+            serviceUUID,
+            characteristicUUID,
+            data
+          );
+        } else {
+          await this.connectedDevice.writeCharacteristicWithoutResponseForService(
+            serviceUUID,
+            characteristicUUID,
+            data
+          );
+        }
+        return; // Success
+      } catch (error: any) {
+        lastError = error;
+        const errorMsg = error?.message || String(error);
+        const errorCode = error?.errorCode || error?.code;
+        
+        console.error(`Write attempt ${attempt}/${maxRetries} failed:`, errorMsg, 'Code:', errorCode);
+        
+        // Check if it's a service not found error (302) - retry with service re-discovery
+        if (errorCode === 302 || errorMsg.includes('not found') || errorMsg.includes('302')) {
+          if (attempt < maxRetries) {
+            console.log(`Service not ready, re-discovering and retrying in ${retryDelay}ms...`);
+            await new Promise(resolve => setTimeout(resolve, retryDelay));
+            await this.rediscoverServices();
+          }
+        } else {
+          // Non-retryable error
+          break;
+        }
       }
-    } catch (error: any) {
-      console.error('Write error:', error);
-      const friendlyMessage = this.parseBleError(error);
-      throw new Error(`Write failed: ${friendlyMessage}`);
     }
+
+    // All retries failed
+    const friendlyMessage = this.parseBleError(lastError);
+    throw new Error(`Write failed: ${friendlyMessage}`);
   }
 
   async monitorCharacteristic(
