@@ -1,0 +1,233 @@
+{
+  "deviceInfo": {
+    "platform": "android",
+    "version": 35,
+    "timestamp": "2026-01-12T16:47:27.950Z"
+  },
+  "logs": [
+    {
+      "id": "1768170357683-5zeo9uy8d",
+      "timestamp": "2026-01-11T22:25:57.684Z",
+      "level": "error",
+      "message": "Error getting last sync time: Call to function 'NativeDatabase.prepareAsync' has been rejected.\n→ Caused by: java.lang.NullPointerException: java.lang.NullPointerException",
+      "source": "console.error"
+    },
+    {
+      "id": "1768170357646-bjkphxl35",
+      "timestamp": "2026-01-11T22:25:57.646Z",
+      "level": "error",
+      "message": "Error getting pending mutations: Call to function 'NativeDatabase.prepareAsync' has been rejected.\n→ Caused by: java.lang.NullPointerException: java.lang.NullPointerException",
+      "source": "console.error"
+    },
+    {
+      "id": "1768170357285-0iwocm0xw",
+      "timestamp": "2026-01-11T22:25:57.285Z",
+      "level": "error",
+      "message": "Error getting last sync time: Call to function 'NativeDatabase.prepareAsync' has been rejected.\n→ Caused by: java.lang.NullPointerException: java.lang.NullPointerException",
+      "source": "console.error"
+    },
+    {
+      "id": "1768170357211-7q3k1o6ee",
+      "timestamp": "2026-01-11T22:25:57.211Z",
+      "level": "error",
+      "message": "Error getting pending mutations: Call to function 'NativeDatabase.prepareAsync' has been rejected.\n→ Caused by: java.lang.NullPointerException: java.lang.NullPointerException",
+      "source": "console.error"
+    },
+    {
+      "id": "1768166951204-vs4o1vxov",
+      "timestamp": "2026-01-11T21:29:11.204Z",
+      "level": "error",
+      "message": "Error getting last sync time: Call to function 'NativeDatabase.prepareAsync' has been rejected.\n→ Caused by: java.lang.NullPointerException: java.lang.NullPointerException",
+      "source": "console.error"
+    },
+    {
+      "id": "1768166951165-higmx3y0l",
+      "timestamp": "2026-01-11T21:29:11.165Z",
+      "level": "error",
+      "message": "Error getting pending mutations: Call to function 'NativeDatabase.prepareAsync' has been rejected.\n→ Caused by: java.lang.NullPointerException: java.lang.NullPointerException",
+      "source": "console.error"
+    },
+    {
+      "id": "1768166950062-1o8134p5h",
+      "timestamp": "2026-01-11T21:29:10.062Z",
+      "level": "error",
+      "message": "Error getting last sync time: Call to function 'NativeDatabase.prepareAsync' has been rejected.\n→ Caused by: java.lang.NullPointerException: java.lang.NullPointerException",
+      "source": "console.error"
+    },
+    {
+      "id": "1768166949992-a38bj8x5a",
+      "timestamp": "2026-01-11T21:29:09.992Z",
+      "level": "error",
+      "message": "Error getting pending mutations: Call to function 'NativeDatabase.prepareAsync' has been rejected.\n→ Caused by: java.lang.NullPointerException: java.lang.NullPointerException",
+      "source": "console.error"
+    },
+    {
+      "id": "1768166524063-w1hyg070v",
+      "timestamp": "2026-01-11T21:22:04.063Z",
+      "level": "error",
+      "message": "Error getting push token: Error: Make sure to complete the guide at https://docs.expo.dev/push-notifications/fcm-credentials/ : Default FirebaseApp is not initialized in this process com.erebus.diveapp. Make sure to call FirebaseApp.initializeApp(Context) first.\nError: Make sure to complete the guide at https://docs.expo.dev/push-notifications/fcm-credentials/ : Default FirebaseApp is not initialized in this process com.erebus.diveapp. Make sure to call FirebaseApp.initializeApp(Context) first.\n    at construct (native)\n    at apply (native)\n    at _construct (address at index.android.bundle:1:131691)\n    at Wrapper (address at index.android.bundle:1:131344)\n    at construct (native)\n    at _callSuper (address at index.android.bundle:1:116236)\n    at CodedError (address at index.android.bundle:1:800334)",
+      "source": "console.error"
+    },
+    {
+      "id": "1768166513086-0f9g4003i",
+      "timestamp": "2026-01-11T21:21:53.086Z",
+      "level": "error",
+      "message": "Download error details: {\n  \"message\": \"Write failed: BLE error: Exception in HostFunction: Parameter specified as non-null is null: method com.facebook.react.bridge.PromiseImpl.reject, parameter code\",\n  \"name\": \"Error\",\n  \"stack\": \"Error: Write failed: BLE error: Exception in HostFunction: Parameter specified as non-null is null: method com.facebook.react.bridge.PromiseImpl.reject, parameter code\\n    at ?anon_0_ (address at index.android.bundle:1:2002532)\\n    at throw (native)\\n    at asyncGeneratorStep (address at index.android.bundle:1:559164)\\n    at _throw (address at index.android.bundle:1:559469)\\n    at tryCallOne (address at InternalBytecode.js:1:1180)\\n    at anonymous (address at InternalBytecode.js:1:1874)\",\n  \"fullError\": \"{\\n  \\\"message\\\": \\\"Write failed: BLE error: Exception in HostFunction: Parameter specified as non-null is null: method com.facebook.react.bridge.PromiseImpl.reject, parameter code\\\",\\n  \\\"stack\\\": \\\"Error: Write failed: BLE error: Exception in HostFu",
+      "source": "console.error"
+    },
+    {
+      "id": "1768166513085-0uwzm8abv",
+      "timestamp": "2026-01-11T21:21:53.085Z",
+      "level": "error",
+      "message": "Download error: Error: Write failed: BLE error: Exception in HostFunction: Parameter specified as non-null is null: method com.facebook.react.bridge.PromiseImpl.reject, parameter code\nError: Write failed: BLE error: Exception in HostFunction: Parameter specified as non-null is null: method com.facebook.react.bridge.PromiseImpl.reject, parameter code\n    at ?anon_0_ (address at index.android.bundle:1:2002532)\n    at throw (native)\n    at asyncGeneratorStep (address at index.android.bundle:1:559164)\n    at _throw (address at index.android.bundle:1:559469)\n    at tryCallOne (address at InternalBytecode.js:1:1180)\n    at anonymous (address at InternalBytecode.js:1:1874)",
+      "source": "console.error"
+    },
+    {
+      "id": "1768166513084-j6fsxmivn",
+      "timestamp": "2026-01-11T21:21:53.084Z",
+      "level": "error",
+      "message": "BLE Error Details: {\n  \"message\": \"Unknown error occurred. This is probably a bug! Check reason property.\",\n  \"reason\": \"Exception in HostFunction: Parameter specified as non-null is null: method com.facebook.react.bridge.PromiseImpl.reject, parameter code\",\n  \"errorCode\": 0,\n  \"androidErrorCode\": null,\n  \"iosErrorCode\": null,\n  \"attErrorCode\": null,\n  \"name\": \"BleError\",\n  \"stack\": \"BleError: Unknown error occurred. This is probably a bug! Check reason property.\\n    at construct (native)\\n    at apply (native)\\n    at _construct (address at index.android.bundle:1:131691)\\n    at Wrapper (address at index.android.bundle:1:131344)\\n    at construct (native)\\n    at _callSuper (address at index.android.bundle:1:116236)\\n    at BleError (address at index.android.bundle:1:2005582)\\n    at parseBleError (address at index.android.bundle:1:2005423)\\n    at ?anon_0_ (address at index.androi\"\n}",
+      "source": "console.error"
+    },
+    {
+      "id": "1768166513083-oij1yb7oj",
+      "timestamp": "2026-01-11T21:21:53.083Z",
+      "level": "error",
+      "message": "Write error: BleError: Unknown error occurred. This is probably a bug! Check reason property.\nBleError: Unknown error occurred. This is probably a bug! Check reason property.\n    at construct (native)\n    at apply (native)\n    at _construct (address at index.android.bundle:1:131691)\n    at Wrapper (address at index.android.bundle:1:131344)\n    at construct (native)\n    at _callSuper (address at index.android.bundle:1:116236)\n    at BleError (address at index.android.bundle:1:2005582)\n    at parseBleError (address at index.android.bundle:1:2005423)\n    at ?anon_0_ (address at index.android.bundle:1:2008923)\n    at throw (native)\n    at asyncGeneratorStep (address at index.android.bundle:1:559164)\n    at _throw (address at index.android.bundle:1:559469)\n    at tryCallOne (address at InternalBytecode.js:1:1180)\n    at anonymous (address at InternalBytecode.js:1:1874)",
+      "source": "console.error"
+    },
+    {
+      "id": "1768166497705-tadoneval",
+      "timestamp": "2026-01-11T21:21:37.705Z",
+      "level": "error",
+      "message": "Error getting last sync time: Call to function 'NativeDatabase.prepareAsync' has been rejected.\n→ Caused by: java.lang.NullPointerException: java.lang.NullPointerException",
+      "source": "console.error"
+    },
+    {
+      "id": "1768166497702-5m9xpig0l",
+      "timestamp": "2026-01-11T21:21:37.702Z",
+      "level": "error",
+      "message": "Error getting pending mutations: Call to function 'NativeDatabase.prepareAsync' has been rejected.\n→ Caused by: java.lang.NullPointerException: java.lang.NullPointerException",
+      "source": "console.error"
+    },
+    {
+      "id": "1768166497166-28yy0iq9i",
+      "timestamp": "2026-01-11T21:21:37.166Z",
+      "level": "error",
+      "message": "Error getting last sync time: Call to function 'NativeDatabase.prepareAsync' has been rejected.\n→ Caused by: java.lang.NullPointerException: java.lang.NullPointerException",
+      "source": "console.error"
+    },
+    {
+      "id": "1768166497157-6e70orchv",
+      "timestamp": "2026-01-11T21:21:37.157Z",
+      "level": "error",
+      "message": "Error getting pending mutations: Call to function 'NativeDatabase.prepareAsync' has been rejected.\n→ Caused by: java.lang.NullPointerException: java.lang.NullPointerException",
+      "source": "console.error"
+    },
+    {
+      "id": "1768166464543-u2cms9mrd",
+      "timestamp": "2026-01-11T21:21:04.543Z",
+      "level": "error",
+      "message": "Error getting last sync time: Call to function 'NativeDatabase.prepareAsync' has been rejected.\n→ Caused by: java.lang.NullPointerException: java.lang.NullPointerException",
+      "source": "console.error"
+    },
+    {
+      "id": "1768166464539-qkske5pxi",
+      "timestamp": "2026-01-11T21:21:04.539Z",
+      "level": "error",
+      "message": "Error getting pending mutations: Call to function 'NativeDatabase.prepareAsync' has been rejected.\n→ Caused by: java.lang.NullPointerException: java.lang.NullPointerException",
+      "source": "console.error"
+    },
+    {
+      "id": "1768166464202-man8spuqj",
+      "timestamp": "2026-01-11T21:21:04.202Z",
+      "level": "error",
+      "message": "Error getting last sync time: Call to function 'NativeDatabase.prepareAsync' has been rejected.\n→ Caused by: java.lang.NullPointerException: java.lang.NullPointerException",
+      "source": "console.error"
+    },
+    {
+      "id": "1768166464194-5n49vuxz1",
+      "timestamp": "2026-01-11T21:21:04.194Z",
+      "level": "error",
+      "message": "Error getting pending mutations: Call to function 'NativeDatabase.prepareAsync' has been rejected.\n→ Caused by: java.lang.NullPointerException: java.lang.NullPointerException",
+      "source": "console.error"
+    },
+    {
+      "id": "1768166463252-ocqtz52j1",
+      "timestamp": "2026-01-11T21:21:03.252Z",
+      "level": "error",
+      "message": "Error getting last sync time: Call to function 'NativeDatabase.prepareAsync' has been rejected.\n→ Caused by: java.lang.NullPointerException: java.lang.NullPointerException",
+      "source": "console.error"
+    },
+    {
+      "id": "1768166463252-29t0m9s3z",
+      "timestamp": "2026-01-11T21:21:03.252Z",
+      "level": "error",
+      "message": "Error getting pending mutations: Call to function 'NativeDatabase.prepareAsync' has been rejected.\n→ Caused by: java.lang.NullPointerException: java.lang.NullPointerException",
+      "source": "console.error"
+    },
+    {
+      "id": "1768166463170-o84uxhlul",
+      "timestamp": "2026-01-11T21:21:03.170Z",
+      "level": "error",
+      "message": "Error getting push token: Error: Make sure to complete the guide at https://docs.expo.dev/push-notifications/fcm-credentials/ : Default FirebaseApp is not initialized in this process com.erebus.diveapp. Make sure to call FirebaseApp.initializeApp(Context) first.\nError: Make sure to complete the guide at https://docs.expo.dev/push-notifications/fcm-credentials/ : Default FirebaseApp is not initialized in this process com.erebus.diveapp. Make sure to call FirebaseApp.initializeApp(Context) first.\n    at construct (native)\n    at apply (native)\n    at _construct (address at index.android.bundle:1:131691)\n    at Wrapper (address at index.android.bundle:1:131344)\n    at construct (native)\n    at _callSuper (address at index.android.bundle:1:116236)\n    at CodedError (address at index.android.bundle:1:800334)",
+      "source": "console.error"
+    },
+    {
+      "id": "1768166412410-nvohpcbtx",
+      "timestamp": "2026-01-11T21:20:12.410Z",
+      "level": "error",
+      "message": "Error getting last sync time: Call to function 'NativeDatabase.prepareAsync' has been rejected.\n→ Caused by: java.lang.NullPointerException: java.lang.NullPointerException",
+      "source": "console.error"
+    },
+    {
+      "id": "1768166412408-pdvv128xg",
+      "timestamp": "2026-01-11T21:20:12.408Z",
+      "level": "error",
+      "message": "Error getting pending mutations: Call to function 'NativeDatabase.prepareAsync' has been rejected.\n→ Caused by: java.lang.NullPointerException: java.lang.NullPointerException",
+      "source": "console.error"
+    },
+    {
+      "id": "1768166412111-xyva3zqbj",
+      "timestamp": "2026-01-11T21:20:12.111Z",
+      "level": "error",
+      "message": "Error getting last sync time: Call to function 'NativeDatabase.prepareAsync' has been rejected.\n→ Caused by: java.lang.NullPointerException: java.lang.NullPointerException",
+      "source": "console.error"
+    },
+    {
+      "id": "1768166412109-d0ss1sz3t",
+      "timestamp": "2026-01-11T21:20:12.109Z",
+      "level": "error",
+      "message": "Error getting pending mutations: Call to function 'NativeDatabase.prepareAsync' has been rejected.\n→ Caused by: java.lang.NullPointerException: java.lang.NullPointerException",
+      "source": "console.error"
+    },
+    {
+      "id": "1768160856843-n4ltrrp82",
+      "timestamp": "2026-01-11T19:47:36.843Z",
+      "level": "error",
+      "message": "Error getting push token: Error: Make sure to complete the guide at https://docs.expo.dev/push-notifications/fcm-credentials/ : Default FirebaseApp is not initialized in this process com.erebus.diveapp. Make sure to call FirebaseApp.initializeApp(Context) first.\nError: Make sure to complete the guide at https://docs.expo.dev/push-notifications/fcm-credentials/ : Default FirebaseApp is not initialized in this process com.erebus.diveapp. Make sure to call FirebaseApp.initializeApp(Context) first.\n    at construct (native)\n    at apply (native)\n    at _construct (address at index.android.bundle:1:131691)\n    at Wrapper (address at index.android.bundle:1:131344)\n    at construct (native)\n    at _callSuper (address at index.android.bundle:1:116236)\n    at CodedError (address at index.android.bundle:1:800334)",
+      "source": "console.error"
+    },
+    {
+      "id": "1768160775453-ggu7ja6my",
+      "timestamp": "2026-01-11T19:46:15.453Z",
+      "level": "error",
+      "message": "Error getting push token: Error: Make sure to complete the guide at https://docs.expo.dev/push-notifications/fcm-credentials/ : Default FirebaseApp is not initialized in this process com.erebus.diveapp. Make sure to call FirebaseApp.initializeApp(Context) first.\nError: Make sure to complete the guide at https://docs.expo.dev/push-notifications/fcm-credentials/ : Default FirebaseApp is not initialized in this process com.erebus.diveapp. Make sure to call FirebaseApp.initializeApp(Context) first.\n    at construct (native)\n    at apply (native)\n    at _construct (address at index.android.bundle:1:131691)\n    at Wrapper (address at index.android.bundle:1:131344)\n    at construct (native)\n    at _callSuper (address at index.android.bundle:1:116236)\n    at CodedError (address at index.android.bundle:1:800334)",
+      "source": "console.error"
+    },
+    {
+      "id": "1768160773618-s9gnsvybc",
+      "timestamp": "2026-01-11T19:46:13.618Z",
+      "level": "error",
+      "message": "Full error: {\n  \"message\": \"Call to function 'ExpoSQLite.ensureDatabasePathExistsAsync' has been rejected.\\n→ Caused by: Could not open database /data/data/com.erebus.diveapp/files/SQLite/erebus_v4.db. Couldn't create directory '/data/data/com.erebus.diveapp/files/SQLite'. Path already points to a non-normal file.\",\n  \"code\": \"ERR_OPEN_DATABASE\"\n}",
+      "source": "console.error"
+    },
+    {
+      "id": "1768160773617-095x2i3t9",
+      "timestamp": "2026-01-11T19:46:13.617Z",
+      "level": "error",
+      "message": "SQLite initialization attempt 2 failed: Call to function 'ExpoSQLite.ensureDatabasePathExistsAsync' has been rejected.\n→ Caused by: Could not open database /data/data/com.erebus.diveapp/files/SQLite/erebus_v4.db. Couldn't create directory '/data/data/com.erebus.diveapp/files/SQLite'. Path already points to a non-normal file.",
+      "source": "console.error"
+    }
+  ]
+}
