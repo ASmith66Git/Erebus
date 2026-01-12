@@ -13,6 +13,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useTheme } from '@/contexts/ThemeContext';
 import { errorLogger, LogEntry, LogLevel } from '@/services/errorLogger';
+import * as FileSystem from 'expo-file-system/legacy';
+import * as Sharing from 'expo-sharing';
 
 const LOG_COLORS: Record<LogLevel, string> = {
   debug: '#888888',
@@ -74,6 +76,47 @@ export default function DebugLogScreen() {
     }
   };
 
+  const handleDownloadToFile = async () => {
+    try {
+      const exported = errorLogger.exportLogs();
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+      const filename = `erebus-logs-${timestamp}.txt`;
+      
+      if (Platform.OS === 'web') {
+        // Web: Create a download link
+        const blob = new Blob([exported], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(url);
+        Alert.alert('Downloaded', `Logs saved as ${filename}`);
+      } else {
+        // Native: Save to Downloads folder and share
+        const fileUri = FileSystem.documentDirectory + filename;
+        await FileSystem.writeAsStringAsync(fileUri, exported, {
+          encoding: FileSystem.EncodingType.UTF8,
+        });
+        
+        // Check if sharing is available
+        const isAvailable = await Sharing.isAvailableAsync();
+        if (isAvailable) {
+          await Sharing.shareAsync(fileUri, {
+            mimeType: 'text/plain',
+            dialogTitle: 'Save Debug Logs',
+            UTI: 'public.plain-text',
+          });
+        } else {
+          Alert.alert('Saved', `Logs saved to: ${fileUri}`);
+        }
+      }
+    } catch (e: any) {
+      console.error('Failed to download logs:', e);
+      Alert.alert('Error', `Failed to save logs: ${e?.message || 'Unknown error'}`);
+    }
+  };
+
   const toggleExpand = (id: string) => {
     setExpandedIds(prev => {
       const next = new Set(prev);
@@ -111,6 +154,9 @@ export default function DebugLogScreen() {
         </Pressable>
         <Text style={[styles.title, { color: colors.text }]}>Debug Logs</Text>
         <View style={styles.headerActions}>
+          <Pressable onPress={handleDownloadToFile} style={styles.actionButton}>
+            <Ionicons name="download-outline" size={22} color={colors.primary} />
+          </Pressable>
           <Pressable onPress={handleShare} style={styles.actionButton}>
             <Ionicons name="share-outline" size={22} color={colors.primary} />
           </Pressable>
