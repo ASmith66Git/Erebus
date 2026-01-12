@@ -1,4 +1,5 @@
 import * as SQLite from 'expo-sqlite';
+import * as FileSystem from 'expo-file-system';
 import { Platform } from 'react-native';
 
 export interface LocalDiveSite {
@@ -80,6 +81,33 @@ async function closeDatabase(): Promise<void> {
   }
 }
 
+// Fix for expo-sqlite directory conflict: ensure SQLite directory exists properly
+async function ensureSQLiteDirectory(): Promise<void> {
+  const sqliteDir = FileSystem.documentDirectory + 'SQLite';
+  
+  try {
+    const info = await FileSystem.getInfoAsync(sqliteDir);
+    console.log('SQLite directory check:', JSON.stringify(info));
+    
+    if (info.exists && !info.isDirectory) {
+      // Path exists but is a FILE, not a directory - delete it
+      console.warn('Found file at SQLite directory path, removing it...');
+      await FileSystem.deleteAsync(sqliteDir, { idempotent: true });
+      console.log('Removed conflicting file at SQLite path');
+    }
+    
+    // expo-sqlite will create the directory itself, but let's ensure it exists
+    if (!info.exists) {
+      console.log('Creating SQLite directory...');
+      await FileSystem.makeDirectoryAsync(sqliteDir, { intermediates: true });
+      console.log('SQLite directory created');
+    }
+  } catch (error: any) {
+    console.warn('SQLite directory check error (non-fatal):', error?.message);
+    // Non-fatal: expo-sqlite may still be able to create it
+  }
+}
+
 export async function getDatabase(): Promise<SQLite.SQLiteDatabase> {
   if (db) return db;
   if (dbInitFailed && dbInitAttempts >= MAX_INIT_ATTEMPTS) {
@@ -90,6 +118,9 @@ export async function getDatabase(): Promise<SQLite.SQLiteDatabase> {
   
   try {
     console.log(`Attempting to open database: ${DB_NAME} (attempt ${dbInitAttempts})`);
+    
+    // CRITICAL: Fix SQLite directory conflict before opening database
+    await ensureSQLiteDirectory();
     
     // Modern expo-sqlite API (SDK 51+): just pass the database name
     // The library handles directory creation automatically in the default SQLite location
