@@ -542,23 +542,35 @@ class BleService {
     const deviceId = this.connectedDeviceId;
     console.log('BLE: Full reconnection to device:', deviceId);
     
-    // Cancel any existing connection first
-    try {
-      if (this.connectedDevice) {
-        await this.connectedDevice.cancelConnection();
-      }
-    } catch (e) {
-      // Ignore cancel errors
-    }
-    
+    // Clear the old device reference first (don't cancel - it may already be disconnected)
+    const oldDevice = this.connectedDevice;
     this.connectedDevice = null;
     
-    // Wait a moment before reconnecting
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Only try to cancel if we have an old device, and ignore ALL errors
+    if (oldDevice) {
+      try {
+        // Check if still connected before cancelling
+        const isConnected = await oldDevice.isConnected();
+        if (isConnected) {
+          console.log('BLE: Old device still connected, cancelling...');
+          await oldDevice.cancelConnection();
+        } else {
+          console.log('BLE: Old device already disconnected');
+        }
+      } catch (e: any) {
+        // Completely ignore - device may already be disconnected
+        console.log('BLE: Cancel cleanup (ignored):', e?.message || 'unknown');
+      }
+    }
+    
+    // Wait longer before reconnecting to let BLE stack settle
+    console.log('BLE: Waiting for BLE stack to settle...');
+    await new Promise(resolve => setTimeout(resolve, 2000));
     
     // Reconnect using stored device ID
+    console.log('BLE: Attempting connectToDevice:', deviceId);
     const device = await this.manager.connectToDevice(deviceId, {
-      timeout: 15000,
+      timeout: 20000,
       requestMTU: 512,
     });
     
@@ -566,12 +578,24 @@ class BleService {
     await device.discoverAllServicesAndCharacteristics();
     
     // Wait for GATT to stabilize
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise(resolve => setTimeout(resolve, 1500));
     
     const services = await device.services();
     console.log('BLE: Found', services.length, 'services after reconnection');
     
     this.connectedDevice = device;
+    
+    // Re-register disconnect listener
+    device.onDisconnected(() => {
+      console.log('BLE: Device disconnected (ID preserved for reconnection:', this.connectedDeviceId, ')');
+      this.connectedDevice = null;
+      this.notifyConnectionState({
+        connected: false,
+        deviceId: this.connectedDeviceId,
+        deviceName: null,
+      });
+    });
+    
     return true;
   }
 
