@@ -158,12 +158,33 @@ class BleService {
 
     try {
       this.stopScanning();
+      console.log('BLE: Connecting to device:', deviceId);
 
       const device = await this.manager.connectToDevice(deviceId, {
-        timeout: 10000,
+        timeout: 15000,
         requestMTU: 512,
       });
+      console.log('BLE: Connected, discovering services...');
+      
       await device.discoverAllServicesAndCharacteristics();
+      console.log('BLE: Services discovered');
+      
+      // Log discovered services for debugging
+      const services = await device.services();
+      console.log('BLE: Found', services.length, 'services');
+      for (const service of services) {
+        console.log('BLE: Service UUID:', service.uuid);
+        const characteristics = await service.characteristics();
+        for (const char of characteristics) {
+          console.log('  - Characteristic:', char.uuid, 
+            'props: write=', char.isWritableWithResponse, 
+            'writeNoResp=', char.isWritableWithoutResponse,
+            'notify=', char.isNotifiable);
+        }
+      }
+      
+      // Small delay to ensure GATT is fully ready
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       this.connectedDevice = device;
 
@@ -174,6 +195,7 @@ class BleService {
       });
 
       device.onDisconnected(() => {
+        console.log('BLE: Device disconnected');
         this.connectedDevice = null;
         this.notifyConnectionState({
           connected: false,
@@ -182,6 +204,7 @@ class BleService {
         });
       });
 
+      console.log('BLE: Connection complete, ready for communication');
       return true;
     } catch (error: any) {
       console.error('Connection error:', error);
