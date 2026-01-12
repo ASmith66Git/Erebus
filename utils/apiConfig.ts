@@ -1,9 +1,8 @@
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 
-// IMPORTANT: Set EXPO_PUBLIC_API_URL environment variable in eas.json or app.config.js
-// to your deployed production URL (e.g., your-app.replit.app)
-const PRODUCTION_API_URL = process.env.EXPO_PUBLIC_API_URL || '';
+const HARDCODED_PRODUCTION_URL = 'https://expo-erebus-anthony606.replit.app';
+const PRODUCTION_API_URL = process.env.EXPO_PUBLIC_API_URL || HARDCODED_PRODUCTION_URL;
 
 export function getApiUrl(): string {
   if (Platform.OS === 'web' && typeof window !== 'undefined') {

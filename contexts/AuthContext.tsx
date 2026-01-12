@@ -247,11 +247,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { success: false, error: data.error || 'Login failed' };
       }
     } catch (error: any) {
-      console.error('Login error:', error);
+      console.error('Login error:', error, 'API URL:', getApiUrl());
       if (error.name === 'AbortError') {
         return { success: false, error: 'Connection timed out. Please check your internet connection.' };
       }
-      return { success: false, error: 'No network connection. Please connect to the internet to log in for the first time.' };
+      return { success: false, error: `Unable to connect to server. Please check your internet connection and try again.` };
     }
   }
   
