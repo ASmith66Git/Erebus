@@ -92,18 +92,23 @@ export default function EmbeddedMapPicker({
 
       try {
         let google = (window as any).google;
+        const { setOptions, importLibrary } = await import('@googlemaps/js-api-loader');
         
+        setOptions({
+          key: apiKey,
+          v: 'weekly',
+        });
+        
+        // Always load maps library if not present
         if (!google || !google.maps) {
-          const { setOptions, importLibrary } = await import('@googlemaps/js-api-loader');
-          
-          setOptions({
-            key: apiKey,
-            v: 'weekly',
-          });
-          
           await importLibrary('maps');
+          google = (window as any).google;
+        }
+        
+        // Always ensure Places library is loaded (might be missing if map was loaded elsewhere)
+        if (!google?.maps?.places) {
+          console.log('Loading Places library...');
           await importLibrary('places');
-          
           google = (window as any).google;
         }
         
