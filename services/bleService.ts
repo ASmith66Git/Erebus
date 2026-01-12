@@ -164,7 +164,7 @@ class BleService {
       console.log('BLE: Connecting to device:', deviceId);
 
       const device = await this.manager.connectToDevice(deviceId, {
-        timeout: 15000,
+        timeout: 12000, // Match Subsurface's BLE_TIMEOUT (12 seconds)
         requestMTU: 512,
       });
       console.log('BLE: Connected, discovering services...');
@@ -398,8 +398,8 @@ class BleService {
       throw new Error('No device connected');
     }
 
-    const maxRetries = 8;
-    const retryDelay = 1500;
+    const maxRetries = 5;
+    const baseRetryDelay = 3000; // Match Subsurface's longer delays
     let lastError: Error | null = null;
     const deviceId = this.connectedDevice?.id || 'unknown';
 
@@ -445,7 +445,7 @@ class BleService {
         // Retry with reconnection for service errors and disconnection errors
         if ((isServiceError || isDisconnectError) && attempt < maxRetries && this.connectedDeviceId) {
           // Increase delay progressively for later attempts
-          const currentDelay = retryDelay + (attempt * 500);
+          const currentDelay = baseRetryDelay + (attempt * 1000);
           console.log(`BLE issue detected (${isDisconnectError ? 'disconnect' : 'service error'}), recovery in ${currentDelay}ms... (attempt ${attempt}/${maxRetries})`);
           await new Promise(resolve => setTimeout(resolve, currentDelay));
           
@@ -586,22 +586,22 @@ class BleService {
       }
     }
     
-    // Wait longer before reconnecting to let BLE stack settle
+    // Wait for BLE stack to settle (Shearwater needs time to be discoverable again)
     console.log('BLE: Waiting for BLE stack to settle...');
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    await new Promise(resolve => setTimeout(resolve, 3000));
     
-    // Reconnect using stored device ID
+    // Reconnect using stored device ID - use 12 sec timeout like Subsurface
     console.log('BLE: Attempting connectToDevice:', deviceId);
     const device = await this.manager.connectToDevice(deviceId, {
-      timeout: 20000,
+      timeout: 12000, // Match Subsurface's BLE_TIMEOUT
       requestMTU: 512,
     });
     
     console.log('BLE: Reconnected, discovering services...');
     await device.discoverAllServicesAndCharacteristics();
     
-    // Wait for GATT to stabilize
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    // Wait for GATT to stabilize - Shearwater needs extra time for service enumeration
+    await new Promise(resolve => setTimeout(resolve, 2000));
     
     const services = await device.services();
     console.log('BLE: Found', services.length, 'services after reconnection');
