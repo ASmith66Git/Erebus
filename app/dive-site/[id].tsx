@@ -201,18 +201,15 @@ function StarRating({ rating, onRatingChange, editable, colors }: { rating: numb
           style={starStyles.star}
         >
           <Feather
-            name={star <= rating ? 'star' : 'star'}
+            name="star"
             size={28}
-            color={star <= rating ? '#FFC107' : colors.border}
-            style={{ opacity: star <= rating ? 1 : 0.4 }}
+            color={star <= rating ? '#FFC107' : '#9E9E9E'}
           />
         </Pressable>
       ))}
-      {rating > 0 && (
-        <Text style={[starStyles.ratingText, { color: colors.textSecondary }]}>
-          {rating.toFixed(1)}
-        </Text>
-      )}
+      <Text style={[starStyles.ratingText, { color: colors.textSecondary }]}>
+        {Math.round(rating)}/5
+      </Text>
     </View>
   );
 }
