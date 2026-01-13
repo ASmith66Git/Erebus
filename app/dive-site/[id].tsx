@@ -21,6 +21,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import EmbeddedMapPicker from '@/components/EmbeddedMapPicker';
 import StaticMapView from '@/components/StaticMapView';
 import { getApiUrl } from '@/utils/apiConfig';
+import * as ImagePicker from 'expo-image-picker';
 
 const DEBUG_DISABLE_MAPS = false;
 
@@ -571,6 +572,90 @@ export default function DiveSiteDetailScreen() {
       }
     };
     input.click();
+  };
+
+  const handleTakePhoto = async () => {
+    if (!token || !site?.id) {
+      Alert.alert('Error', 'Please save the dive site first');
+      return;
+    }
+
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission Required', 'Camera permission is needed to take photos');
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      quality: 0.8,
+    });
+
+    if (result.canceled || !result.assets?.[0]) return;
+
+    const asset = result.assets[0];
+    setUploadingImage(true);
+
+    try {
+      const fileName = `photo_${Date.now()}.jpg`;
+      const fileSize = asset.fileSize || 100000;
+
+      const urlResponse = await fetch(`${getApiUrl()}/api/uploads/request-url`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: fileName,
+          size: fileSize,
+          contentType: 'image/jpeg',
+        }),
+      });
+
+      if (!urlResponse.ok) {
+        throw new Error('Failed to get upload URL');
+      }
+
+      const { uploadURL, objectPath } = await urlResponse.json();
+
+      const photoResponse = await fetch(asset.uri);
+      const photoBlob = await photoResponse.blob();
+
+      const uploadResponse = await fetch(uploadURL, {
+        method: 'PUT',
+        body: photoBlob,
+        headers: { 'Content-Type': 'image/jpeg' },
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error('Failed to upload photo');
+      }
+
+      const addImageResponse = await fetch(`${getApiUrl()}/api/dive-sites/${site.id}/images`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          imageUrl: objectPath,
+          caption: null,
+          isPrimary: siteImages.length === 0,
+        }),
+      });
+
+      if (addImageResponse.ok) {
+        fetchSiteImages();
+        Alert.alert('Success', 'Photo saved successfully');
+      }
+    } catch (error) {
+      console.error('Error uploading photo:', error);
+      Alert.alert('Error', 'Failed to save photo');
+    } finally {
+      setUploadingImage(false);
+    }
   };
 
   const searchStockPhotos = async () => {
@@ -1274,17 +1359,25 @@ export default function DiveSiteDetailScreen() {
               </Pressable>
               <Pressable
                 onPress={handleImageUpload}
-                style={[styles.mediaActionButton, { backgroundColor: colors.primary }]}
+                style={[styles.mediaActionButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
                 disabled={uploadingImage}
               >
                 {uploadingImage ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
+                  <ActivityIndicator size="small" color={colors.primary} />
                 ) : (
                   <>
-                    <Feather name="upload" size={18} color="#FFFFFF" />
-                    <Text style={[styles.mediaActionText, { color: '#FFFFFF' }]}>Upload</Text>
+                    <Feather name="upload" size={18} color={colors.primary} />
+                    <Text style={[styles.mediaActionText, { color: colors.primary }]}>Upload</Text>
                   </>
                 )}
+              </Pressable>
+              <Pressable
+                onPress={handleTakePhoto}
+                style={[styles.mediaActionButton, { backgroundColor: colors.primary }]}
+                disabled={uploadingImage}
+              >
+                <Feather name="camera" size={18} color="#FFFFFF" />
+                <Text style={[styles.mediaActionText, { color: '#FFFFFF' }]}>Camera</Text>
               </Pressable>
             </View>
           )}
