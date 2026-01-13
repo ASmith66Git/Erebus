@@ -578,14 +578,14 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   filterChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
     borderWidth: 1,
-    marginRight: 8,
+    marginRight: 6,
   },
   filterChipText: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '500',
   },
   scrollView: {
