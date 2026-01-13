@@ -177,10 +177,11 @@ class BleService {
           timeout: 15000, // Increased timeout for problematic devices
           requestMTU: 512,
         });
-        console.log('BLE: Connected, waiting 500ms before discovery...');
+        console.log('BLE: Connected, waiting 2000ms before discovery (Shearwater wake-up)...');
         
         // Extended pre-discovery delay for Android GATT stability
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Shearwater devices need time to "wake up" the serial service after connection
+        await new Promise(resolve => setTimeout(resolve, 2000));
         
         // Service discovery with progressive retries
         let discoverySuccess = false;
