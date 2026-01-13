@@ -12,6 +12,7 @@ import {
   FlatList,
   Platform
 } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -228,6 +229,27 @@ export default function DevLogScreen() {
     });
   };
 
+  const copyEntryToClipboard = async (entry: DevLogEntry) => {
+    const statusLabel = STATUS_COLORS[entry.status].label;
+    const devices = entry.devices?.length > 0 ? entry.devices.join(', ') : 'Not specified';
+    
+    const formattedText = `**Dev Task: ${entry.task}**
+
+- **Page**: ${entry.pageName || 'N/A'} (${entry.pageType})
+- **Status**: ${statusLabel}
+- **Target Devices**: ${devices}
+- **Created**: ${formatDate(entry.createdAt)}
+
+Please help me with this development task.`;
+
+    try {
+      await Clipboard.setStringAsync(formattedText);
+      Alert.alert('Copied', 'Dev log entry copied to clipboard');
+    } catch (err) {
+      Alert.alert('Error', 'Failed to copy to clipboard');
+    }
+  };
+
   const renderEntry = (entry: DevLogEntry) => {
     const statusConfig = STATUS_COLORS[entry.status];
     const pageTypeConfig = PAGE_TYPE_COLORS[entry.pageType];
@@ -242,9 +264,14 @@ export default function DevLogScreen() {
           <Text style={[styles.dateText, { color: colors.textSecondary }]}>
             {formatDate(entry.createdAt)}
           </Text>
-          <Pressable onPress={() => handleDelete(entry)} hitSlop={8}>
-            <Feather name="trash-2" size={18} color={colors.error} />
-          </Pressable>
+          <View style={styles.cardActions}>
+            <Pressable onPress={() => copyEntryToClipboard(entry)} hitSlop={8} style={styles.actionButton}>
+              <Feather name="copy" size={18} color={colors.primary} />
+            </Pressable>
+            <Pressable onPress={() => handleDelete(entry)} hitSlop={8} style={styles.actionButton}>
+              <Feather name="trash-2" size={18} color={colors.error} />
+            </Pressable>
+          </View>
         </View>
 
         <Text style={[styles.taskText, { color: colors.text }]} numberOfLines={3}>
@@ -635,6 +662,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 8,
+  },
+  cardActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  actionButton: {
+    padding: 4,
   },
   dateText: {
     fontSize: 12,
