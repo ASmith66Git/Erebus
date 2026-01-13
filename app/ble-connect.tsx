@@ -297,12 +297,23 @@ export default function BleConnectScreen() {
             )}
 
             {progress.status === 'error' && (
-              <Pressable
-                style={[styles.retryButton, { backgroundColor: colors.primary }]}
-                onPress={() => selectedDevice && connectAndDownload(selectedDevice)}
-              >
-                <Text style={styles.retryButtonText}>Retry</Text>
-              </Pressable>
+              <>
+                <Pressable
+                  style={[styles.retryButton, { backgroundColor: colors.primary }]}
+                  onPress={() => selectedDevice && connectAndDownload(selectedDevice)}
+                >
+                  <Text style={styles.retryButtonText}>Retry</Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.diveLogsLink, { borderColor: colors.border }]}
+                  onPress={() => router.replace('/(app)/(tabs)/dive-logs' as any)}
+                >
+                  <Feather name="list" size={16} color={colors.primary} />
+                  <Text style={[styles.diveLogsLinkText, { color: colors.primary }]}>
+                    View Dive Logs
+                  </Text>
+                </Pressable>
+              </>
             )}
 
             {progress.status !== 'complete' && (
@@ -574,6 +585,21 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
+  },
+  diveLogsLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    marginBottom: 12,
+  },
+  diveLogsLinkText: {
+    fontSize: 14,
+    fontWeight: '500',
   },
   cancelButton: {
     paddingHorizontal: 30,
