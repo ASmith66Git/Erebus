@@ -272,6 +272,34 @@ async function initDatabase() {
       CREATE INDEX IF NOT EXISTS idx_push_tokens_user_id ON push_tokens(user_id);
     `).catch(() => {});
     
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS dev_log (
+        id SERIAL PRIMARY KEY,
+        task TEXT NOT NULL,
+        page_name VARCHAR(255),
+        page_type VARCHAR(50) DEFAULT 'card',
+        status VARCHAR(50) DEFAULT 'todo',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `).catch(() => {});
+    
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_dev_log_status ON dev_log(status);
+    `).catch(() => {});
+    
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_dev_log_page_name ON dev_log(page_name);
+    `).catch(() => {});
+    
+    await client.query(`
+      DROP TRIGGER IF EXISTS update_dev_log_updated_at ON dev_log;
+      CREATE TRIGGER update_dev_log_updated_at
+        BEFORE UPDATE ON dev_log
+        FOR EACH ROW
+        EXECUTE FUNCTION update_updated_at_column();
+    `).catch(() => {});
+    
     const adminCheck = await client.query("SELECT id FROM users WHERE email = 'admin@erebus.app'");
     if (adminCheck.rows.length === 0) {
       const hashedPassword = await bcrypt.hash('admin123', 10);
@@ -672,6 +700,143 @@ app.delete('/api/admin/users/:id', authenticateToken, requireAdmin, async (req, 
     res.json({ message: 'User deleted successfully' });
   } catch (error) {
     console.error('Delete user error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Dev Log API endpoints
+app.get('/api/admin/dev-log', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { status, page_name } = req.query;
+    let query = 'SELECT * FROM dev_log';
+    const params = [];
+    const conditions = [];
+    
+    if (status) {
+      params.push(status);
+      conditions.push(`status = $${params.length}`);
+    }
+    
+    if (page_name) {
+      params.push(page_name);
+      conditions.push(`page_name = $${params.length}`);
+    }
+    
+    if (conditions.length > 0) {
+      query += ' WHERE ' + conditions.join(' AND ');
+    }
+    
+    query += ' ORDER BY created_at DESC';
+    
+    const result = await pool.query(query, params);
+    
+    res.json(result.rows.map(row => ({
+      id: row.id,
+      task: row.task,
+      pageName: row.page_name,
+      pageType: row.page_type,
+      status: row.status,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at
+    })));
+  } catch (error) {
+    console.error('Get dev log error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.get('/api/admin/dev-log/page-names', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT DISTINCT page_name FROM dev_log WHERE page_name IS NOT NULL AND page_name != \'\' ORDER BY page_name'
+    );
+    res.json(result.rows.map(row => row.page_name));
+  } catch (error) {
+    console.error('Get page names error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.post('/api/admin/dev-log', authenticateToken, requireAdmin, async (req, res) => {
+  const { task, pageName, pageType, status } = req.body;
+  
+  if (!task) {
+    return res.status(400).json({ error: 'Task is required' });
+  }
+  
+  try {
+    const result = await pool.query(
+      `INSERT INTO dev_log (task, page_name, page_type, status) 
+       VALUES ($1, $2, $3, $4) 
+       RETURNING *`,
+      [task, pageName || null, pageType || 'card', status || 'todo']
+    );
+    
+    const row = result.rows[0];
+    res.status(201).json({
+      id: row.id,
+      task: row.task,
+      pageName: row.page_name,
+      pageType: row.page_type,
+      status: row.status,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at
+    });
+  } catch (error) {
+    console.error('Create dev log error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.put('/api/admin/dev-log/:id', authenticateToken, requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  const { task, pageName, pageType, status } = req.body;
+  
+  try {
+    const result = await pool.query(
+      `UPDATE dev_log SET 
+        task = COALESCE($1, task),
+        page_name = $2,
+        page_type = COALESCE($3, page_type),
+        status = COALESCE($4, status),
+        updated_at = CURRENT_TIMESTAMP
+       WHERE id = $5 RETURNING *`,
+      [task, pageName, pageType, status, id]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Dev log entry not found' });
+    }
+    
+    const row = result.rows[0];
+    res.json({
+      id: row.id,
+      task: row.task,
+      pageName: row.page_name,
+      pageType: row.page_type,
+      status: row.status,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at
+    });
+  } catch (error) {
+    console.error('Update dev log error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.delete('/api/admin/dev-log/:id', authenticateToken, requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  
+  try {
+    const result = await pool.query('DELETE FROM dev_log WHERE id = $1 RETURNING id', [id]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Dev log entry not found' });
+    }
+    
+    res.json({ message: 'Dev log entry deleted successfully' });
+  } catch (error) {
+    console.error('Delete dev log error:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });

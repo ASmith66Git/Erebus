@@ -101,6 +101,12 @@ export default function TabLayout() {
             tabBarButton: () => null,
           }}
         />
+        <Tabs.Screen
+          name="dev-log"
+          options={{
+            tabBarButton: () => null,
+          }}
+        />
       </Tabs>
     </View>
   );
