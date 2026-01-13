@@ -70,6 +70,7 @@ export default function DevLogScreen() {
 
   const [filterStatus, setFilterStatus] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [toastVisible, setToastVisible] = useState(false);
 
   useEffect(() => {
     if (!isAdmin) {
@@ -229,6 +230,11 @@ export default function DevLogScreen() {
     });
   };
 
+  const showToast = () => {
+    setToastVisible(true);
+    setTimeout(() => setToastVisible(false), 2000);
+  };
+
   const copyEntryToClipboard = async (entry: DevLogEntry) => {
     const devices = entry.devices?.length > 0 ? entry.devices.join(', ') : 'Not specified';
     
@@ -242,10 +248,10 @@ Please help me with this development task.`;
     try {
       if (Platform.OS === 'web' && navigator?.clipboard) {
         await navigator.clipboard.writeText(formattedText);
-        Alert.alert('Copied', 'Dev log entry copied to clipboard');
+        showToast();
       } else {
         await Clipboard.setStringAsync(formattedText);
-        Alert.alert('Copied', 'Dev log entry copied to clipboard');
+        showToast();
       }
     } catch (err) {
       console.error('Clipboard error:', err);
@@ -555,6 +561,15 @@ Please help me with this development task.`;
           </View>
         </View>
       </Modal>
+
+      {toastVisible && (
+        <View style={styles.toastContainer}>
+          <View style={[styles.toast, { backgroundColor: colors.primary }]}>
+            <Feather name="check" size={18} color="#FFFFFF" />
+            <Text style={styles.toastText}>Copied to clipboard</Text>
+          </View>
+        </View>
+      )}
     </View>
   );
 }
@@ -801,6 +816,32 @@ const styles = StyleSheet.create({
   saveButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
+    fontWeight: '600',
+  },
+  toastContainer: {
+    position: 'absolute',
+    bottom: 100,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  toast: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 24,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+  },
+  toastText: {
+    color: '#FFFFFF',
+    fontSize: 14,
     fontWeight: '600',
   },
 });
