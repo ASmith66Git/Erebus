@@ -144,7 +144,7 @@ export default function BleConnectScreen() {
       });
 
       setTimeout(() => {
-        router.back();
+        router.replace('/(app)/(tabs)/dive-logs' as any);
       }, 2000);
     } catch (err: any) {
       // Log full error details for debugging
