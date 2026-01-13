@@ -230,15 +230,12 @@ export default function DevLogScreen() {
   };
 
   const copyEntryToClipboard = async (entry: DevLogEntry) => {
-    const statusLabel = STATUS_COLORS[entry.status].label;
     const devices = entry.devices?.length > 0 ? entry.devices.join(', ') : 'Not specified';
     
     const formattedText = `**Dev Task: ${entry.task}**
 
 - **Page**: ${entry.pageName || 'N/A'} (${entry.pageType})
-- **Status**: ${statusLabel}
 - **Target Devices**: ${devices}
-- **Created**: ${formatDate(entry.createdAt)}
 
 Please help me with this development task.`;
 
