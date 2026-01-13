@@ -432,14 +432,35 @@ class BleService {
         // Validate service exists before writing (prevents "device ?" errors)
         const serviceExists = await this.validateServiceExists(serviceUUID);
         if (!serviceExists) {
-          console.log(`BLE: Service ${serviceUUID} not found, attempting re-discovery...`);
-          await this.connectedDevice.discoverAllServicesAndCharacteristics();
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          console.log(`BLE: Service ${serviceUUID} not found, attempting progressive re-discovery...`);
           
-          // Check again after re-discovery
-          const serviceExistsAfter = await this.validateServiceExists(serviceUUID);
-          if (!serviceExistsAfter) {
-            throw new Error(`Service ${serviceUUID} not found after re-discovery`);
+          // Progressive re-discovery with increasing delays (Shearwater devices need extra time)
+          let found = false;
+          const discoveryDelays = [2000, 3000, 4000]; // Increasing delays
+          
+          for (let i = 0; i < discoveryDelays.length && !found; i++) {
+            console.log(`BLE: Re-discovery attempt ${i + 1}/${discoveryDelays.length}, waiting ${discoveryDelays[i]}ms...`);
+            await this.connectedDevice.discoverAllServicesAndCharacteristics();
+            await new Promise(resolve => setTimeout(resolve, discoveryDelays[i]));
+            
+            found = await this.validateServiceExists(serviceUUID);
+            if (found) {
+              console.log(`BLE: Service found after re-discovery attempt ${i + 1}`);
+            }
+          }
+          
+          if (!found) {
+            // Last resort: full reconnect before giving up
+            console.log('BLE: Service still not found, attempting full reconnect...');
+            if (this.connectedDeviceId) {
+              await this.reconnect();
+              await new Promise(resolve => setTimeout(resolve, 3000));
+              found = await this.validateServiceExists(serviceUUID);
+            }
+            
+            if (!found) {
+              throw new Error(`Service ${serviceUUID} not found after re-discovery`);
+            }
           }
         }
         
