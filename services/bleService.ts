@@ -238,7 +238,8 @@ class BleService {
         // Check if device is still connected
         const stillConnected = await device.isConnected();
         if (!stillConnected) {
-          console.log('BLE: Device disconnected during discovery, will retry connection cycle');
+          console.log('BLE: Device disconnected during discovery, waiting 2s before retry...');
+          await new Promise(resolve => setTimeout(resolve, 2000));
           continue; // Try another connection cycle
         }
         
@@ -248,8 +249,13 @@ class BleService {
             console.warn(`BLE: Shearwater service not found, disconnecting to clear GATT cache (cycle ${connectionCycle})`);
             try {
               await device.cancelConnection();
+              // CRITICAL: Wait for Android BLE stack to fully process the disconnect
+              // before attempting reconnection - prevents "Operation cancelled" errors
+              console.log('BLE: Waiting 2s for disconnect to complete before retry...');
+              await new Promise(resolve => setTimeout(resolve, 2000));
             } catch (e) {
-              // Ignore disconnect errors
+              // Ignore disconnect errors, but still wait
+              await new Promise(resolve => setTimeout(resolve, 1000));
             }
             continue; // Try another connection cycle
           } else {
