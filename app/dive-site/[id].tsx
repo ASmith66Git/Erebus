@@ -38,22 +38,6 @@ interface DiveSiteImage {
   createdAt: string;
 }
 
-interface StockPhoto {
-  id: number;
-  width: number;
-  height: number;
-  url: string;
-  photographer: string;
-  photographerUrl: string;
-  src: {
-    original: string;
-    large: string;
-    medium: string;
-    small: string;
-    thumbnail: string;
-  };
-  alt: string;
-}
 
 interface DiveSite {
   id: number;
@@ -381,16 +365,8 @@ export default function DiveSiteDetailScreen() {
   const [siteImages, setSiteImages] = useState<DiveSiteImage[]>([]);
   const [loadingImages, setLoadingImages] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
-  const [stockSearchQuery, setStockSearchQuery] = useState('');
-  const [stockPhotos, setStockPhotos] = useState<StockPhoto[]>([]);
-  const [searchingStock, setSearchingStock] = useState(false);
-  const [showStockModal, setShowStockModal] = useState(false);
   const [selectedImage, setSelectedImage] = useState<DiveSiteImage | null>(null);
   const [showImageModal, setShowImageModal] = useState(false);
-  const [showUrlModal, setShowUrlModal] = useState(false);
-  const [importUrl, setImportUrl] = useState('');
-  const [importingUrl, setImportingUrl] = useState(false);
-  const [urlPreview, setUrlPreview] = useState<string | null>(null);
 
   const isNewSite = id === 'new';
 
@@ -658,104 +634,6 @@ export default function DiveSiteDetailScreen() {
     }
   };
 
-  const searchStockPhotos = async () => {
-    if (!token || !stockSearchQuery.trim()) return;
-
-    setSearchingStock(true);
-    try {
-      const response = await fetch(
-        `${getApiUrl()}/api/stock-photos/search?query=${encodeURIComponent(stockSearchQuery)}&perPage=12`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        setStockPhotos(data.photos || []);
-      } else {
-        const error = await response.json();
-        Alert.alert('Info', error.error || 'Could not search stock photos');
-        setStockPhotos([]);
-      }
-    } catch (error) {
-      console.error('Error searching stock photos:', error);
-    } finally {
-      setSearchingStock(false);
-    }
-  };
-
-  const addStockPhoto = async (photo: StockPhoto) => {
-    if (!token || !site?.id) return;
-
-    try {
-      const response = await fetch(`${getApiUrl()}/api/dive-sites/${site.id}/images`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          imageUrl: photo.src.large,
-          caption: photo.alt || null,
-          isPrimary: siteImages.length === 0,
-          isStock: true,
-          attribution: `Photo by ${photo.photographer} on Pexels`,
-        }),
-      });
-
-      if (response.ok) {
-        fetchSiteImages();
-        setShowStockModal(false);
-        Alert.alert('Success', 'Stock photo added');
-      }
-    } catch (error) {
-      console.error('Error adding stock photo:', error);
-      Alert.alert('Error', 'Failed to add stock photo');
-    }
-  };
-
-  const handleImportFromUrl = async () => {
-    console.log('handleImportFromUrl called', { token: !!token, siteId: site?.id, importUrl });
-    if (!token || !site?.id || !importUrl.trim()) {
-      console.log('Early return - missing data');
-      return;
-    }
-
-    setImportingUrl(true);
-    try {
-      const apiUrl = `${getApiUrl()}/api/dive-sites/${site.id}/images/import-url`;
-      console.log('Calling API:', apiUrl);
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          imageUrl: importUrl.trim(),
-          isPrimary: siteImages.length === 0,
-        }),
-      });
-
-      console.log('Response status:', response.status);
-      if (response.ok) {
-        fetchSiteImages();
-        setShowUrlModal(false);
-        setImportUrl('');
-        setUrlPreview(null);
-        Alert.alert('Success', 'Image imported successfully');
-      } else {
-        const error = await response.json();
-        console.log('Error response:', error);
-        Alert.alert('Error', error.error || 'Failed to import image');
-      }
-    } catch (error) {
-      console.error('Error importing image from URL:', error);
-      Alert.alert('Error', 'Failed to import image');
-    } finally {
-      setImportingUrl(false);
-    }
-  };
-
   const handleSearchWeb = () => {
     const searchQuery = encodeURIComponent(`${site?.name || 'dive site'} underwater photos`);
     const url = `https://www.google.com/search?q=${searchQuery}&tbm=isch`;
@@ -763,16 +641,6 @@ export default function DiveSiteDetailScreen() {
       window.open(url, '_blank');
     } else {
       Linking.openURL(url);
-    }
-  };
-
-  const handleUrlChange = (url: string) => {
-    setImportUrl(url);
-    // Try to show preview for any URL that starts with http
-    if (url.startsWith('http://') || url.startsWith('https://')) {
-      setUrlPreview(url);
-    } else {
-      setUrlPreview(null);
     }
   };
 
@@ -1351,13 +1219,6 @@ export default function DiveSiteDetailScreen() {
                 <Text style={[styles.mediaActionText, { color: colors.primary }]}>Search Web</Text>
               </Pressable>
               <Pressable
-                onPress={() => setShowUrlModal(true)}
-                style={[styles.mediaActionButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
-              >
-                <Feather name="link" size={18} color={colors.primary} />
-                <Text style={[styles.mediaActionText, { color: colors.primary }]}>Import URL</Text>
-              </Pressable>
-              <Pressable
                 onPress={handleImageUpload}
                 style={[styles.mediaActionButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
                 disabled={uploadingImage}
@@ -1377,19 +1238,10 @@ export default function DiveSiteDetailScreen() {
                 disabled={uploadingImage}
               >
                 <Feather name="camera" size={18} color="#FFFFFF" />
-                <Text style={[styles.mediaActionText, { color: '#FFFFFF' }]}>Camera</Text>
+                <Text style={[styles.mediaActionText, { color: colors.primary }]}>Camera</Text>
               </Pressable>
             </View>
           )}
-          
-          <Pressable
-            onPress={() => setShowStockModal(true)}
-            style={[styles.stockPhotosButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
-          >
-            <Feather name="camera" size={18} color={colors.textSecondary} />
-            <Text style={[styles.stockPhotosText, { color: colors.textSecondary }]}>Browse Pexels Stock Photos</Text>
-            <Feather name="chevron-right" size={18} color={colors.textSecondary} />
-          </Pressable>
 
           {loadingImages ? (
             <ActivityIndicator size="small" color={colors.primary} style={{ marginVertical: 20 }} />
@@ -1410,11 +1262,6 @@ export default function DiveSiteDetailScreen() {
                       <Feather name="star" size={12} color="#FFFFFF" />
                     </View>
                   )}
-                  {img.isStock && (
-                    <View style={[styles.stockBadge, { backgroundColor: colors.surface }]}>
-                      <Text style={{ fontSize: 10, color: colors.textSecondary }}>Pexels</Text>
-                    </View>
-                  )}
                 </Pressable>
               ))}
             </View>
@@ -1423,7 +1270,7 @@ export default function DiveSiteDetailScreen() {
               <Feather name="image" size={48} color={colors.textSecondary} />
               <Text style={[styles.emptyMediaText, { color: colors.textSecondary }]}>No photos yet</Text>
               <Text style={[styles.emptyMediaSubtext, { color: colors.textSecondary }]}>
-                Upload your own or add from stock photos
+                Use the camera or upload to add photos
               </Text>
             </View>
           )}
@@ -1468,148 +1315,6 @@ export default function DiveSiteDetailScreen() {
           />
         </View>
       )}
-
-      <Modal visible={showStockModal} transparent animationType="slide">
-        <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
-          <View style={[styles.stockModal, { backgroundColor: colors.background }]}>
-            <View style={[styles.stockModalHeader, { borderBottomColor: colors.border }]}>
-              <Text style={[styles.stockModalTitle, { color: colors.text }]}>Search Stock Photos</Text>
-              <Pressable onPress={() => setShowStockModal(false)}>
-                <Feather name="x" size={24} color={colors.text} />
-              </Pressable>
-            </View>
-
-            <View style={styles.stockSearchRow}>
-              <TextInput
-                style={[styles.stockSearchInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
-                value={stockSearchQuery}
-                onChangeText={setStockSearchQuery}
-                placeholder="Search diving, coral reef, ocean..."
-                placeholderTextColor={colors.textSecondary}
-                onSubmitEditing={searchStockPhotos}
-              />
-              <Pressable
-                onPress={searchStockPhotos}
-                style={[styles.stockSearchButton, { backgroundColor: colors.primary }]}
-                disabled={searchingStock}
-              >
-                {searchingStock ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                ) : (
-                  <Feather name="search" size={20} color="#FFFFFF" />
-                )}
-              </Pressable>
-            </View>
-
-            <ScrollView style={styles.stockResults} contentContainerStyle={styles.stockResultsContent}>
-              {stockPhotos.length > 0 ? (
-                <View style={styles.stockGrid}>
-                  {stockPhotos.map((photo) => (
-                    <Pressable
-                      key={photo.id}
-                      onPress={() => addStockPhoto(photo)}
-                      style={[styles.stockPhotoItem, { borderColor: colors.border }]}
-                    >
-                      <Image source={{ uri: photo.src.medium }} style={styles.stockPhotoImage} resizeMode="cover" />
-                      <View style={[styles.stockPhotoInfo, { backgroundColor: colors.surface }]}>
-                        <Text style={{ fontSize: 11, color: colors.textSecondary }} numberOfLines={1}>
-                          {photo.photographer}
-                        </Text>
-                      </View>
-                    </Pressable>
-                  ))}
-                </View>
-              ) : (
-                <View style={styles.stockEmptyState}>
-                  <Feather name="camera" size={48} color={colors.textSecondary} />
-                  <Text style={{ color: colors.textSecondary, marginTop: 12 }}>
-                    Search for photos above
-                  </Text>
-                </View>
-              )}
-            </ScrollView>
-
-            <Text style={[styles.pexelsAttribution, { color: colors.textSecondary }]}>
-              Photos provided by Pexels
-            </Text>
-          </View>
-        </View>
-      </Modal>
-
-      <Modal visible={showUrlModal} transparent animationType="slide">
-        <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
-          <View style={[styles.urlModal, { backgroundColor: colors.background }]}>
-            <View style={[styles.stockModalHeader, { borderBottomColor: colors.border }]}>
-              <Text style={[styles.stockModalTitle, { color: colors.text }]}>Import from URL</Text>
-              <Pressable onPress={() => { setShowUrlModal(false); setImportUrl(''); setUrlPreview(null); }}>
-                <Feather name="x" size={24} color={colors.text} />
-              </Pressable>
-            </View>
-
-            <View style={styles.urlModalContent}>
-              <Text style={[styles.urlInstructions, { color: colors.textSecondary }]}>
-                Paste a direct image URL below. Important: Google share links won't work - you need the actual image URL. Right-click an image and select "Copy image address" to get the direct link.
-              </Text>
-
-              <TextInput
-                style={[styles.urlInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
-                value={importUrl}
-                onChangeText={handleUrlChange}
-                placeholder="https://example.com/image.jpg"
-                placeholderTextColor={colors.textSecondary}
-                autoCapitalize="none"
-                autoCorrect={false}
-                keyboardType="url"
-              />
-
-              {urlPreview && (
-                <View style={[styles.urlPreviewContainer, { borderColor: colors.border }]}>
-                  <Image 
-                    source={{ uri: urlPreview }} 
-                    style={styles.urlPreviewImage} 
-                    resizeMode="contain"
-                    onError={() => setUrlPreview(null)}
-                  />
-                </View>
-              )}
-
-              <Pressable
-                onPress={() => {
-                  console.log('Import button pressed');
-                  handleImportFromUrl();
-                }}
-                style={({ pressed }) => [
-                  styles.importButton, 
-                  { 
-                    backgroundColor: colors.primary, 
-                    opacity: (!importUrl.trim() || importingUrl) ? 0.5 : pressed ? 0.7 : 1 
-                  }
-                ]}
-                disabled={!importUrl.trim() || importingUrl}
-              >
-                {importingUrl ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                ) : (
-                  <>
-                    <Feather name="download" size={18} color="#FFFFFF" />
-                    <Text style={styles.importButtonText}>Import Image</Text>
-                  </>
-                )}
-              </Pressable>
-
-              <Pressable
-                onPress={handleSearchWeb}
-                style={[styles.searchWebLink, { borderColor: colors.border }]}
-              >
-                <Feather name="globe" size={16} color={colors.primary} />
-                <Text style={[styles.searchWebLinkText, { color: colors.primary }]}>
-                  Open Google Images to find photos
-                </Text>
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
 
       <Modal visible={showImageModal} transparent animationType="fade">
         <Pressable style={styles.modalOverlay} onPress={() => setShowImageModal(false)}>

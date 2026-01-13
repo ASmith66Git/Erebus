@@ -31,7 +31,7 @@ The application is built using Expo React Native, targeting both iOS and Android
 - **User Management**: Admin users can view, block/unblock, change roles, and reset passwords.
 - **Dev Log**: Admin-only feature for tracking development tasks with color-coded status (To Do, In Progress, Completed), page type badges (Card, Detail, Edit), page name autocomplete, and CRUD operations via modal interface.
 - **Dive Site Details**: Comprehensive fields including site type, water type, difficulty, access notes, hazards, and best season.
-- **Dive Site Images**: Supports image uploads to Replit Object Storage via presigned URLs, primary image selection, Pexels integration, URL import, and "Search Web" for Google Images.
+- **Dive Site Images**: Supports image uploads to Replit Object Storage via presigned URLs, camera photo capture, primary image selection, and "Search Web" for Google Images.
 - **Wreck Site Specifics**: Dedicated fields and a conditional "Wreck" tab.
 - **Weather Forecast**: Integrates 7-day marine and atmospheric weather forecasts based on dive site location using Open-Meteo API.
 
@@ -41,7 +41,7 @@ The application is built using Expo React Native, targeting both iOS and Android
 - **Expo React Native**: Mobile application framework.
 - **@react-navigation/drawer**: For drawer navigation.
 - **Replit Object Storage**: For dive site image storage.
-- **Pexels API**: For stock photos.
+- **expo-image-picker**: For camera photo capture.
 - **Wikipedia API**: For wreck site information.
 - **Open-Meteo API**: For weather forecasts.
 - **expo-sqlite**: For local SQLite database.
