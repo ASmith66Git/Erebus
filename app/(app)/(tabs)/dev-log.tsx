@@ -24,6 +24,7 @@ interface DevLogEntry {
   pageName: string | null;
   pageType: 'card' | 'detail' | 'edit';
   status: 'todo' | 'in_progress' | 'completed';
+  device: 'android' | 'ios' | 'web' | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -38,6 +39,12 @@ const PAGE_TYPE_COLORS = {
   card: { bg: '#3182CE', text: '#FFFFFF' },
   detail: { bg: '#805AD5', text: '#FFFFFF' },
   edit: { bg: '#DD6B20', text: '#FFFFFF' },
+};
+
+const DEVICE_COLORS = {
+  android: { bg: '#3DDC84', text: '#000000', label: 'Android' },
+  ios: { bg: '#007AFF', text: '#FFFFFF', label: 'iOS' },
+  web: { bg: '#FF6B35', text: '#FFFFFF', label: 'Web' },
 };
 
 export default function DevLogScreen() {
@@ -57,6 +64,7 @@ export default function DevLogScreen() {
     pageName: '',
     pageType: 'card' as 'card' | 'detail' | 'edit',
     status: 'todo' as 'todo' | 'in_progress' | 'completed',
+    device: null as 'android' | 'ios' | 'web' | null,
   });
 
   const [filterStatus, setFilterStatus] = useState<string | null>(null);
@@ -119,7 +127,7 @@ export default function DevLogScreen() {
 
   const openAddModal = () => {
     setEditingEntry(null);
-    setFormData({ task: '', pageName: '', pageType: 'card', status: 'todo' });
+    setFormData({ task: '', pageName: '', pageType: 'card', status: 'todo', device: null });
     setModalVisible(true);
   };
 
@@ -130,6 +138,7 @@ export default function DevLogScreen() {
       pageName: entry.pageName || '',
       pageType: entry.pageType,
       status: entry.status,
+      device: entry.device,
     });
     setModalVisible(true);
   };
@@ -246,6 +255,13 @@ export default function DevLogScreen() {
               {entry.pageType.charAt(0).toUpperCase() + entry.pageType.slice(1)}
             </Text>
           </View>
+          {entry.device && DEVICE_COLORS[entry.device] && (
+            <View style={[styles.badge, { backgroundColor: DEVICE_COLORS[entry.device].bg }]}>
+              <Text style={[styles.badgeText, { color: DEVICE_COLORS[entry.device].text }]}>
+                {DEVICE_COLORS[entry.device].label}
+              </Text>
+            </View>
+          )}
           <View style={[styles.badge, { backgroundColor: statusConfig.bg }]}>
             <Text style={[styles.badgeText, { color: statusConfig.text }]}>
               {statusConfig.label}
@@ -456,6 +472,39 @@ export default function DevLogScreen() {
                       { backgroundColor: isSelected ? config.bg : colors.background, borderColor: config.bg }
                     ]}
                     onPress={() => setFormData({ ...formData, status })}
+                  >
+                    <Text style={[styles.optionText, { color: isSelected ? config.text : colors.text }]}>
+                      {config.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            <Text style={[styles.label, { color: colors.text }]}>Device</Text>
+            <View style={styles.optionsRow}>
+              <Pressable
+                style={[
+                  styles.optionButton,
+                  { backgroundColor: formData.device === null ? colors.primary : colors.background, borderColor: colors.border }
+                ]}
+                onPress={() => setFormData({ ...formData, device: null })}
+              >
+                <Text style={[styles.optionText, { color: formData.device === null ? '#FFFFFF' : colors.text }]}>
+                  None
+                </Text>
+              </Pressable>
+              {(['android', 'ios', 'web'] as const).map((device) => {
+                const config = DEVICE_COLORS[device];
+                const isSelected = formData.device === device;
+                return (
+                  <Pressable
+                    key={device}
+                    style={[
+                      styles.optionButton,
+                      { backgroundColor: isSelected ? config.bg : colors.background, borderColor: config.bg }
+                    ]}
+                    onPress={() => setFormData({ ...formData, device })}
                   >
                     <Text style={[styles.optionText, { color: isSelected ? config.text : colors.text }]}>
                       {config.label}

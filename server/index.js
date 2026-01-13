@@ -736,6 +736,7 @@ app.get('/api/admin/dev-log', authenticateToken, requireAdmin, async (req, res) 
       pageName: row.page_name,
       pageType: row.page_type,
       status: row.status,
+      device: row.device,
       createdAt: row.created_at,
       updatedAt: row.updated_at
     })));
@@ -758,7 +759,7 @@ app.get('/api/admin/dev-log/page-names', authenticateToken, requireAdmin, async 
 });
 
 app.post('/api/admin/dev-log', authenticateToken, requireAdmin, async (req, res) => {
-  const { task, pageName, pageType, status } = req.body;
+  const { task, pageName, pageType, status, device } = req.body;
   
   if (!task) {
     return res.status(400).json({ error: 'Task is required' });
@@ -766,10 +767,10 @@ app.post('/api/admin/dev-log', authenticateToken, requireAdmin, async (req, res)
   
   try {
     const result = await pool.query(
-      `INSERT INTO dev_log (task, page_name, page_type, status) 
-       VALUES ($1, $2, $3, $4) 
+      `INSERT INTO dev_log (task, page_name, page_type, status, device) 
+       VALUES ($1, $2, $3, $4, $5) 
        RETURNING *`,
-      [task, pageName || null, pageType || 'card', status || 'todo']
+      [task, pageName || null, pageType || 'card', status || 'todo', device || null]
     );
     
     const row = result.rows[0];
@@ -779,6 +780,7 @@ app.post('/api/admin/dev-log', authenticateToken, requireAdmin, async (req, res)
       pageName: row.page_name,
       pageType: row.page_type,
       status: row.status,
+      device: row.device,
       createdAt: row.created_at,
       updatedAt: row.updated_at
     });
@@ -790,7 +792,7 @@ app.post('/api/admin/dev-log', authenticateToken, requireAdmin, async (req, res)
 
 app.put('/api/admin/dev-log/:id', authenticateToken, requireAdmin, async (req, res) => {
   const { id } = req.params;
-  const { task, pageName, pageType, status } = req.body;
+  const { task, pageName, pageType, status, device } = req.body;
   
   try {
     const result = await pool.query(
@@ -799,9 +801,10 @@ app.put('/api/admin/dev-log/:id', authenticateToken, requireAdmin, async (req, r
         page_name = $2,
         page_type = COALESCE($3, page_type),
         status = COALESCE($4, status),
+        device = $5,
         updated_at = CURRENT_TIMESTAMP
-       WHERE id = $5 RETURNING *`,
-      [task, pageName, pageType, status, id]
+       WHERE id = $6 RETURNING *`,
+      [task, pageName, pageType, status, device, id]
     );
     
     if (result.rows.length === 0) {
@@ -815,6 +818,7 @@ app.put('/api/admin/dev-log/:id', authenticateToken, requireAdmin, async (req, r
       pageName: row.page_name,
       pageType: row.page_type,
       status: row.status,
+      device: row.device,
       createdAt: row.created_at,
       updatedAt: row.updated_at
     });
