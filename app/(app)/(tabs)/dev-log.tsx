@@ -60,6 +60,7 @@ export default function DevLogScreen() {
   });
 
   const [filterStatus, setFilterStatus] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     if (!isAdmin) {
@@ -269,6 +270,24 @@ export default function DevLogScreen() {
         <View style={{ width: 40 }} />
       </View>
 
+      <View style={styles.searchContainer}>
+        <View style={[styles.searchInputContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Feather name="search" size={18} color={colors.textSecondary} />
+          <TextInput
+            style={[styles.searchInput, { color: colors.text }]}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder="Search tasks..."
+            placeholderTextColor={colors.textSecondary}
+          />
+          {searchQuery.length > 0 && (
+            <Pressable onPress={() => setSearchQuery('')} hitSlop={8}>
+              <Feather name="x" size={18} color={colors.textSecondary} />
+            </Pressable>
+          )}
+        </View>
+      </View>
+
       <View style={styles.filterContainer}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
           <Pressable
@@ -322,7 +341,16 @@ export default function DevLogScreen() {
         </View>
       ) : (
         <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-          {entries.map(renderEntry)}
+          {entries
+            .filter(entry => {
+              if (!searchQuery.trim()) return true;
+              const query = searchQuery.toLowerCase();
+              return (
+                entry.task.toLowerCase().includes(query) ||
+                (entry.pageName && entry.pageName.toLowerCase().includes(query))
+              );
+            })
+            .map(renderEntry)}
         </ScrollView>
       )}
 
@@ -474,6 +502,24 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: 'bold',
+  },
+  searchContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+  },
+  searchInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 10,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    padding: 0,
   },
   filterContainer: {
     paddingVertical: 12,
