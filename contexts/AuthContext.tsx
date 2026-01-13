@@ -385,7 +385,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     token,
     isLoading,
     isAuthenticated: !!user,
-    isAdmin: user?.role === 'admin',
+    isAdmin: user?.role?.toLowerCase() === 'admin',
     isOfflineSession,
     biometricCapability,
     isBiometricEnabled,
