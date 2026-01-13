@@ -240,9 +240,15 @@ export default function DevLogScreen() {
 Please help me with this development task.`;
 
     try {
-      await Clipboard.setStringAsync(formattedText);
-      Alert.alert('Copied', 'Dev log entry copied to clipboard');
+      if (Platform.OS === 'web' && navigator?.clipboard) {
+        await navigator.clipboard.writeText(formattedText);
+        Alert.alert('Copied', 'Dev log entry copied to clipboard');
+      } else {
+        await Clipboard.setStringAsync(formattedText);
+        Alert.alert('Copied', 'Dev log entry copied to clipboard');
+      }
     } catch (err) {
+      console.error('Clipboard error:', err);
       Alert.alert('Error', 'Failed to copy to clipboard');
     }
   };
