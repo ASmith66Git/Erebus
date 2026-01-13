@@ -47,9 +47,31 @@ export default function StaticMapView({
   const googleMapRef = useRef<any>(null);
 
   const apiKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || Constants.expoConfig?.extra?.googleMapsApiKey || '';
+  const androidApiKey = Constants.expoConfig?.extra?.googleMapsAndroidApiKey || process.env.GOOGLE_MAPS_ANDROID_API_KEY || '';
 
   // Load maps module lazily inside the component to catch any initialization errors
   const { MapView, Marker } = useMemo(() => loadMapsModule(), []);
+
+  // Check if Android API key is available - if not, show fallback to prevent crash
+  const hasValidAndroidKey = Platform.OS !== 'android' || (androidApiKey && androidApiKey.length > 10);
+
+  const openInGoogleMaps = () => {
+    const url = `https://www.google.com/maps?q=${latitude},${longitude}`;
+    Linking.openURL(url);
+  };
+
+  // If no valid Android API key, show fallback button instead of crashing
+  if (Platform.OS === 'android' && !hasValidAndroidKey) {
+    return (
+      <Pressable
+        style={[styles.fallbackButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
+        onPress={openInGoogleMaps}
+      >
+        <Feather name="map" size={18} color={colors.primary} />
+        <Text style={[styles.openButtonText, { color: colors.primary }]}>View on Google Maps</Text>
+      </Pressable>
+    );
+  }
 
   useEffect(() => {
     if (Platform.OS !== 'web') return;
@@ -116,13 +138,6 @@ export default function StaticMapView({
     const timer = setTimeout(initWebMap, 50);
     return () => clearTimeout(timer);
   }, [apiKey, latitude, longitude]);
-
-  const openInGoogleMaps = () => {
-    const url = `https://www.google.com/maps?q=${latitude},${longitude}`;
-    if (Platform.OS === 'web') {
-      window.open(url, '_blank');
-    }
-  };
 
   if (Platform.OS === 'web') {
     return (

@@ -58,9 +58,13 @@ export default function EmbeddedMapPicker({
   const autocompleteRef = useRef<any>(null);
 
   const apiKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || Constants.expoConfig?.extra?.googleMapsApiKey || '';
+  const androidApiKey = Constants.expoConfig?.extra?.googleMapsAndroidApiKey || process.env.GOOGLE_MAPS_ANDROID_API_KEY || '';
 
   // Load maps module lazily inside the component to catch any initialization errors
   const { MapView, Marker } = useMemo(() => loadMapsModule(), []);
+
+  // Check if Android API key is available - if not, we'll show fallback UI
+  const hasValidAndroidKey = Platform.OS !== 'android' || (androidApiKey && androidApiKey.length > 10);
 
   useEffect(() => {
     setMarkerPosition({ latitude, longitude });
@@ -291,12 +295,12 @@ export default function EmbeddedMapPicker({
     );
   }
 
-  if (!MapView) {
+  if (!MapView || (Platform.OS === 'android' && !hasValidAndroidKey)) {
     return (
       <View style={[styles.fallbackContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
         <Feather name="map-pin" size={32} color={colors.textSecondary} />
         <Text style={[styles.fallbackText, { color: colors.textSecondary }]}>
-          Map not available on this device
+          {!hasValidAndroidKey ? 'Map API key not configured' : 'Map not available on this device'}
         </Text>
         <View style={styles.fallbackInputs}>
           <View style={styles.fallbackInputRow}>
