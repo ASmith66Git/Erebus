@@ -68,7 +68,7 @@ function CustomDrawerContent(props: any) {
 
         <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
-        <DrawerContentScrollView {...props} contentContainerStyle={{ paddingTop: 0 }}>
+        <DrawerContentScrollView {...props} contentContainerStyle={{ paddingTop: 0 }} key={`drawer-${isAdmin}`}>
           {menuItems.map((item, index) => (
             <DrawerItem
               key={index}
