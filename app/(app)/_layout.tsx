@@ -44,7 +44,7 @@ function CustomDrawerContent(props: any) {
 
   const adminItems = [
     { icon: 'users', label: 'User Management', action: () => handleNavigation('/admin') },
-    { icon: 'code', label: 'Dev Log', action: () => handleNavigation('/dev-log') },
+    { icon: 'code', label: 'Dev Log', action: () => handleNavigation('/(tabs)/dev-log') },
     { icon: 'sliders', label: 'Other Settings', action: () => showComingSoon('Other Settings') },
   ];
 
