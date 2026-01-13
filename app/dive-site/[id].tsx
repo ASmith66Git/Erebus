@@ -22,6 +22,8 @@ import EmbeddedMapPicker from '@/components/EmbeddedMapPicker';
 import StaticMapView from '@/components/StaticMapView';
 import { getApiUrl } from '@/utils/apiConfig';
 
+const DEBUG_DISABLE_MAPS = true;
+
 const { width } = Dimensions.get('window');
 
 interface DiveSiteImage {
@@ -929,15 +931,25 @@ export default function DiveSiteDetailScreen() {
 
           <View style={styles.formGroup}>
             <Text style={[styles.formLabel, { color: colors.text }]}>Location</Text>
-            <EmbeddedMapPicker
-              latitude={editedSite.latitude || 0}
-              longitude={editedSite.longitude || 0}
-              onCoordinatesChange={(lat, lng) => {
-                updateField('latitude', lat);
-                updateField('longitude', lng);
-              }}
-              colors={colors}
-            />
+            {DEBUG_DISABLE_MAPS ? (
+              <View style={[styles.mapPlaceholder, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                <Feather name="map" size={32} color={colors.textSecondary} />
+                <Text style={{ color: colors.textSecondary, marginTop: 8 }}>Map disabled for debugging</Text>
+                <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
+                  Lat: {editedSite.latitude || 0}, Lng: {editedSite.longitude || 0}
+                </Text>
+              </View>
+            ) : (
+              <EmbeddedMapPicker
+                latitude={editedSite.latitude || 0}
+                longitude={editedSite.longitude || 0}
+                onCoordinatesChange={(lat, lng) => {
+                  updateField('latitude', lat);
+                  updateField('longitude', lng);
+                }}
+                colors={colors}
+              />
+            )}
           </View>
 
           <Pressable
@@ -1024,11 +1036,21 @@ export default function DiveSiteDetailScreen() {
 
           {displaySite?.latitude && displaySite?.longitude && (
             <View style={styles.mapSection}>
-              <StaticMapView
-                latitude={displaySite.latitude}
-                longitude={displaySite.longitude}
-                colors={colors}
-              />
+              {DEBUG_DISABLE_MAPS ? (
+                <View style={[styles.mapPlaceholder, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                  <Feather name="map-pin" size={32} color={colors.textSecondary} />
+                  <Text style={{ color: colors.textSecondary, marginTop: 8 }}>Map disabled for debugging</Text>
+                  <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
+                    Lat: {displaySite.latitude}, Lng: {displaySite.longitude}
+                  </Text>
+                </View>
+              ) : (
+                <StaticMapView
+                  latitude={displaySite.latitude}
+                  longitude={displaySite.longitude}
+                  colors={colors}
+                />
+              )}
             </View>
           )}
 
@@ -1996,6 +2018,13 @@ const styles = StyleSheet.create({
   },
   mapSection: {
     marginTop: 12,
+  },
+  mapPlaceholder: {
+    height: 200,
+    borderRadius: 12,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   ratingSection: {
     marginTop: 16,
