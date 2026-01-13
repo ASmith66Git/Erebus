@@ -22,7 +22,7 @@ import EmbeddedMapPicker from '@/components/EmbeddedMapPicker';
 import StaticMapView from '@/components/StaticMapView';
 import { getApiUrl } from '@/utils/apiConfig';
 
-const DEBUG_DISABLE_MAPS = true;
+const DEBUG_DISABLE_MAPS = false;
 
 const { width } = Dimensions.get('window');
 

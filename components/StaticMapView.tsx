@@ -34,6 +34,11 @@ export default function StaticMapView({
 
   const apiKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || Constants.expoConfig?.extra?.googleMapsApiKey || '';
 
+  const openInGoogleMaps = () => {
+    const url = `https://www.google.com/maps?q=${latitude},${longitude}`;
+    window.open(url, '_blank');
+  };
+
   useEffect(() => {
     if (googleMapRef.current) return;
     if (!apiKey) {
@@ -98,11 +103,6 @@ export default function StaticMapView({
     const timer = setTimeout(initWebMap, 50);
     return () => clearTimeout(timer);
   }, [apiKey, latitude, longitude]);
-
-  const openInGoogleMaps = () => {
-    const url = `https://www.google.com/maps?q=${latitude},${longitude}`;
-    window.open(url, '_blank');
-  };
 
   return (
     <View style={styles.container}>

@@ -99,13 +99,11 @@ export default function EmbeddedMapPicker({
           v: 'weekly',
         });
         
-        // Always load maps library if not present
         if (!google || !google.maps) {
           await importLibrary('maps');
           google = (window as any).google;
         }
         
-        // Always ensure Places library is loaded (might be missing if map was loaded elsewhere)
         if (!google?.maps?.places) {
           console.log('Loading Places library...');
           await importLibrary('places');
@@ -146,7 +144,6 @@ export default function EmbeddedMapPicker({
           handleMarkerChange(lat, lng);
         });
 
-        // Add CSS for Places Autocomplete dropdown to ensure it's visible
         if (!document.getElementById('pac-container-styles')) {
           const style = document.createElement('style');
           style.id = 'pac-container-styles';
@@ -173,7 +170,6 @@ export default function EmbeddedMapPicker({
           document.head.appendChild(style);
         }
 
-        // Set up Places Autocomplete after a short delay to ensure DOM is ready
         setTimeout(() => {
           const searchInput = document.getElementById('map-search-input') as HTMLInputElement;
           const placesGoogle = (window as any).google;
@@ -192,7 +188,6 @@ export default function EmbeddedMapPicker({
               });
               autocompleteRef.current = autocomplete;
               
-              // Bind autocomplete to map for better results
               autocomplete.bindTo('bounds', map);
               
               console.log('Places Autocomplete initialized successfully');
