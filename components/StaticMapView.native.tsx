@@ -46,14 +46,34 @@ export default function StaticMapView({
   const webMapRef = useRef<HTMLDivElement | null>(null);
   const googleMapRef = useRef<any>(null);
 
-  const apiKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || Constants.expoConfig?.extra?.googleMapsApiKey || '';
-  const androidApiKey = Constants.expoConfig?.extra?.googleMapsAndroidApiKey || process.env.GOOGLE_MAPS_ANDROID_API_KEY || '';
+  // API key lookup - try multiple sources for production compatibility
+  const apiKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || 
+    Constants.expoConfig?.extra?.googleMapsApiKey || 
+    (Constants as any).manifest?.extra?.googleMapsApiKey ||
+    (Constants as any).manifest2?.extra?.expoClient?.extra?.googleMapsApiKey ||
+    '';
+    
+  const androidApiKey = 
+    Constants.expoConfig?.extra?.googleMapsAndroidApiKey || 
+    (Constants as any).manifest?.extra?.googleMapsAndroidApiKey ||
+    (Constants as any).manifest2?.extra?.expoClient?.extra?.googleMapsAndroidApiKey ||
+    process.env.GOOGLE_MAPS_ANDROID_API_KEY || 
+    '';
 
   // Load maps module lazily inside the component to catch any initialization errors
   const { MapView, Marker } = useMemo(() => loadMapsModule(), []);
 
-  // Check if Android API key is available - if not, show fallback to prevent crash
-  const hasValidAndroidKey = Platform.OS !== 'android' || (androidApiKey && androidApiKey.length > 10);
+  // For Android native maps, the API key is baked into the build via app.config.js android.config.googleMaps.apiKey
+  // We don't need to check for the key at runtime - react-native-maps uses AndroidManifest.xml directly
+  // If the key wasn't provided during build, the map will show an error, but won't crash
+  const hasValidAndroidKey = true; // Let react-native-maps handle this natively
+  
+  // Log for debugging in case of issues
+  useEffect(() => {
+    if (Platform.OS === 'android') {
+      console.log('StaticMapView: Android native maps rendering, coordinates:', latitude, longitude);
+    }
+  }, [latitude, longitude]);
 
   const openInGoogleMaps = () => {
     const url = `https://www.google.com/maps?q=${latitude},${longitude}`;
