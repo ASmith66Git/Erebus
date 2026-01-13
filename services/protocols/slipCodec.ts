@@ -3,7 +3,8 @@ const SLIP_ESC = 0xdb;
 const SLIP_ESC_END = 0xdc;
 const SLIP_ESC_ESC = 0xdd;
 
-const BLE_MTU = 20;
+// Match libdivecomputer's 32-byte frame size for Shearwater BLE
+const BLE_MTU = 32;
 
 export function slipEncode(data: Uint8Array, isBle: boolean = true): Uint8Array[] {
   const frames: Uint8Array[] = [];
