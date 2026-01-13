@@ -10,8 +10,11 @@ import { useRouter } from 'expo-router';
 
 function CustomDrawerContent(props: any) {
   const { colors, isDark, toggleTheme } = useTheme();
-  const { user, logout, isAdmin } = useAuth();
+  const { user, logout, isAdmin, isLoading } = useAuth();
   const router = useRouter();
+  
+  // Force component to use current isAdmin value by including it in render key
+  const adminKey = `admin-${isAdmin}-${user?.role || 'none'}`;
 
   const handleLogout = async () => {
     props.navigation.closeDrawer();
@@ -68,7 +71,7 @@ function CustomDrawerContent(props: any) {
 
         <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
-        <DrawerContentScrollView {...props} contentContainerStyle={{ paddingTop: 0 }} key={`drawer-${isAdmin}`}>
+        <DrawerContentScrollView {...props} contentContainerStyle={{ paddingTop: 0 }} key={adminKey}>
           {menuItems.map((item, index) => (
             <DrawerItem
               key={index}
