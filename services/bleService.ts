@@ -159,116 +159,147 @@ class BleService {
       throw new Error('BLE not initialized');
     }
 
-    try {
-      this.stopScanning();
-      console.log('BLE: Connecting to device:', deviceId);
+    const shearwaterServiceUUID = 'fe25c237-0ece-443c-b0aa-e02033e7029d';
+    const maxConnectionAttempts = 3; // Full connection cycles to try
+    
+    for (let connectionCycle = 1; connectionCycle <= maxConnectionAttempts; connectionCycle++) {
+      try {
+        this.stopScanning();
+        console.log(`BLE: Connection cycle ${connectionCycle}/${maxConnectionAttempts} to device:`, deviceId);
 
-      const device = await this.manager.connectToDevice(deviceId, {
-        timeout: 12000, // Match libdivecomputer's 12 second timeout
-        requestMTU: 512,
-      });
-      console.log('BLE: Connected, waiting 300ms before discovery (libdivecomputer approach)...');
-      
-      // Match libdivecomputer: sleep 300ms to ensure sane state before discovery
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
-      // Shearwater devices may need multiple discovery attempts
-      // Some Android devices have GATT caching issues that require this
-      let discoverySuccess = false;
-      const maxDiscoveryAttempts = 3;
-      
-      for (let attempt = 1; attempt <= maxDiscoveryAttempts; attempt++) {
-        console.log(`BLE: Service discovery attempt ${attempt}/${maxDiscoveryAttempts}...`);
+        // On retry cycles, add extra delay to let Android BLE stack reset
+        if (connectionCycle > 1) {
+          console.log('BLE: Waiting 3s before reconnection attempt (GATT cache clear)...');
+          await new Promise(resolve => setTimeout(resolve, 3000));
+        }
+
+        const device = await this.manager.connectToDevice(deviceId, {
+          timeout: 15000, // Increased timeout for problematic devices
+          requestMTU: 512,
+        });
+        console.log('BLE: Connected, waiting 500ms before discovery...');
         
-        try {
-          await device.discoverAllServicesAndCharacteristics();
+        // Extended pre-discovery delay for Android GATT stability
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Service discovery with progressive retries
+        let discoverySuccess = false;
+        const maxDiscoveryAttempts = 4; // Increased from 3
+        
+        for (let attempt = 1; attempt <= maxDiscoveryAttempts; attempt++) {
+          console.log(`BLE: Service discovery attempt ${attempt}/${maxDiscoveryAttempts}...`);
           
-          // Wait for GATT to stabilize - Shearwater needs this
-          const stabilizationDelay = 1000 + (attempt * 500); // Progressive delay
-          console.log(`BLE: Waiting ${stabilizationDelay}ms for GATT stabilization...`);
-          await new Promise(resolve => setTimeout(resolve, stabilizationDelay));
-          
-          // Check what services we found
-          const services = await device.services();
-          console.log(`BLE: Found ${services.length} services on attempt ${attempt}`);
-          
-          // Log all services for debugging
-          const serviceUUIDs: string[] = [];
-          for (const service of services) {
-            serviceUUIDs.push(service.uuid.toLowerCase());
-            console.log('BLE: Service UUID:', service.uuid);
-            const characteristics = await service.characteristics();
-            for (const char of characteristics) {
-              console.log('  - Characteristic:', char.uuid, 
-                'props: write=', char.isWritableWithResponse, 
-                'writeNoResp=', char.isWritableWithoutResponse,
-                'notify=', char.isNotifiable);
+          try {
+            await device.discoverAllServicesAndCharacteristics();
+            
+            // Progressive stabilization delay - longer each attempt
+            const stabilizationDelay = 1500 + (attempt * 1000); // 2.5s, 3.5s, 4.5s, 5.5s
+            console.log(`BLE: Waiting ${stabilizationDelay}ms for GATT stabilization...`);
+            await new Promise(resolve => setTimeout(resolve, stabilizationDelay));
+            
+            // Check what services we found
+            const services = await device.services();
+            console.log(`BLE: Found ${services.length} services on attempt ${attempt}`);
+            
+            // Log all services for debugging
+            const serviceUUIDs: string[] = [];
+            for (const service of services) {
+              serviceUUIDs.push(service.uuid.toLowerCase());
+              console.log('BLE: Service UUID:', service.uuid);
+              const characteristics = await service.characteristics();
+              for (const char of characteristics) {
+                console.log('  - Characteristic:', char.uuid, 
+                  'props: write=', char.isWritableWithResponse, 
+                  'writeNoResp=', char.isWritableWithoutResponse,
+                  'notify=', char.isNotifiable);
+              }
             }
-          }
-          
-          // Check if Shearwater service is present
-          const shearwaterServiceUUID = 'fe25c237-0ece-443c-b0aa-e02033e7029d';
-          if (serviceUUIDs.includes(shearwaterServiceUUID)) {
-            console.log('BLE: Shearwater service found!');
-            discoverySuccess = true;
-            break;
-          } else {
-            console.log(`BLE: Shearwater service not found yet. Available: ${serviceUUIDs.join(', ')}`);
+            
+            // Check if Shearwater service is present
+            if (serviceUUIDs.includes(shearwaterServiceUUID)) {
+              console.log('BLE: Shearwater service found!');
+              discoverySuccess = true;
+              break;
+            } else {
+              console.log(`BLE: Shearwater service not found yet. Available: ${serviceUUIDs.join(', ')}`);
+              if (attempt < maxDiscoveryAttempts) {
+                console.log('BLE: Waiting 2.5s before retry...');
+                await new Promise(resolve => setTimeout(resolve, 2500));
+              }
+            }
+          } catch (discoverError: any) {
+            console.error(`BLE: Discovery attempt ${attempt} failed:`, discoverError?.message);
             if (attempt < maxDiscoveryAttempts) {
-              console.log('BLE: Waiting before retry...');
-              await new Promise(resolve => setTimeout(resolve, 2000));
+              await new Promise(resolve => setTimeout(resolve, 1500));
             }
-          }
-        } catch (discoverError: any) {
-          console.error(`BLE: Discovery attempt ${attempt} failed:`, discoverError?.message);
-          if (attempt < maxDiscoveryAttempts) {
-            await new Promise(resolve => setTimeout(resolve, 1000));
           }
         }
-      }
-      
-      if (!discoverySuccess) {
-        console.warn('BLE: Shearwater service not found after all attempts, proceeding anyway (may fail later)');
-      }
-      
-      // Final verification
-      const verifyServices = await device.services();
-      console.log('BLE: Final service count:', verifyServices.length);
-      
-      // Check if device is still connected after all this
-      const stillConnected = await device.isConnected();
-      if (!stillConnected) {
-        throw new Error('Device disconnected during service discovery');
-      }
-      
-      this.connectedDevice = device;
-      this.connectedDeviceId = deviceId; // Store device ID for potential reconnection
+        
+        // Check if device is still connected
+        const stillConnected = await device.isConnected();
+        if (!stillConnected) {
+          console.log('BLE: Device disconnected during discovery, will retry connection cycle');
+          continue; // Try another connection cycle
+        }
+        
+        if (!discoverySuccess) {
+          // Service not found - disconnect and retry full connection to clear GATT cache
+          if (connectionCycle < maxConnectionAttempts) {
+            console.warn(`BLE: Shearwater service not found, disconnecting to clear GATT cache (cycle ${connectionCycle})`);
+            try {
+              await device.cancelConnection();
+            } catch (e) {
+              // Ignore disconnect errors
+            }
+            continue; // Try another connection cycle
+          } else {
+            // Final attempt failed - throw error instead of proceeding
+            throw new Error('Shearwater service not found after multiple connection attempts. Please ensure your dive computer is in transfer mode and try again.');
+          }
+        }
+        
+        // Final verification
+        const verifyServices = await device.services();
+        console.log('BLE: Final service count:', verifyServices.length);
+        
+        this.connectedDevice = device;
+        this.connectedDeviceId = deviceId;
 
-      this.notifyConnectionState({
-        connected: true,
-        deviceId: device.id,
-        deviceName: device.name,
-      });
-
-      device.onDisconnected(() => {
-        console.log('BLE: Device disconnected (ID preserved for reconnection:', this.connectedDeviceId, ')');
-        this.connectedDevice = null;
-        // IMPORTANT: Do NOT clear connectedDeviceId here - it's needed for reconnection
-        // The ID will be cleared on explicit disconnect() call instead
         this.notifyConnectionState({
-          connected: false,
-          deviceId: this.connectedDeviceId, // Keep the ID in state for potential reconnection
-          deviceName: null,
+          connected: true,
+          deviceId: device.id,
+          deviceName: device.name,
         });
-      });
 
-      console.log('BLE: Connection complete, ready for communication');
-      return true;
-    } catch (error: any) {
-      console.error('Connection error:', error);
-      const friendlyMessage = this.parseBleError(error);
-      throw new Error(friendlyMessage);
+        device.onDisconnected(() => {
+          console.log('BLE: Device disconnected (ID preserved for reconnection:', this.connectedDeviceId, ')');
+          this.connectedDevice = null;
+          this.notifyConnectionState({
+            connected: false,
+            deviceId: this.connectedDeviceId,
+            deviceName: null,
+          });
+        });
+
+        console.log('BLE: Connection complete, Shearwater service verified, ready for communication');
+        return true;
+        
+      } catch (error: any) {
+        console.error(`Connection cycle ${connectionCycle} error:`, error);
+        
+        // If this is the last attempt, throw the error
+        if (connectionCycle >= maxConnectionAttempts) {
+          const friendlyMessage = this.parseBleError(error);
+          throw new Error(friendlyMessage);
+        }
+        
+        // Otherwise, continue to next connection cycle
+        console.log('BLE: Will retry connection cycle...');
+      }
     }
+    
+    // Should not reach here, but just in case
+    throw new Error('Failed to connect after all attempts');
   }
 
   private parseBleError(error: any): string {
