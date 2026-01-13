@@ -186,8 +186,18 @@ class BleService {
         }
       }
       
-      // Small delay to ensure GATT is fully ready
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Longer delay to ensure GATT is fully ready (Shearwater needs extra time)
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Re-verify services after delay to ensure GATT cache is stable
+      const verifyServices = await device.services();
+      console.log('BLE: Verified', verifyServices.length, 'services after stabilization delay');
+      
+      // Check if device is still connected after all this
+      const stillConnected = await device.isConnected();
+      if (!stillConnected) {
+        throw new Error('Device disconnected during service discovery');
+      }
       
       this.connectedDevice = device;
       this.connectedDeviceId = deviceId; // Store device ID for potential reconnection
@@ -410,10 +420,27 @@ class BleService {
           throw new Error('Device disconnected during write operation');
         }
         
+        // Log device state for debugging
+        console.log(`BLE Write attempt ${attempt}: device.id=${this.connectedDevice?.id}, checking connection...`);
+        
         // Check connection state
         const isConnected = await this.connectedDevice.isConnected();
         if (!isConnected) {
           throw new Error('Device is no longer connected');
+        }
+        
+        // Validate service exists before writing (prevents "device ?" errors)
+        const serviceExists = await this.validateServiceExists(serviceUUID);
+        if (!serviceExists) {
+          console.log(`BLE: Service ${serviceUUID} not found, attempting re-discovery...`);
+          await this.connectedDevice.discoverAllServicesAndCharacteristics();
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          // Check again after re-discovery
+          const serviceExistsAfter = await this.validateServiceExists(serviceUUID);
+          if (!serviceExistsAfter) {
+            throw new Error(`Service ${serviceUUID} not found after re-discovery`);
+          }
         }
         
         if (withResponse) {
@@ -644,6 +671,24 @@ class BleService {
     }
   }
 
+  async validateServiceExists(serviceUUID: string): Promise<boolean> {
+    if (!this.connectedDevice) {
+      console.log('BLE: validateServiceExists - no connected device');
+      return false;
+    }
+    
+    try {
+      const services = await this.connectedDevice.services();
+      const normalizedTarget = serviceUUID.toLowerCase();
+      const found = services.some((s: any) => s.uuid.toLowerCase() === normalizedTarget);
+      console.log(`BLE: validateServiceExists(${serviceUUID}) = ${found} (${services.length} services total)`);
+      return found;
+    } catch (error: any) {
+      console.error('BLE: validateServiceExists error:', error?.message);
+      return false;
+    }
+  }
+
   async rediscoverServices(): Promise<void> {
     if (!this.connectedDevice) {
       throw new Error('No device connected');
@@ -651,6 +696,9 @@ class BleService {
     
     console.log('BLE: Re-discovering services...');
     await this.connectedDevice.discoverAllServicesAndCharacteristics();
+    
+    // Stabilization delay after re-discovery
+    await new Promise(resolve => setTimeout(resolve, 1000));
     
     // Log discovered services again
     const services = await this.connectedDevice.services();
