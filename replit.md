@@ -29,6 +29,7 @@ The application is built using Expo React Native, targeting both iOS and Android
 
 ### Feature Specifications
 - **User Management**: Admin users can view, block/unblock, change roles, and reset passwords.
+- **Dev Log**: Admin-only feature for tracking development tasks with color-coded status (To Do, In Progress, Completed), page type badges (Card, Detail, Edit), page name autocomplete, and CRUD operations via modal interface.
 - **Dive Site Details**: Comprehensive fields including site type, water type, difficulty, access notes, hazards, and best season.
 - **Dive Site Images**: Supports image uploads to Replit Object Storage via presigned URLs, primary image selection, Pexels integration, URL import, and "Search Web" for Google Images.
 - **Wreck Site Specifics**: Dedicated fields and a conditional "Wreck" tab.
