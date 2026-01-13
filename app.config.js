@@ -28,7 +28,7 @@ module.exports = {
       allowBackup: false,
       config: {
         googleMaps: {
-          apiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || ''
+          apiKey: process.env.GOOGLE_MAPS_ANDROID_API_KEY || ''
         }
       },
       permissions: [
@@ -84,7 +84,8 @@ module.exports = {
       typedRoutes: true
     },
     extra: {
-      googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY || process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || '',
+      googleMapsApiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || '',
+      googleMapsAndroidApiKey: process.env.GOOGLE_MAPS_ANDROID_API_KEY || '',
       eas: {
         projectId: "13b1ac1e-a5de-4261-aee2-33d925aadefd"
       }
