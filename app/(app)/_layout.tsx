@@ -62,6 +62,10 @@ function CustomDrawerContent(props: any) {
             {user?.firstName || user?.email?.split('@')[0] || 'Diver'}
           </Text>
           <Text style={[styles.userEmail, { color: colors.textSecondary }]}>{user?.email}</Text>
+          {/* Debug info - remove after fixing */}
+          <Text style={[styles.userEmail, { color: colors.textSecondary, fontSize: 10 }]}>
+            Role: {user?.role || 'undefined'} | isAdmin: {String(isAdmin)}
+          </Text>
           {isAdmin && (
             <View style={[styles.adminBadge, { backgroundColor: colors.primary }]}>
               <Text style={styles.adminBadgeText}>Admin</Text>
