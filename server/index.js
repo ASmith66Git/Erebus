@@ -2284,6 +2284,350 @@ app.get('/api/stock-photos/search', authenticateToken, async (req, res) => {
   }
 });
 
+// ===== DIVE PHOTOS ENDPOINTS =====
+
+// Get all photos for the current user
+app.get('/api/photos', authenticateToken, async (req, res) => {
+  const { page = 1, limit = 50, diveLogId, favorites } = req.query;
+  const offset = (page - 1) * limit;
+  
+  try {
+    let query = `
+      SELECT p.*, dl.dive_number, dl.dive_date, ds.name as dive_site_name
+      FROM dive_photos p
+      LEFT JOIN dive_logs dl ON p.dive_log_id = dl.id
+      LEFT JOIN dive_sites ds ON dl.dive_site_id = ds.id
+      WHERE p.user_id = $1 AND p.deleted_at IS NULL
+    `;
+    const params = [req.user.id];
+    let paramIndex = 2;
+    
+    if (diveLogId) {
+      query += ` AND p.dive_log_id = $${paramIndex}`;
+      params.push(diveLogId);
+      paramIndex++;
+    }
+    
+    if (favorites === 'true') {
+      query += ` AND p.is_favorite = TRUE`;
+    }
+    
+    query += ` ORDER BY COALESCE(p.taken_at, p.created_at) DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
+    params.push(limit, offset);
+    
+    const result = await pool.query(query, params);
+    
+    const countQuery = `SELECT COUNT(*) FROM dive_photos WHERE user_id = $1 AND deleted_at IS NULL`;
+    const countResult = await pool.query(countQuery, [req.user.id]);
+    
+    res.json({
+      photos: result.rows.map(row => ({
+        id: row.id,
+        userId: row.user_id,
+        diveLogId: row.dive_log_id,
+        diveNumber: row.dive_number,
+        diveDate: row.dive_date,
+        diveSiteName: row.dive_site_name,
+        imageUrl: row.image_url,
+        thumbnailUrl: row.thumbnail_url,
+        caption: row.caption,
+        takenAt: row.taken_at,
+        locationLat: row.location_lat,
+        locationLng: row.location_lng,
+        width: row.width,
+        height: row.height,
+        fileSize: row.file_size,
+        isFavorite: row.is_favorite,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at
+      })),
+      page: parseInt(page),
+      limit: parseInt(limit),
+      total: parseInt(countResult.rows[0].count)
+    });
+  } catch (error) {
+    console.error('Get photos error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Get single photo
+app.get('/api/photos/:id', authenticateToken, async (req, res) => {
+  const { id } = req.params;
+  
+  try {
+    const result = await pool.query(`
+      SELECT p.*, dl.dive_number, dl.dive_date, ds.name as dive_site_name
+      FROM dive_photos p
+      LEFT JOIN dive_logs dl ON p.dive_log_id = dl.id
+      LEFT JOIN dive_sites ds ON dl.dive_site_id = ds.id
+      WHERE p.id = $1 AND p.user_id = $2 AND p.deleted_at IS NULL
+    `, [id, req.user.id]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Photo not found' });
+    }
+    
+    const row = result.rows[0];
+    res.json({
+      id: row.id,
+      userId: row.user_id,
+      diveLogId: row.dive_log_id,
+      diveNumber: row.dive_number,
+      diveDate: row.dive_date,
+      diveSiteName: row.dive_site_name,
+      imageUrl: row.image_url,
+      thumbnailUrl: row.thumbnail_url,
+      caption: row.caption,
+      takenAt: row.taken_at,
+      locationLat: row.location_lat,
+      locationLng: row.location_lng,
+      width: row.width,
+      height: row.height,
+      fileSize: row.file_size,
+      isFavorite: row.is_favorite,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at
+    });
+  } catch (error) {
+    console.error('Get photo error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Create new photo
+app.post('/api/photos', authenticateToken, async (req, res) => {
+  const { imageUrl, thumbnailUrl, caption, takenAt, diveLogId, locationLat, locationLng, width, height, fileSize } = req.body;
+  
+  if (!imageUrl) {
+    return res.status(400).json({ error: 'Image URL is required' });
+  }
+  
+  try {
+    // Verify dive log belongs to user if provided
+    if (diveLogId) {
+      const diveCheck = await pool.query('SELECT id FROM dive_logs WHERE id = $1 AND user_id = $2', [diveLogId, req.user.id]);
+      if (diveCheck.rows.length === 0) {
+        return res.status(403).json({ error: 'Dive log not found or access denied' });
+      }
+    }
+    
+    const result = await pool.query(`
+      INSERT INTO dive_photos (user_id, dive_log_id, image_url, thumbnail_url, caption, taken_at, location_lat, location_lng, width, height, file_size)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      RETURNING *
+    `, [req.user.id, diveLogId || null, imageUrl, thumbnailUrl || null, caption || null, takenAt || null, locationLat || null, locationLng || null, width || null, height || null, fileSize || null]);
+    
+    const row = result.rows[0];
+    res.status(201).json({
+      id: row.id,
+      userId: row.user_id,
+      diveLogId: row.dive_log_id,
+      imageUrl: row.image_url,
+      thumbnailUrl: row.thumbnail_url,
+      caption: row.caption,
+      takenAt: row.taken_at,
+      locationLat: row.location_lat,
+      locationLng: row.location_lng,
+      width: row.width,
+      height: row.height,
+      fileSize: row.file_size,
+      isFavorite: row.is_favorite,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at
+    });
+  } catch (error) {
+    console.error('Create photo error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Update photo
+app.put('/api/photos/:id', authenticateToken, async (req, res) => {
+  const { id } = req.params;
+  const { caption, diveLogId, isFavorite, takenAt } = req.body;
+  
+  try {
+    // Verify photo belongs to user
+    const photoCheck = await pool.query('SELECT id FROM dive_photos WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL', [id, req.user.id]);
+    if (photoCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Photo not found' });
+    }
+    
+    // Verify dive log belongs to user if provided
+    if (diveLogId !== undefined && diveLogId !== null) {
+      const diveCheck = await pool.query('SELECT id FROM dive_logs WHERE id = $1 AND user_id = $2', [diveLogId, req.user.id]);
+      if (diveCheck.rows.length === 0) {
+        return res.status(403).json({ error: 'Dive log not found or access denied' });
+      }
+    }
+    
+    const result = await pool.query(`
+      UPDATE dive_photos SET
+        caption = COALESCE($1, caption),
+        dive_log_id = COALESCE($2, dive_log_id),
+        is_favorite = COALESCE($3, is_favorite),
+        taken_at = COALESCE($4, taken_at),
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = $5 AND user_id = $6
+      RETURNING *
+    `, [caption, diveLogId, isFavorite, takenAt, id, req.user.id]);
+    
+    const row = result.rows[0];
+    res.json({
+      id: row.id,
+      userId: row.user_id,
+      diveLogId: row.dive_log_id,
+      imageUrl: row.image_url,
+      thumbnailUrl: row.thumbnail_url,
+      caption: row.caption,
+      takenAt: row.taken_at,
+      locationLat: row.location_lat,
+      locationLng: row.location_lng,
+      width: row.width,
+      height: row.height,
+      fileSize: row.file_size,
+      isFavorite: row.is_favorite,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at
+    });
+  } catch (error) {
+    console.error('Update photo error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Delete photo (soft delete)
+app.delete('/api/photos/:id', authenticateToken, async (req, res) => {
+  const { id } = req.params;
+  
+  try {
+    const result = await pool.query(
+      'UPDATE dive_photos SET deleted_at = CURRENT_TIMESTAMP WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL RETURNING id',
+      [id, req.user.id]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Photo not found' });
+    }
+    
+    res.json({ message: 'Photo deleted successfully' });
+  } catch (error) {
+    console.error('Delete photo error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Batch delete photos
+app.post('/api/photos/batch-delete', authenticateToken, async (req, res) => {
+  const { photoIds } = req.body;
+  
+  if (!Array.isArray(photoIds) || photoIds.length === 0) {
+    return res.status(400).json({ error: 'Photo IDs array is required' });
+  }
+  
+  try {
+    const result = await pool.query(
+      'UPDATE dive_photos SET deleted_at = CURRENT_TIMESTAMP WHERE id = ANY($1) AND user_id = $2 AND deleted_at IS NULL RETURNING id',
+      [photoIds, req.user.id]
+    );
+    
+    res.json({ deletedCount: result.rows.length });
+  } catch (error) {
+    console.error('Batch delete photos error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Toggle favorite
+app.post('/api/photos/:id/favorite', authenticateToken, async (req, res) => {
+  const { id } = req.params;
+  
+  try {
+    const result = await pool.query(
+      'UPDATE dive_photos SET is_favorite = NOT is_favorite, updated_at = CURRENT_TIMESTAMP WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL RETURNING is_favorite',
+      [id, req.user.id]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Photo not found' });
+    }
+    
+    res.json({ isFavorite: result.rows[0].is_favorite });
+  } catch (error) {
+    console.error('Toggle favorite error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Link photo to dive log
+app.post('/api/photos/:id/link-dive', authenticateToken, async (req, res) => {
+  const { id } = req.params;
+  const { diveLogId } = req.body;
+  
+  try {
+    // Verify photo belongs to user
+    const photoCheck = await pool.query('SELECT id FROM dive_photos WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL', [id, req.user.id]);
+    if (photoCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Photo not found' });
+    }
+    
+    // Verify dive log belongs to user if linking
+    if (diveLogId) {
+      const diveCheck = await pool.query('SELECT id FROM dive_logs WHERE id = $1 AND user_id = $2', [diveLogId, req.user.id]);
+      if (diveCheck.rows.length === 0) {
+        return res.status(403).json({ error: 'Dive log not found or access denied' });
+      }
+    }
+    
+    const result = await pool.query(
+      'UPDATE dive_photos SET dive_log_id = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING dive_log_id',
+      [diveLogId || null, id]
+    );
+    
+    res.json({ diveLogId: result.rows[0].dive_log_id });
+  } catch (error) {
+    console.error('Link dive error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Get photos for a specific dive log
+app.get('/api/dive-logs/:id/photos', authenticateToken, async (req, res) => {
+  const { id } = req.params;
+  
+  try {
+    // Verify dive log belongs to user
+    const diveCheck = await pool.query('SELECT id FROM dive_logs WHERE id = $1 AND user_id = $2', [id, req.user.id]);
+    if (diveCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Dive log not found' });
+    }
+    
+    const result = await pool.query(`
+      SELECT * FROM dive_photos
+      WHERE dive_log_id = $1 AND user_id = $2 AND deleted_at IS NULL
+      ORDER BY COALESCE(taken_at, created_at) ASC
+    `, [id, req.user.id]);
+    
+    res.json({
+      photos: result.rows.map(row => ({
+        id: row.id,
+        userId: row.user_id,
+        diveLogId: row.dive_log_id,
+        imageUrl: row.image_url,
+        thumbnailUrl: row.thumbnail_url,
+        caption: row.caption,
+        takenAt: row.taken_at,
+        isFavorite: row.is_favorite,
+        createdAt: row.created_at
+      }))
+    });
+  } catch (error) {
+    console.error('Get dive log photos error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 app.get('/api/sync/dive-sites', authenticateToken, async (req, res) => {
   const { since } = req.query;
   

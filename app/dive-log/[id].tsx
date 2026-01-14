@@ -10,9 +10,10 @@ import {
   Alert,
   Dimensions,
   Platform,
+  Image,
 } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
-import { Feather } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { getApiUrl } from '@/utils/apiConfig';
@@ -195,6 +196,7 @@ export default function DiveLogDetailScreen() {
   const [editedNotes, setEditedNotes] = useState('');
   const [editedRating, setEditedRating] = useState<number>(0);
   const [saving, setSaving] = useState(false);
+  const [photos, setPhotos] = useState<{id: number; imageUrl: string; caption: string | null}[]>([]);
 
   const isNew = id === 'new';
 
@@ -232,6 +234,24 @@ export default function DiveLogDetailScreen() {
   useEffect(() => {
     fetchLog();
   }, [fetchLog]);
+
+  useEffect(() => {
+    const fetchPhotos = async () => {
+      if (!token || !id || isNew) return;
+      try {
+        const response = await fetch(`${getApiUrl()}/api/dive-logs/${id}/photos`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setPhotos(data.photos || []);
+        }
+      } catch (error) {
+        console.error('Error fetching photos:', error);
+      }
+    };
+    fetchPhotos();
+  }, [token, id, isNew]);
 
   const handleSave = async () => {
     if (!token || !log) return;
@@ -450,6 +470,41 @@ export default function DiveLogDetailScreen() {
           )}
         </View>
 
+        <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <View style={styles.photosSectionHeader}>
+            <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 0 }]}>Photos</Text>
+            <Pressable 
+              onPress={() => router.push(`/(app)/(tabs)/photos?diveLogId=${id}`)}
+              style={styles.addPhotoButton}
+            >
+              <Ionicons name="add-circle-outline" size={24} color={colors.primary} />
+            </Pressable>
+          </View>
+          {photos.length > 0 ? (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.photosCarousel}>
+              {photos.map((photo) => (
+                <Pressable 
+                  key={photo.id} 
+                  onPress={() => router.push(`/photo/${photo.id}`)}
+                  style={styles.photoThumbnail}
+                >
+                  <Image source={{ uri: photo.imageUrl }} style={styles.photoImage} resizeMode="cover" />
+                </Pressable>
+              ))}
+            </ScrollView>
+          ) : (
+            <Pressable 
+              style={[styles.emptyPhotos, { borderColor: colors.border }]}
+              onPress={() => router.push(`/(app)/(tabs)/photos`)}
+            >
+              <Ionicons name="images-outline" size={32} color={colors.textSecondary} />
+              <Text style={[styles.emptyPhotosText, { color: colors.textSecondary }]}>
+                No photos yet. Tap to add some!
+              </Text>
+            </Pressable>
+          )}
+        </View>
+
         <View style={[styles.metaSection, { borderColor: colors.border }]}>
           <Text style={[styles.metaText, { color: colors.textSecondary }]}>
             Source: {log.importSource === 'manual' ? 'Manual entry' : `Imported (${log.importSource.toUpperCase()})`}
@@ -611,5 +666,39 @@ const styles = StyleSheet.create({
   metaText: {
     fontSize: 12,
     marginBottom: 4,
+  },
+  photosSectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  addPhotoButton: {
+    padding: 4,
+  },
+  photosCarousel: {
+    marginHorizontal: -8,
+  },
+  photoThumbnail: {
+    marginHorizontal: 4,
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  photoImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 8,
+  },
+  emptyPhotos: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 24,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderRadius: 8,
+    gap: 8,
+  },
+  emptyPhotosText: {
+    fontSize: 14,
   },
 });

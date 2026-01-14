@@ -12,7 +12,7 @@ The application is built using Expo React Native, targeting both iOS and Android
 ### UI/UX Decisions
 - **Color Scheme**: Uses white, black, and a primary red (`#D22F00`).
 - **Theming**: Supports both dark (`#000000` background) and light (`#FFFFFF` background) themes.
-- **Navigation**: Features a root `Stack` navigator for authentication, a `Drawer` navigator for a custom side menu, and a `Tab` navigator for primary app screens (Home, Explore, Profile).
+- **Navigation**: Features a root `Stack` navigator for authentication, a `Drawer` navigator for a custom side menu, and a `Tab` navigator for primary app screens (Home, Explore, Dive Logs, Photos, Profile).
 - **Design Patterns**: Employs sticky headers, hamburger menus, and card-based layouts.
 
 ### Technical Implementations
@@ -26,6 +26,18 @@ The application is built using Expo React Native, targeting both iOS and Android
 - **Bluetooth Dive Computer Sync**: Direct BLE connectivity to dive computers (e.g., Shearwater, Suunto, Mares) for automated dive log downloads. Requires EAS Build for native app. Includes a dive computer catalog.
 - **Push Notifications** (Android): Uses Expo Notifications with FCM for various channels (Default, Dive Reminders, Sync Updates) and supports local scheduled notifications. Requires EAS Build.
 - **Biometric Authentication** (Android/iOS): Integrates `expo-local-authentication` for fingerprint and Face ID support, offering biometric login after initial password authentication.
+- **Photos Gallery**: Beautiful photo management inspired by Apple Photos, Google Photos, and Instagram with:
+  - 3-column masonry grid layout with smooth scrolling
+  - Full-screen photo viewer with swipe navigation
+  - Camera and photo library access via expo-image-picker
+  - Upload photos from underwater cameras (file upload)
+  - Link photos to specific dive logs
+  - Favorite photos with heart indicator
+  - Multi-select mode for batch delete
+  - Filter tabs: All, Favorites, Unlinked
+  - Photo detail editor with caption and dive linking
+  - Photo carousel in dive log detail view
+  - Database table: dive_photos with user/dive associations
 
 ### Feature Specifications
 - **User Management**: Admin users can view, block/unblock, change roles, and reset passwords.
