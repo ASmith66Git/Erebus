@@ -65,8 +65,32 @@ const MAX_INIT_ATTEMPTS = 3;
 // Using underscore prefix to store in app root, not SQLite subdirectory
 const DB_NAME = 'erebus_dive_v5.db';
 
+// Database initialization promise - ensures we don't call getDatabase() concurrently
+let dbInitPromise: Promise<SQLite.SQLiteDatabase> | null = null;
+let dbReady = false;
+
 export function isDatabaseAvailable(): boolean {
   return db !== null && !dbInitFailed;
+}
+
+export function isDatabaseReady(): boolean {
+  return dbReady;
+}
+
+// Call this once at app startup to pre-initialize the database
+export async function initializeDatabaseAsync(): Promise<boolean> {
+  if (dbReady && db) return true;
+  
+  try {
+    console.log('Pre-initializing database...');
+    await getDatabase();
+    dbReady = true;
+    console.log('Database pre-initialization complete');
+    return true;
+  } catch (error: any) {
+    console.error('Database pre-initialization failed:', error?.message);
+    return false;
+  }
 }
 
 async function closeDatabase(): Promise<void> {
@@ -114,48 +138,63 @@ export async function getDatabase(): Promise<SQLite.SQLiteDatabase> {
     throw new Error('Local database initialization failed. The app will work in online-only mode.');
   }
   
+  // If initialization is already in progress, wait for it
+  if (dbInitPromise) {
+    return dbInitPromise;
+  }
+  
   dbInitAttempts++;
   
-  try {
-    console.log(`Attempting to open database: ${DB_NAME} (attempt ${dbInitAttempts})`);
-    
-    // CRITICAL: Fix SQLite directory conflict before opening database
-    await ensureSQLiteDirectory();
-    
-    // Modern expo-sqlite API (SDK 51+): just pass the database name
-    // The library handles directory creation automatically in the default SQLite location
-    const newDb = await SQLite.openDatabaseAsync(DB_NAME);
-    
-    if (!newDb) {
-      throw new Error('Database open returned null');
+  // Create a promise that resolves when initialization is complete
+  // This prevents concurrent initialization attempts
+  dbInitPromise = (async (): Promise<SQLite.SQLiteDatabase> => {
+    try {
+      console.log(`Attempting to open database: ${DB_NAME} (attempt ${dbInitAttempts})`);
+      
+      // CRITICAL: Fix SQLite directory conflict before opening database
+      await ensureSQLiteDirectory();
+      
+      // Modern expo-sqlite API (SDK 51+): just pass the database name
+      // The library handles directory creation automatically in the default SQLite location
+      const newDb = await SQLite.openDatabaseAsync(DB_NAME);
+      
+      if (!newDb) {
+        throw new Error('Database open returned null');
+      }
+      
+      console.log('Database opened, initializing tables...');
+      await initializeLocalDatabase(newDb);
+      
+      db = newDb;
+      dbInitFailed = false;
+      dbReady = true;
+      console.log(`Database initialized successfully: ${DB_NAME}`);
+      return db;
+    } catch (error: any) {
+      const errorMessage = error?.message || String(error);
+      console.error(`SQLite initialization attempt ${dbInitAttempts} failed:`, errorMessage);
+      console.error('Full error:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
+      
+      // Clear the promise so retry can create a new one
+      dbInitPromise = null;
+      
+      if (dbInitAttempts < MAX_INIT_ATTEMPTS) {
+        console.log('Retrying database initialization...');
+        await closeDatabase();
+        // Small delay before retry
+        await new Promise(resolve => setTimeout(resolve, 500));
+        return getDatabase();
+      }
+      
+      if (dbInitAttempts >= MAX_INIT_ATTEMPTS) {
+        dbInitFailed = true;
+        console.error('Database initialization failed permanently after', MAX_INIT_ATTEMPTS, 'attempts. App will run in online-only mode.');
+      }
+      throw error;
     }
-    
-    console.log('Database opened, initializing tables...');
-    await initializeLocalDatabase(newDb);
-    
-    db = newDb;
-    dbInitFailed = false;
-    console.log(`Database initialized successfully: ${DB_NAME}`);
-    return db;
-  } catch (error: any) {
-    const errorMessage = error?.message || String(error);
-    console.error(`SQLite initialization attempt ${dbInitAttempts} failed:`, errorMessage);
-    console.error('Full error:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
-    
-    if (dbInitAttempts < MAX_INIT_ATTEMPTS) {
-      console.log('Retrying database initialization...');
-      await closeDatabase();
-      // Small delay before retry
-      await new Promise(resolve => setTimeout(resolve, 500));
-      return getDatabase();
-    }
-    
-    if (dbInitAttempts >= MAX_INIT_ATTEMPTS) {
-      dbInitFailed = true;
-      console.error('Database initialization failed permanently after', MAX_INIT_ATTEMPTS, 'attempts. App will run in online-only mode.');
-    }
-    throw error;
-  }
+  })();
+  
+  return dbInitPromise;
 }
 
 async function initializeLocalDatabase(database: SQLite.SQLiteDatabase): Promise<void> {

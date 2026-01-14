@@ -2,6 +2,14 @@ export function isDatabaseAvailable(): boolean {
   return false;
 }
 
+export function isDatabaseReady(): boolean {
+  return false;
+}
+
+export async function initializeDatabaseAsync(): Promise<boolean> {
+  return false;
+}
+
 export interface LocalDiveSite {
   id: number;
   serverId: number | null;

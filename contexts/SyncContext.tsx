@@ -3,7 +3,7 @@ import { AppState, AppStateStatus, Platform } from 'react-native';
 import { useAuth } from './AuthContext';
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import { performFullSync } from '@/services/syncService';
-import { getPendingMutations, getLastSyncTime, isDatabaseAvailable } from '@/services/localDatabase';
+import { getPendingMutations, getLastSyncTime, isDatabaseAvailable, initializeDatabaseAsync } from '@/services/localDatabase';
 
 const isNative = Platform.OS !== 'web';
 
@@ -35,6 +35,32 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
   
   const syncInProgress = useRef(false);
   const wasOffline = useRef(false);
+  const [isDatabaseInitialized, setIsDatabaseInitialized] = useState(false);
+  
+  // Initialize database on mount (native only)
+  useEffect(() => {
+    if (!isNative) {
+      setIsDatabaseInitialized(true);
+      return;
+    }
+    
+    let mounted = true;
+    
+    const initDb = async () => {
+      console.log('SyncProvider: Initializing database...');
+      const success = await initializeDatabaseAsync();
+      if (mounted) {
+        setIsDatabaseInitialized(true);
+        console.log('SyncProvider: Database initialization complete, success:', success);
+      }
+    };
+    
+    initDb();
+    
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const updatePendingCount = useCallback(async () => {
     if (!isNative) return;
@@ -104,15 +130,16 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setSyncState(prev => ({ ...prev, isOnline }));
     
-    if (isNative && isOnline && wasOffline.current && isAuthenticated) {
+    if (isNative && isDatabaseInitialized && isOnline && wasOffline.current && isAuthenticated) {
       triggerSync();
     }
     
     wasOffline.current = !isOnline;
-  }, [isOnline, isAuthenticated, triggerSync]);
+  }, [isOnline, isAuthenticated, isDatabaseInitialized, triggerSync]);
 
   useEffect(() => {
     if (!isNative) return;
+    if (!isDatabaseInitialized) return;
     
     const subscription = AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
       if (nextAppState === 'active' && isAuthenticated && isOnline) {
@@ -123,10 +150,12 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
     return () => {
       subscription.remove();
     };
-  }, [isAuthenticated, isOnline, triggerSync]);
+  }, [isAuthenticated, isOnline, isDatabaseInitialized, triggerSync]);
 
   useEffect(() => {
     if (!isNative) return;
+    // Wait for database to be initialized before running sync operations
+    if (!isDatabaseInitialized) return;
     
     if (isAuthenticated) {
       updatePendingCount();
@@ -139,7 +168,7 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
         return () => clearTimeout(timeout);
       }
     }
-  }, [isAuthenticated, isOnline, triggerSync, updatePendingCount, updateLastSyncTime]);
+  }, [isAuthenticated, isOnline, isDatabaseInitialized, triggerSync, updatePendingCount, updateLastSyncTime]);
 
   useEffect(() => {
     if (!isAuthenticated) {
