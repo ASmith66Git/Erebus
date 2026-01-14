@@ -253,6 +253,7 @@ async function initDatabase() {
     await client.query(`ALTER TABLE dive_logs ADD COLUMN IF NOT EXISTS buddy TEXT;`).catch(() => {});
     await client.query(`ALTER TABLE dive_logs ADD COLUMN IF NOT EXISTS decompression_symptoms BOOLEAN DEFAULT FALSE;`).catch(() => {});
     await client.query(`ALTER TABLE dive_logs ADD COLUMN IF NOT EXISTS problem_notes TEXT;`).catch(() => {});
+    await client.query(`ALTER TABLE dive_logs ADD COLUMN IF NOT EXISTS gear_profile_id INTEGER REFERENCES gear_profiles(id) ON DELETE SET NULL;`).catch(() => {});
     
     await client.query(`
       CREATE TABLE IF NOT EXISTS push_tokens (
@@ -2531,6 +2532,7 @@ app.get('/api/dive-logs', authenticateToken, async (req, res) => {
         userId: row.user_id,
         diveSiteId: row.dive_site_id,
         diveSiteName: row.dive_site_name,
+        gearProfileId: row.gear_profile_id,
         diveDateTime: row.dive_datetime,
         durationSeconds: row.duration_seconds,
         maxDepthMeters: parseFloat(row.max_depth_meters),
@@ -2605,6 +2607,7 @@ app.get('/api/dive-logs/:id', authenticateToken, async (req, res) => {
       userId: row.user_id,
       diveSiteId: row.dive_site_id,
       diveSiteName: row.dive_site_name,
+      gearProfileId: row.gear_profile_id,
       diveDateTime: row.dive_datetime,
       durationSeconds: row.duration_seconds,
       maxDepthMeters: row.max_depth_meters ? parseFloat(row.max_depth_meters) : null,
@@ -2915,7 +2918,7 @@ app.post('/api/dive-logs', authenticateToken, async (req, res) => {
     const {
       diveSiteId, diveDateTime, durationSeconds, maxDepthMeters, avgDepthMeters,
       minTemperatureCelsius, maxTemperatureCelsius, deviceManufacturer, deviceModel,
-      samples, gasMixes, notes, rating
+      samples, gasMixes, notes, rating, gearProfileId
     } = req.body;
 
     if (!diveDateTime) {
@@ -2926,8 +2929,8 @@ app.post('/api/dive-logs', authenticateToken, async (req, res) => {
       INSERT INTO dive_logs (
         user_id, dive_site_id, dive_datetime, duration_seconds, max_depth_meters, avg_depth_meters,
         min_temperature_celsius, max_temperature_celsius, device_manufacturer, device_model,
-        samples, gas_mixes, notes, rating, import_source
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, 'manual')
+        samples, gas_mixes, notes, rating, import_source, gear_profile_id
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, 'manual', $15)
       RETURNING *
     `, [
       req.user.id,
@@ -2943,7 +2946,8 @@ app.post('/api/dive-logs', authenticateToken, async (req, res) => {
       samples ? JSON.stringify(samples) : null,
       gasMixes ? JSON.stringify(gasMixes) : null,
       notes || null,
-      rating || null
+      rating || null,
+      gearProfileId || null
     ]);
 
     const row = result.rows[0];
@@ -2951,6 +2955,7 @@ app.post('/api/dive-logs', authenticateToken, async (req, res) => {
       id: row.id,
       userId: row.user_id,
       diveSiteId: row.dive_site_id,
+      gearProfileId: row.gear_profile_id,
       diveDateTime: row.dive_datetime,
       durationSeconds: row.duration_seconds,
       maxDepthMeters: row.max_depth_meters ? parseFloat(row.max_depth_meters) : null,
@@ -2968,7 +2973,7 @@ app.put('/api/dive-logs/:id', authenticateToken, async (req, res) => {
     const { id } = req.params;
     const {
       diveSiteId, diveDateTime, durationSeconds, maxDepthMeters, avgDepthMeters,
-      minTemperatureCelsius, maxTemperatureCelsius, notes, rating
+      minTemperatureCelsius, maxTemperatureCelsius, notes, rating, gearProfileId
     } = req.body;
 
     const existingResult = await pool.query(
@@ -2990,8 +2995,9 @@ app.put('/api/dive-logs/:id', authenticateToken, async (req, res) => {
         min_temperature_celsius = COALESCE($6, min_temperature_celsius),
         max_temperature_celsius = COALESCE($7, max_temperature_celsius),
         notes = COALESCE($8, notes),
-        rating = COALESCE($9, rating)
-      WHERE id = $10 AND user_id = $11
+        rating = COALESCE($9, rating),
+        gear_profile_id = $10
+      WHERE id = $11 AND user_id = $12
       RETURNING *
     `, [
       diveSiteId,
@@ -3003,6 +3009,7 @@ app.put('/api/dive-logs/:id', authenticateToken, async (req, res) => {
       maxTemperatureCelsius,
       notes,
       rating,
+      gearProfileId !== undefined ? gearProfileId : null,
       id,
       req.user.id
     ]);
@@ -3012,6 +3019,7 @@ app.put('/api/dive-logs/:id', authenticateToken, async (req, res) => {
       id: row.id,
       userId: row.user_id,
       diveSiteId: row.dive_site_id,
+      gearProfileId: row.gear_profile_id,
       diveDateTime: row.dive_datetime,
       durationSeconds: row.duration_seconds,
       maxDepthMeters: row.max_depth_meters ? parseFloat(row.max_depth_meters) : null,
