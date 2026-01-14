@@ -48,6 +48,14 @@ interface DiveLog {
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
+// Helper to get the full image URL (relative paths need API URL prefix)
+const getImageUrl = (url: string) => {
+  if (url.startsWith('/')) {
+    return `${getApiUrl()}${url}`;
+  }
+  return url;
+};
+
 export default function PhotoDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { colors } = useTheme();
@@ -241,7 +249,7 @@ export default function PhotoDetailScreen() {
         <ScrollView style={styles.content}>
           <View style={styles.imageContainer}>
             <Image
-              source={{ uri: photo.imageUrl }}
+              source={{ uri: getImageUrl(photo.imageUrl) }}
               style={[styles.image, { aspectRatio: (photo.width || 1) / (photo.height || 1) }]}
               resizeMode="contain"
             />
