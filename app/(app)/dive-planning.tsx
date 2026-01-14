@@ -102,7 +102,7 @@ export default function DivePlanningScreen() {
   const [tissueChartWidth, setTissueChartWidth] = useState(300);
   const [showScrubberModal, setShowScrubberModal] = useState(false);
   const [scrubberElapsed, setScrubberElapsed] = useState(0);
-  const [chartScrubberTime, setChartScrubberTime] = useState<number | null>(null);
+  const [chartScrubberTime, setChartScrubberTime] = useState<number>(0);
   const [showChartPopup, setShowChartPopup] = useState(false);
 
   const gasMixes = useMemo(() => {
@@ -482,14 +482,12 @@ export default function DivePlanningScreen() {
       />
     ));
 
-    // Scrubber position
-    const scrubberX = chartScrubberTime !== null 
-      ? padding.left + (chartScrubberTime / totalTime) * chartW 
-      : null;
-    const scrubberValues = chartScrubberTime !== null ? getValuesAtTime(chartScrubberTime) : null;
+    // Scrubber position - always visible
+    const scrubberX = padding.left + (chartScrubberTime / totalTime) * chartW;
+    const scrubberValues = getValuesAtTime(chartScrubberTime);
     const scrubberDepthY = scrubberValues 
       ? padding.top + (scrubberValues.depth / maxDepth) * chartH 
-      : null;
+      : padding.top;
 
     return (
       <View 
@@ -554,27 +552,53 @@ export default function DivePlanningScreen() {
             <Line x1={padding.left} y1={padding.top} x2={padding.left} y2={padding.top + chartH} stroke={colors.border} strokeWidth={1} />
             <Line x1={padding.left} y1={padding.top + chartH} x2={padding.left + chartW} y2={padding.top + chartH} stroke={colors.border} strokeWidth={1} />
             
-            {/* Scrubber line */}
-            {scrubberX !== null && showChartPopup && (
-              <>
-                <Line 
-                  x1={scrubberX} 
-                  y1={padding.top} 
-                  x2={scrubberX} 
-                  y2={padding.top + chartH} 
-                  stroke={colors.accent} 
-                  strokeWidth={2} 
-                  strokeDasharray="4,2"
-                />
-                {scrubberDepthY !== null && (
-                  <Circle cx={scrubberX} cy={scrubberDepthY} r={6} fill={colors.primary} stroke="#FFF" strokeWidth={2} />
-                )}
-              </>
-            )}
+            {/* Scrubber line - always visible */}
+            <Line 
+              x1={scrubberX} 
+              y1={padding.top} 
+              x2={scrubberX} 
+              y2={padding.top + chartH} 
+              stroke={showChartPopup ? colors.accent : colors.accent + '60'} 
+              strokeWidth={showChartPopup ? 2 : 1.5} 
+              strokeDasharray={showChartPopup ? "4,2" : "6,3"}
+            />
+            <Circle 
+              cx={scrubberX} 
+              cy={scrubberDepthY} 
+              r={showChartPopup ? 6 : 5} 
+              fill={colors.primary} 
+              stroke="#FFF" 
+              strokeWidth={2} 
+            />
+            {/* Drag handle at top */}
+            <Circle 
+              cx={scrubberX} 
+              cy={padding.top - 8} 
+              r={8} 
+              fill={showChartPopup ? colors.accent : colors.accent + '80'} 
+              stroke="#FFF" 
+              strokeWidth={1.5} 
+            />
+            <Line 
+              x1={scrubberX - 3} 
+              y1={padding.top - 10} 
+              x2={scrubberX - 3} 
+              y2={padding.top - 6} 
+              stroke="#FFF" 
+              strokeWidth={1} 
+            />
+            <Line 
+              x1={scrubberX + 3} 
+              y1={padding.top - 10} 
+              x2={scrubberX + 3} 
+              y2={padding.top - 6} 
+              stroke="#FFF" 
+              strokeWidth={1} 
+            />
           </Svg>
           
           {/* Popup with values */}
-          {showChartPopup && scrubberValues && scrubberX !== null && (
+          {showChartPopup && scrubberValues && (
             <View 
               style={[
                 styles.scrubberPopup, 
