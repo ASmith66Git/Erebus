@@ -2925,6 +2925,16 @@ app.post('/api/dive-logs', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: 'Dive date/time is required' });
     }
 
+    if (gearProfileId) {
+      const profileCheck = await pool.query(
+        'SELECT id FROM gear_profiles WHERE id = $1 AND user_id = $2',
+        [gearProfileId, req.user.id]
+      );
+      if (profileCheck.rows.length === 0) {
+        return res.status(400).json({ error: 'Invalid gear profile' });
+      }
+    }
+
     const result = await pool.query(`
       INSERT INTO dive_logs (
         user_id, dive_site_id, dive_datetime, duration_seconds, max_depth_meters, avg_depth_meters,
@@ -2985,34 +2995,62 @@ app.put('/api/dive-logs/:id', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'Dive log not found' });
     }
 
-    const result = await pool.query(`
-      UPDATE dive_logs SET
-        dive_site_id = COALESCE($1, dive_site_id),
-        dive_datetime = COALESCE($2, dive_datetime),
-        duration_seconds = COALESCE($3, duration_seconds),
-        max_depth_meters = COALESCE($4, max_depth_meters),
-        avg_depth_meters = COALESCE($5, avg_depth_meters),
-        min_temperature_celsius = COALESCE($6, min_temperature_celsius),
-        max_temperature_celsius = COALESCE($7, max_temperature_celsius),
-        notes = COALESCE($8, notes),
-        rating = COALESCE($9, rating),
-        gear_profile_id = $10
-      WHERE id = $11 AND user_id = $12
-      RETURNING *
-    `, [
-      diveSiteId,
-      diveDateTime,
-      durationSeconds,
-      maxDepthMeters,
-      avgDepthMeters,
-      minTemperatureCelsius,
-      maxTemperatureCelsius,
-      notes,
-      rating,
-      gearProfileId !== undefined ? gearProfileId : null,
-      id,
-      req.user.id
-    ]);
+    if (gearProfileId) {
+      const profileCheck = await pool.query(
+        'SELECT id FROM gear_profiles WHERE id = $1 AND user_id = $2',
+        [gearProfileId, req.user.id]
+      );
+      if (profileCheck.rows.length === 0) {
+        return res.status(400).json({ error: 'Invalid gear profile' });
+      }
+    }
+
+    let updateQuery;
+    let updateParams;
+    
+    if (gearProfileId !== undefined) {
+      updateQuery = `
+        UPDATE dive_logs SET
+          dive_site_id = COALESCE($1, dive_site_id),
+          dive_datetime = COALESCE($2, dive_datetime),
+          duration_seconds = COALESCE($3, duration_seconds),
+          max_depth_meters = COALESCE($4, max_depth_meters),
+          avg_depth_meters = COALESCE($5, avg_depth_meters),
+          min_temperature_celsius = COALESCE($6, min_temperature_celsius),
+          max_temperature_celsius = COALESCE($7, max_temperature_celsius),
+          notes = COALESCE($8, notes),
+          rating = COALESCE($9, rating),
+          gear_profile_id = $10
+        WHERE id = $11 AND user_id = $12
+        RETURNING *
+      `;
+      updateParams = [
+        diveSiteId, diveDateTime, durationSeconds, maxDepthMeters, avgDepthMeters,
+        minTemperatureCelsius, maxTemperatureCelsius, notes, rating,
+        gearProfileId, id, req.user.id
+      ];
+    } else {
+      updateQuery = `
+        UPDATE dive_logs SET
+          dive_site_id = COALESCE($1, dive_site_id),
+          dive_datetime = COALESCE($2, dive_datetime),
+          duration_seconds = COALESCE($3, duration_seconds),
+          max_depth_meters = COALESCE($4, max_depth_meters),
+          avg_depth_meters = COALESCE($5, avg_depth_meters),
+          min_temperature_celsius = COALESCE($6, min_temperature_celsius),
+          max_temperature_celsius = COALESCE($7, max_temperature_celsius),
+          notes = COALESCE($8, notes),
+          rating = COALESCE($9, rating)
+        WHERE id = $10 AND user_id = $11
+        RETURNING *
+      `;
+      updateParams = [
+        diveSiteId, diveDateTime, durationSeconds, maxDepthMeters, avgDepthMeters,
+        minTemperatureCelsius, maxTemperatureCelsius, notes, rating, id, req.user.id
+      ];
+    }
+    
+    const result = await pool.query(updateQuery, updateParams);
 
     const row = result.rows[0];
     res.json({
