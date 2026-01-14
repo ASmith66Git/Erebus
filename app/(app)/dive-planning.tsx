@@ -1182,23 +1182,6 @@ export default function DivePlanningScreen() {
           ))}
         </View>
 
-        <View style={styles.gfRow}>
-          <Text style={[styles.pickerLabel, { color: colors.text }]}>GF Lo / Hi</Text>
-          <View style={styles.gfInputs}>
-            {renderPicker('', 
-              Array.from({length: 10}, (_, i) => ({ value: String((i + 1) * 10), label: String((i + 1) * 10) })),
-              String(settings.gfLow),
-              (v) => setSettings({ ...settings, gfLow: parseInt(v) })
-            )}
-            {renderPicker('',
-              Array.from({length: 10}, (_, i) => ({ value: String((i + 1) * 10), label: String((i + 1) * 10) })),
-              String(settings.gfHigh),
-              (v) => setSettings({ ...settings, gfHigh: parseInt(v) })
-            )}
-          </View>
-        </View>
-        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Model GF setting - 10 to 100</Text>
-
         {renderToggle('O2 narcotic', settings.o2Narcotic, 
           (v) => setSettings({ ...settings, o2Narcotic: v }),
           'END calculation - Consider O2 as narcotic?'
@@ -1232,18 +1215,12 @@ export default function DivePlanningScreen() {
       <View style={[styles.section, { backgroundColor: colors.card }]}>
         <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>Gas Consumption</Text>
         
-        {renderPicker('Bottom', 
-          Array.from({length: 25}, (_, i) => ({ value: String(i + 5), label: String(i + 5) })),
-          String(settings.sacRateBottom),
-          (v) => setSettings({ ...settings, sacRateBottom: parseInt(v) })
-        )}
+        {renderSlider('Bottom', settings.sacRateBottom, 5, 30, 1,
+          (v) => setSettings({ ...settings, sacRateBottom: v }), '')}
         <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Bottom mix SAC/RMV rate</Text>
 
-        {renderPicker('Deco', 
-          Array.from({length: 20}, (_, i) => ({ value: String(i + 5), label: String(i + 5) })),
-          String(settings.sacRateDeco),
-          (v) => setSettings({ ...settings, sacRateDeco: parseInt(v) })
-        )}
+        {renderSlider('Deco', settings.sacRateDeco, 5, 25, 1,
+          (v) => setSettings({ ...settings, sacRateDeco: v }), '')}
         <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Deco mix SAC/RMV rate</Text>
       </View>
 
@@ -1337,28 +1314,16 @@ export default function DivePlanningScreen() {
       <View style={[styles.section, { backgroundColor: colors.card }]}>
         <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>Descent / Ascent Rates</Text>
         
-        {renderPicker(`Descent ${rateUnit}`, 
-          Array.from({length: 26}, (_, i) => ({ value: String(i + 5), label: String(i + 5) })),
-          String(settings.descentRate),
-          (v) => setSettings({ ...settings, descentRate: parseInt(v) })
-        )}
+        {renderSlider(`Descent`, settings.descentRate, 5, 30, 1,
+          (v) => setSettings({ ...settings, descentRate: v }), ` ${rateUnit}`)}
         <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Descent rates throughout the plan</Text>
 
-        {renderPicker(`Surface ${rateUnit}`, 
-          Array.from({length: 16}, (_, i) => ({ value: String(i + 3), label: String(i + 3) })),
-          String(settings.surfaceRate),
-          (v) => setSettings({ ...settings, surfaceRate: parseInt(v) })
-        )}
-        {renderPicker(`Deco ${rateUnit}`, 
-          Array.from({length: 13}, (_, i) => ({ value: String(i + 3), label: String(i + 3) })),
-          String(settings.decoRate),
-          (v) => setSettings({ ...settings, decoRate: parseInt(v) })
-        )}
-        {renderPicker(`Ascent ${rateUnit}`, 
-          Array.from({length: 16}, (_, i) => ({ value: String(i + 3), label: String(i + 3) })),
-          String(settings.ascentRate),
-          (v) => setSettings({ ...settings, ascentRate: parseInt(v) })
-        )}
+        {renderSlider(`Surface`, settings.surfaceRate, 3, 18, 1,
+          (v) => setSettings({ ...settings, surfaceRate: v }), ` ${rateUnit}`)}
+        {renderSlider(`Deco`, settings.decoRate, 3, 15, 1,
+          (v) => setSettings({ ...settings, decoRate: v }), ` ${rateUnit}`)}
+        {renderSlider(`Ascent`, settings.ascentRate, 3, 18, 1,
+          (v) => setSettings({ ...settings, ascentRate: v }), ` ${rateUnit}`)}
         <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Ascent rates throughout the plan</Text>
       </View>
 
@@ -1366,18 +1331,12 @@ export default function DivePlanningScreen() {
       <View style={[styles.section, { backgroundColor: colors.card }]}>
         <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>Dive Site Elevation</Text>
         
-        {renderPicker(`Elevation ${depthUnit}`, 
-          Array.from({length: 31}, (_, i) => ({ value: String(i * 100), label: String(i * 100) })),
-          String(settings.elevation),
-          (v) => setSettings({ ...settings, elevation: parseInt(v) })
-        )}
+        {renderSlider(`Elevation`, settings.elevation, 0, 3000, 100,
+          (v) => setSettings({ ...settings, elevation: v }), 'm')}
         <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Dive site elevation</Text>
 
-        {renderPicker(`Acclimatized ${depthUnit}`, 
-          Array.from({length: 31}, (_, i) => ({ value: String(i * 100), label: String(i * 100) })),
-          String(settings.acclimatizedElevation),
-          (v) => setSettings({ ...settings, acclimatizedElevation: parseInt(v) })
-        )}
+        {renderSlider(`Acclimatized`, settings.acclimatizedElevation, 0, 3000, 100,
+          (v) => setSettings({ ...settings, acclimatizedElevation: v }), 'm')}
       </View>
 
       {/* Gauge & Display */}
