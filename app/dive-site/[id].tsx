@@ -1234,10 +1234,10 @@ export default function DiveSiteDetailScreen() {
               </Pressable>
               <Pressable
                 onPress={handleTakePhoto}
-                style={[styles.mediaActionButton, { backgroundColor: colors.primary }]}
+                style={[styles.mediaActionButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
                 disabled={uploadingImage}
               >
-                <Feather name="camera" size={18} color="#FFFFFF" />
+                <Feather name="camera" size={18} color={colors.primary} />
                 <Text style={[styles.mediaActionText, { color: colors.primary }]}>Camera</Text>
               </Pressable>
             </View>
