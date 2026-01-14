@@ -38,6 +38,11 @@ export interface TissueState {
   ceiling: number;
 }
 
+export type CircuitType = 'open' | 'ccr';
+export type DecoModel = 'zhl16a' | 'zhl16b' | 'zhl16c' | 'vpmb';
+export type WaterType = 'salt' | 'fresh';
+export type UnitSystem = 'metric' | 'imperial';
+
 export interface DivePlanSettings {
   gfLow: number;
   gfHigh: number;
@@ -47,6 +52,15 @@ export interface DivePlanSettings {
   decoStopInterval: number;
   sacRateBottom: number;
   sacRateDeco: number;
+  // New settings
+  circuit: CircuitType;
+  decoModel: DecoModel;
+  o2Narcotic: boolean;
+  units: UnitSystem;
+  gasSwitchTime: number; // minutes allowed for gas switch
+  waterType: WaterType;
+  ccrSetpoint: number; // PPO2 setpoint for CCR (bar)
+  scrubberDuration: number; // CCR scrubber duration in minutes
 }
 
 export interface DivePlanResult {
@@ -112,6 +126,23 @@ const ZHL16C_HE = [
 const SURFACE_PRESSURE = 1.0;
 const WATER_VAPOR_PRESSURE = 0.0627;
 
+// Calculate Equivalent Narcotic Depth (END)
+export function calculateEND(depth: number, gas: GasMix, o2Narcotic: boolean, waterType: WaterType = 'salt'): number {
+  const ambientPressure = depthToPressure(depth, waterType);
+  let narcoticFraction: number;
+  
+  if (o2Narcotic) {
+    narcoticFraction = (gas.n2Percent + gas.o2Percent) / 100;
+  } else {
+    narcoticFraction = gas.n2Percent / 100;
+  }
+  
+  const narcoticPressure = ambientPressure * narcoticFraction;
+  const equivalentAirPressure = o2Narcotic ? narcoticPressure : narcoticPressure / 0.79;
+  
+  return pressureToDepth(equivalentAirPressure, waterType);
+}
+
 export function createGasMix(o2Percent: number, hePercent: number, name?: string): GasMix {
   const n2Percent = 100 - o2Percent - hePercent;
   const modPpo2_14 = Math.floor(((1.4 / (o2Percent / 100)) - 1) * 10);
@@ -140,12 +171,14 @@ export function createGasMix(o2Percent: number, hePercent: number, name?: string
   };
 }
 
-export function depthToPressure(depth: number): number {
-  return SURFACE_PRESSURE + (depth / 10);
+export function depthToPressure(depth: number, waterType: WaterType = 'salt'): number {
+  const factor = waterType === 'fresh' ? 10.3 : 10.0;
+  return SURFACE_PRESSURE + (depth / factor);
 }
 
-export function pressureToDepth(pressure: number): number {
-  return (pressure - SURFACE_PRESSURE) * 10;
+export function pressureToDepth(pressure: number, waterType: WaterType = 'salt'): number {
+  const factor = waterType === 'fresh' ? 10.3 : 10.0;
+  return (pressure - SURFACE_PRESSURE) * factor;
 }
 
 export function getInspiredPressure(ambientPressure: number, gas: GasMix): { ppN2: number; ppHe: number; ppO2: number } {
@@ -197,9 +230,10 @@ export function calculateTissueLoadingConstantDepth(
   tissues: TissueState[],
   depth: number,
   duration: number,
-  gas: GasMix
+  gas: GasMix,
+  waterType: WaterType = 'salt'
 ): TissueState[] {
-  const ambientPressure = depthToPressure(depth);
+  const ambientPressure = depthToPressure(depth, waterType);
   const { ppN2: inspiredN2, ppHe: inspiredHe } = getInspiredPressure(ambientPressure, gas);
   
   return tissues.map((tissue, i) => {
@@ -223,12 +257,13 @@ export function calculateTissueLoadingSchreiner(
   startDepth: number,
   endDepth: number,
   duration: number,
-  gas: GasMix
+  gas: GasMix,
+  waterType: WaterType = 'salt'
 ): TissueState[] {
   if (duration === 0) return tissues.map(t => ({ ...t }));
   
-  const startPressure = depthToPressure(startDepth);
-  const endPressure = depthToPressure(endDepth);
+  const startPressure = depthToPressure(startDepth, waterType);
+  const endPressure = depthToPressure(endDepth, waterType);
   const rate = (endPressure - startPressure) / duration;
   
   const { ppN2: startN2, ppHe: startHe } = getInspiredPressure(startPressure, gas);
@@ -279,15 +314,16 @@ export function calculateGFAtDepth(
   currentDepth: number,
   firstStopDepth: number,
   gfLow: number,
-  gfHigh: number
+  gfHigh: number,
+  waterType: WaterType = 'salt'
 ): number {
   if (firstStopDepth <= 0) return gfHigh;
   if (currentDepth >= firstStopDepth) return gfLow;
   if (currentDepth <= 0) return gfHigh;
   
   const surfacePressure = SURFACE_PRESSURE;
-  const currentPressure = depthToPressure(currentDepth);
-  const firstStopPressure = depthToPressure(firstStopDepth);
+  const currentPressure = depthToPressure(currentDepth, waterType);
+  const firstStopPressure = depthToPressure(firstStopDepth, waterType);
   
   const gf = gfLow + (gfHigh - gfLow) * (firstStopPressure - currentPressure) / (firstStopPressure - surfacePressure);
   return Math.max(gfLow, Math.min(gfHigh, gf));
@@ -296,13 +332,14 @@ export function calculateGFAtDepth(
 export function findFirstStop(
   tissues: TissueState[],
   gfLow: number,
-  stopInterval: number
+  stopInterval: number,
+  waterType: WaterType = 'salt'
 ): number {
   let maxCeiling = 0;
   
   tissues.forEach((tissue, i) => {
     const ceilingPressure = calculateCeilingWithGF(tissue, i, gfLow);
-    const ceilingDepth = pressureToDepth(ceilingPressure);
+    const ceilingDepth = pressureToDepth(ceilingPressure, waterType);
     if (ceilingDepth > maxCeiling) {
       maxCeiling = ceilingDepth;
     }
@@ -316,15 +353,16 @@ export function calculateCeiling(
   gfLow: number,
   gfHigh: number,
   currentDepth: number,
-  firstStopDepth: number
+  firstStopDepth: number,
+  waterType: WaterType = 'salt'
 ): { ceiling: number; tissuesWithCeiling: TissueState[] } {
-  const gf = calculateGFAtDepth(currentDepth, firstStopDepth, gfLow, gfHigh);
+  const gf = calculateGFAtDepth(currentDepth, firstStopDepth, gfLow, gfHigh, waterType);
   let maxCeiling = 0;
-  const currentPressure = depthToPressure(currentDepth);
+  const currentPressure = depthToPressure(currentDepth, waterType);
   
   const tissuesWithCeiling = tissues.map((tissue, i) => {
     const ceilingPressure = calculateCeilingWithGF(tissue, i, gf);
-    const ceilingDepth = Math.max(0, pressureToDepth(ceilingPressure));
+    const ceilingDepth = Math.max(0, pressureToDepth(ceilingPressure, waterType));
     
     const mValue = calculateMValueAtPressure(tissue, i, currentPressure);
     const mValueGF = tissue.ppInert + (mValue - tissue.ppInert) * (gf / 100);
@@ -353,9 +391,10 @@ export function calculateNDL(
   tissues: TissueState[], 
   depth: number, 
   gas: GasMix, 
-  gfHigh: number
+  gfHigh: number,
+  waterType: WaterType = 'salt'
 ): number | null {
-  const ambientPressure = depthToPressure(depth);
+  const ambientPressure = depthToPressure(depth, waterType);
   const { ppN2: inspiredN2, ppHe: inspiredHe } = getInspiredPressure(ambientPressure, gas);
   
   let minNdl = Infinity;
@@ -415,7 +454,7 @@ export function calculateDecoSchedule(
   let currentTissues = tissues.map(t => ({ ...t }));
   let depth = currentDepth;
   
-  const firstStopDepth = findFirstStop(currentTissues, settings.gfLow, settings.decoStopInterval);
+  const firstStopDepth = findFirstStop(currentTissues, settings.gfLow, settings.decoStopInterval, settings.waterType);
   
   const sortedGases = [...gases].sort((a, b) => (b.switchDepth || Infinity) - (a.switchDepth || Infinity));
   
@@ -440,14 +479,15 @@ export function calculateDecoSchedule(
       settings.gfLow, 
       settings.gfHigh, 
       depth, 
-      firstStopDepth
+      firstStopDepth,
+      settings.waterType
     );
     currentTissues = tissuesWithCeiling;
     
     const nextStopDepth = Math.ceil(ceiling / settings.decoStopInterval) * settings.decoStopInterval;
     
     if (nextStopDepth >= depth && depth > 0) {
-      currentTissues = calculateTissueLoadingConstantDepth(currentTissues, depth, 1, gas);
+      currentTissues = calculateTissueLoadingConstantDepth(currentTissues, depth, 1, gas, settings.waterType);
       tissueHistory.push(currentTissues.map(t => ({ ...t })));
       
       const existingStop = stops.find(s => s.depth === depth);
@@ -459,7 +499,7 @@ export function calculateDecoSchedule(
     } else {
       const nextDepth = Math.max(0, depth - settings.decoStopInterval);
       const ascentTime = settings.decoStopInterval / settings.ascentRate;
-      currentTissues = calculateTissueLoadingSchreiner(currentTissues, depth, nextDepth, ascentTime, gas);
+      currentTissues = calculateTissueLoadingSchreiner(currentTissues, depth, nextDepth, ascentTime, gas, settings.waterType);
       tissueHistory.push(currentTissues.map(t => ({ ...t })));
       depth = nextDepth;
     }
@@ -468,23 +508,46 @@ export function calculateDecoSchedule(
   return { stops, finalTissues: currentTissues, tissueHistory };
 }
 
+// Helper to calculate CNS/OTU for a segment
+function calculateSegmentOxygenToxicity(
+  segment: DiveSegment,
+  settings: DivePlanSettings
+): { cns: number; otu: number } {
+  const avgDepth = (segment.startDepth + segment.endDepth) / 2;
+  const avgPressure = depthToPressure(avgDepth, settings.waterType);
+  
+  let ppo2: number;
+  if (settings.circuit === 'ccr') {
+    ppo2 = Math.min(settings.ccrSetpoint, (segment.gasMix.o2Percent / 100) * avgPressure);
+  } else {
+    ppo2 = (segment.gasMix.o2Percent / 100) * avgPressure;
+  }
+  
+  return {
+    cns: calculateCNS(ppo2, segment.duration),
+    otu: calculateOTU(ppo2, segment.duration),
+  };
+}
+
 export function calculateDivePlan(input: DivePlanInput): DivePlanResult {
   const { depth, bottomTime, gases, settings, initialTissues, surfaceIntervalMinutes } = input;
   const segments: DiveSegment[] = [];
   const warnings: string[] = [];
   let runTime = 0;
+  let totalCNS = 0;
+  let totalOTU = 0;
   
   let tissues = initialTissues ? initialTissues.map(t => ({ ...t })) : initializeTissues();
   
   if (surfaceIntervalMinutes && surfaceIntervalMinutes > 0) {
     const surfaceGas = createGasMix(21, 0, 'Air');
-    tissues = calculateTissueLoadingConstantDepth(tissues, 0, surfaceIntervalMinutes, surfaceGas);
+    tissues = calculateTissueLoadingConstantDepth(tissues, 0, surfaceIntervalMinutes, surfaceGas, settings.waterType);
   }
   
   const tissueHistory: TissueState[][] = [tissues.map(t => ({ ...t }))];
   const bottomGas = gases.find(g => g.switchDepth === null) || gases[0];
   
-  const ambientPressureAtDepth = depthToPressure(depth);
+  const ambientPressureAtDepth = depthToPressure(depth, settings.waterType);
   const ppo2AtDepth = (bottomGas.o2Percent / 100) * ambientPressureAtDepth;
   if (ppo2AtDepth > 1.4) {
     warnings.push(`PPO2 is ${ppo2AtDepth.toFixed(2)} at ${depth}m with ${bottomGas.name} (exceeds 1.4)`);
@@ -494,50 +557,62 @@ export function calculateDivePlan(input: DivePlanInput): DivePlanResult {
   }
   
   const descentTime = depth / settings.descentRate;
-  tissues = calculateTissueLoadingSchreiner(tissues, 0, depth, descentTime, bottomGas);
+  tissues = calculateTissueLoadingSchreiner(tissues, 0, depth, descentTime, bottomGas, settings.waterType);
   tissueHistory.push(tissues.map(t => ({ ...t })));
   runTime += descentTime;
   
-  segments.push({
+  const descentSegment: DiveSegment = {
     type: 'descent',
     startDepth: 0,
     endDepth: depth,
     duration: descentTime,
     gasMix: bottomGas,
     runTime,
-  });
+  };
+  segments.push(descentSegment);
+  const descentTox = calculateSegmentOxygenToxicity(descentSegment, settings);
+  totalCNS += descentTox.cns;
+  totalOTU += descentTox.otu;
   
-  tissues = calculateTissueLoadingConstantDepth(tissues, depth, bottomTime, bottomGas);
+  tissues = calculateTissueLoadingConstantDepth(tissues, depth, bottomTime, bottomGas, settings.waterType);
   tissueHistory.push(tissues.map(t => ({ ...t })));
   runTime += bottomTime;
   
-  segments.push({
+  const bottomSegment: DiveSegment = {
     type: 'bottom',
     startDepth: depth,
     endDepth: depth,
     duration: bottomTime,
     gasMix: bottomGas,
     runTime,
-  });
+  };
+  segments.push(bottomSegment);
+  const bottomTox = calculateSegmentOxygenToxicity(bottomSegment, settings);
+  totalCNS += bottomTox.cns;
+  totalOTU += bottomTox.otu;
   
-  const ndl = calculateNDL(tissues, depth, bottomGas, settings.gfHigh);
+  const ndl = calculateNDL(tissues, depth, bottomGas, settings.gfHigh, settings.waterType);
   
-  const firstStopDepth = findFirstStop(tissues, settings.gfLow, settings.decoStopInterval);
+  const firstStopDepth = findFirstStop(tissues, settings.gfLow, settings.decoStopInterval, settings.waterType);
   
   if (firstStopDepth > 0) {
     const ascentToFirstStop = (depth - firstStopDepth) / settings.ascentRate;
-    tissues = calculateTissueLoadingSchreiner(tissues, depth, firstStopDepth, ascentToFirstStop, bottomGas);
+    tissues = calculateTissueLoadingSchreiner(tissues, depth, firstStopDepth, ascentToFirstStop, bottomGas, settings.waterType);
     tissueHistory.push(tissues.map(t => ({ ...t })));
     runTime += ascentToFirstStop;
     
-    segments.push({
+    const ascentToFirstSegment: DiveSegment = {
       type: 'ascent',
       startDepth: depth,
       endDepth: firstStopDepth,
       duration: ascentToFirstStop,
       gasMix: bottomGas,
       runTime,
-    });
+    };
+    segments.push(ascentToFirstSegment);
+    const ascentToFirstTox = calculateSegmentOxygenToxicity(ascentToFirstSegment, settings);
+    totalCNS += ascentToFirstTox.cns;
+    totalOTU += ascentToFirstTox.otu;
     
     const { stops, finalTissues, tissueHistory: decoHistory } = calculateDecoSchedule(
       tissues,
@@ -553,45 +628,68 @@ export function calculateDivePlan(input: DivePlanInput): DivePlanResult {
       if (stop.depth < currentDepth) {
         const ascentTime = (currentDepth - stop.depth) / settings.ascentRate;
         runTime += ascentTime;
-        segments.push({
+        const ascentSeg: DiveSegment = {
           type: 'ascent',
           startDepth: currentDepth,
           endDepth: stop.depth,
           duration: ascentTime,
           gasMix: stop.gasMix,
           runTime,
-        });
+        };
+        segments.push(ascentSeg);
+        const ascentTox = calculateSegmentOxygenToxicity(ascentSeg, settings);
+        totalCNS += ascentTox.cns;
+        totalOTU += ascentTox.otu;
         currentDepth = stop.depth;
       }
       
       runTime += stop.duration;
-      segments.push({
+      const decoSeg: DiveSegment = {
         type: 'deco_stop',
         startDepth: stop.depth,
         endDepth: stop.depth,
         duration: stop.duration,
         gasMix: stop.gasMix,
         runTime,
-      });
+      };
+      segments.push(decoSeg);
+      const decoTox = calculateSegmentOxygenToxicity(decoSeg, settings);
+      totalCNS += decoTox.cns;
+      totalOTU += decoTox.otu;
     }
     
     if (currentDepth > 0) {
       const finalAscentTime = currentDepth / settings.ascentRate;
       runTime += finalAscentTime;
       const lastGas = stops[stops.length - 1]?.gasMix || bottomGas;
-      tissues = calculateTissueLoadingSchreiner(finalTissues, currentDepth, 0, finalAscentTime, lastGas);
+      tissues = calculateTissueLoadingSchreiner(finalTissues, currentDepth, 0, finalAscentTime, lastGas, settings.waterType);
       tissueHistory.push(tissues.map(t => ({ ...t })));
       
-      segments.push({
+      const finalAscentSeg: DiveSegment = {
         type: 'ascent',
         startDepth: currentDepth,
         endDepth: 0,
         duration: finalAscentTime,
         gasMix: lastGas,
         runTime,
-      });
+      };
+      segments.push(finalAscentSeg);
+      const finalAscentTox = calculateSegmentOxygenToxicity(finalAscentSeg, settings);
+      totalCNS += finalAscentTox.cns;
+      totalOTU += finalAscentTox.otu;
     } else {
       tissues = finalTissues;
+    }
+    
+    // Add CNS/OTU warnings
+    if (totalCNS > 80) {
+      warnings.push(`CNS is ${totalCNS.toFixed(0)}% - approaching limit (>80%)`);
+    }
+    if (totalCNS > 100) {
+      warnings.push(`DANGER: CNS exceeds 100% - oxygen toxicity risk!`);
+    }
+    if (totalOTU > 300) {
+      warnings.push(`OTU is ${totalOTU.toFixed(0)} - daily limit warning (>300)`);
     }
     
     return {
@@ -601,25 +699,37 @@ export function calculateDivePlan(input: DivePlanInput): DivePlanResult {
       totalRunTime: Math.ceil(runTime),
       totalDecoTime: stops.reduce((sum, s) => sum + s.duration, 0),
       maxDepth: depth,
-      cns: 0,
-      otu: 0,
+      cns: Math.round(totalCNS * 10) / 10,
+      otu: Math.round(totalOTU * 10) / 10,
       ndl: null,
       warnings,
     };
   } else {
     const directAscentTime = depth / settings.ascentRate;
     runTime += directAscentTime;
-    tissues = calculateTissueLoadingSchreiner(tissues, depth, 0, directAscentTime, bottomGas);
+    tissues = calculateTissueLoadingSchreiner(tissues, depth, 0, directAscentTime, bottomGas, settings.waterType);
     tissueHistory.push(tissues.map(t => ({ ...t })));
     
-    segments.push({
+    const directAscentSeg: DiveSegment = {
       type: 'ascent',
       startDepth: depth,
       endDepth: 0,
       duration: directAscentTime,
       gasMix: bottomGas,
       runTime,
-    });
+    };
+    segments.push(directAscentSeg);
+    const directAscentTox = calculateSegmentOxygenToxicity(directAscentSeg, settings);
+    totalCNS += directAscentTox.cns;
+    totalOTU += directAscentTox.otu;
+    
+    // Add CNS/OTU warnings for non-deco dives
+    if (totalCNS > 80) {
+      warnings.push(`CNS is ${totalCNS.toFixed(0)}% - approaching limit (>80%)`);
+    }
+    if (totalOTU > 300) {
+      warnings.push(`OTU is ${totalOTU.toFixed(0)} - daily limit warning (>300)`);
+    }
     
     return {
       segments,
@@ -628,8 +738,8 @@ export function calculateDivePlan(input: DivePlanInput): DivePlanResult {
       totalRunTime: Math.ceil(runTime),
       totalDecoTime: 0,
       maxDepth: depth,
-      cns: 0,
-      otu: 0,
+      cns: Math.round(totalCNS * 10) / 10,
+      otu: Math.round(totalOTU * 10) / 10,
       ndl,
       warnings,
     };
@@ -659,6 +769,57 @@ export function calculateMultiDivePlan(dives: DivePlanInput[]): DivePlanResult[]
   return results;
 }
 
+// CNS oxygen toxicity calculation table (NOAA single-exposure limits)
+// Corrected values based on NOAA Diving Manual exposure limits
+// CNS% per minute = 100 / (max exposure time in minutes)
+const CNS_TABLE: { minPpo2: number; maxPpo2: number; cnsPerMin: number }[] = [
+  { minPpo2: 0.5, maxPpo2: 0.6, cnsPerMin: 0.14 },   // 720 min max = 0.139%/min
+  { minPpo2: 0.6, maxPpo2: 0.7, cnsPerMin: 0.17 },   // 570 min max = 0.175%/min
+  { minPpo2: 0.7, maxPpo2: 0.8, cnsPerMin: 0.22 },   // 450 min max = 0.222%/min
+  { minPpo2: 0.8, maxPpo2: 0.9, cnsPerMin: 0.28 },   // 360 min max = 0.278%/min
+  { minPpo2: 0.9, maxPpo2: 1.0, cnsPerMin: 0.33 },   // 300 min max = 0.333%/min
+  { minPpo2: 1.0, maxPpo2: 1.1, cnsPerMin: 0.42 },   // 240 min max = 0.417%/min
+  { minPpo2: 1.1, maxPpo2: 1.2, cnsPerMin: 0.48 },   // 210 min max = 0.476%/min
+  { minPpo2: 1.2, maxPpo2: 1.3, cnsPerMin: 0.56 },   // 180 min max = 0.556%/min
+  { minPpo2: 1.3, maxPpo2: 1.4, cnsPerMin: 0.67 },   // 150 min max = 0.667%/min
+  { minPpo2: 1.4, maxPpo2: 1.5, cnsPerMin: 0.83 },   // 120 min max = 0.833%/min
+  { minPpo2: 1.5, maxPpo2: 1.6, cnsPerMin: 1.11 },   // 90 min max = 1.111%/min
+  { minPpo2: 1.6, maxPpo2: 2.0, cnsPerMin: 2.22 },   // 45 min max = 2.222%/min (NOAA max)
+];
+
+// Calculate CNS% for given PPO2 and duration
+export function calculateCNS(ppo2: number, durationMinutes: number): number {
+  if (ppo2 < 0.5) return 0;
+  
+  // Clamp to NOAA maximum rate for PPO2 > 1.6
+  if (ppo2 >= 1.6) {
+    return durationMinutes * 2.22;
+  }
+  
+  const entry = CNS_TABLE.find(e => ppo2 >= e.minPpo2 && ppo2 < e.maxPpo2);
+  if (!entry) return 0;
+  
+  return durationMinutes * entry.cnsPerMin;
+}
+
+// Calculate OTU (Oxygen Toxicity Units) using REPEX formula
+// OTU = t * ((PO2 - 0.5) / 0.5)^0.83
+export function calculateOTU(ppo2: number, durationMinutes: number): number {
+  if (ppo2 <= 0.5) return 0;
+  return durationMinutes * Math.pow((ppo2 - 0.5) / 0.5, 0.83);
+}
+
+// Water density factors for depth calculation
+const WATER_DENSITY = {
+  salt: 10.0, // meters per bar (saltwater ~1.025 kg/L)
+  fresh: 10.3, // meters per bar (freshwater ~1.0 kg/L)
+};
+
+// Get depth conversion factor based on water type
+export function getWaterFactor(waterType: WaterType): number {
+  return WATER_DENSITY[waterType];
+}
+
 export const DEFAULT_SETTINGS: DivePlanSettings = {
   gfLow: 30,
   gfHigh: 70,
@@ -668,4 +829,13 @@ export const DEFAULT_SETTINGS: DivePlanSettings = {
   decoStopInterval: 3,
   sacRateBottom: 20,
   sacRateDeco: 15,
+  // New defaults
+  circuit: 'open',
+  decoModel: 'zhl16c',
+  o2Narcotic: false,
+  units: 'metric',
+  gasSwitchTime: 1,
+  waterType: 'salt',
+  ccrSetpoint: 1.3,
+  scrubberDuration: 180,
 };

@@ -43,15 +43,23 @@ The application is built using Expo React Native, targeting both iOS and Android
 - **Wreck Site Specifics**: Dedicated fields and a conditional "Wreck" tab.
 - **Weather Forecast**: Integrates 7-day marine and atmospheric weather forecasts based on dive site location using Open-Meteo API.
 - **Dive Planning (MultiDeco-style)**: Full-featured decompression dive planning module with:
-  - Buhlmann ZHL-16C algorithm with 16 tissue compartments for N2 and He
+  - Buhlmann ZHL-16C algorithm with 16 tissue compartments for N2 and He (ZHL-16A/B also available)
   - Gradient Factor (GF Low/High) sliders for conservative deco planning
-  - Interactive dive profile SVG chart showing depth over time with deco stops
-  - Real-time 16-compartment tissue loading bar chart with color-coded saturation levels
+  - Interactive dive profile SVG chart showing depth over time with deco stops and 16 individual tissue loading lines
+  - Real-time 16-compartment tissue loading bar chart with color-coded saturation levels and percentage labels
   - Custom gas mix management with O2%, He%, MOD calculations (PPO2 1.4/1.6)
-  - Gas switch depth configuration for deco gases
+  - Gas switch depth configuration for deco gases with configurable switch time
   - Multi-dive day planning with surface interval tissue loading persistence
   - NDL (No Decompression Limit) calculation
-  - Settings panel integrated into planning screen for immediate visual feedback
+  - Tabbed interface: Plan (dive parameters, GF sliders, charts), Gases (gas mix configuration), Settings (all configuration options)
+  - CNS (Central Nervous System) oxygen toxicity tracking with NOAA-compliant rates
+  - OTU (Oxygen Toxicity Units) pulmonary toxicity tracking using REPEX formula
+  - Circuit type support: Open Circuit and CCR (Closed Circuit Rebreather)
+  - CCR setpoint configuration and scrubber time tracking with popup modal
+  - Water type selection: Salt water (10m/bar) or Fresh water (10.3m/bar)
+  - Units toggle: Metric or Imperial
+  - O2 narcotic toggle for END (Equivalent Narcotic Depth) calculations
+  - SAC rate configuration for bottom gas and deco phases
   - Database tables: dive_plans, dive_plan_dives, dive_plan_gases
   - Algorithm validated against published Buhlmann standards (Baker's GF method)
 
