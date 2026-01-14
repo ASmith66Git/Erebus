@@ -12,10 +12,8 @@ import {
   DEFAULT_SETTINGS, GasMix, DivePlanResult, TissueState, DivePlanInput, DivePlanSettings
 } from '../../services/divePlanner';
 
-const { width: screenWidth } = Dimensions.get('window');
-const CHART_WIDTH = screenWidth - 48;
-const CHART_HEIGHT = 200;
-const TISSUE_CHART_HEIGHT = 120;
+const CHART_HEIGHT = 280;
+const TISSUE_CHART_HEIGHT = 180;
 
 interface DiveEntry {
   id: string;
@@ -67,6 +65,8 @@ export default function DivePlanningScreen() {
   const [showSettings, setShowSettings] = useState(true);
   const [showGases, setShowGases] = useState(false);
   const [selectedDiveIndex, setSelectedDiveIndex] = useState(0);
+  const [chartWidth, setChartWidth] = useState(300);
+  const [tissueChartWidth, setTissueChartWidth] = useState(300);
 
   const gasMixes = useMemo(() => {
     return gases.map(g => {
@@ -124,11 +124,20 @@ export default function DivePlanningScreen() {
     setGases(gases.map(g => g.id === id ? { ...g, [field]: value } : g));
   };
 
+  const tissueColors = [
+    '#FF6B6B', '#FF8E53', '#FFA94D', '#FFD93D', '#C0EB75', '#6BCB77',
+    '#4ECDC4', '#45B7D1', '#5C7CFA', '#7950F2', '#BE4BDB', '#E64980',
+    '#F06595', '#CC5DE8', '#845EF7', '#5C7CFA'
+  ];
+
   const renderDiveProfileChart = () => {
     if (!currentResult || currentResult.segments.length === 0) {
       return (
-        <View style={[styles.chartContainer, { backgroundColor: colors.card }]}>
-          <Text style={[styles.chartTitle, { color: colors.text }]}>Dive Profile</Text>
+        <View 
+          style={[styles.chartContainer, { backgroundColor: colors.card }]}
+          onLayout={(e) => setChartWidth(e.nativeEvent.layout.width - 32)}
+        >
+          <Text style={[styles.chartTitle, { color: colors.text }]}>Dive Profile with Tissue Loading</Text>
           <View style={styles.emptyChart}>
             <Text style={{ color: colors.textSecondary }}>Configure dive parameters to see profile</Text>
           </View>
@@ -136,13 +145,13 @@ export default function DivePlanningScreen() {
       );
     }
 
-    const maxDepth = currentResult.maxDepth;
-    const totalTime = currentResult.totalRunTime;
-    const padding = { top: 30, right: 20, bottom: 30, left: 50 };
-    const chartW = CHART_WIDTH - padding.left - padding.right;
+    const maxDepth = Math.max(currentResult.maxDepth, 10);
+    const totalTime = Math.max(currentResult.totalRunTime, 1);
+    const padding = { top: 40, right: 20, bottom: 40, left: 50 };
+    const chartW = Math.max(chartWidth - padding.left - padding.right, 100);
     const chartH = CHART_HEIGHT - padding.top - padding.bottom;
 
-    let pathD = '';
+    let depthPathD = '';
     let currentTime = 0;
 
     currentResult.segments.forEach((seg, i) => {
@@ -152,11 +161,42 @@ export default function DivePlanningScreen() {
       const y2 = (seg.endDepth / maxDepth) * chartH;
 
       if (i === 0) {
-        pathD += `M ${x1} ${y1}`;
+        depthPathD += `M ${x1} ${y1}`;
       }
-      pathD += ` L ${x2} ${y2}`;
+      depthPathD += ` L ${x2} ${y2}`;
       currentTime += seg.duration;
     });
+
+    const tissueLines = currentResult.tissueHistory.length > 1 ? 
+      Array.from({ length: 16 }, (_, tissueIdx) => {
+        let pathD = '';
+        const historyStep = Math.max(1, Math.floor(currentResult.tissueHistory.length / 50));
+        const maxPpInert = Math.max(...currentResult.tissueHistory.flatMap(h => h.map(t => t.ppInert)), 1);
+        
+        for (let i = 0; i < currentResult.tissueHistory.length; i += historyStep) {
+          const tissue = currentResult.tissueHistory[i][tissueIdx];
+          const x = (i / (currentResult.tissueHistory.length - 1)) * chartW;
+          const normalizedLoading = tissue.ppInert / maxPpInert;
+          const y = chartH - (normalizedLoading * chartH * 0.5);
+          
+          if (i === 0) {
+            pathD += `M ${x} ${y}`;
+          } else {
+            pathD += ` L ${x} ${y}`;
+          }
+        }
+        
+        return (
+          <Path
+            key={tissueIdx}
+            d={pathD}
+            stroke={tissueColors[tissueIdx]}
+            strokeWidth={1}
+            strokeOpacity={0.6}
+            fill="none"
+          />
+        );
+      }) : [];
 
     const decoStopMarkers = currentResult.decoStops.map((stop, i) => {
       const segTime = currentResult.segments.find(s => s.type === 'deco_stop' && s.startDepth === stop.depth);
@@ -166,19 +206,19 @@ export default function DivePlanningScreen() {
       for (let j = 0; j < idx; j++) {
         time += currentResult.segments[j].duration;
       }
-      const x = (time / totalTime) * chartW + padding.left;
-      const y = (stop.depth / maxDepth) * chartH + padding.top;
+      const x = (time / totalTime) * chartW;
+      const y = (stop.depth / maxDepth) * chartH;
       return (
         <Circle key={i} cx={x} cy={y} r={4} fill={colors.warning} />
       );
     });
 
-    const depthLabels = [0, maxDepth / 2, maxDepth].map((d, i) => (
+    const depthLabels = [0, maxDepth / 4, maxDepth / 2, (maxDepth * 3) / 4, maxDepth].map((d, i) => (
       <SvgText
         key={i}
-        x={padding.left - 10}
+        x={padding.left - 8}
         y={padding.top + (d / maxDepth) * chartH + 4}
-        fontSize={10}
+        fontSize={9}
         fill={colors.textSecondary}
         textAnchor="end"
       >
@@ -186,33 +226,71 @@ export default function DivePlanningScreen() {
       </SvgText>
     ));
 
-    const timeLabels = [0, totalTime / 2, totalTime].map((t, i) => (
-      <SvgText
+    const timeInterval = totalTime <= 30 ? 5 : totalTime <= 60 ? 10 : totalTime <= 120 ? 15 : 30;
+    const timeLabels = [];
+    for (let t = 0; t <= totalTime; t += timeInterval) {
+      timeLabels.push(
+        <G key={t}>
+          <Line
+            x1={padding.left + (t / totalTime) * chartW}
+            y1={padding.top}
+            x2={padding.left + (t / totalTime) * chartW}
+            y2={padding.top + chartH}
+            stroke={colors.border}
+            strokeWidth={0.5}
+            strokeOpacity={0.3}
+          />
+          <SvgText
+            x={padding.left + (t / totalTime) * chartW}
+            y={CHART_HEIGHT - 8}
+            fontSize={9}
+            fill={colors.textSecondary}
+            textAnchor="middle"
+          >
+            {t}
+          </SvgText>
+        </G>
+      );
+    }
+
+    const depthGridLines = [0, maxDepth / 4, maxDepth / 2, (maxDepth * 3) / 4, maxDepth].map((d, i) => (
+      <Line
         key={i}
-        x={padding.left + (t / totalTime) * chartW}
-        y={CHART_HEIGHT - 5}
-        fontSize={10}
-        fill={colors.textSecondary}
-        textAnchor="middle"
-      >
-        {Math.round(t)}min
-      </SvgText>
+        x1={padding.left}
+        y1={padding.top + (d / maxDepth) * chartH}
+        x2={padding.left + chartW}
+        y2={padding.top + (d / maxDepth) * chartH}
+        stroke={colors.border}
+        strokeWidth={0.5}
+        strokeOpacity={0.3}
+      />
     ));
 
     return (
-      <View style={[styles.chartContainer, { backgroundColor: colors.card }]}>
-        <Text style={[styles.chartTitle, { color: colors.text }]}>Dive Profile</Text>
-        <Svg width={CHART_WIDTH} height={CHART_HEIGHT}>
-          <Rect x={padding.left} y={padding.top} width={chartW} height={chartH} fill={isDark ? '#2C2C2E' : '#E5E5EA'} />
-          <G transform={`translate(${padding.left}, ${padding.top})`}>
-            <Path d={pathD} stroke={colors.primary} strokeWidth={2} fill="none" />
-          </G>
-          {decoStopMarkers}
-          {depthLabels}
+      <View 
+        style={[styles.chartContainer, { backgroundColor: colors.card }]}
+        onLayout={(e) => setChartWidth(e.nativeEvent.layout.width - 32)}
+      >
+        <Text style={[styles.chartTitle, { color: colors.text }]}>Dive Profile with Tissue Loading</Text>
+        <Svg width={chartWidth} height={CHART_HEIGHT}>
+          <Rect x={padding.left} y={padding.top} width={chartW} height={chartH} fill={isDark ? '#1A1A1C' : '#F5F5F7'} />
+          {depthGridLines}
           {timeLabels}
-          <Line x1={padding.left} y1={padding.top} x2={padding.left} y2={CHART_HEIGHT - padding.bottom} stroke={colors.border} strokeWidth={1} />
-          <Line x1={padding.left} y1={CHART_HEIGHT - padding.bottom} x2={CHART_WIDTH - padding.right} y2={CHART_HEIGHT - padding.bottom} stroke={colors.border} strokeWidth={1} />
+          <G transform={`translate(${padding.left}, ${padding.top})`}>
+            {tissueLines}
+            <Path d={depthPathD} stroke={colors.primary} strokeWidth={2.5} fill="none" />
+            {decoStopMarkers}
+          </G>
+          {depthLabels}
+          <SvgText x={padding.left + chartW / 2} y={CHART_HEIGHT - 2} fontSize={10} fill={colors.textSecondary} textAnchor="middle">
+            Time (min)
+          </SvgText>
+          <Line x1={padding.left} y1={padding.top} x2={padding.left} y2={padding.top + chartH} stroke={colors.border} strokeWidth={1} />
+          <Line x1={padding.left} y1={padding.top + chartH} x2={padding.left + chartW} y2={padding.top + chartH} stroke={colors.border} strokeWidth={1} />
         </Svg>
+        <Text style={[styles.chartSubtitle, { color: colors.textSecondary }]}>
+          Thin colored lines show individual tissue compartment loading (fast tissues = warm colors, slow = cool colors)
+        </Text>
       </View>
     );
   };
@@ -223,66 +301,90 @@ export default function DivePlanningScreen() {
     }
 
     const finalTissues = currentResult.tissueHistory[currentResult.tissueHistory.length - 1];
-    const padding = { top: 20, right: 20, bottom: 30, left: 30 };
-    const chartW = CHART_WIDTH - padding.left - padding.right;
+    const padding = { top: 30, right: 16, bottom: 40, left: 40 };
+    const chartW = Math.max(tissueChartWidth - padding.left - padding.right, 100);
     const chartH = TISSUE_CHART_HEIGHT - padding.top - padding.bottom;
-    const barWidth = chartW / 16 - 4;
+    const barWidth = (chartW / 16) - 2;
+    const barGap = 2;
 
     const maxInert = Math.max(...finalTissues.map(t => t.ppInert), 1);
 
     const bars = finalTissues.map((tissue, i) => {
-      const height = (tissue.ppInert / maxInert) * chartH;
-      const x = padding.left + i * (barWidth + 4);
+      const height = Math.max((tissue.ppInert / maxInert) * chartH, 2);
+      const x = padding.left + i * (barWidth + barGap);
       const y = padding.top + chartH - height;
       const percent = tissue.percentMValue;
-      let fillColor = colors.success;
-      if (percent > 80) fillColor = colors.primary;
-      else if (percent > 60) fillColor = colors.warning;
-      else if (percent > 40) fillColor = colors.accent;
+      let fillColor = tissueColors[i];
 
       return (
-        <Rect key={i} x={x} y={y} width={barWidth} height={height} fill={fillColor} rx={2} />
+        <G key={i}>
+          <Rect x={x} y={y} width={barWidth} height={height} fill={fillColor} rx={1} />
+          <SvgText
+            x={x + barWidth / 2}
+            y={padding.top + chartH + 12}
+            fontSize={7}
+            fill={colors.textSecondary}
+            textAnchor="middle"
+          >
+            {i + 1}
+          </SvgText>
+          <SvgText
+            x={x + barWidth / 2}
+            y={y - 4}
+            fontSize={6}
+            fill={colors.textSecondary}
+            textAnchor="middle"
+          >
+            {Math.round(percent)}%
+          </SvgText>
+        </G>
       );
     });
 
-    const compLabels = [1, 4, 8, 12, 16].map(c => (
-      <SvgText
-        key={c}
-        x={padding.left + (c - 1) * (barWidth + 4) + barWidth / 2}
-        y={TISSUE_CHART_HEIGHT - 5}
-        fontSize={8}
-        fill={colors.textSecondary}
-        textAnchor="middle"
-      >
-        {c}
-      </SvgText>
-    ));
+    const loadingLabels = [0, 25, 50, 75, 100].map((pct, i) => {
+      const y = padding.top + chartH - (pct / 100) * chartH;
+      return (
+        <G key={i}>
+          <Line
+            x1={padding.left}
+            y1={y}
+            x2={padding.left + chartW}
+            y2={y}
+            stroke={colors.border}
+            strokeWidth={0.5}
+            strokeOpacity={0.3}
+          />
+          <SvgText
+            x={padding.left - 6}
+            y={y + 3}
+            fontSize={8}
+            fill={colors.textSecondary}
+            textAnchor="end"
+          >
+            {pct}%
+          </SvgText>
+        </G>
+      );
+    });
 
     return (
-      <View style={[styles.chartContainer, { backgroundColor: colors.card }]}>
-        <Text style={[styles.chartTitle, { color: colors.text }]}>Tissue Loading (16 Compartments)</Text>
-        <Svg width={CHART_WIDTH} height={TISSUE_CHART_HEIGHT}>
+      <View 
+        style={[styles.chartContainer, { backgroundColor: colors.card }]}
+        onLayout={(e) => setTissueChartWidth(e.nativeEvent.layout.width - 32)}
+      >
+        <Text style={[styles.chartTitle, { color: colors.text }]}>Final Tissue Saturation (16 Compartments)</Text>
+        <Svg width={tissueChartWidth} height={TISSUE_CHART_HEIGHT}>
+          {loadingLabels}
           {bars}
-          {compLabels}
+          <SvgText x={padding.left + chartW / 2} y={TISSUE_CHART_HEIGHT - 4} fontSize={9} fill={colors.textSecondary} textAnchor="middle">
+            Compartment (1=fast, 16=slow)
+          </SvgText>
+          <Line x1={padding.left} y1={padding.top} x2={padding.left} y2={padding.top + chartH} stroke={colors.border} strokeWidth={1} />
+          <Line x1={padding.left} y1={padding.top + chartH} x2={padding.left + chartW} y2={padding.top + chartH} stroke={colors.border} strokeWidth={1} />
         </Svg>
-        <View style={styles.legendRow}>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: colors.success }]} />
-            <Text style={[styles.legendText, { color: colors.textSecondary }]}>{'<40%'}</Text>
-          </View>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: colors.accent }]} />
-            <Text style={[styles.legendText, { color: colors.textSecondary }]}>40-60%</Text>
-          </View>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: colors.warning }]} />
-            <Text style={[styles.legendText, { color: colors.textSecondary }]}>60-80%</Text>
-          </View>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: colors.primary }]} />
-            <Text style={[styles.legendText, { color: colors.textSecondary }]}>{'>80%'}</Text>
-          </View>
-        </View>
+        <Text style={[styles.chartSubtitle, { color: colors.textSecondary }]}>
+          Percentage shown = tissue loading relative to M-value limit
+        </Text>
       </View>
     );
   };
@@ -684,8 +786,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   addGasText: { fontSize: 14, fontWeight: '500' },
-  chartContainer: { borderRadius: 12, padding: 16, marginBottom: 16 },
+  chartContainer: { borderRadius: 12, padding: 16, marginBottom: 16, overflow: 'hidden' },
   chartTitle: { fontSize: 16, fontWeight: '600', marginBottom: 12 },
+  chartSubtitle: { fontSize: 11, marginTop: 8, textAlign: 'center' as const, fontStyle: 'italic' as const },
   emptyChart: {
     height: CHART_HEIGHT - 40,
     justifyContent: 'center',
