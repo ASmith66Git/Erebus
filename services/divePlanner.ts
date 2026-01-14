@@ -256,12 +256,12 @@ export function calculateTissueLoadingSchreiner(
 
 export function calculateMValueAtPressure(tissue: TissueState, compartmentIndex: number, ambientPressure: number): number {
   const { a, b } = getCompartmentCoefficients(tissue, compartmentIndex);
-  return a + ambientPressure / b;
+  return a + b * ambientPressure;
 }
 
 export function calculateToleratedAmbientPressure(tissue: TissueState, compartmentIndex: number): number {
   const { a, b } = getCompartmentCoefficients(tissue, compartmentIndex);
-  return (tissue.ppInert - a) * b;
+  return (tissue.ppInert - a) / b;
 }
 
 export function calculateCeilingWithGF(
@@ -270,7 +270,8 @@ export function calculateCeilingWithGF(
   gf: number
 ): number {
   const { a, b } = getCompartmentCoefficients(tissue, compartmentIndex);
-  const pAmb = (tissue.ppInert - (gf / 100) * a) / ((gf / 100) / b + 1 - (gf / 100));
+  const g = gf / 100;
+  const pAmb = (tissue.ppInert - g * a) / (g * b + 1 - g);
   return Math.max(0, pAmb);
 }
 
@@ -365,8 +366,8 @@ export function calculateNDL(
       i
     );
     
-    const mValueAtSurface = a + SURFACE_PRESSURE / b;
-    const toleratedAtSurface = tissue.ppInert + (mValueAtSurface - tissue.ppInert) * (gfHigh / 100);
+    const mValueAtSurface = a + b * SURFACE_PRESSURE;
+    const toleratedAtSurface = SURFACE_PRESSURE + (mValueAtSurface - SURFACE_PRESSURE) * (gfHigh / 100);
     
     const inspiredInert = inspiredN2 + inspiredHe;
     
