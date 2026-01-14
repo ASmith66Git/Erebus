@@ -44,22 +44,33 @@ The application is built using Expo React Native, targeting both iOS and Android
 - **Weather Forecast**: Integrates 7-day marine and atmospheric weather forecasts based on dive site location using Open-Meteo API.
 - **Dive Planning (MultiDeco-style)**: Full-featured decompression dive planning module with:
   - Buhlmann ZHL-16C algorithm with 16 tissue compartments for N2 and He (ZHL-16A/B also available)
-  - Gradient Factor (GF Low/High) sliders for conservative deco planning
-  - Interactive dive profile SVG chart showing depth over time with deco stops and 16 individual tissue loading lines
+  - Gradient Factor (GF Low/High) dropdowns for conservative deco planning
+  - Interactive dive profile SVG chart with always-visible scrubber line, drag handle, and popup showing depth/time/gas/CNS/OTU/phase
   - Real-time 16-compartment tissue loading bar chart with color-coded saturation levels and percentage labels
   - Custom gas mix management with O2%, He%, MOD calculations (PPO2 1.4/1.6)
+  - Per-cylinder gas tracking with cylinderId system for multiple cylinders with identical mixes
+  - Comprehensive cylinder selection dropdown (AL80/63/100, Steel HP80/100/120, Steel 12L/15L, Twinsets, Stage tanks)
   - Gas switch depth configuration for deco gases with configurable switch time
   - Multi-dive day planning with surface interval tissue loading persistence
   - NDL (No Decompression Limit) calculation
-  - Tabbed interface: Plan (dive parameters, GF sliders, charts), Gases (gas mix configuration), Settings (all configuration options)
+  - Tabbed interface: Plan (dive parameters, charts), Gases (gas mix configuration), Settings (comprehensive configuration)
   - CNS (Central Nervous System) oxygen toxicity tracking with NOAA-compliant rates
   - OTU (Oxygen Toxicity Units) pulmonary toxicity tracking using REPEX formula
   - Circuit type support: Open Circuit and CCR (Closed Circuit Rebreather)
-  - CCR setpoint configuration and scrubber time tracking with popup modal
+  - CCR setpoint configuration (BAR/ATA units) and scrubber time tracking with popup modal
   - Water type selection: Salt water (10m/bar) or Fresh water (10.3m/bar)
-  - Units toggle: Metric or Imperial
+  - Units toggle: Metric (meters) or Imperial (feet)
+  - Gas volume units: Cubic feet or Liters
   - O2 narcotic toggle for END (Equivalent Narcotic Depth) calculations
   - SAC rate configuration for bottom gas and deco phases
+  - **Comprehensive Settings Tab** with:
+    - Model Settings: Circuit (OC/CCR), Deco model selection, GF Lo/Hi dropdowns
+    - Deco Stop Settings: Stop size (3m/6m), Last OC/CCR stop depths, min stop time, PPO2 thresholds by O2% range (45-99%, 28-45%, <28%), 100% O2 max depth, 30 sec stops, 6m steps toggles
+    - Extended Stops: Extended stops toggle, shallow/deep extra times (7-30m, 30+m), add time to stop, all mix changes, O2 window effect
+    - Descent/Ascent Rates: Separate descent, surface, deco, and ascent rate dropdowns
+    - Dive Site Elevation: Elevation and acclimatized elevation for altitude diving
+    - Display Settings: Gauge type (Simple/Digital), gas switch time
+    - Dive Monitor Controls: ppO2 above/below thresholds, OTU/CNS thresholds, IBCD N2/He thresholds, CCR diluent check - all with enable toggles and sliders
   - Database tables: dive_plans, dive_plan_dives, dive_plan_gases
   - Algorithm validated against published Buhlmann standards (Baker's GF method)
 
