@@ -42,6 +42,18 @@ The application is built using Expo React Native, targeting both iOS and Android
 - **Dive Site Images**: Supports image uploads to Replit Object Storage via presigned URLs, camera photo capture, primary image selection, and "Search Web" for Google Images.
 - **Wreck Site Specifics**: Dedicated fields and a conditional "Wreck" tab.
 - **Weather Forecast**: Integrates 7-day marine and atmospheric weather forecasts based on dive site location using Open-Meteo API.
+- **Dive Planning (MultiDeco-style)**: Full-featured decompression dive planning module with:
+  - Buhlmann ZHL-16C algorithm with 16 tissue compartments for N2 and He
+  - Gradient Factor (GF Low/High) sliders for conservative deco planning
+  - Interactive dive profile SVG chart showing depth over time with deco stops
+  - Real-time 16-compartment tissue loading bar chart with color-coded saturation levels
+  - Custom gas mix management with O2%, He%, MOD calculations (PPO2 1.4/1.6)
+  - Gas switch depth configuration for deco gases
+  - Multi-dive day planning with surface interval tissue loading persistence
+  - NDL (No Decompression Limit) calculation
+  - Settings panel integrated into planning screen for immediate visual feedback
+  - Database tables: dive_plans, dive_plan_dives, dive_plan_gases
+  - Algorithm validated against published Buhlmann standards (Baker's GF method)
 
 ## External Dependencies
 - **PostgreSQL**: Primary database.
