@@ -444,6 +444,11 @@ Please help me with this development task.`;
                 (entry.pageName && entry.pageName.toLowerCase().includes(query))
               );
             })
+            .sort((a, b) => {
+              if (a.status === 'completed' && b.status !== 'completed') return 1;
+              if (a.status !== 'completed' && b.status === 'completed') return -1;
+              return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+            })
             .map(renderEntry)}
         </ScrollView>
       )}
