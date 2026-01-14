@@ -2198,22 +2198,23 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   mediaActionButton: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
+    justifyContent: 'center',
+    paddingHorizontal: 8,
     paddingVertical: 8,
     borderRadius: 8,
     borderWidth: 1,
-    gap: 6,
+    gap: 4,
   },
   mediaActionText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
   },
   mediaButtonRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
+    gap: 6,
     marginBottom: 12,
   },
   stockPhotosButton: {
