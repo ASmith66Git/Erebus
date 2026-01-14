@@ -386,6 +386,72 @@ async function initDatabase() {
         EXECUTE FUNCTION update_updated_at_column();
     `).catch(() => {});
     
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS dive_plans (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        name VARCHAR(255) NOT NULL,
+        gf_low INTEGER NOT NULL DEFAULT 30,
+        gf_high INTEGER NOT NULL DEFAULT 70,
+        descent_rate NUMERIC(5,1) NOT NULL DEFAULT 20,
+        ascent_rate NUMERIC(5,1) NOT NULL DEFAULT 10,
+        last_stop_depth INTEGER NOT NULL DEFAULT 3,
+        deco_stop_interval INTEGER NOT NULL DEFAULT 3,
+        sac_rate_bottom NUMERIC(5,1) DEFAULT 20,
+        sac_rate_deco NUMERIC(5,1) DEFAULT 15,
+        notes TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `).catch(() => {});
+    
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS dive_plan_dives (
+        id SERIAL PRIMARY KEY,
+        dive_plan_id INTEGER REFERENCES dive_plans(id) ON DELETE CASCADE,
+        dive_order INTEGER NOT NULL DEFAULT 0,
+        depth NUMERIC(6,1) NOT NULL,
+        bottom_time INTEGER NOT NULL,
+        surface_interval INTEGER DEFAULT 0,
+        notes TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `).catch(() => {});
+    
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS dive_plan_gases (
+        id SERIAL PRIMARY KEY,
+        dive_plan_id INTEGER REFERENCES dive_plans(id) ON DELETE CASCADE,
+        name VARCHAR(100),
+        o2_percent NUMERIC(5,2) NOT NULL DEFAULT 21,
+        he_percent NUMERIC(5,2) NOT NULL DEFAULT 0,
+        switch_depth NUMERIC(6,1),
+        is_bottom_gas BOOLEAN DEFAULT FALSE,
+        sort_order INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `).catch(() => {});
+    
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_dive_plans_user_id ON dive_plans(user_id);
+    `).catch(() => {});
+    
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_dive_plan_dives_plan_id ON dive_plan_dives(dive_plan_id);
+    `).catch(() => {});
+    
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_dive_plan_gases_plan_id ON dive_plan_gases(dive_plan_id);
+    `).catch(() => {});
+    
+    await client.query(`
+      DROP TRIGGER IF EXISTS update_dive_plans_updated_at ON dive_plans;
+      CREATE TRIGGER update_dive_plans_updated_at
+        BEFORE UPDATE ON dive_plans
+        FOR EACH ROW
+        EXECUTE FUNCTION update_updated_at_column();
+    `).catch(() => {});
+    
     const adminCheck = await client.query("SELECT id FROM users WHERE email = 'admin@erebus.app'");
     if (adminCheck.rows.length === 0) {
       const hashedPassword = await bcrypt.hash('admin123', 10);
@@ -3504,6 +3570,259 @@ app.post('/api/gear-profiles/:id/duplicate', authenticateToken, async (req, res)
     res.status(500).json({ error: 'Server error' });
   } finally {
     client.release();
+  }
+});
+
+// ============ DIVE PLANNING API ============
+
+// Get all dive plans for user
+app.get('/api/dive-plans', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT dp.*,
+        (SELECT COUNT(*) FROM dive_plan_dives WHERE dive_plan_id = dp.id) as dive_count
+      FROM dive_plans dp
+      WHERE dp.user_id = $1
+      ORDER BY dp.updated_at DESC
+    `, [req.user.id]);
+
+    const plans = result.rows.map(row => ({
+      id: row.id,
+      name: row.name,
+      gfLow: row.gf_low,
+      gfHigh: row.gf_high,
+      descentRate: parseFloat(row.descent_rate),
+      ascentRate: parseFloat(row.ascent_rate),
+      lastStopDepth: row.last_stop_depth,
+      decoStopInterval: row.deco_stop_interval,
+      diveCount: parseInt(row.dive_count) || 0,
+      notes: row.notes,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at
+    }));
+
+    res.json({ plans });
+  } catch (error) {
+    console.error('Get dive plans error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Get single dive plan with dives and gases
+app.get('/api/dive-plans/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const planResult = await pool.query(
+      'SELECT * FROM dive_plans WHERE id = $1 AND user_id = $2',
+      [id, req.user.id]
+    );
+
+    if (planResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Dive plan not found' });
+    }
+
+    const row = planResult.rows[0];
+
+    const divesResult = await pool.query(
+      'SELECT * FROM dive_plan_dives WHERE dive_plan_id = $1 ORDER BY dive_order',
+      [id]
+    );
+
+    const gasesResult = await pool.query(
+      'SELECT * FROM dive_plan_gases WHERE dive_plan_id = $1 ORDER BY sort_order',
+      [id]
+    );
+
+    const plan = {
+      id: row.id,
+      name: row.name,
+      gfLow: row.gf_low,
+      gfHigh: row.gf_high,
+      descentRate: parseFloat(row.descent_rate),
+      ascentRate: parseFloat(row.ascent_rate),
+      lastStopDepth: row.last_stop_depth,
+      decoStopInterval: row.deco_stop_interval,
+      sacRateBottom: row.sac_rate_bottom ? parseFloat(row.sac_rate_bottom) : 20,
+      sacRateDeco: row.sac_rate_deco ? parseFloat(row.sac_rate_deco) : 15,
+      notes: row.notes,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+      dives: divesResult.rows.map(d => ({
+        id: d.id,
+        diveOrder: d.dive_order,
+        depth: parseFloat(d.depth),
+        bottomTime: d.bottom_time,
+        surfaceInterval: d.surface_interval || 0,
+        notes: d.notes
+      })),
+      gases: gasesResult.rows.map(g => ({
+        id: g.id,
+        name: g.name,
+        o2Percent: parseFloat(g.o2_percent),
+        hePercent: parseFloat(g.he_percent),
+        switchDepth: g.switch_depth ? parseFloat(g.switch_depth) : null,
+        isBottomGas: g.is_bottom_gas,
+        sortOrder: g.sort_order
+      }))
+    };
+
+    res.json(plan);
+  } catch (error) {
+    console.error('Get dive plan error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Create dive plan
+app.post('/api/dive-plans', authenticateToken, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const {
+      name, gfLow, gfHigh, descentRate, ascentRate, lastStopDepth, decoStopInterval,
+      sacRateBottom, sacRateDeco, notes, dives, gases
+    } = req.body;
+
+    if (!name) {
+      return res.status(400).json({ error: 'Plan name is required' });
+    }
+
+    const planResult = await client.query(`
+      INSERT INTO dive_plans (
+        user_id, name, gf_low, gf_high, descent_rate, ascent_rate,
+        last_stop_depth, deco_stop_interval, sac_rate_bottom, sac_rate_deco, notes
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      RETURNING id
+    `, [
+      req.user.id, name, gfLow || 30, gfHigh || 70, descentRate || 20, ascentRate || 10,
+      lastStopDepth || 3, decoStopInterval || 3, sacRateBottom || 20, sacRateDeco || 15, notes || null
+    ]);
+
+    const planId = planResult.rows[0].id;
+
+    if (dives && dives.length > 0) {
+      for (let i = 0; i < dives.length; i++) {
+        const d = dives[i];
+        await client.query(`
+          INSERT INTO dive_plan_dives (dive_plan_id, dive_order, depth, bottom_time, surface_interval, notes)
+          VALUES ($1, $2, $3, $4, $5, $6)
+        `, [planId, i, d.depth, d.bottomTime, d.surfaceInterval || 0, d.notes || null]);
+      }
+    }
+
+    if (gases && gases.length > 0) {
+      for (let i = 0; i < gases.length; i++) {
+        const g = gases[i];
+        await client.query(`
+          INSERT INTO dive_plan_gases (dive_plan_id, name, o2_percent, he_percent, switch_depth, is_bottom_gas, sort_order)
+          VALUES ($1, $2, $3, $4, $5, $6, $7)
+        `, [planId, g.name || null, g.o2Percent || 21, g.hePercent || 0, g.switchDepth || null, g.isBottomGas || false, i]);
+      }
+    }
+
+    await client.query('COMMIT');
+    res.status(201).json({ id: planId, message: 'Dive plan created successfully' });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Create dive plan error:', error);
+    res.status(500).json({ error: 'Server error' });
+  } finally {
+    client.release();
+  }
+});
+
+// Update dive plan
+app.put('/api/dive-plans/:id', authenticateToken, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const { id } = req.params;
+    const {
+      name, gfLow, gfHigh, descentRate, ascentRate, lastStopDepth, decoStopInterval,
+      sacRateBottom, sacRateDeco, notes, dives, gases
+    } = req.body;
+
+    const existingResult = await client.query(
+      'SELECT id FROM dive_plans WHERE id = $1 AND user_id = $2',
+      [id, req.user.id]
+    );
+
+    if (existingResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Dive plan not found' });
+    }
+
+    await client.query(`
+      UPDATE dive_plans SET
+        name = COALESCE($1, name),
+        gf_low = COALESCE($2, gf_low),
+        gf_high = COALESCE($3, gf_high),
+        descent_rate = COALESCE($4, descent_rate),
+        ascent_rate = COALESCE($5, ascent_rate),
+        last_stop_depth = COALESCE($6, last_stop_depth),
+        deco_stop_interval = COALESCE($7, deco_stop_interval),
+        sac_rate_bottom = COALESCE($8, sac_rate_bottom),
+        sac_rate_deco = COALESCE($9, sac_rate_deco),
+        notes = $10
+      WHERE id = $11 AND user_id = $12
+    `, [
+      name, gfLow, gfHigh, descentRate, ascentRate, lastStopDepth, decoStopInterval,
+      sacRateBottom, sacRateDeco, notes || null, id, req.user.id
+    ]);
+
+    if (dives !== undefined) {
+      await client.query('DELETE FROM dive_plan_dives WHERE dive_plan_id = $1', [id]);
+      for (let i = 0; i < dives.length; i++) {
+        const d = dives[i];
+        await client.query(`
+          INSERT INTO dive_plan_dives (dive_plan_id, dive_order, depth, bottom_time, surface_interval, notes)
+          VALUES ($1, $2, $3, $4, $5, $6)
+        `, [id, i, d.depth, d.bottomTime, d.surfaceInterval || 0, d.notes || null]);
+      }
+    }
+
+    if (gases !== undefined) {
+      await client.query('DELETE FROM dive_plan_gases WHERE dive_plan_id = $1', [id]);
+      for (let i = 0; i < gases.length; i++) {
+        const g = gases[i];
+        await client.query(`
+          INSERT INTO dive_plan_gases (dive_plan_id, name, o2_percent, he_percent, switch_depth, is_bottom_gas, sort_order)
+          VALUES ($1, $2, $3, $4, $5, $6, $7)
+        `, [id, g.name || null, g.o2Percent || 21, g.hePercent || 0, g.switchDepth || null, g.isBottomGas || false, i]);
+      }
+    }
+
+    await client.query('COMMIT');
+    res.json({ message: 'Dive plan updated successfully' });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Update dive plan error:', error);
+    res.status(500).json({ error: 'Server error' });
+  } finally {
+    client.release();
+  }
+});
+
+// Delete dive plan
+app.delete('/api/dive-plans/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const result = await pool.query(
+      'DELETE FROM dive_plans WHERE id = $1 AND user_id = $2 RETURNING id',
+      [id, req.user.id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Dive plan not found' });
+    }
+
+    res.json({ message: 'Dive plan deleted successfully' });
+  } catch (error) {
+    console.error('Delete dive plan error:', error);
+    res.status(500).json({ error: 'Server error' });
   }
 });
 
