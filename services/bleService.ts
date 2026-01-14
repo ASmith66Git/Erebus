@@ -175,14 +175,14 @@ class BleService {
         }
 
         const device = await this.manager.connectToDevice(deviceId, {
-          timeout: 15000, // Increased timeout for problematic devices
+          timeout: 20000, // Increased timeout for Android 15 on foldables
           requestMTU: 512,
         });
-        console.log('BLE: Connected, waiting 2000ms before discovery (Shearwater wake-up)...');
+        console.log('BLE: Connected, waiting 3000ms before discovery (Android 15 GATT stability)...');
         
-        // Extended pre-discovery delay for Android GATT stability
-        // Shearwater devices need time to "wake up" the serial service after connection
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        // Extended pre-discovery delay for Android 15 GATT stability
+        // Foldable devices (like Honor Magic V3) need extra time due to antenna handling
+        await new Promise(resolve => setTimeout(resolve, 3000));
         
         // Service discovery with progressive retries
         let discoverySuccess = false;
@@ -246,20 +246,49 @@ class BleService {
         }
         
         if (!discoverySuccess) {
-          // Service not found - disconnect and retry full connection to clear GATT cache
+          // Service not found - try to "ping" the device to force GATT refresh before disconnecting
           if (connectionCycle < maxConnectionAttempts) {
-            console.warn(`BLE: Shearwater service not found, disconnecting to clear GATT cache (cycle ${connectionCycle})`);
+            console.warn(`BLE: Shearwater service not found (cycle ${connectionCycle}), attempting GATT refresh...`);
+            
             try {
-              await device.cancelConnection();
-              // CRITICAL: Wait for Android BLE stack to fully process the disconnect
-              // before attempting reconnection - prevents "Operation cancelled" errors
-              console.log('BLE: Waiting 4s for disconnect to complete before retry...');
-              await new Promise(resolve => setTimeout(resolve, 4000));
-            } catch (e) {
-              // Ignore disconnect errors, but still wait
-              await new Promise(resolve => setTimeout(resolve, 3000));
+              // Try reading RSSI to "ping" the device - this can force GATT table refresh
+              console.log('BLE: Reading RSSI to ping device...');
+              const rssiDevice = await device.readRSSI();
+              console.log('BLE: RSSI read successful:', rssiDevice.rssi);
+              
+              // Wait and try one more discovery after the ping
+              console.log('BLE: Waiting 2s after RSSI ping, then retrying discovery...');
+              await new Promise(resolve => setTimeout(resolve, 2000));
+              
+              await device.discoverAllServicesAndCharacteristics();
+              await new Promise(resolve => setTimeout(resolve, 2000));
+              
+              const retryServices = await device.services();
+              const retryUUIDs = retryServices.map((s: any) => s.uuid.toLowerCase());
+              console.log('BLE: Post-ping services:', retryUUIDs.join(', '));
+              
+              if (retryUUIDs.includes(shearwaterServiceUUID)) {
+                console.log('BLE: Shearwater service found after RSSI ping!');
+                discoverySuccess = true;
+              }
+            } catch (pingError: any) {
+              console.log('BLE: RSSI ping failed:', pingError?.message);
             }
-            continue; // Try another connection cycle
+            
+            if (!discoverySuccess) {
+              // Still not found - disconnect and retry full connection
+              console.warn(`BLE: Service still not found, disconnecting to clear GATT cache...`);
+              try {
+                await device.cancelConnection();
+                // CRITICAL: Wait for Android BLE stack to fully process the disconnect
+                console.log('BLE: Waiting 4s for disconnect to complete before retry...');
+                await new Promise(resolve => setTimeout(resolve, 4000));
+              } catch (e) {
+                // Ignore disconnect errors, but still wait
+                await new Promise(resolve => setTimeout(resolve, 3000));
+              }
+              continue; // Try another connection cycle
+            }
           } else {
             // Final attempt failed - throw error instead of proceeding
             throw new Error('Shearwater service not found after multiple connection attempts. Please ensure your dive computer is in transfer mode and try again.');
