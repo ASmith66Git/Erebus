@@ -18,7 +18,7 @@ import { Ionicons, Feather } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'expo-router';
-import { getApiUrl } from '@/utils/apiConfig';
+import { authFetch } from '@/utils/authFetch';
 
 interface DevLogEntry {
   id: number;
@@ -88,19 +88,17 @@ export default function DevLogScreen() {
   const fetchEntries = useCallback(async () => {
     try {
       setIsLoading(true);
-      let url = `${getApiUrl()}/api/admin/dev-log`;
+      let url = `/api/admin/dev-log`;
       if (filterStatus) {
         url += `?status=${filterStatus}`;
       }
       
-      const response = await fetch(url, {
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
+      const response = await authFetch(url, token);
 
       if (response.ok) {
         const data = await response.json();
         setEntries(data);
-      } else {
+      } else if (response.status !== 401) {
         setError('Failed to load dev log');
       }
     } catch (err) {
@@ -112,9 +110,7 @@ export default function DevLogScreen() {
 
   const fetchPageNames = async () => {
     try {
-      const response = await fetch(`${getApiUrl()}/api/admin/dev-log/page-names`, {
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
+      const response = await authFetch('/api/admin/dev-log/page-names', token);
 
       if (response.ok) {
         const data = await response.json();
@@ -127,9 +123,7 @@ export default function DevLogScreen() {
 
   const fetchStatusCounts = async () => {
     try {
-      const response = await fetch(`${getApiUrl()}/api/admin/dev-log`, {
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
+      const response = await authFetch('/api/admin/dev-log', token);
 
       if (response.ok) {
         const allEntries: DevLogEntry[] = await response.json();
@@ -193,15 +187,12 @@ export default function DevLogScreen() {
 
     try {
       const url = editingEntry 
-        ? `${getApiUrl()}/api/admin/dev-log/${editingEntry.id}`
-        : `${getApiUrl()}/api/admin/dev-log`;
+        ? `/api/admin/dev-log/${editingEntry.id}`
+        : `/api/admin/dev-log`;
       
-      const response = await fetch(url, {
+      const response = await authFetch(url, token, {
         method: editingEntry ? 'PUT' : 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       });
 
@@ -210,7 +201,7 @@ export default function DevLogScreen() {
         fetchEntries();
         fetchPageNames();
         fetchStatusCounts();
-      } else {
+      } else if (response.status !== 401) {
         Alert.alert('Error', 'Failed to save entry');
       }
     } catch (err) {
@@ -229,15 +220,14 @@ export default function DevLogScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              const response = await fetch(`${getApiUrl()}/api/admin/dev-log/${entry.id}`, {
+              const response = await authFetch(`/api/admin/dev-log/${entry.id}`, token, {
                 method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${token}` },
               });
 
               if (response.ok) {
                 fetchEntries();
                 fetchStatusCounts();
-              } else {
+              } else if (response.status !== 401) {
                 Alert.alert('Error', 'Failed to delete entry');
               }
             } catch (err) {

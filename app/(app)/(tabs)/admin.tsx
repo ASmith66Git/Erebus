@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'expo-router';
-import { getApiUrl } from '@/utils/apiConfig';
+import { authFetch } from '@/utils/authFetch';
 import { errorLogger } from '@/services/errorLogger';
 
 interface UserData {
@@ -45,16 +45,12 @@ export default function AdminScreen() {
   async function fetchUsers() {
     try {
       setIsLoading(true);
-      const response = await fetch(`${getApiUrl()}/api/admin/users`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
+      const response = await authFetch('/api/admin/users', token);
 
       if (response.ok) {
         const data = await response.json();
         setUsers(data);
-      } else {
+      } else if (response.status !== 401) {
         setError('Failed to load users');
       }
     } catch (err) {
@@ -79,18 +75,15 @@ export default function AdminScreen() {
     }
 
     try {
-      const response = await fetch(`${getApiUrl()}/api/admin/users/${userId}/role`, {
+      const response = await authFetch(`/api/admin/users/${userId}/role`, token, {
         method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ role: newRole }),
       });
 
       if (response.ok) {
         setUsers(users.map(u => u.id === userId ? { ...u, role: newRole as any } : u));
-      } else {
+      } else if (response.status !== 401) {
         Alert.alert('Error', 'Failed to update user role');
       }
     } catch (err) {
@@ -116,18 +109,15 @@ export default function AdminScreen() {
           style: currentlyBlocked ? 'default' : 'destructive',
           onPress: async () => {
             try {
-              const response = await fetch(`${getApiUrl()}/api/admin/users/${userId}/block`, {
+              const response = await authFetch(`/api/admin/users/${userId}/block`, token, {
                 method: 'PUT',
-                headers: {
-                  'Authorization': `Bearer ${token}`,
-                  'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ blocked: !currentlyBlocked }),
               });
 
               if (response.ok) {
                 setUsers(users.map(u => u.id === userId ? { ...u, isBlocked: !currentlyBlocked } : u));
-              } else {
+              } else if (response.status !== 401) {
                 Alert.alert('Error', `Failed to ${action} user`);
               }
             } catch (err) {
@@ -150,19 +140,16 @@ export default function AdminScreen() {
           onPress: async () => {
             setResetLoading(userData.id);
             try {
-              const response = await fetch(`${getApiUrl()}/api/admin/users/${userData.id}/reset-password`, {
+              const response = await authFetch(`/api/admin/users/${userData.id}/reset-password`, token, {
                 method: 'POST',
-                headers: {
-                  'Authorization': `Bearer ${token}`,
-                  'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
               });
 
               const data = await response.json();
               
               if (response.ok) {
                 Alert.alert('Success', 'Password reset email has been sent to the user');
-              } else {
+              } else if (response.status !== 401) {
                 Alert.alert('Error', data.error || 'Failed to send password reset email');
               }
             } catch (err) {
@@ -192,16 +179,13 @@ export default function AdminScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              const response = await fetch(`${getApiUrl()}/api/admin/users/${userId}`, {
+              const response = await authFetch(`/api/admin/users/${userId}`, token, {
                 method: 'DELETE',
-                headers: {
-                  'Authorization': `Bearer ${token}`,
-                },
               });
 
               if (response.ok) {
                 setUsers(users.filter(u => u.id !== userId));
-              } else {
+              } else if (response.status !== 401) {
                 Alert.alert('Error', 'Failed to delete user');
               }
             } catch (err) {

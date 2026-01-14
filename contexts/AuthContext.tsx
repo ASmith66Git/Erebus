@@ -1,7 +1,8 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import { getApiUrl } from '@/utils/apiConfig';
+import { setLogoutCallback, clearLogoutCallback } from '@/utils/authFetch';
 import notificationService from '@/services/notificationService';
 import biometricService, { BiometricCapability } from '@/services/biometricService';
 
@@ -98,6 +99,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isOfflineSession, setIsOfflineSession] = useState(false);
   const [biometricCapability, setBiometricCapability] = useState<BiometricCapability | null>(null);
   const [isBiometricEnabled, setIsBiometricEnabled] = useState(false);
+  const logoutTriggeredRef = useRef(false);
+
+  const handleAutoLogout = useCallback(async () => {
+    if (logoutTriggeredRef.current) return;
+    logoutTriggeredRef.current = true;
+    
+    console.log('Session expired - auto logging out');
+    try {
+      await clearSession();
+      setToken(null);
+      setUser(null);
+      setIsOfflineSession(false);
+    } catch (error) {
+      console.error('Auto logout error:', error);
+    } finally {
+      logoutTriggeredRef.current = false;
+    }
+  }, []);
+
+  useEffect(() => {
+    setLogoutCallback(handleAutoLogout);
+    return () => {
+      clearLogoutCallback();
+    };
+  }, [handleAutoLogout]);
 
   useEffect(() => {
     loadStoredAuth();
