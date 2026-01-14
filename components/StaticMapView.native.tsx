@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useMemo } from 'react';
+import React, { useEffect, useRef, useState, useMemo, Component, ErrorInfo, ReactNode } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,41 @@ import {
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import Constants from 'expo-constants';
+
+// Error boundary to catch crashes in react-native-maps
+interface MapErrorBoundaryProps {
+  children: ReactNode;
+  fallback: ReactNode;
+  onError?: (error: Error) => void;
+}
+
+interface MapErrorBoundaryState {
+  hasError: boolean;
+}
+
+class MapErrorBoundary extends Component<MapErrorBoundaryProps, MapErrorBoundaryState> {
+  constructor(props: MapErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(_: Error): MapErrorBoundaryState {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error('MapErrorBoundary caught error:', error.message);
+    console.error('Component stack:', errorInfo.componentStack);
+    this.props.onError?.(error);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return this.props.fallback;
+    }
+    return this.props.children;
+  }
+}
 
 interface StaticMapViewProps {
   latitude: number;
@@ -195,37 +230,44 @@ export default function StaticMapView({
     );
   }
 
+  const fallbackButton = (
+    <Pressable
+      style={[styles.fallbackButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
+      onPress={openInGoogleMaps}
+    >
+      <Feather name="map" size={18} color={colors.primary} />
+      <Text style={[styles.openButtonText, { color: colors.primary }]}>View on Google Maps</Text>
+    </Pressable>
+  );
+
   if (!MapView) {
-    return (
-      <Pressable
-        style={[styles.fallbackButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
-        onPress={openInGoogleMaps}
-      >
-        <Feather name="map" size={18} color={colors.primary} />
-        <Text style={[styles.openButtonText, { color: colors.primary }]}>View on Google Maps</Text>
-      </Pressable>
-    );
+    return fallbackButton;
   }
 
   return (
     <View style={styles.container}>
-      <View style={[styles.mapContainer, { borderColor: colors.border }]}>
-        <MapView
-          style={styles.map}
-          initialRegion={{
-            latitude: latitude,
-            longitude: longitude,
-            latitudeDelta: 0.05,
-            longitudeDelta: 0.05,
-          }}
-          scrollEnabled={false}
-          zoomEnabled={false}
-          pitchEnabled={false}
-          rotateEnabled={false}
-        >
-          <Marker coordinate={{ latitude, longitude }} />
-        </MapView>
-      </View>
+      <MapErrorBoundary
+        fallback={fallbackButton}
+        onError={(error) => console.error('Map crashed:', error.message)}
+      >
+        <View style={[styles.mapContainer, { borderColor: colors.border }]}>
+          <MapView
+            style={styles.map}
+            initialRegion={{
+              latitude: latitude,
+              longitude: longitude,
+              latitudeDelta: 0.05,
+              longitudeDelta: 0.05,
+            }}
+            scrollEnabled={false}
+            zoomEnabled={false}
+            pitchEnabled={false}
+            rotateEnabled={false}
+          >
+            <Marker coordinate={{ latitude, longitude }} />
+          </MapView>
+        </View>
+      </MapErrorBoundary>
     </View>
   );
 }

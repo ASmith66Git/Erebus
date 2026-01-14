@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo, Component, ErrorInfo, ReactNode } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,41 @@ import { Feather } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import Constants from 'expo-constants';
 import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
+
+// Error boundary to catch crashes in react-native-maps
+interface MapErrorBoundaryProps {
+  children: ReactNode;
+  fallback: ReactNode;
+  onError?: (error: Error) => void;
+}
+
+interface MapErrorBoundaryState {
+  hasError: boolean;
+}
+
+class MapErrorBoundary extends Component<MapErrorBoundaryProps, MapErrorBoundaryState> {
+  constructor(props: MapErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(_: Error): MapErrorBoundaryState {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error('MapErrorBoundary caught error:', error.message);
+    console.error('Component stack:', errorInfo.componentStack);
+    this.props.onError?.(error);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return this.props.fallback;
+    }
+    return this.props.children;
+  }
+}
 
 interface EmbeddedMapPickerProps {
   latitude: number;
@@ -428,31 +463,69 @@ export default function EmbeddedMapPicker({
         </Pressable>
       </View>
 
-      <View style={[styles.mapContainer, { borderColor: colors.border }]}>
-        <MapView
-          ref={mapRef}
-          style={styles.map}
-          initialRegion={{
-            latitude: latitude || 0,
-            longitude: longitude || 0,
-            latitudeDelta: latitude && longitude ? 0.05 : 50,
-            longitudeDelta: longitude && longitude ? 0.05 : 50,
-          }}
-          onPress={(e: any) => {
-            const { latitude: lat, longitude: lng } = e.nativeEvent.coordinate;
-            handleMarkerChange(lat, lng);
-          }}
-        >
-          <Marker
-            coordinate={markerPosition}
-            draggable
-            onDragEnd={(e: any) => {
+      <MapErrorBoundary
+        fallback={
+          <View style={[styles.fallbackContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Feather name="map-pin" size={32} color={colors.textSecondary} />
+            <Text style={[styles.fallbackText, { color: colors.textSecondary }]}>
+              Map failed to load
+            </Text>
+            <View style={styles.fallbackInputs}>
+              <View style={styles.fallbackInputRow}>
+                <Text style={[styles.fallbackInputLabel, { color: colors.text }]}>Lat:</Text>
+                <TextInput
+                  style={[styles.fallbackInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
+                  value={markerPosition.latitude.toString()}
+                  onChangeText={(v) => {
+                    const lat = parseFloat(v);
+                    if (!isNaN(lat)) handleMarkerChange(lat, markerPosition.longitude);
+                  }}
+                  keyboardType="numeric"
+                />
+              </View>
+              <View style={styles.fallbackInputRow}>
+                <Text style={[styles.fallbackInputLabel, { color: colors.text }]}>Lng:</Text>
+                <TextInput
+                  style={[styles.fallbackInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
+                  value={markerPosition.longitude.toString()}
+                  onChangeText={(v) => {
+                    const lng = parseFloat(v);
+                    if (!isNaN(lng)) handleMarkerChange(markerPosition.latitude, lng);
+                  }}
+                  keyboardType="numeric"
+                />
+              </View>
+            </View>
+          </View>
+        }
+        onError={(error) => console.error('EmbeddedMapPicker crashed:', error.message)}
+      >
+        <View style={[styles.mapContainer, { borderColor: colors.border }]}>
+          <MapView
+            ref={mapRef}
+            style={styles.map}
+            initialRegion={{
+              latitude: latitude || 0,
+              longitude: longitude || 0,
+              latitudeDelta: latitude && longitude ? 0.05 : 50,
+              longitudeDelta: longitude && longitude ? 0.05 : 50,
+            }}
+            onPress={(e: any) => {
               const { latitude: lat, longitude: lng } = e.nativeEvent.coordinate;
               handleMarkerChange(lat, lng);
             }}
-          />
-        </MapView>
-      </View>
+          >
+            <Marker
+              coordinate={markerPosition}
+              draggable
+              onDragEnd={(e: any) => {
+                const { latitude: lat, longitude: lng } = e.nativeEvent.coordinate;
+                handleMarkerChange(lat, lng);
+              }}
+            />
+          </MapView>
+        </View>
+      </MapErrorBoundary>
 
       <View style={styles.coordsRow}>
         <Text style={[styles.coordsLabel, { color: colors.textSecondary }]}>
