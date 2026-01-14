@@ -7,6 +7,23 @@ export interface GasMix {
   switchDepth: number | null;
   modPpo2_14: number;
   modPpo2_16: number;
+  // Cylinder properties
+  cylinderVolume: number; // liters (water capacity)
+  fillPressure: number; // bar
+  reservePressure: number; // bar - minimum reserve
+  cylinderId?: string; // unique identifier for this specific cylinder (for tracking consumption)
+}
+
+export interface GasConsumption {
+  gasId: string; // mix-based id (for legacy compatibility)
+  cylinderId: string; // unique cylinder identifier
+  gasName: string;
+  gasAvailable: number; // liters at surface
+  gasRequired: number; // liters at surface
+  gasRemaining: number; // liters at surface
+  reserveRequired: number; // liters at surface
+  percentUsed: number;
+  isSufficient: boolean;
 }
 
 export interface DiveSegment {
@@ -74,6 +91,7 @@ export interface DivePlanResult {
   otu: number;
   ndl: number | null;
   warnings: string[];
+  gasConsumption: GasConsumption[];
 }
 
 export interface DivePlanInput {
@@ -143,7 +161,15 @@ export function calculateEND(depth: number, gas: GasMix, o2Narcotic: boolean, wa
   return pressureToDepth(equivalentAirPressure, waterType);
 }
 
-export function createGasMix(o2Percent: number, hePercent: number, name?: string): GasMix {
+export function createGasMix(
+  o2Percent: number, 
+  hePercent: number, 
+  name?: string,
+  cylinderVolume: number = 12, // default 12L aluminum
+  fillPressure: number = 200, // default 200 bar
+  reservePressure: number = 50, // default 50 bar reserve
+  cylinderId?: string // unique identifier for this cylinder
+): GasMix {
   const n2Percent = 100 - o2Percent - hePercent;
   const modPpo2_14 = Math.floor(((1.4 / (o2Percent / 100)) - 1) * 10);
   const modPpo2_16 = Math.floor(((1.6 / (o2Percent / 100)) - 1) * 10);
@@ -168,6 +194,10 @@ export function createGasMix(o2Percent: number, hePercent: number, name?: string
     switchDepth: null,
     modPpo2_14,
     modPpo2_16,
+    cylinderVolume,
+    fillPressure,
+    reservePressure,
+    cylinderId,
   };
 }
 
@@ -529,6 +559,96 @@ function calculateSegmentOxygenToxicity(
   };
 }
 
+// Calculate gas consumption for each gas used in the dive
+// Formula: Gas consumed (liters at surface) = SAC rate * time * ambient pressure
+// For varying depth: use average depth
+export function calculateGasConsumption(
+  segments: DiveSegment[],
+  gases: GasMix[],
+  settings: DivePlanSettings
+): GasConsumption[] {
+  // Track gas usage per unique cylinder - use cylinderId if available, otherwise fall back to composition
+  const gasUsage: Map<string, number> = new Map();
+  
+  // Create a unique key for each gas - prefer cylinderId for uniqueness
+  const getGasKey = (gas: GasMix): string => gas.cylinderId || `${gas.name}-${gas.o2Percent}-${gas.hePercent}`;
+  
+  // Initialize all gases with 0 consumption
+  gases.forEach(gas => {
+    gasUsage.set(getGasKey(gas), 0);
+  });
+  
+  // Calculate consumption for each segment
+  segments.forEach(segment => {
+    const avgDepth = (segment.startDepth + segment.endDepth) / 2;
+    const ambientMultiplier = depthToPressure(avgDepth, settings.waterType);
+    
+    // Use bottom SAC for descent and bottom, deco SAC for ascent and stops
+    const sacRate = (segment.type === 'descent' || segment.type === 'bottom') 
+      ? settings.sacRateBottom 
+      : settings.sacRateDeco;
+    
+    // Gas consumption = SAC * time * ambient pressure
+    // CCR uses much less gas (only for bailout/diluent)
+    let gasConsumed: number;
+    if (settings.circuit === 'ccr') {
+      // CCR uses minimal gas - typically just for loop volume and leaks
+      // Approximate 1-2 L/min diluent injection
+      gasConsumed = 1.5 * segment.duration;
+    } else {
+      gasConsumed = sacRate * segment.duration * ambientMultiplier;
+    }
+    
+    // Find matching gas by cylinderId first, then by composition
+    let targetGas = gases.find(g => g.cylinderId && g.cylinderId === segment.gasMix.cylinderId);
+    if (!targetGas) {
+      // Fall back to matching by composition
+      targetGas = gases.find(g => g.o2Percent === segment.gasMix.o2Percent && g.hePercent === segment.gasMix.hePercent);
+    }
+    
+    if (targetGas) {
+      const targetKey = getGasKey(targetGas);
+      gasUsage.set(targetKey, (gasUsage.get(targetKey) || 0) + gasConsumed);
+    }
+  });
+  
+  // Build consumption report for each gas
+  return gases.map(gas => {
+    const gasKey = getGasKey(gas);
+    const gasRequired = gasUsage.get(gasKey) || 0;
+    
+    // Total capacity = cylinder volume * fill pressure (surface liters)
+    const totalCapacity = gas.cylinderVolume * gas.fillPressure;
+    
+    // Reserve = cylinder volume * reserve pressure (surface liters)
+    const reserveRequired = gas.cylinderVolume * gas.reservePressure;
+    
+    // Available = total - reserve (usable gas before hitting reserve)
+    const gasAvailable = totalCapacity - reserveRequired;
+    
+    // Remaining = available - required (what's left above reserve after dive)
+    const gasRemaining = gasAvailable - gasRequired;
+    
+    // Percent used = required / total capacity (for progress bar)
+    const percentUsed = totalCapacity > 0 ? (gasRequired / totalCapacity) * 100 : 0;
+    
+    // Sufficient if we have enough gas above reserve
+    const isSufficient = gasRemaining >= 0;
+    
+    return {
+      gasId: gas.id,
+      cylinderId: gas.cylinderId || gas.id, // Use cylinderId if available, fallback to mix id
+      gasName: gas.name,
+      gasAvailable: Math.round(gasAvailable),
+      gasRequired: Math.round(gasRequired),
+      gasRemaining: Math.round(gasRemaining),
+      reserveRequired: Math.round(reserveRequired),
+      percentUsed: Math.round(percentUsed * 10) / 10,
+      isSufficient,
+    };
+  });
+}
+
 export function calculateDivePlan(input: DivePlanInput): DivePlanResult {
   const { depth, bottomTime, gases, settings, initialTissues, surfaceIntervalMinutes } = input;
   const segments: DiveSegment[] = [];
@@ -692,6 +812,18 @@ export function calculateDivePlan(input: DivePlanInput): DivePlanResult {
       warnings.push(`OTU is ${totalOTU.toFixed(0)} - daily limit warning (>300)`);
     }
     
+    // Calculate gas consumption
+    const gasConsumption = calculateGasConsumption(segments, gases, settings);
+    
+    // Add gas warnings
+    gasConsumption.forEach(gc => {
+      if (!gc.isSufficient) {
+        warnings.push(`DANGER: Insufficient ${gc.gasName} - need ${gc.gasRequired}L but only have ${gc.gasAvailable}L available`);
+      } else if (gc.percentUsed > 80) {
+        warnings.push(`Warning: ${gc.gasName} usage is ${gc.percentUsed}% - low reserve margin`);
+      }
+    });
+    
     return {
       segments,
       decoStops: stops,
@@ -703,6 +835,7 @@ export function calculateDivePlan(input: DivePlanInput): DivePlanResult {
       otu: Math.round(totalOTU * 10) / 10,
       ndl: null,
       warnings,
+      gasConsumption,
     };
   } else {
     const directAscentTime = depth / settings.ascentRate;
@@ -731,6 +864,18 @@ export function calculateDivePlan(input: DivePlanInput): DivePlanResult {
       warnings.push(`OTU is ${totalOTU.toFixed(0)} - daily limit warning (>300)`);
     }
     
+    // Calculate gas consumption
+    const gasConsumption = calculateGasConsumption(segments, gases, settings);
+    
+    // Add gas warnings
+    gasConsumption.forEach(gc => {
+      if (!gc.isSufficient) {
+        warnings.push(`DANGER: Insufficient ${gc.gasName} - need ${gc.gasRequired}L but only have ${gc.gasAvailable}L available`);
+      } else if (gc.percentUsed > 80) {
+        warnings.push(`Warning: ${gc.gasName} usage is ${gc.percentUsed}% - low reserve margin`);
+      }
+    });
+    
     return {
       segments,
       decoStops: [],
@@ -742,6 +887,7 @@ export function calculateDivePlan(input: DivePlanInput): DivePlanResult {
       otu: Math.round(totalOTU * 10) / 10,
       ndl,
       warnings,
+      gasConsumption,
     };
   }
 }

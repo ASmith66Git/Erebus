@@ -10,7 +10,7 @@ import Svg, { Path, Line, Text as SvgText, Rect, G, Circle } from 'react-native-
 import {
   calculateDivePlan, calculateMultiDivePlan, createGasMix, initializeTissues,
   DEFAULT_SETTINGS, GasMix, DivePlanResult, TissueState, DivePlanInput, DivePlanSettings,
-  CircuitType, DecoModel, WaterType, UnitSystem, calculateCNS, calculateOTU
+  CircuitType, DecoModel, WaterType, UnitSystem, calculateCNS, calculateOTU, GasConsumption
 } from '../../services/divePlanner';
 
 const CHART_HEIGHT = 280;
@@ -32,7 +32,20 @@ interface GasEntry {
   hePercent: number;
   switchDepth: number | null;
   isBottomGas: boolean;
+  cylinderVolume: number; // liters
+  fillPressure: number; // bar
+  reservePressure: number; // bar
 }
+
+const CYLINDER_PRESETS = [
+  { label: 'AL80 (11L)', volume: 11, fill: 207 },
+  { label: 'AL100 (13L)', volume: 13, fill: 207 },
+  { label: 'Steel 12L', volume: 12, fill: 232 },
+  { label: 'Steel 15L', volume: 15, fill: 232 },
+  { label: 'Twinset 12L', volume: 24, fill: 232 },
+  { label: 'Stage 7L', volume: 7, fill: 207 },
+  { label: 'Stage 5L', volume: 5, fill: 207 },
+];
 
 const DECO_MODELS: { value: DecoModel; label: string; description: string }[] = [
   { value: 'zhl16a', label: 'ZHL-16A', description: 'Original Buhlmann algorithm' },
@@ -65,7 +78,7 @@ export default function DivePlanningScreen() {
   ]);
 
   const [gases, setGases] = useState<GasEntry[]>([
-    { id: '1', name: 'Air', o2Percent: 21, hePercent: 0, switchDepth: null, isBottomGas: true },
+    { id: '1', name: 'Air', o2Percent: 21, hePercent: 0, switchDepth: null, isBottomGas: true, cylinderVolume: 12, fillPressure: 200, reservePressure: 50 },
   ]);
 
   const [settings, setSettings] = useState<DivePlanSettings>({
@@ -82,7 +95,7 @@ export default function DivePlanningScreen() {
 
   const gasMixes = useMemo(() => {
     return gases.map(g => {
-      const mix = createGasMix(g.o2Percent, g.hePercent, g.name);
+      const mix = createGasMix(g.o2Percent, g.hePercent, g.name, g.cylinderVolume, g.fillPressure, g.reservePressure, g.id);
       mix.switchDepth = g.switchDepth;
       return mix;
     });
@@ -124,7 +137,7 @@ export default function DivePlanningScreen() {
 
   const addGas = () => {
     const newId = String(Date.now());
-    setGases([...gases, { id: newId, name: '', o2Percent: 50, hePercent: 0, switchDepth: 21, isBottomGas: false }]);
+    setGases([...gases, { id: newId, name: '', o2Percent: 50, hePercent: 0, switchDepth: 21, isBottomGas: false, cylinderVolume: 7, fillPressure: 207, reservePressure: 35 }]);
   };
 
   const removeGas = (id: string) => {
@@ -694,59 +707,163 @@ export default function DivePlanningScreen() {
   const renderGasesTab = () => (
     <View style={[styles.section, { backgroundColor: colors.card }]}>
       <View style={styles.sectionHeader}>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>Gas Mixes</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>Gas Mixes & Cylinders</Text>
       </View>
       
-      {gases.map((gas, i) => (
-        <View key={gas.id} style={[styles.gasCard, { borderColor: colors.border }]}>
-          <View style={styles.gasHeader}>
-            <Text style={[styles.gasIndex, { color: colors.primary }]}>
-              {gas.isBottomGas ? 'Bottom Gas' : `Deco Gas ${i}`}
-            </Text>
-            {!gas.isBottomGas && gases.length > 1 && (
-              <TouchableOpacity onPress={() => removeGas(gas.id)}>
-                <Feather name="x" size={18} color={colors.textSecondary} />
-              </TouchableOpacity>
-            )}
-          </View>
-          <View style={styles.gasInputRow}>
-            <View style={styles.gasInputGroup}>
-              <Text style={[styles.gasInputLabel, { color: colors.textSecondary }]}>O2%</Text>
-              <TextInput
-                style={[styles.gasInput, { color: colors.text, borderColor: colors.border }]}
-                value={String(gas.o2Percent)}
-                onChangeText={(v) => updateGas(gas.id, 'o2Percent', parseFloat(v) || 21)}
-                keyboardType="numeric"
-              />
+      {gases.map((gas, i) => {
+        const gasConsumption = currentResult?.gasConsumption?.find(gc => gc.cylinderId === gas.id);
+        const totalGas = gas.cylinderVolume * gas.fillPressure;
+        
+        return (
+          <View key={gas.id} style={[styles.gasCard, { borderColor: colors.border }]}>
+            <View style={styles.gasHeader}>
+              <Text style={[styles.gasIndex, { color: colors.primary }]}>
+                {gas.isBottomGas ? 'Bottom Gas' : `Deco Gas ${i}`}
+              </Text>
+              {!gas.isBottomGas && gases.length > 1 && (
+                <TouchableOpacity onPress={() => removeGas(gas.id)}>
+                  <Feather name="x" size={18} color={colors.textSecondary} />
+                </TouchableOpacity>
+              )}
             </View>
-            <View style={styles.gasInputGroup}>
-              <Text style={[styles.gasInputLabel, { color: colors.textSecondary }]}>He%</Text>
-              <TextInput
-                style={[styles.gasInput, { color: colors.text, borderColor: colors.border }]}
-                value={String(gas.hePercent)}
-                onChangeText={(v) => updateGas(gas.id, 'hePercent', parseFloat(v) || 0)}
-                keyboardType="numeric"
-              />
-            </View>
-            {!gas.isBottomGas && (
+            
+            {/* Gas Mix Row */}
+            <View style={styles.gasInputRow}>
               <View style={styles.gasInputGroup}>
-                <Text style={[styles.gasInputLabel, { color: colors.textSecondary }]}>Switch@</Text>
+                <Text style={[styles.gasInputLabel, { color: colors.textSecondary }]}>O2%</Text>
                 <TextInput
                   style={[styles.gasInput, { color: colors.text, borderColor: colors.border }]}
-                  value={gas.switchDepth !== null ? String(gas.switchDepth) : ''}
-                  onChangeText={(v) => updateGas(gas.id, 'switchDepth', v ? parseFloat(v) : null)}
+                  value={String(gas.o2Percent)}
+                  onChangeText={(v) => updateGas(gas.id, 'o2Percent', parseFloat(v) || 21)}
                   keyboardType="numeric"
-                  placeholder={depthUnit}
-                  placeholderTextColor={colors.textSecondary}
                 />
+              </View>
+              <View style={styles.gasInputGroup}>
+                <Text style={[styles.gasInputLabel, { color: colors.textSecondary }]}>He%</Text>
+                <TextInput
+                  style={[styles.gasInput, { color: colors.text, borderColor: colors.border }]}
+                  value={String(gas.hePercent)}
+                  onChangeText={(v) => updateGas(gas.id, 'hePercent', parseFloat(v) || 0)}
+                  keyboardType="numeric"
+                />
+              </View>
+              {!gas.isBottomGas && (
+                <View style={styles.gasInputGroup}>
+                  <Text style={[styles.gasInputLabel, { color: colors.textSecondary }]}>Switch@</Text>
+                  <TextInput
+                    style={[styles.gasInput, { color: colors.text, borderColor: colors.border }]}
+                    value={gas.switchDepth !== null ? String(gas.switchDepth) : ''}
+                    onChangeText={(v) => updateGas(gas.id, 'switchDepth', v ? parseFloat(v) : null)}
+                    keyboardType="numeric"
+                    placeholder={depthUnit}
+                    placeholderTextColor={colors.textSecondary}
+                  />
+                </View>
+              )}
+            </View>
+            
+            {/* Cylinder Presets */}
+            <View style={styles.cylinderPresetsRow}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                {CYLINDER_PRESETS.map(preset => (
+                  <TouchableOpacity
+                    key={preset.label}
+                    style={[
+                      styles.cylinderPreset,
+                      { borderColor: colors.border },
+                      gas.cylinderVolume === preset.volume && gas.fillPressure === preset.fill && 
+                        { backgroundColor: colors.primary + '20', borderColor: colors.primary }
+                    ]}
+                    onPress={() => {
+                      updateGas(gas.id, 'cylinderVolume', preset.volume);
+                      updateGas(gas.id, 'fillPressure', preset.fill);
+                    }}
+                  >
+                    <Text style={[styles.cylinderPresetText, { color: colors.text }]}>{preset.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+            
+            {/* Cylinder Details Row */}
+            <View style={styles.gasInputRow}>
+              <View style={styles.gasInputGroup}>
+                <Text style={[styles.gasInputLabel, { color: colors.textSecondary }]}>Volume (L)</Text>
+                <TextInput
+                  style={[styles.gasInput, { color: colors.text, borderColor: colors.border }]}
+                  value={String(gas.cylinderVolume)}
+                  onChangeText={(v) => updateGas(gas.id, 'cylinderVolume', parseFloat(v) || 12)}
+                  keyboardType="numeric"
+                />
+              </View>
+              <View style={styles.gasInputGroup}>
+                <Text style={[styles.gasInputLabel, { color: colors.textSecondary }]}>Fill (bar)</Text>
+                <TextInput
+                  style={[styles.gasInput, { color: colors.text, borderColor: colors.border }]}
+                  value={String(gas.fillPressure)}
+                  onChangeText={(v) => updateGas(gas.id, 'fillPressure', parseFloat(v) || 200)}
+                  keyboardType="numeric"
+                />
+              </View>
+              <View style={styles.gasInputGroup}>
+                <Text style={[styles.gasInputLabel, { color: colors.textSecondary }]}>Reserve (bar)</Text>
+                <TextInput
+                  style={[styles.gasInput, { color: colors.text, borderColor: colors.border }]}
+                  value={String(gas.reservePressure)}
+                  onChangeText={(v) => updateGas(gas.id, 'reservePressure', parseFloat(v) || 50)}
+                  keyboardType="numeric"
+                />
+              </View>
+            </View>
+            
+            {/* Gas Stats */}
+            <View style={styles.gasStatsRow}>
+              <Text style={[styles.gasMod, { color: colors.textSecondary }]}>
+                MOD: {Math.floor(((1.4 / (gas.o2Percent / 100)) - 1) * 10)}{depthUnit} (1.4) / {Math.floor(((1.6 / (gas.o2Percent / 100)) - 1) * 10)}{depthUnit} (1.6)
+              </Text>
+              <Text style={[styles.gasMod, { color: colors.textSecondary }]}>
+                Total: {totalGas}L
+              </Text>
+            </View>
+            
+            {/* Gas Consumption Display */}
+            {gasConsumption && (
+              <View style={[styles.gasConsumptionBar, { backgroundColor: colors.background }]}>
+                <View style={styles.gasConsumptionLabels}>
+                  <Text style={[styles.gasConsumptionText, { color: colors.text }]}>
+                    Required: {gasConsumption.gasRequired}L
+                  </Text>
+                  <Text style={[
+                    styles.gasConsumptionText, 
+                    { color: gasConsumption.isSufficient ? colors.success : colors.danger }
+                  ]}>
+                    {gasConsumption.isSufficient ? `Remaining: ${gasConsumption.gasRemaining}L` : 'INSUFFICIENT'}
+                  </Text>
+                </View>
+                <View style={[styles.consumptionTrack, { backgroundColor: colors.border }]}>
+                  <View 
+                    style={[
+                      styles.consumptionFill, 
+                      { 
+                        width: `${Math.min(gasConsumption.percentUsed, 100)}%`,
+                        backgroundColor: gasConsumption.percentUsed > 80 
+                          ? (gasConsumption.isSufficient ? colors.warning : colors.danger) 
+                          : colors.success 
+                      }
+                    ]} 
+                  />
+                  <View 
+                    style={[
+                      styles.reserveMarker,
+                      { left: `${100 - (gas.reservePressure / gas.fillPressure * 100)}%`, backgroundColor: colors.warning }
+                    ]}
+                  />
+                </View>
               </View>
             )}
           </View>
-          <Text style={[styles.gasMod, { color: colors.textSecondary }]}>
-            MOD: {Math.floor(((1.4 / (gas.o2Percent / 100)) - 1) * 10)}{depthUnit} (1.4) / {Math.floor(((1.6 / (gas.o2Percent / 100)) - 1) * 10)}{depthUnit} (1.6)
-          </Text>
-        </View>
-      ))}
+        );
+      })}
       <TouchableOpacity onPress={addGas} style={[styles.addGasButton, { borderColor: colors.primary }]}>
         <Feather name="plus" size={16} color={colors.primary} />
         <Text style={[styles.addGasText, { color: colors.primary }]}>Add Deco Gas</Text>
@@ -1172,4 +1289,45 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   scrubberActionText: { color: '#FFF', fontSize: 14, fontWeight: '500' },
+  cylinderPresetsRow: { marginVertical: 8 },
+  cylinderPreset: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderRadius: 16,
+    marginRight: 8,
+  },
+  cylinderPresetText: { fontSize: 12 },
+  gasStatsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 8,
+  },
+  gasConsumptionBar: {
+    marginTop: 12,
+    padding: 8,
+    borderRadius: 8,
+  },
+  gasConsumptionLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  gasConsumptionText: { fontSize: 12, fontWeight: '500' },
+  consumptionTrack: {
+    height: 8,
+    borderRadius: 4,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  consumptionFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  reserveMarker: {
+    position: 'absolute',
+    top: 0,
+    width: 2,
+    height: '100%',
+  },
 });
