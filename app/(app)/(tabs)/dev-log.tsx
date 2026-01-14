@@ -71,6 +71,7 @@ export default function DevLogScreen() {
   const [filterStatus, setFilterStatus] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [toastVisible, setToastVisible] = useState(false);
+  const [statusCounts, setStatusCounts] = useState<{ todo: number; in_progress: number; completed: number }>({ todo: 0, in_progress: 0, completed: 0 });
 
   useEffect(() => {
     if (!isAdmin) {
@@ -79,6 +80,7 @@ export default function DevLogScreen() {
     }
     fetchEntries();
     fetchPageNames();
+    fetchStatusCounts();
   }, [isAdmin]);
 
   const fetchEntries = useCallback(async () => {
@@ -118,6 +120,27 @@ export default function DevLogScreen() {
       }
     } catch (err) {
       console.error('Failed to fetch page names:', err);
+    }
+  };
+
+  const fetchStatusCounts = async () => {
+    try {
+      const response = await fetch(`${getApiUrl()}/api/admin/dev-log`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+
+      if (response.ok) {
+        const allEntries: DevLogEntry[] = await response.json();
+        const counts = { todo: 0, in_progress: 0, completed: 0 };
+        allEntries.forEach(entry => {
+          if (entry.status in counts) {
+            counts[entry.status]++;
+          }
+        });
+        setStatusCounts(counts);
+      }
+    } catch (err) {
+      console.error('Failed to fetch status counts:', err);
     }
   };
 
@@ -178,6 +201,7 @@ export default function DevLogScreen() {
         setModalVisible(false);
         fetchEntries();
         fetchPageNames();
+        fetchStatusCounts();
       } else {
         Alert.alert('Error', 'Failed to save entry');
       }
@@ -204,6 +228,7 @@ export default function DevLogScreen() {
 
               if (response.ok) {
                 fetchEntries();
+                fetchStatusCounts();
               } else {
                 Alert.alert('Error', 'Failed to delete entry');
               }
@@ -363,6 +388,9 @@ Please help me with this development task.`;
             <Text style={[styles.filterChipText, { color: filterStatus === null ? '#FFFFFF' : colors.text }]}>
               All
             </Text>
+            <View style={[styles.badge, { backgroundColor: filterStatus === null ? 'rgba(255,255,255,0.3)' : colors.primary }]}>
+              <Text style={styles.badgeText}>{statusCounts.todo + statusCounts.in_progress + statusCounts.completed}</Text>
+            </View>
           </Pressable>
           {Object.entries(STATUS_COLORS).map(([key, config]) => (
             <Pressable
@@ -376,6 +404,9 @@ Please help me with this development task.`;
               <Text style={[styles.filterChipText, { color: filterStatus === key ? config.text : colors.text }]}>
                 {config.label}
               </Text>
+              <View style={[styles.badge, { backgroundColor: filterStatus === key ? 'rgba(255,255,255,0.3)' : config.bg }]}>
+                <Text style={styles.badgeText}>{statusCounts[key as keyof typeof statusCounts]}</Text>
+              </View>
             </Pressable>
           ))}
         </ScrollView>
@@ -623,15 +654,31 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   filterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
     borderWidth: 1,
     marginRight: 6,
+    gap: 6,
   },
   filterChipText: {
     fontSize: 12,
     fontWeight: '500',
+  },
+  badge: {
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 6,
+  },
+  badgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
   scrollView: {
     flex: 1,
