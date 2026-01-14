@@ -146,7 +146,7 @@ export default function DevLogScreen() {
     if (token) {
       fetchEntries();
     }
-  }, [filterStatus, token, fetchEntries]);
+  }, [token, fetchEntries]);
 
   const openAddModal = () => {
     setEditingEntry(null);
