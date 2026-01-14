@@ -37,14 +37,23 @@ interface GasEntry {
   reservePressure: number; // bar
 }
 
+// Cylinder presets with volume in liters and fill in bar (220 bar standard)
 const CYLINDER_PRESETS = [
-  { label: 'AL80 (11L)', volume: 11, fill: 207 },
-  { label: 'AL100 (13L)', volume: 13, fill: 207 },
-  { label: 'Steel 12L', volume: 12, fill: 232 },
-  { label: 'Steel 15L', volume: 15, fill: 232 },
-  { label: 'Twinset 12L', volume: 24, fill: 232 },
-  { label: 'Stage 7L', volume: 7, fill: 207 },
-  { label: 'Stage 5L', volume: 5, fill: 207 },
+  { label: 'Aluminum 80 (AL80)', volumeL: 11.1, fillBar: 220, volumeCuft: 80 },
+  { label: 'Aluminum 63 (AL63)', volumeL: 8.9, fillBar: 220, volumeCuft: 63 },
+  { label: 'Aluminum 100 (AL100)', volumeL: 12.9, fillBar: 220, volumeCuft: 100 },
+  { label: 'Steel 80 (HP80)', volumeL: 10.2, fillBar: 220, volumeCuft: 80 },
+  { label: 'Steel 100 (HP100)', volumeL: 12.7, fillBar: 220, volumeCuft: 100 },
+  { label: 'Steel 120 (HP120)', volumeL: 15.3, fillBar: 220, volumeCuft: 120 },
+  { label: 'Steel 12L', volumeL: 12, fillBar: 220, volumeCuft: 85 },
+  { label: 'Steel 15L', volumeL: 15, fillBar: 220, volumeCuft: 106 },
+  { label: 'Twinset 12L x2', volumeL: 24, fillBar: 220, volumeCuft: 170 },
+  { label: 'Twinset 15L x2', volumeL: 30, fillBar: 220, volumeCuft: 212 },
+  { label: 'Stage AL40', volumeL: 5.7, fillBar: 220, volumeCuft: 40 },
+  { label: 'Stage AL30', volumeL: 4.0, fillBar: 220, volumeCuft: 30 },
+  { label: 'Stage Steel 7L', volumeL: 7, fillBar: 220, volumeCuft: 50 },
+  { label: 'Pony AL13', volumeL: 1.9, fillBar: 220, volumeCuft: 13 },
+  { label: 'Custom', volumeL: 12, fillBar: 220, volumeCuft: 85 },
 ];
 
 const DECO_MODELS: { value: DecoModel; label: string; description: string }[] = [
@@ -78,8 +87,9 @@ export default function DivePlanningScreen() {
   ]);
 
   const [gases, setGases] = useState<GasEntry[]>([
-    { id: '1', name: 'Air', o2Percent: 21, hePercent: 0, switchDepth: null, isBottomGas: true, cylinderVolume: 12, fillPressure: 200, reservePressure: 50 },
+    { id: '1', name: 'Air', o2Percent: 21, hePercent: 0, switchDepth: null, isBottomGas: true, cylinderVolume: 11.1, fillPressure: 220, reservePressure: 50 },
   ]);
+  const [showCylinderDropdown, setShowCylinderDropdown] = useState<string | null>(null);
 
   const [settings, setSettings] = useState<DivePlanSettings>({
     ...DEFAULT_SETTINGS,
@@ -762,55 +772,116 @@ export default function DivePlanningScreen() {
               )}
             </View>
             
-            {/* Cylinder Presets */}
-            <View style={styles.cylinderPresetsRow}>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                {CYLINDER_PRESETS.map(preset => (
-                  <TouchableOpacity
-                    key={preset.label}
-                    style={[
-                      styles.cylinderPreset,
-                      { borderColor: colors.border },
-                      gas.cylinderVolume === preset.volume && gas.fillPressure === preset.fill && 
-                        { backgroundColor: colors.primary + '20', borderColor: colors.primary }
-                    ]}
-                    onPress={() => {
-                      updateGas(gas.id, 'cylinderVolume', preset.volume);
-                      updateGas(gas.id, 'fillPressure', preset.fill);
-                    }}
-                  >
-                    <Text style={[styles.cylinderPresetText, { color: colors.text }]}>{preset.label}</Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
+            {/* Cylinder Type Dropdown */}
+            <View style={styles.cylinderDropdownContainer}>
+              <Text style={[styles.gasInputLabel, { color: colors.textSecondary }]}>Cylinder Type</Text>
+              <TouchableOpacity
+                style={[styles.cylinderDropdownButton, { borderColor: colors.border, backgroundColor: colors.background }]}
+                onPress={() => setShowCylinderDropdown(showCylinderDropdown === gas.id ? null : gas.id)}
+              >
+                <Text style={[styles.cylinderDropdownText, { color: colors.text }]}>
+                  {CYLINDER_PRESETS.find(p => 
+                    Math.abs(p.volumeL - gas.cylinderVolume) < 0.5 && Math.abs(p.fillBar - gas.fillPressure) < 10
+                  )?.label || 'Custom'}
+                </Text>
+                <Feather name={showCylinderDropdown === gas.id ? "chevron-up" : "chevron-down"} size={18} color={colors.textSecondary} />
+              </TouchableOpacity>
+              
+              {showCylinderDropdown === gas.id && (
+                <View style={[styles.cylinderDropdownList, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                  <ScrollView style={{ maxHeight: 200 }} nestedScrollEnabled>
+                    {CYLINDER_PRESETS.map(preset => (
+                      <TouchableOpacity
+                        key={preset.label}
+                        style={[
+                          styles.cylinderDropdownItem,
+                          { borderBottomColor: colors.border },
+                          Math.abs(preset.volumeL - gas.cylinderVolume) < 0.5 && Math.abs(preset.fillBar - gas.fillPressure) < 10 &&
+                            { backgroundColor: colors.primary + '15' }
+                        ]}
+                        onPress={() => {
+                          updateGas(gas.id, 'cylinderVolume', preset.volumeL);
+                          updateGas(gas.id, 'fillPressure', preset.fillBar);
+                          setShowCylinderDropdown(null);
+                        }}
+                      >
+                        <Text style={[styles.cylinderDropdownItemText, { color: colors.text }]}>{preset.label}</Text>
+                        <Text style={[styles.cylinderDropdownItemSub, { color: colors.textSecondary }]}>
+                          {settings.units === 'imperial' 
+                            ? `${preset.volumeCuft} cu ft @ ${Math.round(preset.fillBar * 14.5)} PSI`
+                            : `${preset.volumeL}L @ ${preset.fillBar} bar`
+                          }
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+              )}
             </View>
             
             {/* Cylinder Details Row */}
             <View style={styles.gasInputRow}>
               <View style={styles.gasInputGroup}>
-                <Text style={[styles.gasInputLabel, { color: colors.textSecondary }]}>Volume (L)</Text>
+                <Text style={[styles.gasInputLabel, { color: colors.textSecondary }]}>
+                  {settings.units === 'imperial' ? 'Volume (cu ft)' : 'Volume (L)'}
+                </Text>
                 <TextInput
                   style={[styles.gasInput, { color: colors.text, borderColor: colors.border }]}
-                  value={String(gas.cylinderVolume)}
-                  onChangeText={(v) => updateGas(gas.id, 'cylinderVolume', parseFloat(v) || 12)}
+                  value={String(settings.units === 'imperial' 
+                    ? Math.round(gas.cylinderVolume * gas.fillPressure / 28.3)
+                    : Math.round(gas.cylinderVolume * 10) / 10
+                  )}
+                  onChangeText={(v) => {
+                    const val = parseFloat(v) || 12;
+                    if (settings.units === 'imperial') {
+                      // Convert cu ft to liters (cu ft = L * bar / 28.3)
+                      updateGas(gas.id, 'cylinderVolume', Math.round((val * 28.3 / gas.fillPressure) * 10) / 10);
+                    } else {
+                      updateGas(gas.id, 'cylinderVolume', val);
+                    }
+                  }}
                   keyboardType="numeric"
                 />
               </View>
               <View style={styles.gasInputGroup}>
-                <Text style={[styles.gasInputLabel, { color: colors.textSecondary }]}>Fill (bar)</Text>
+                <Text style={[styles.gasInputLabel, { color: colors.textSecondary }]}>
+                  {settings.units === 'imperial' ? 'Fill (PSI)' : 'Fill (bar)'}
+                </Text>
                 <TextInput
                   style={[styles.gasInput, { color: colors.text, borderColor: colors.border }]}
-                  value={String(gas.fillPressure)}
-                  onChangeText={(v) => updateGas(gas.id, 'fillPressure', parseFloat(v) || 200)}
+                  value={String(settings.units === 'imperial'
+                    ? Math.round(gas.fillPressure * 14.5)
+                    : gas.fillPressure
+                  )}
+                  onChangeText={(v) => {
+                    const val = parseFloat(v) || 220;
+                    if (settings.units === 'imperial') {
+                      updateGas(gas.id, 'fillPressure', Math.round(val / 14.5));
+                    } else {
+                      updateGas(gas.id, 'fillPressure', val);
+                    }
+                  }}
                   keyboardType="numeric"
                 />
               </View>
               <View style={styles.gasInputGroup}>
-                <Text style={[styles.gasInputLabel, { color: colors.textSecondary }]}>Reserve (bar)</Text>
+                <Text style={[styles.gasInputLabel, { color: colors.textSecondary }]}>
+                  {settings.units === 'imperial' ? 'Reserve (PSI)' : 'Reserve (bar)'}
+                </Text>
                 <TextInput
                   style={[styles.gasInput, { color: colors.text, borderColor: colors.border }]}
-                  value={String(gas.reservePressure)}
-                  onChangeText={(v) => updateGas(gas.id, 'reservePressure', parseFloat(v) || 50)}
+                  value={String(settings.units === 'imperial'
+                    ? Math.round(gas.reservePressure * 14.5)
+                    : gas.reservePressure
+                  )}
+                  onChangeText={(v) => {
+                    const val = parseFloat(v) || 50;
+                    if (settings.units === 'imperial') {
+                      updateGas(gas.id, 'reservePressure', Math.round(val / 14.5));
+                    } else {
+                      updateGas(gas.id, 'reservePressure', val);
+                    }
+                  }}
                   keyboardType="numeric"
                 />
               </View>
@@ -1289,15 +1360,39 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   scrubberActionText: { color: '#FFF', fontSize: 14, fontWeight: '500' },
-  cylinderPresetsRow: { marginVertical: 8 },
-  cylinderPreset: {
+  cylinderDropdownContainer: { marginVertical: 8 },
+  cylinderDropdownButton: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingVertical: 10,
     borderWidth: 1,
-    borderRadius: 16,
-    marginRight: 8,
+    borderRadius: 8,
+    marginTop: 4,
   },
-  cylinderPresetText: { fontSize: 12 },
+  cylinderDropdownText: { fontSize: 14 },
+  cylinderDropdownList: {
+    position: 'absolute',
+    top: 58,
+    left: 0,
+    right: 0,
+    borderWidth: 1,
+    borderRadius: 8,
+    zIndex: 100,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+  },
+  cylinderDropdownItem: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+  },
+  cylinderDropdownItemText: { fontSize: 14, fontWeight: '500' },
+  cylinderDropdownItemSub: { fontSize: 12, marginTop: 2 },
   gasStatsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
