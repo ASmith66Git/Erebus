@@ -1539,7 +1539,7 @@ export default function DiveSiteDetailScreen() {
       {isEditing ? (
         <>
           <View style={styles.formGroup}>
-            <Text style={[styles.formLabel, { color: colors.text }]}>Access Notes</Text>
+            <Text style={[styles.formLabel, { color: colors.text }]}>Notes</Text>
             <TextInput
               style={[styles.formInput, styles.textArea, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
               value={editedSite.accessNotes || ''}
@@ -1555,7 +1555,7 @@ export default function DiveSiteDetailScreen() {
         <>
           {displaySite?.accessNotes && (
             <View style={styles.section}>
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>Access Notes</Text>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>Notes</Text>
               <Text style={[styles.description, { color: colors.textSecondary }]}>{displaySite.accessNotes}</Text>
             </View>
           )}
