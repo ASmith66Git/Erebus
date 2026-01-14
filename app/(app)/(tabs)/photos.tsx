@@ -131,7 +131,7 @@ export default function PhotosScreen() {
     
     try {
       for (const asset of assets) {
-        console.log('Step 1: Requesting upload URL...');
+        console.log('Step 1: Requesting upload URL...', 'Token exists:', !!token, 'Token length:', token?.length);
         const urlResponse = await fetch(`${getApiUrl()}/api/uploads/request-url`, {
           method: 'POST',
           headers: {
