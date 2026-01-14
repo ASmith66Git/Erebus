@@ -102,6 +102,8 @@ export default function DivePlanningScreen() {
   const [tissueChartWidth, setTissueChartWidth] = useState(300);
   const [showScrubberModal, setShowScrubberModal] = useState(false);
   const [scrubberElapsed, setScrubberElapsed] = useState(0);
+  const [chartScrubberTime, setChartScrubberTime] = useState<number | null>(null);
+  const [showChartPopup, setShowChartPopup] = useState(false);
 
   const gasMixes = useMemo(() => {
     return gases.map(g => {
@@ -282,6 +284,68 @@ export default function DivePlanningScreen() {
     </View>
   );
 
+  // Get values at a specific time point for the chart scrubber popup
+  const getValuesAtTime = useCallback((time: number) => {
+    if (!currentResult || currentResult.segments.length === 0) return null;
+    
+    let elapsedTime = 0;
+    let currentDepth = 0;
+    let currentGas = currentResult.segments[0]?.gasMix;
+    let segmentType = '';
+    
+    // Find the segment and interpolate depth at this time
+    for (const segment of currentResult.segments) {
+      const segmentEnd = elapsedTime + segment.duration;
+      if (time <= segmentEnd) {
+        const progress = segment.duration > 0 ? (time - elapsedTime) / segment.duration : 0;
+        currentDepth = segment.startDepth + (segment.endDepth - segment.startDepth) * progress;
+        currentGas = segment.gasMix;
+        segmentType = segment.type;
+        break;
+      }
+      elapsedTime = segmentEnd;
+      currentDepth = segment.endDepth;
+      currentGas = segment.gasMix;
+      segmentType = segment.type;
+    }
+    
+    // Get tissue loading at this time (approximate from history)
+    const historyIndex = Math.min(
+      Math.floor((time / currentResult.totalRunTime) * (currentResult.tissueHistory.length - 1)),
+      currentResult.tissueHistory.length - 1
+    );
+    const tissues = currentResult.tissueHistory[Math.max(0, historyIndex)] || [];
+    
+    // Calculate approximate CNS/OTU at this point (linear interpolation)
+    const progress = currentResult.totalRunTime > 0 ? time / currentResult.totalRunTime : 0;
+    const cnsAtTime = Math.round(currentResult.totalCNS * progress);
+    const otuAtTime = Math.round(currentResult.totalOTU * progress);
+    
+    // Calculate ceiling at this depth
+    const maxTissueM = Math.max(...tissues.map(t => t.ppInert - t.mValue), 0);
+    const ceilingDepth = Math.max(0, maxTissueM);
+    
+    return {
+      time: Math.round(time * 10) / 10,
+      depth: Math.round(currentDepth * 10) / 10,
+      gas: currentGas?.name || 'Unknown',
+      o2Percent: currentGas?.o2Percent || 21,
+      hePercent: currentGas?.hePercent || 0,
+      segmentType,
+      cns: cnsAtTime,
+      otu: otuAtTime,
+      tissues,
+      ceiling: Math.round(ceilingDepth * 10) / 10,
+    };
+  }, [currentResult]);
+
+  const handleChartTouch = useCallback((event: any, chartW: number, padding: { left: number }, totalTime: number) => {
+    const locationX = event.nativeEvent.locationX - padding.left;
+    const time = Math.max(0, Math.min((locationX / chartW) * totalTime, totalTime));
+    setChartScrubberTime(time);
+    setShowChartPopup(true);
+  }, []);
+
   const renderDiveProfileChart = () => {
     if (!currentResult || currentResult.segments.length === 0) {
       return (
@@ -418,30 +482,123 @@ export default function DivePlanningScreen() {
       />
     ));
 
+    // Scrubber position
+    const scrubberX = chartScrubberTime !== null 
+      ? padding.left + (chartScrubberTime / totalTime) * chartW 
+      : null;
+    const scrubberValues = chartScrubberTime !== null ? getValuesAtTime(chartScrubberTime) : null;
+    const scrubberDepthY = scrubberValues 
+      ? padding.top + (scrubberValues.depth / maxDepth) * chartH 
+      : null;
+
     return (
       <View 
         style={[styles.chartContainer, { backgroundColor: colors.card }]}
         onLayout={(e) => setChartWidth(e.nativeEvent.layout.width - 32)}
       >
-        <Text style={[styles.chartTitle, { color: colors.text }]}>Dive Profile with Tissue Loading</Text>
-        <Svg width={chartWidth} height={CHART_HEIGHT}>
-          <Rect x={padding.left} y={padding.top} width={chartW} height={chartH} fill={isDark ? '#1A1A1C' : '#F5F5F7'} />
-          {depthGridLines}
-          {timeLabels}
-          <G transform={`translate(${padding.left}, ${padding.top})`}>
-            {tissueLines}
-            <Path d={depthPathD} stroke={colors.primary} strokeWidth={2.5} fill="none" />
-            {decoStopMarkers}
-          </G>
-          {depthLabels}
-          <SvgText x={padding.left + chartW / 2} y={CHART_HEIGHT - 2} fontSize={10} fill={colors.textSecondary} textAnchor="middle">
-            Time (min)
-          </SvgText>
-          <Line x1={padding.left} y1={padding.top} x2={padding.left} y2={padding.top + chartH} stroke={colors.border} strokeWidth={1} />
-          <Line x1={padding.left} y1={padding.top + chartH} x2={padding.left + chartW} y2={padding.top + chartH} stroke={colors.border} strokeWidth={1} />
-        </Svg>
+        <View style={styles.chartHeaderRow}>
+          <Text style={[styles.chartTitle, { color: colors.text }]}>Dive Profile</Text>
+          <View style={styles.chartStatsRow}>
+            <View style={[styles.chartStatBadge, { backgroundColor: colors.warning + '20' }]}>
+              <Text style={[styles.chartStatLabel, { color: colors.warning }]}>CNS</Text>
+              <Text style={[styles.chartStatValue, { color: colors.warning }]}>{currentResult.totalCNS}%</Text>
+            </View>
+            <View style={[styles.chartStatBadge, { backgroundColor: colors.accent + '20' }]}>
+              <Text style={[styles.chartStatLabel, { color: colors.accent }]}>OTU</Text>
+              <Text style={[styles.chartStatValue, { color: colors.accent }]}>{currentResult.totalOTU}</Text>
+            </View>
+          </View>
+        </View>
+        
+        <View 
+          style={{ position: 'relative' }}
+          onTouchStart={(e) => handleChartTouch(e, chartW, padding, totalTime)}
+          onTouchMove={(e) => handleChartTouch(e, chartW, padding, totalTime)}
+          onTouchEnd={() => setShowChartPopup(false)}
+          onStartShouldSetResponder={() => true}
+          onMoveShouldSetResponder={() => true}
+        >
+          <Svg width={chartWidth} height={CHART_HEIGHT}>
+            <Rect x={padding.left} y={padding.top} width={chartW} height={chartH} fill={isDark ? '#1A1A1C' : '#F5F5F7'} />
+            {depthGridLines}
+            {timeLabels}
+            <G transform={`translate(${padding.left}, ${padding.top})`}>
+              {tissueLines}
+              <Path d={depthPathD} stroke={colors.primary} strokeWidth={2.5} fill="none" />
+              {decoStopMarkers}
+            </G>
+            {depthLabels}
+            <SvgText x={padding.left + chartW / 2} y={CHART_HEIGHT - 2} fontSize={10} fill={colors.textSecondary} textAnchor="middle">
+              Time (min)
+            </SvgText>
+            <Line x1={padding.left} y1={padding.top} x2={padding.left} y2={padding.top + chartH} stroke={colors.border} strokeWidth={1} />
+            <Line x1={padding.left} y1={padding.top + chartH} x2={padding.left + chartW} y2={padding.top + chartH} stroke={colors.border} strokeWidth={1} />
+            
+            {/* Scrubber line */}
+            {scrubberX !== null && showChartPopup && (
+              <>
+                <Line 
+                  x1={scrubberX} 
+                  y1={padding.top} 
+                  x2={scrubberX} 
+                  y2={padding.top + chartH} 
+                  stroke={colors.accent} 
+                  strokeWidth={2} 
+                  strokeDasharray="4,2"
+                />
+                {scrubberDepthY !== null && (
+                  <Circle cx={scrubberX} cy={scrubberDepthY} r={6} fill={colors.primary} stroke="#FFF" strokeWidth={2} />
+                )}
+              </>
+            )}
+          </Svg>
+          
+          {/* Popup with values */}
+          {showChartPopup && scrubberValues && scrubberX !== null && (
+            <View 
+              style={[
+                styles.scrubberPopup, 
+                { 
+                  backgroundColor: isDark ? '#2C2C2E' : '#FFFFFF',
+                  borderColor: colors.border,
+                  left: Math.min(Math.max(scrubberX - 90, 10), chartWidth - 190),
+                  top: 10,
+                }
+              ]}
+            >
+              <View style={styles.popupRow}>
+                <Text style={[styles.popupLabel, { color: colors.textSecondary }]}>Time</Text>
+                <Text style={[styles.popupValue, { color: colors.text }]}>{scrubberValues.time} min</Text>
+              </View>
+              <View style={styles.popupRow}>
+                <Text style={[styles.popupLabel, { color: colors.textSecondary }]}>Depth</Text>
+                <Text style={[styles.popupValue, { color: colors.primary }]}>{scrubberValues.depth}{depthUnit}</Text>
+              </View>
+              <View style={styles.popupRow}>
+                <Text style={[styles.popupLabel, { color: colors.textSecondary }]}>Gas</Text>
+                <Text style={[styles.popupValue, { color: colors.text }]}>{scrubberValues.gas}</Text>
+              </View>
+              <View style={styles.popupDivider} />
+              <View style={styles.popupRow}>
+                <Text style={[styles.popupLabel, { color: colors.textSecondary }]}>CNS</Text>
+                <Text style={[styles.popupValue, { color: scrubberValues.cns > 80 ? colors.danger : colors.warning }]}>{scrubberValues.cns}%</Text>
+              </View>
+              <View style={styles.popupRow}>
+                <Text style={[styles.popupLabel, { color: colors.textSecondary }]}>OTU</Text>
+                <Text style={[styles.popupValue, { color: colors.accent }]}>{scrubberValues.otu}</Text>
+              </View>
+              <View style={styles.popupRow}>
+                <Text style={[styles.popupLabel, { color: colors.textSecondary }]}>Phase</Text>
+                <Text style={[styles.popupValue, { color: colors.textSecondary }]}>
+                  {scrubberValues.segmentType.replace('_', ' ')}
+                </Text>
+              </View>
+            </View>
+          )}
+        </View>
+        
         <Text style={[styles.chartSubtitle, { color: colors.textSecondary }]}>
-          Thin colored lines show individual tissue compartment loading (fast tissues = warm colors, slow = cool colors)
+          Touch and drag to see values at any point
         </Text>
       </View>
     );
@@ -1393,6 +1550,53 @@ const styles = StyleSheet.create({
   },
   cylinderDropdownItemText: { fontSize: 14, fontWeight: '500' },
   cylinderDropdownItemSub: { fontSize: 12, marginTop: 2 },
+  chartHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  chartStatsRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  chartStatBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4,
+  },
+  chartStatLabel: { fontSize: 11, fontWeight: '600' },
+  chartStatValue: { fontSize: 13, fontWeight: '700' },
+  scrubberPopup: {
+    position: 'absolute',
+    width: 180,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 10,
+    zIndex: 100,
+  },
+  popupRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 3,
+  },
+  popupLabel: { fontSize: 12 },
+  popupValue: { fontSize: 13, fontWeight: '600' },
+  popupDivider: {
+    height: 1,
+    backgroundColor: '#38383A',
+    marginVertical: 6,
+  },
   gasStatsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
