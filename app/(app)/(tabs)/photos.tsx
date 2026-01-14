@@ -59,6 +59,15 @@ export default function PhotosScreen() {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [filter, setFilter] = useState<'all' | 'favorites' | 'unlinked'>('all');
   const [showUploadMenu, setShowUploadMenu] = useState(false);
+  const viewerScrollRef = useRef<ScrollView>(null);
+
+  useEffect(() => {
+    if (showViewer && viewerScrollRef.current) {
+      setTimeout(() => {
+        viewerScrollRef.current?.scrollTo({ x: viewerIndex * SCREEN_WIDTH, animated: false });
+      }, 50);
+    }
+  }, [showViewer, viewerIndex]);
 
   const fetchPhotos = async () => {
     console.log('Fetching photos...', 'token exists:', !!token);
@@ -373,10 +382,10 @@ export default function PhotosScreen() {
           </View>
           
           <ScrollView
+            ref={viewerScrollRef}
             horizontal
             pagingEnabled
             showsHorizontalScrollIndicator={false}
-            contentOffset={{ x: viewerIndex * SCREEN_WIDTH, y: 0 }}
             onMomentumScrollEnd={(e) => {
               const newIndex = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH);
               if (newIndex >= 0 && newIndex < photos.length) {
@@ -386,7 +395,7 @@ export default function PhotosScreen() {
             }}
           >
             {photos.map((photo) => (
-              <View key={photo.id} style={{ width: SCREEN_WIDTH, justifyContent: 'center', alignItems: 'center' }}>
+              <View key={photo.id} style={styles.viewerPage}>
                 <Image
                   source={{ uri: getImageUrl(photo.imageUrl) }}
                   style={styles.viewerImage}
@@ -670,9 +679,17 @@ const styles = StyleSheet.create({
   viewerButton: {
     padding: 8,
   },
-  viewerImage: {
+  viewerPage: {
     width: SCREEN_WIDTH,
-    height: SCREEN_HEIGHT - 200,
+    height: SCREEN_HEIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  viewerImage: {
+    maxWidth: SCREEN_WIDTH,
+    maxHeight: SCREEN_HEIGHT - 200,
+    width: '100%',
+    height: '100%',
   },
   viewerFooter: {
     position: 'absolute',
