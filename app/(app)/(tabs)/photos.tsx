@@ -131,6 +131,7 @@ export default function PhotosScreen() {
     
     try {
       for (const asset of assets) {
+        console.log('Step 1: Requesting upload URL...');
         const urlResponse = await fetch(`${getApiUrl()}/api/uploads/request-url`, {
           method: 'POST',
           headers: {
@@ -144,11 +145,16 @@ export default function PhotosScreen() {
           }),
         });
         
-        if (!urlResponse.ok) throw new Error('Failed to get upload URL');
+        if (!urlResponse.ok) {
+          const errorText = await urlResponse.text();
+          throw new Error(`Failed to get upload URL: ${urlResponse.status} - ${errorText}`);
+        }
         const { uploadURL, objectPath } = await urlResponse.json();
+        console.log('Step 2: Got upload URL, fetching image blob...');
         
         const imageResponse = await fetch(asset.uri);
         const imageBlob = await imageResponse.blob();
+        console.log('Step 3: Got image blob, uploading to storage...', imageBlob.size);
         
         const uploadResponse = await fetch(uploadURL, {
           method: 'PUT',
@@ -156,16 +162,24 @@ export default function PhotosScreen() {
           headers: { 'Content-Type': 'image/jpeg' },
         });
         
-        if (!uploadResponse.ok) throw new Error('Failed to upload image');
+        if (!uploadResponse.ok) {
+          const errorText = await uploadResponse.text();
+          throw new Error(`Failed to upload image: ${uploadResponse.status} - ${errorText}`);
+        }
+        console.log('Step 4: Uploaded to storage, getting public URL...');
         
         const getUrlResponse = await fetch(`${getApiUrl()}/api/objects/url?path=${encodeURIComponent(objectPath)}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         
-        if (!getUrlResponse.ok) throw new Error('Failed to get image URL');
+        if (!getUrlResponse.ok) {
+          const errorText = await getUrlResponse.text();
+          throw new Error(`Failed to get image URL: ${getUrlResponse.status} - ${errorText}`);
+        }
         const { url: imageUrl } = await getUrlResponse.json();
+        console.log('Step 5: Got public URL, saving to database...', imageUrl);
         
-        await fetch(`${getApiUrl()}/api/photos`, {
+        const saveResponse = await fetch(`${getApiUrl()}/api/photos`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -178,12 +192,19 @@ export default function PhotosScreen() {
             fileSize: asset.fileSize,
           }),
         });
+        
+        if (!saveResponse.ok) {
+          const errorText = await saveResponse.text();
+          throw new Error(`Failed to save photo: ${saveResponse.status} - ${errorText}`);
+        }
+        console.log('Step 6: Photo saved successfully!');
       }
       
       fetchPhotos();
-    } catch (error) {
-      console.error('Upload error:', error);
-      alert('Failed to upload photos');
+    } catch (error: any) {
+      console.error('Upload error:', error?.message || error?.toString() || 'Unknown error');
+      console.error('Upload error details:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
+      alert(`Failed to upload photos: ${error?.message || 'Unknown error'}`);
     } finally {
       setUploading(false);
     }
