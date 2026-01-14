@@ -175,7 +175,7 @@ const waterTypeOptions = [
 const siteTypeOptions = Object.entries(siteTypeLabels).map(([value, label]) => ({ value, label }));
 const difficultyOptions = Object.entries(difficultyLabels).map(([value, label]) => ({ value, label }));
 
-function StarRating({ rating, onRatingChange, editable, colors }: { rating: number; onRatingChange?: (rating: number) => void; editable: boolean; colors: any }) {
+function StarRating({ rating, onRatingChange, editable, colors, size = 28 }: { rating: number; onRatingChange?: (rating: number) => void; editable: boolean; colors: any; size?: number }) {
   return (
     <View style={starStyles.container}>
       {[1, 2, 3, 4, 5].map((star) => (
@@ -187,12 +187,12 @@ function StarRating({ rating, onRatingChange, editable, colors }: { rating: numb
         >
           <Feather
             name="star"
-            size={28}
+            size={size}
             color={star <= rating ? '#FFC107' : '#9E9E9E'}
           />
         </Pressable>
       ))}
-      <Text style={[starStyles.ratingText, { color: colors.textSecondary }]}>
+      <Text style={[starStyles.ratingText, { color: colors.textSecondary, fontSize: size * 0.5 }]}>
         {Math.round(rating)}/5
       </Text>
     </View>
@@ -982,6 +982,14 @@ export default function DiveSiteDetailScreen() {
                 </View>
               </>
             )}
+            <View style={[styles.detailRowDivider, { backgroundColor: colors.border }]} />
+            <View style={styles.detailRow}>
+              <View style={styles.detailRowIcon}>
+                <Feather name="star" size={18} color={colors.primary} />
+              </View>
+              <Text style={[styles.detailRowLabel, { color: colors.textSecondary }]}>Rating</Text>
+              <StarRating rating={displaySite?.ratingAvg || 0} editable={false} colors={colors} size={16} />
+            </View>
           </View>
 
           {displaySite?.latitude && displaySite?.longitude && (
@@ -1003,11 +1011,6 @@ export default function DiveSiteDetailScreen() {
               )}
             </View>
           )}
-
-          <View style={styles.ratingSection}>
-            <Text style={[styles.ratingLabel, { color: colors.textSecondary }]}>Rating</Text>
-            <StarRating rating={displaySite?.ratingAvg || 0} editable={false} colors={colors} />
-          </View>
         </>
       )}
     </View>
