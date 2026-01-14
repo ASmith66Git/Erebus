@@ -1145,25 +1145,17 @@ export default function DivePlanningScreen() {
 
   const renderSettingsTab = () => (
     <>
+      {/* Model Settings */}
       <View style={[styles.section, { backgroundColor: colors.card }]}>
-        <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>Circuit & Model</Text>
+        <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>Model Settings</Text>
         
-        {renderPicker('Circuit Type', [
-          { value: 'open', label: 'Open Circuit' },
+        {renderPicker('Circuit', [
+          { value: 'open', label: 'OC' },
           { value: 'ccr', label: 'CCR' },
         ], settings.circuit, (v) => setSettings({ ...settings, circuit: v as CircuitType }))}
 
-        {settings.circuit === 'ccr' && (
-          <>
-            {renderSlider('CCR Setpoint', settings.ccrSetpoint, 0.7, 1.6, 0.1, 
-              (v) => setSettings({ ...settings, ccrSetpoint: Math.round(v * 10) / 10 }), ' bar')}
-            {renderSlider('Scrubber Duration', settings.scrubberDuration, 60, 300, 30,
-              (v) => setSettings({ ...settings, scrubberDuration: v }), ' min')}
-          </>
-        )}
-
         <View style={styles.modelPicker}>
-          <Text style={[styles.pickerLabel, { color: colors.text }]}>Deco Model</Text>
+          <Text style={[styles.pickerLabel, { color: colors.text }]}>Model</Text>
           {DECO_MODELS.map(model => (
             <TouchableOpacity
               key={model.value}
@@ -1189,46 +1181,308 @@ export default function DivePlanningScreen() {
             </TouchableOpacity>
           ))}
         </View>
+
+        <View style={styles.gfRow}>
+          <Text style={[styles.pickerLabel, { color: colors.text }]}>GF Lo / Hi</Text>
+          <View style={styles.gfInputs}>
+            {renderPicker('', 
+              Array.from({length: 10}, (_, i) => ({ value: String((i + 1) * 10), label: String((i + 1) * 10) })),
+              String(settings.gfLow),
+              (v) => setSettings({ ...settings, gfLow: parseInt(v) })
+            )}
+            {renderPicker('',
+              Array.from({length: 10}, (_, i) => ({ value: String((i + 1) * 10), label: String((i + 1) * 10) })),
+              String(settings.gfHigh),
+              (v) => setSettings({ ...settings, gfHigh: parseInt(v) })
+            )}
+          </View>
+        </View>
+        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Model GF setting - 10 to 100</Text>
+
+        {renderToggle('O2 narcotic', settings.o2Narcotic, 
+          (v) => setSettings({ ...settings, o2Narcotic: v }),
+          'END calculation - Consider O2 as narcotic?'
+        )}
       </View>
 
+      {/* Units & Environment */}
       <View style={[styles.section, { backgroundColor: colors.card }]}>
-        <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>Rates & Depths</Text>
+        <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>Feet / Meter / Units</Text>
         
-        {renderSlider('Descent Rate', settings.descentRate, 5, 30, 1, 
-          (v) => setSettings({ ...settings, descentRate: v }), ` ${rateUnit}`)}
-        {renderSlider('Ascent Rate', settings.ascentRate, 3, 18, 1, 
-          (v) => setSettings({ ...settings, ascentRate: v }), ` ${rateUnit}`)}
-        {renderSlider('Last Stop Depth', settings.lastStopDepth, 3, 6, 3, 
-          (v) => setSettings({ ...settings, lastStopDepth: v }), depthUnit)}
+        {renderPicker('Depth', [
+          { value: 'imperial', label: 'Feet' },
+          { value: 'metric', label: 'Meter' },
+        ], settings.units, (v) => setSettings({ ...settings, units: v as UnitSystem }))}
+        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Depth shown in feet or meters</Text>
+
+        {renderPicker('Water', [
+          { value: 'salt', label: 'Salt' },
+          { value: 'fresh', label: 'Fresh' },
+        ], settings.waterType, (v) => setSettings({ ...settings, waterType: v as WaterType }))}
+        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Type of water - salt or fresh</Text>
+
+        {renderPicker('Gas volume', [
+          { value: 'cuft', label: 'CuFt.' },
+          { value: 'ltr', label: 'Ltr.' },
+        ], settings.gasVolumeUnits, (v) => setSettings({ ...settings, gasVolumeUnits: v as 'cuft' | 'ltr' }))}
+        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>RMV or SAC gas units - cubic ft or liter</Text>
+      </View>
+
+      {/* Gas Consumption */}
+      <View style={[styles.section, { backgroundColor: colors.card }]}>
+        <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>Gas Consumption</Text>
+        
+        {renderPicker('Bottom', 
+          Array.from({length: 25}, (_, i) => ({ value: String(i + 5), label: String(i + 5) })),
+          String(settings.sacRateBottom),
+          (v) => setSettings({ ...settings, sacRateBottom: parseInt(v) })
+        )}
+        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Bottom mix SAC/RMV rate</Text>
+
+        {renderPicker('Deco', 
+          Array.from({length: 20}, (_, i) => ({ value: String(i + 5), label: String(i + 5) })),
+          String(settings.sacRateDeco),
+          (v) => setSettings({ ...settings, sacRateDeco: parseInt(v) })
+        )}
+        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Deco mix SAC/RMV rate</Text>
+      </View>
+
+      {/* CCR Settings */}
+      {settings.circuit === 'ccr' && (
+        <View style={[styles.section, { backgroundColor: colors.card }]}>
+          <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>CCR Settings</Text>
+          
+          {renderPicker('CCR setpoint', [
+            { value: 'bar', label: 'BAR' },
+            { value: 'ata', label: 'ATA' },
+          ], settings.ccrSetpointUnits, (v) => setSettings({ ...settings, ccrSetpointUnits: v as 'bar' | 'ata' }))}
+          <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Set the CCR setpoint base units</Text>
+
+          {renderSlider('Setpoint', settings.ccrSetpoint, 0.7, 1.6, 0.1, 
+            (v) => setSettings({ ...settings, ccrSetpoint: Math.round(v * 10) / 10 }), settings.ccrSetpointUnits === 'bar' ? ' bar' : ' ATA')}
+          {renderSlider('Scrubber Duration', settings.scrubberDuration, 60, 300, 30,
+            (v) => setSettings({ ...settings, scrubberDuration: v }), ' min')}
+        </View>
+      )}
+
+      {/* Deco Stop Settings */}
+      <View style={[styles.section, { backgroundColor: colors.card }]}>
+        <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>Deco Stop, Deco Mix Settings</Text>
+        
+        {renderSlider(`Stop size = ${settings.stopSize}${depthUnit}`, settings.stopSize, 3, 6, 3,
+          (v) => setSettings({ ...settings, stopSize: v }), '')}
+        {renderSlider(`Last OC = ${settings.lastOcStopDepth}${depthUnit}`, settings.lastOcStopDepth, 3, 6, 3,
+          (v) => setSettings({ ...settings, lastOcStopDepth: v }), '')}
+        {renderSlider(`Last CCR = ${settings.lastCcrStopDepth}${depthUnit}`, settings.lastCcrStopDepth, 3, 9, 3,
+          (v) => setSettings({ ...settings, lastCcrStopDepth: v }), '')}
+        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Stop size dimensions, last stop depths</Text>
+
+        {renderSlider(`Stop = ${settings.minStopTime} min`, settings.minStopTime, 1, 3, 1,
+          (v) => setSettings({ ...settings, minStopTime: v }), '')}
+        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Minimum stop time intervals</Text>
+
+        {renderSlider(`45..99% = ${settings.ppo2High}`, settings.ppo2High, 1.4, 1.6, 0.1,
+          (v) => setSettings({ ...settings, ppo2High: Math.round(v * 10) / 10 }), '')}
+        {renderSlider(`28..45% = ${settings.ppo2Medium}`, settings.ppo2Medium, 1.3, 1.6, 0.1,
+          (v) => setSettings({ ...settings, ppo2Medium: Math.round(v * 10) / 10 }), '')}
+        {renderSlider(`up to 28% = ${settings.ppo2Low}`, settings.ppo2Low, 1.2, 1.6, 0.1,
+          (v) => setSettings({ ...settings, ppo2Low: Math.round(v * 10) / 10 }), '')}
+        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Deco mix switch depth - ppO2 threshold</Text>
+
+        {renderSlider(`100% O2 = ${settings.maxO2Depth}${depthUnit}`, settings.maxO2Depth, 3, 9, 1,
+          (v) => setSettings({ ...settings, maxO2Depth: v }), '')}
+        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Maximum depth for 100% O2 use</Text>
+
+        {renderToggle('30 sec stops', settings.use30SecStops, 
+          (v) => setSettings({ ...settings, use30SecStops: v })
+        )}
+        {renderToggle('6 m steps', settings.use6mSteps, 
+          (v) => setSettings({ ...settings, use6mSteps: v }),
+          'Controls initial (deepest) stop dimensions'
+        )}
+      </View>
+
+      {/* Extended Stops */}
+      <View style={[styles.section, { backgroundColor: colors.card }]}>
+        <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>Extended Stops</Text>
+        
+        {renderToggle('Extended stops', settings.extendedStops, 
+          (v) => setSettings({ ...settings, extendedStops: v }),
+          'Include extended stops with deco mix swaps'
+        )}
+
+        {settings.extendedStops && (
+          <>
+            {renderSlider(`7..30 m = ${settings.extendedStopShallow}min`, settings.extendedStopShallow, 1, 10, 1,
+              (v) => setSettings({ ...settings, extendedStopShallow: v }), '')}
+            {renderSlider(`30 + m = ${settings.extendedStopDeep}min`, settings.extendedStopDeep, 1, 5, 1,
+              (v) => setSettings({ ...settings, extendedStopDeep: v }), '')}
+            <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Extra stop time with deco mix changes</Text>
+          </>
+        )}
+
+        {renderToggle('Add time to stop', settings.addTimeToStop, 
+          (v) => setSettings({ ...settings, addTimeToStop: v })
+        )}
+        {renderToggle('All mix changes', settings.allMixChanges, 
+          (v) => setSettings({ ...settings, allMixChanges: v })
+        )}
+        {renderToggle('O2 window effect', settings.o2WindowEffect, 
+          (v) => setSettings({ ...settings, o2WindowEffect: v }),
+          'Controls extended stop time behavior'
+        )}
+      </View>
+
+      {/* Descent/Ascent Rates */}
+      <View style={[styles.section, { backgroundColor: colors.card }]}>
+        <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>Descent / Ascent Rates</Text>
+        
+        {renderPicker(`Descent ${rateUnit}`, 
+          Array.from({length: 26}, (_, i) => ({ value: String(i + 5), label: String(i + 5) })),
+          String(settings.descentRate),
+          (v) => setSettings({ ...settings, descentRate: parseInt(v) })
+        )}
+        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Descent rates throughout the plan</Text>
+
+        {renderPicker(`Surface ${rateUnit}`, 
+          Array.from({length: 16}, (_, i) => ({ value: String(i + 3), label: String(i + 3) })),
+          String(settings.surfaceRate),
+          (v) => setSettings({ ...settings, surfaceRate: parseInt(v) })
+        )}
+        {renderPicker(`Deco ${rateUnit}`, 
+          Array.from({length: 13}, (_, i) => ({ value: String(i + 3), label: String(i + 3) })),
+          String(settings.decoRate),
+          (v) => setSettings({ ...settings, decoRate: parseInt(v) })
+        )}
+        {renderPicker(`Ascent ${rateUnit}`, 
+          Array.from({length: 16}, (_, i) => ({ value: String(i + 3), label: String(i + 3) })),
+          String(settings.ascentRate),
+          (v) => setSettings({ ...settings, ascentRate: parseInt(v) })
+        )}
+        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Ascent rates throughout the plan</Text>
+      </View>
+
+      {/* Dive Site Elevation */}
+      <View style={[styles.section, { backgroundColor: colors.card }]}>
+        <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>Dive Site Elevation</Text>
+        
+        {renderPicker(`Elevation ${depthUnit}`, 
+          Array.from({length: 31}, (_, i) => ({ value: String(i * 100), label: String(i * 100) })),
+          String(settings.elevation),
+          (v) => setSettings({ ...settings, elevation: parseInt(v) })
+        )}
+        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Dive site elevation</Text>
+
+        {renderPicker(`Acclimatized ${depthUnit}`, 
+          Array.from({length: 31}, (_, i) => ({ value: String(i * 100), label: String(i * 100) })),
+          String(settings.acclimatizedElevation),
+          (v) => setSettings({ ...settings, acclimatizedElevation: parseInt(v) })
+        )}
+      </View>
+
+      {/* Gauge & Display */}
+      <View style={[styles.section, { backgroundColor: colors.card }]}>
+        <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>Display</Text>
+        
+        {renderPicker('Gauge', [
+          { value: 'simple', label: 'Simple' },
+          { value: 'digital', label: 'Digital' },
+        ], settings.gaugeType, (v) => setSettings({ ...settings, gaugeType: v as 'simple' | 'digital' }))}
+        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Depth gauge calibration type</Text>
+
         {renderSlider('Gas Switch Time', settings.gasSwitchTime, 0, 5, 1, 
           (v) => setSettings({ ...settings, gasSwitchTime: v }), ' min')}
       </View>
 
+      {/* Dive Monitor Controls */}
       <View style={[styles.section, { backgroundColor: colors.card }]}>
-        <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>Gas Consumption</Text>
+        <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>Dive Monitor Controls</Text>
         
-        {renderSlider('SAC Rate (Bottom)', settings.sacRateBottom, 10, 30, 1, 
-          (v) => setSettings({ ...settings, sacRateBottom: v }), ' L/min')}
-        {renderSlider('SAC Rate (Deco)', settings.sacRateDeco, 8, 25, 1, 
-          (v) => setSettings({ ...settings, sacRateDeco: v }), ' L/min')}
-      </View>
+        <View style={styles.monitorRow}>
+          {renderToggle(`ppO2 above = ${settings.ppo2AboveThreshold.toFixed(2)}`, settings.ppo2AboveEnabled,
+            (v) => setSettings({ ...settings, ppo2AboveEnabled: v })
+          )}
+          {settings.ppo2AboveEnabled && (
+            <View style={styles.monitorSlider}>
+              {renderSlider('', settings.ppo2AboveThreshold, 1.0, 2.0, 0.1,
+                (v) => setSettings({ ...settings, ppo2AboveThreshold: Math.round(v * 100) / 100 }), '')}
+            </View>
+          )}
+        </View>
+        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Monitor when ppO2 exceeds...</Text>
 
-      <View style={[styles.section, { backgroundColor: colors.card }]}>
-        <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>Environment & Units</Text>
-        
-        {renderPicker('Water Type', [
-          { value: 'salt', label: 'Salt Water' },
-          { value: 'fresh', label: 'Fresh Water' },
-        ], settings.waterType, (v) => setSettings({ ...settings, waterType: v as WaterType }))}
+        <View style={styles.monitorRow}>
+          {renderToggle(`ppO2 below = ${settings.ppo2BelowThreshold.toFixed(2)}`, settings.ppo2BelowEnabled,
+            (v) => setSettings({ ...settings, ppo2BelowEnabled: v })
+          )}
+          {settings.ppo2BelowEnabled && (
+            <View style={styles.monitorSlider}>
+              {renderSlider('', settings.ppo2BelowThreshold, 0.10, 0.21, 0.01,
+                (v) => setSettings({ ...settings, ppo2BelowThreshold: Math.round(v * 100) / 100 }), '')}
+            </View>
+          )}
+        </View>
+        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Monitor when ppO2 is lower than</Text>
 
-        {renderPicker('Units', [
-          { value: 'metric', label: 'Metric (m)' },
-          { value: 'imperial', label: 'Imperial (ft)' },
-        ], settings.units, (v) => setSettings({ ...settings, units: v as UnitSystem }))}
+        <View style={styles.monitorRow}>
+          {renderToggle(`OTU's above = ${settings.otuAboveThreshold}`, settings.otuAboveEnabled,
+            (v) => setSettings({ ...settings, otuAboveEnabled: v })
+          )}
+          {settings.otuAboveEnabled && (
+            <View style={styles.monitorSlider}>
+              {renderSlider('', settings.otuAboveThreshold, 100, 600, 50,
+                (v) => setSettings({ ...settings, otuAboveThreshold: v }), '')}
+            </View>
+          )}
+        </View>
+        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Monitor when OTU's exceeds...</Text>
 
-        {renderToggle('O2 is Narcotic', settings.o2Narcotic, 
-          (v) => setSettings({ ...settings, o2Narcotic: v }),
-          'Include O2 in END calculation'
+        <View style={styles.monitorRow}>
+          {renderToggle(`CNS % above = ${settings.cnsAboveThreshold}%`, settings.cnsAboveEnabled,
+            (v) => setSettings({ ...settings, cnsAboveEnabled: v })
+          )}
+          {settings.cnsAboveEnabled && (
+            <View style={styles.monitorSlider}>
+              {renderSlider('', settings.cnsAboveThreshold, 50, 100, 5,
+                (v) => setSettings({ ...settings, cnsAboveThreshold: v }), '')}
+            </View>
+          )}
+        </View>
+        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Monitor when CNS % exceeds...</Text>
+
+        <View style={styles.monitorRow}>
+          {renderToggle(`IBCD N2 = ${settings.ibcdN2Threshold} ATA`, settings.ibcdN2Enabled,
+            (v) => setSettings({ ...settings, ibcdN2Enabled: v })
+          )}
+          {settings.ibcdN2Enabled && (
+            <View style={styles.monitorSlider}>
+              {renderSlider('', settings.ibcdN2Threshold, 0.1, 1.0, 0.1,
+                (v) => setSettings({ ...settings, ibcdN2Threshold: Math.round(v * 10) / 10 }), '')}
+            </View>
+          )}
+        </View>
+        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Deco mix swap ppN2 exceeds...</Text>
+
+        <View style={styles.monitorRow}>
+          {renderToggle(`IBCD He = ${settings.ibcdHeThreshold} ATA`, settings.ibcdHeEnabled,
+            (v) => setSettings({ ...settings, ibcdHeEnabled: v })
+          )}
+          {settings.ibcdHeEnabled && (
+            <View style={styles.monitorSlider}>
+              {renderSlider('', settings.ibcdHeThreshold, 0.1, 1.0, 0.1,
+                (v) => setSettings({ ...settings, ibcdHeThreshold: Math.round(v * 10) / 10 }), '')}
+            </View>
+          )}
+        </View>
+        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Deco mix swap ppHe exceeds...</Text>
+
+        {settings.circuit === 'ccr' && (
+          <>
+            {renderToggle('CCR diluent check', settings.ccrDiluentCheck,
+              (v) => setSettings({ ...settings, ccrDiluentCheck: v }),
+              'CCR diluent pp exceeds ATA'
+            )}
+          </>
         )}
       </View>
     </>
@@ -1672,5 +1926,29 @@ const styles = StyleSheet.create({
     top: 0,
     width: 2,
     height: '100%',
+  },
+  gfRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 12,
+    marginBottom: 4,
+  },
+  gfInputs: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  settingHint: {
+    fontSize: 12,
+    marginTop: -8,
+    marginBottom: 12,
+    fontStyle: 'italic',
+  },
+  monitorRow: {
+    marginBottom: 4,
+  },
+  monitorSlider: {
+    marginTop: -12,
+    marginBottom: 0,
   },
 });

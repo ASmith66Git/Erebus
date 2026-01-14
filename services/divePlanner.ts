@@ -69,15 +69,57 @@ export interface DivePlanSettings {
   decoStopInterval: number;
   sacRateBottom: number;
   sacRateDeco: number;
-  // New settings
+  // Circuit & Model
   circuit: CircuitType;
   decoModel: DecoModel;
   o2Narcotic: boolean;
   units: UnitSystem;
-  gasSwitchTime: number; // minutes allowed for gas switch
+  gasSwitchTime: number;
   waterType: WaterType;
-  ccrSetpoint: number; // PPO2 setpoint for CCR (bar)
-  scrubberDuration: number; // CCR scrubber duration in minutes
+  ccrSetpoint: number;
+  scrubberDuration: number;
+  // Deco stop settings
+  stopSize: number; // 3m or 10ft interval
+  lastOcStopDepth: number; // Last stop depth for OC
+  lastCcrStopDepth: number; // Last stop depth for CCR
+  minStopTime: number; // Minimum stop time in minutes
+  ppo2High: number; // PPO2 for 45-99% O2 (1.6)
+  ppo2Medium: number; // PPO2 for 28-45% O2 (1.5)
+  ppo2Low: number; // PPO2 for <28% O2 (1.4)
+  maxO2Depth: number; // Max depth for 100% O2
+  use30SecStops: boolean;
+  use6mSteps: boolean;
+  // Extended stops
+  extendedStops: boolean;
+  extendedStopShallow: number; // 7-30m extra time (min)
+  extendedStopDeep: number; // 30+m extra time (min)
+  addTimeToStop: boolean;
+  allMixChanges: boolean;
+  o2WindowEffect: boolean;
+  // Separate ascent rates
+  surfaceRate: number;
+  decoRate: number;
+  // Altitude diving
+  elevation: number;
+  acclimatizedElevation: number;
+  // Display settings
+  gaugeType: 'simple' | 'digital';
+  ccrSetpointUnits: 'bar' | 'ata';
+  gasVolumeUnits: 'cuft' | 'ltr';
+  // Dive monitor thresholds
+  ppo2AboveEnabled: boolean;
+  ppo2AboveThreshold: number;
+  ppo2BelowEnabled: boolean;
+  ppo2BelowThreshold: number;
+  otuAboveEnabled: boolean;
+  otuAboveThreshold: number;
+  cnsAboveEnabled: boolean;
+  cnsAboveThreshold: number;
+  ibcdN2Enabled: boolean;
+  ibcdN2Threshold: number;
+  ibcdHeEnabled: boolean;
+  ibcdHeThreshold: number;
+  ccrDiluentCheck: boolean;
 }
 
 export interface DivePlanResult {
@@ -969,13 +1011,13 @@ export function getWaterFactor(waterType: WaterType): number {
 export const DEFAULT_SETTINGS: DivePlanSettings = {
   gfLow: 30,
   gfHigh: 70,
-  descentRate: 20,
+  descentRate: 24,
   ascentRate: 10,
   lastStopDepth: 3,
   decoStopInterval: 3,
-  sacRateBottom: 20,
-  sacRateDeco: 15,
-  // New defaults
+  sacRateBottom: 15,
+  sacRateDeco: 10,
+  // Circuit & Model
   circuit: 'open',
   decoModel: 'zhl16c',
   o2Narcotic: false,
@@ -984,4 +1026,46 @@ export const DEFAULT_SETTINGS: DivePlanSettings = {
   waterType: 'salt',
   ccrSetpoint: 1.3,
   scrubberDuration: 180,
+  // Deco stop settings
+  stopSize: 3,
+  lastOcStopDepth: 3,
+  lastCcrStopDepth: 6,
+  minStopTime: 1,
+  ppo2High: 1.6,
+  ppo2Medium: 1.5,
+  ppo2Low: 1.4,
+  maxO2Depth: 6,
+  use30SecStops: false,
+  use6mSteps: true,
+  // Extended stops
+  extendedStops: false,
+  extendedStopShallow: 5,
+  extendedStopDeep: 2,
+  addTimeToStop: false,
+  allMixChanges: false,
+  o2WindowEffect: false,
+  // Separate ascent rates
+  surfaceRate: 8,
+  decoRate: 8,
+  // Altitude diving
+  elevation: 0,
+  acclimatizedElevation: 0,
+  // Display settings
+  gaugeType: 'digital',
+  ccrSetpointUnits: 'bar',
+  gasVolumeUnits: 'ltr',
+  // Dive monitor thresholds
+  ppo2AboveEnabled: true,
+  ppo2AboveThreshold: 1.6,
+  ppo2BelowEnabled: true,
+  ppo2BelowThreshold: 0.16,
+  otuAboveEnabled: true,
+  otuAboveThreshold: 300,
+  cnsAboveEnabled: true,
+  cnsAboveThreshold: 80,
+  ibcdN2Enabled: true,
+  ibcdN2Threshold: 0.5,
+  ibcdHeEnabled: true,
+  ibcdHeThreshold: 0.5,
+  ccrDiluentCheck: true,
 };
