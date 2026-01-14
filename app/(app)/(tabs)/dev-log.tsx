@@ -11,7 +11,8 @@ import {
   TextInput,
   FlatList,
   Platform,
-  RefreshControl
+  RefreshControl,
+  KeyboardAvoidingView
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { Ionicons, Feather } from '@expo/vector-icons';
@@ -470,7 +471,10 @@ Please help me with this development task.`;
         transparent={true}
         onRequestClose={() => setModalVisible(false)}
       >
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView 
+          style={styles.modalOverlay}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
           <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: colors.text }]}>
@@ -481,6 +485,7 @@ Please help me with this development task.`;
               </Pressable>
             </View>
 
+            <ScrollView style={styles.modalScrollContent} showsVerticalScrollIndicator={false}>
             <Text style={[styles.label, { color: colors.text }]}>Task *</Text>
             <TextInput
               style={[styles.input, styles.textArea, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
@@ -598,8 +603,9 @@ Please help me with this development task.`;
                 {editingEntry ? 'Update' : 'Add Entry'}
               </Text>
             </Pressable>
+            </ScrollView>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {toastVisible && (
@@ -793,6 +799,9 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 20,
     padding: 20,
     maxHeight: '90%',
+  },
+  modalScrollContent: {
+    flexGrow: 0,
   },
   modalHeader: {
     flexDirection: 'row',
