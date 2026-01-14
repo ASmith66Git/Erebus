@@ -511,12 +511,32 @@ export default function DivePlanningScreen() {
         </View>
         
         <View 
-          style={{ position: 'relative' }}
+          style={{ position: 'relative', cursor: 'crosshair' } as any}
           onTouchStart={(e) => handleChartTouch(e, chartW, padding, totalTime)}
           onTouchMove={(e) => handleChartTouch(e, chartW, padding, totalTime)}
           onTouchEnd={() => setShowChartPopup(false)}
           onStartShouldSetResponder={() => true}
           onMoveShouldSetResponder={() => true}
+          {...(Platform.OS === 'web' ? {
+            onMouseDown: (e: any) => {
+              const rect = e.currentTarget.getBoundingClientRect();
+              const locationX = e.clientX - rect.left - padding.left;
+              const time = Math.max(0, Math.min((locationX / chartW) * totalTime, totalTime));
+              setChartScrubberTime(time);
+              setShowChartPopup(true);
+            },
+            onMouseMove: (e: any) => {
+              if (e.buttons === 1) {
+                const rect = e.currentTarget.getBoundingClientRect();
+                const locationX = e.clientX - rect.left - padding.left;
+                const time = Math.max(0, Math.min((locationX / chartW) * totalTime, totalTime));
+                setChartScrubberTime(time);
+                setShowChartPopup(true);
+              }
+            },
+            onMouseUp: () => setShowChartPopup(false),
+            onMouseLeave: () => setShowChartPopup(false),
+          } : {})}
         >
           <Svg width={chartWidth} height={CHART_HEIGHT}>
             <Rect x={padding.left} y={padding.top} width={chartW} height={chartH} fill={isDark ? '#1A1A1C' : '#F5F5F7'} />
