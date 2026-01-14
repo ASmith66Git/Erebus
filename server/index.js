@@ -300,6 +300,91 @@ async function initDatabase() {
         EXECUTE FUNCTION update_updated_at_column();
     `).catch(() => {});
     
+    // Gear Profiles tables
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS gear_profiles (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        name VARCHAR(255) NOT NULL,
+        config_type VARCHAR(50) NOT NULL DEFAULT 'single_tank',
+        suit_type VARCHAR(50),
+        suit_thickness VARCHAR(20),
+        undersuit VARCHAR(255),
+        suit_nickname VARCHAR(255),
+        gloves_type VARCHAR(50),
+        gloves_thickness VARCHAR(20),
+        gloves_nickname VARCHAR(255),
+        boots_type VARCHAR(50),
+        boots_thickness VARCHAR(20),
+        boots_nickname VARCHAR(255),
+        hood_type VARCHAR(50),
+        hood_thickness VARCHAR(20),
+        hood_nickname VARCHAR(255),
+        bcd_type VARCHAR(100),
+        bcd_nickname VARCHAR(255),
+        fins_type VARCHAR(100),
+        fins_nickname VARCHAR(255),
+        mask_nickname VARCHAR(255),
+        notes TEXT,
+        is_template BOOLEAN DEFAULT TRUE,
+        planned_depth NUMERIC(6,2),
+        planned_bottom_time INTEGER,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `).catch(() => {});
+    
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS gear_cylinders (
+        id SERIAL PRIMARY KEY,
+        gear_profile_id INTEGER REFERENCES gear_profiles(id) ON DELETE CASCADE,
+        cylinder_size VARCHAR(20) NOT NULL,
+        cylinder_material VARCHAR(20) DEFAULT 'steel',
+        cylinder_role VARCHAR(50) NOT NULL DEFAULT 'bottom_gas',
+        gas_mix VARCHAR(50) DEFAULT 'air',
+        o2_percent NUMERIC(4,1) DEFAULT 21.0,
+        he_percent NUMERIC(4,1) DEFAULT 0.0,
+        start_pressure INTEGER,
+        working_pressure INTEGER,
+        nickname VARCHAR(255),
+        sort_order INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `).catch(() => {});
+    
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS gear_weights (
+        id SERIAL PRIMARY KEY,
+        gear_profile_id INTEGER REFERENCES gear_profiles(id) ON DELETE CASCADE,
+        placement VARCHAR(100) NOT NULL,
+        weight_kg NUMERIC(5,2) NOT NULL DEFAULT 0,
+        sort_order INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `).catch(() => {});
+    
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_gear_profiles_user_id ON gear_profiles(user_id);
+    `).catch(() => {});
+    
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_gear_cylinders_profile_id ON gear_cylinders(gear_profile_id);
+    `).catch(() => {});
+    
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_gear_weights_profile_id ON gear_weights(gear_profile_id);
+    `).catch(() => {});
+    
+    await client.query(`
+      DROP TRIGGER IF EXISTS update_gear_profiles_updated_at ON gear_profiles;
+      CREATE TRIGGER update_gear_profiles_updated_at
+        BEFORE UPDATE ON gear_profiles
+        FOR EACH ROW
+        EXECUTE FUNCTION update_updated_at_column();
+    `).catch(() => {});
+    
     const adminCheck = await client.query("SELECT id FROM users WHERE email = 'admin@erebus.app'");
     if (adminCheck.rows.length === 0) {
       const hashedPassword = await bcrypt.hash('admin123', 10);
@@ -2957,6 +3042,422 @@ app.delete('/api/dive-logs/:id', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Delete dive log error:', error);
     res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// ============ GEAR PROFILES API ============
+
+// Get all gear profiles for user
+app.get('/api/gear-profiles', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT gp.*, 
+        (SELECT COUNT(*) FROM gear_cylinders WHERE gear_profile_id = gp.id) as cylinder_count,
+        (SELECT SUM(weight_kg) FROM gear_weights WHERE gear_profile_id = gp.id) as total_weight
+      FROM gear_profiles gp
+      WHERE gp.user_id = $1
+      ORDER BY gp.updated_at DESC
+    `, [req.user.id]);
+
+    const profiles = result.rows.map(row => ({
+      id: row.id,
+      userId: row.user_id,
+      name: row.name,
+      configType: row.config_type,
+      suitType: row.suit_type,
+      suitThickness: row.suit_thickness,
+      undersuit: row.undersuit,
+      suitNickname: row.suit_nickname,
+      glovesType: row.gloves_type,
+      glovesThickness: row.gloves_thickness,
+      bootsType: row.boots_type,
+      bootsThickness: row.boots_thickness,
+      bcdType: row.bcd_type,
+      notes: row.notes,
+      isTemplate: row.is_template,
+      plannedDepth: row.planned_depth ? parseFloat(row.planned_depth) : null,
+      plannedBottomTime: row.planned_bottom_time,
+      cylinderCount: parseInt(row.cylinder_count) || 0,
+      totalWeight: row.total_weight ? parseFloat(row.total_weight) : 0,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at
+    }));
+
+    res.json({ profiles });
+  } catch (error) {
+    console.error('Get gear profiles error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Get single gear profile with cylinders and weights
+app.get('/api/gear-profiles/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const profileResult = await pool.query(
+      'SELECT * FROM gear_profiles WHERE id = $1 AND user_id = $2',
+      [id, req.user.id]
+    );
+
+    if (profileResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Gear profile not found' });
+    }
+
+    const row = profileResult.rows[0];
+
+    const cylindersResult = await pool.query(
+      'SELECT * FROM gear_cylinders WHERE gear_profile_id = $1 ORDER BY sort_order, id',
+      [id]
+    );
+
+    const weightsResult = await pool.query(
+      'SELECT * FROM gear_weights WHERE gear_profile_id = $1 ORDER BY sort_order, id',
+      [id]
+    );
+
+    const profile = {
+      id: row.id,
+      userId: row.user_id,
+      name: row.name,
+      configType: row.config_type,
+      suitType: row.suit_type,
+      suitThickness: row.suit_thickness,
+      undersuit: row.undersuit,
+      suitNickname: row.suit_nickname,
+      glovesType: row.gloves_type,
+      glovesThickness: row.gloves_thickness,
+      glovesNickname: row.gloves_nickname,
+      bootsType: row.boots_type,
+      bootsThickness: row.boots_thickness,
+      bootsNickname: row.boots_nickname,
+      hoodType: row.hood_type,
+      hoodThickness: row.hood_thickness,
+      hoodNickname: row.hood_nickname,
+      bcdType: row.bcd_type,
+      bcdNickname: row.bcd_nickname,
+      finsType: row.fins_type,
+      finsNickname: row.fins_nickname,
+      maskNickname: row.mask_nickname,
+      notes: row.notes,
+      isTemplate: row.is_template,
+      plannedDepth: row.planned_depth ? parseFloat(row.planned_depth) : null,
+      plannedBottomTime: row.planned_bottom_time,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+      cylinders: cylindersResult.rows.map(c => ({
+        id: c.id,
+        cylinderSize: c.cylinder_size,
+        cylinderMaterial: c.cylinder_material,
+        cylinderRole: c.cylinder_role,
+        gasMix: c.gas_mix,
+        o2Percent: c.o2_percent ? parseFloat(c.o2_percent) : 21,
+        hePercent: c.he_percent ? parseFloat(c.he_percent) : 0,
+        startPressure: c.start_pressure,
+        workingPressure: c.working_pressure,
+        nickname: c.nickname,
+        sortOrder: c.sort_order
+      })),
+      weights: weightsResult.rows.map(w => ({
+        id: w.id,
+        placement: w.placement,
+        weightKg: w.weight_kg ? parseFloat(w.weight_kg) : 0,
+        sortOrder: w.sort_order
+      }))
+    };
+
+    res.json(profile);
+  } catch (error) {
+    console.error('Get gear profile error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Create gear profile
+app.post('/api/gear-profiles', authenticateToken, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const {
+      name, configType, suitType, suitThickness, undersuit, suitNickname,
+      glovesType, glovesThickness, glovesNickname, bootsType, bootsThickness, bootsNickname,
+      hoodType, hoodThickness, hoodNickname, bcdType, bcdNickname,
+      finsType, finsNickname, maskNickname, notes, isTemplate,
+      plannedDepth, plannedBottomTime, cylinders, weights
+    } = req.body;
+
+    if (!name || !configType) {
+      return res.status(400).json({ error: 'Name and configuration type are required' });
+    }
+
+    const profileResult = await client.query(`
+      INSERT INTO gear_profiles (
+        user_id, name, config_type, suit_type, suit_thickness, undersuit, suit_nickname,
+        gloves_type, gloves_thickness, gloves_nickname, boots_type, boots_thickness, boots_nickname,
+        hood_type, hood_thickness, hood_nickname, bcd_type, bcd_nickname,
+        fins_type, fins_nickname, mask_nickname, notes, is_template, planned_depth, planned_bottom_time
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25)
+      RETURNING *
+    `, [
+      req.user.id, name, configType, suitType || null, suitThickness || null, undersuit || null, suitNickname || null,
+      glovesType || null, glovesThickness || null, glovesNickname || null,
+      bootsType || null, bootsThickness || null, bootsNickname || null,
+      hoodType || null, hoodThickness || null, hoodNickname || null,
+      bcdType || null, bcdNickname || null, finsType || null, finsNickname || null, maskNickname || null,
+      notes || null, isTemplate !== false, plannedDepth || null, plannedBottomTime || null
+    ]);
+
+    const profileId = profileResult.rows[0].id;
+
+    // Insert cylinders
+    if (cylinders && cylinders.length > 0) {
+      for (let i = 0; i < cylinders.length; i++) {
+        const c = cylinders[i];
+        await client.query(`
+          INSERT INTO gear_cylinders (
+            gear_profile_id, cylinder_size, cylinder_material, cylinder_role,
+            gas_mix, o2_percent, he_percent, start_pressure, working_pressure, nickname, sort_order
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        `, [
+          profileId, c.cylinderSize, c.cylinderMaterial || 'steel', c.cylinderRole || 'bottom_gas',
+          c.gasMix || 'air', c.o2Percent || 21, c.hePercent || 0,
+          c.startPressure || null, c.workingPressure || null, c.nickname || null, i
+        ]);
+      }
+    }
+
+    // Insert weights
+    if (weights && weights.length > 0) {
+      for (let i = 0; i < weights.length; i++) {
+        const w = weights[i];
+        await client.query(`
+          INSERT INTO gear_weights (gear_profile_id, placement, weight_kg, sort_order)
+          VALUES ($1, $2, $3, $4)
+        `, [profileId, w.placement, w.weightKg || 0, i]);
+      }
+    }
+
+    await client.query('COMMIT');
+
+    res.status(201).json({ id: profileId, message: 'Gear profile created successfully' });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Create gear profile error:', error);
+    res.status(500).json({ error: 'Server error' });
+  } finally {
+    client.release();
+  }
+});
+
+// Update gear profile
+app.put('/api/gear-profiles/:id', authenticateToken, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const { id } = req.params;
+    const {
+      name, configType, suitType, suitThickness, undersuit, suitNickname,
+      glovesType, glovesThickness, glovesNickname, bootsType, bootsThickness, bootsNickname,
+      hoodType, hoodThickness, hoodNickname, bcdType, bcdNickname,
+      finsType, finsNickname, maskNickname, notes, isTemplate,
+      plannedDepth, plannedBottomTime, cylinders, weights
+    } = req.body;
+
+    // Verify ownership
+    const existingResult = await client.query(
+      'SELECT id FROM gear_profiles WHERE id = $1 AND user_id = $2',
+      [id, req.user.id]
+    );
+
+    if (existingResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Gear profile not found' });
+    }
+
+    await client.query(`
+      UPDATE gear_profiles SET
+        name = COALESCE($1, name),
+        config_type = COALESCE($2, config_type),
+        suit_type = $3,
+        suit_thickness = $4,
+        undersuit = $5,
+        suit_nickname = $6,
+        gloves_type = $7,
+        gloves_thickness = $8,
+        gloves_nickname = $9,
+        boots_type = $10,
+        boots_thickness = $11,
+        boots_nickname = $12,
+        hood_type = $13,
+        hood_thickness = $14,
+        hood_nickname = $15,
+        bcd_type = $16,
+        bcd_nickname = $17,
+        fins_type = $18,
+        fins_nickname = $19,
+        mask_nickname = $20,
+        notes = $21,
+        is_template = COALESCE($22, is_template),
+        planned_depth = $23,
+        planned_bottom_time = $24
+      WHERE id = $25 AND user_id = $26
+    `, [
+      name, configType, suitType || null, suitThickness || null, undersuit || null, suitNickname || null,
+      glovesType || null, glovesThickness || null, glovesNickname || null,
+      bootsType || null, bootsThickness || null, bootsNickname || null,
+      hoodType || null, hoodThickness || null, hoodNickname || null,
+      bcdType || null, bcdNickname || null, finsType || null, finsNickname || null, maskNickname || null,
+      notes || null, isTemplate, plannedDepth || null, plannedBottomTime || null,
+      id, req.user.id
+    ]);
+
+    // Update cylinders - delete existing and re-insert
+    if (cylinders !== undefined) {
+      await client.query('DELETE FROM gear_cylinders WHERE gear_profile_id = $1', [id]);
+      for (let i = 0; i < cylinders.length; i++) {
+        const c = cylinders[i];
+        await client.query(`
+          INSERT INTO gear_cylinders (
+            gear_profile_id, cylinder_size, cylinder_material, cylinder_role,
+            gas_mix, o2_percent, he_percent, start_pressure, working_pressure, nickname, sort_order
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        `, [
+          id, c.cylinderSize, c.cylinderMaterial || 'steel', c.cylinderRole || 'bottom_gas',
+          c.gasMix || 'air', c.o2Percent || 21, c.hePercent || 0,
+          c.startPressure || null, c.workingPressure || null, c.nickname || null, i
+        ]);
+      }
+    }
+
+    // Update weights - delete existing and re-insert
+    if (weights !== undefined) {
+      await client.query('DELETE FROM gear_weights WHERE gear_profile_id = $1', [id]);
+      for (let i = 0; i < weights.length; i++) {
+        const w = weights[i];
+        await client.query(`
+          INSERT INTO gear_weights (gear_profile_id, placement, weight_kg, sort_order)
+          VALUES ($1, $2, $3, $4)
+        `, [id, w.placement, w.weightKg || 0, i]);
+      }
+    }
+
+    await client.query('COMMIT');
+
+    res.json({ message: 'Gear profile updated successfully' });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Update gear profile error:', error);
+    res.status(500).json({ error: 'Server error' });
+  } finally {
+    client.release();
+  }
+});
+
+// Delete gear profile
+app.delete('/api/gear-profiles/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const result = await pool.query(
+      'DELETE FROM gear_profiles WHERE id = $1 AND user_id = $2 RETURNING id',
+      [id, req.user.id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Gear profile not found' });
+    }
+
+    res.json({ message: 'Gear profile deleted successfully' });
+  } catch (error) {
+    console.error('Delete gear profile error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Duplicate gear profile (for creating instance from template)
+app.post('/api/gear-profiles/:id/duplicate', authenticateToken, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const { id } = req.params;
+    const { name, isTemplate } = req.body;
+
+    // Get original profile
+    const originalResult = await client.query(
+      'SELECT * FROM gear_profiles WHERE id = $1 AND user_id = $2',
+      [id, req.user.id]
+    );
+
+    if (originalResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Gear profile not found' });
+    }
+
+    const original = originalResult.rows[0];
+
+    // Create duplicate
+    const newProfileResult = await client.query(`
+      INSERT INTO gear_profiles (
+        user_id, name, config_type, suit_type, suit_thickness, undersuit, suit_nickname,
+        gloves_type, gloves_thickness, gloves_nickname, boots_type, boots_thickness, boots_nickname,
+        hood_type, hood_thickness, hood_nickname, bcd_type, bcd_nickname,
+        fins_type, fins_nickname, mask_nickname, notes, is_template, planned_depth, planned_bottom_time
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25)
+      RETURNING id
+    `, [
+      req.user.id, name || `${original.name} (copy)`, original.config_type,
+      original.suit_type, original.suit_thickness, original.undersuit, original.suit_nickname,
+      original.gloves_type, original.gloves_thickness, original.gloves_nickname,
+      original.boots_type, original.boots_thickness, original.boots_nickname,
+      original.hood_type, original.hood_thickness, original.hood_nickname,
+      original.bcd_type, original.bcd_nickname, original.fins_type, original.fins_nickname, original.mask_nickname,
+      original.notes, isTemplate !== undefined ? isTemplate : original.is_template,
+      original.planned_depth, original.planned_bottom_time
+    ]);
+
+    const newProfileId = newProfileResult.rows[0].id;
+
+    // Duplicate cylinders
+    const cylindersResult = await client.query(
+      'SELECT * FROM gear_cylinders WHERE gear_profile_id = $1 ORDER BY sort_order',
+      [id]
+    );
+
+    for (const c of cylindersResult.rows) {
+      await client.query(`
+        INSERT INTO gear_cylinders (
+          gear_profile_id, cylinder_size, cylinder_material, cylinder_role,
+          gas_mix, o2_percent, he_percent, start_pressure, working_pressure, nickname, sort_order
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      `, [
+        newProfileId, c.cylinder_size, c.cylinder_material, c.cylinder_role,
+        c.gas_mix, c.o2_percent, c.he_percent, c.start_pressure, c.working_pressure, c.nickname, c.sort_order
+      ]);
+    }
+
+    // Duplicate weights
+    const weightsResult = await client.query(
+      'SELECT * FROM gear_weights WHERE gear_profile_id = $1 ORDER BY sort_order',
+      [id]
+    );
+
+    for (const w of weightsResult.rows) {
+      await client.query(`
+        INSERT INTO gear_weights (gear_profile_id, placement, weight_kg, sort_order)
+        VALUES ($1, $2, $3, $4)
+      `, [newProfileId, w.placement, w.weight_kg, w.sort_order]);
+    }
+
+    await client.query('COMMIT');
+
+    res.status(201).json({ id: newProfileId, message: 'Gear profile duplicated successfully' });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Duplicate gear profile error:', error);
+    res.status(500).json({ error: 'Server error' });
+  } finally {
+    client.release();
   }
 });
 
