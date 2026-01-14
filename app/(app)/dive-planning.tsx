@@ -318,8 +318,8 @@ export default function DivePlanningScreen() {
     
     // Calculate approximate CNS/OTU at this point (linear interpolation)
     const progress = currentResult.totalRunTime > 0 ? time / currentResult.totalRunTime : 0;
-    const cnsAtTime = Math.round(currentResult.totalCNS * progress);
-    const otuAtTime = Math.round(currentResult.totalOTU * progress);
+    const cnsAtTime = Math.round(currentResult.cns * progress);
+    const otuAtTime = Math.round(currentResult.otu * progress);
     
     // Calculate ceiling at this depth
     const maxTissueM = Math.max(...tissues.map(t => t.ppInert - t.mValue), 0);
@@ -499,11 +499,11 @@ export default function DivePlanningScreen() {
           <View style={styles.chartStatsRow}>
             <View style={[styles.chartStatBadge, { backgroundColor: colors.warning + '20' }]}>
               <Text style={[styles.chartStatLabel, { color: colors.warning }]}>CNS</Text>
-              <Text style={[styles.chartStatValue, { color: colors.warning }]}>{currentResult.totalCNS}%</Text>
+              <Text style={[styles.chartStatValue, { color: colors.warning }]}>{currentResult.cns}%</Text>
             </View>
             <View style={[styles.chartStatBadge, { backgroundColor: colors.accent + '20' }]}>
               <Text style={[styles.chartStatLabel, { color: colors.accent }]}>OTU</Text>
-              <Text style={[styles.chartStatValue, { color: colors.accent }]}>{currentResult.totalOTU}</Text>
+              <Text style={[styles.chartStatValue, { color: colors.accent }]}>{currentResult.otu}</Text>
             </View>
           </View>
         </View>
