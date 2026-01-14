@@ -788,7 +788,7 @@ export default function DivePlanningScreen() {
               </TouchableOpacity>
               
               {showCylinderDropdown === gas.id && (
-                <View style={[styles.cylinderDropdownList, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                <View style={[styles.cylinderDropdownList, { backgroundColor: isDark ? '#2C2C2E' : '#FFFFFF', borderColor: colors.border }]}>
                   <ScrollView style={{ maxHeight: 200 }} nestedScrollEnabled>
                     {CYLINDER_PRESETS.map(preset => (
                       <TouchableOpacity
