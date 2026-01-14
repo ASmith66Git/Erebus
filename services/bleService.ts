@@ -167,10 +167,11 @@ class BleService {
         this.stopScanning();
         console.log(`BLE: Connection cycle ${connectionCycle}/${maxConnectionAttempts} to device:`, deviceId);
 
-        // On retry cycles, add extra delay to let Android BLE stack reset
+        // On retry cycles, add extra delay to let Android BLE stack fully reset
         if (connectionCycle > 1) {
-          console.log('BLE: Waiting 3s before reconnection attempt (GATT cache clear)...');
-          await new Promise(resolve => setTimeout(resolve, 3000));
+          const retryDelay = 4000 + (connectionCycle * 1000); // 5s, 6s for cycles 2, 3
+          console.log(`BLE: Waiting ${retryDelay}ms before reconnection attempt (GATT cache clear)...`);
+          await new Promise(resolve => setTimeout(resolve, retryDelay));
         }
 
         const device = await this.manager.connectToDevice(deviceId, {
@@ -252,11 +253,11 @@ class BleService {
               await device.cancelConnection();
               // CRITICAL: Wait for Android BLE stack to fully process the disconnect
               // before attempting reconnection - prevents "Operation cancelled" errors
-              console.log('BLE: Waiting 2s for disconnect to complete before retry...');
-              await new Promise(resolve => setTimeout(resolve, 2000));
+              console.log('BLE: Waiting 4s for disconnect to complete before retry...');
+              await new Promise(resolve => setTimeout(resolve, 4000));
             } catch (e) {
               // Ignore disconnect errors, but still wait
-              await new Promise(resolve => setTimeout(resolve, 1000));
+              await new Promise(resolve => setTimeout(resolve, 3000));
             }
             continue; // Try another connection cycle
           } else {

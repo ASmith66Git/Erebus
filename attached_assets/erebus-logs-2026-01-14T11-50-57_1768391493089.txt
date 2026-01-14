@@ -1,0 +1,79 @@
+{
+  "deviceInfo": {
+    "platform": "android",
+    "version": 35,
+    "timestamp": "2026-01-14T11:50:57.869Z"
+  },
+  "logs": [
+    {
+      "id": "1768391438609-f54fo2n6e",
+      "timestamp": "2026-01-14T11:50:38.609Z",
+      "level": "error",
+      "message": "Download error details: {\n  \"message\": \"Operation cancelled (error code 2)\",\n  \"name\": \"Error\",\n  \"stack\": \"Error: Operation cancelled (error code 2)\\n    at ?anon_0_ (address at index.android.bundle:1:2030962)\\n    at throw (native)\\n    at asyncGeneratorStep (address at index.android.bundle:1:560500)\\n    at _throw (address at index.android.bundle:1:560805)\\n    at tryCallOne (address at InternalBytecode.js:1:1180)\\n    at anonymous (address at InternalBytecode.js:1:1874)\",\n  \"fullError\": \"{\\n  \\\"message\\\": \\\"Operation cancelled (error code 2)\\\",\\n  \\\"stack\\\": \\\"Error: Operation cancelled (error code 2)\\\\n    at ?anon_0_ (address at index.android.bundle:1:2030962)\\\\n    at throw (native)\\\\n    at asyncGeneratorStep (address at index.android.bundle:1:560500)\\\\n    at _throw (address at index.android.bundle:1:560805)\\\\n    at tryCallOne (address at InternalBytecode.js:1:1180)\\\\n    at anonymous (address at InternalBytecode.js:1:1874)\\\"\\n}\"\n}",
+      "source": "console.error"
+    },
+    {
+      "id": "1768391438607-8ofjxbz6p",
+      "timestamp": "2026-01-14T11:50:38.607Z",
+      "level": "error",
+      "message": "Download error: Error: Operation cancelled (error code 2)\nError: Operation cancelled (error code 2)\n    at ?anon_0_ (address at index.android.bundle:1:2030962)\n    at throw (native)\n    at asyncGeneratorStep (address at index.android.bundle:1:560500)\n    at _throw (address at index.android.bundle:1:560805)\n    at tryCallOne (address at InternalBytecode.js:1:1180)\n    at anonymous (address at InternalBytecode.js:1:1874)",
+      "source": "console.error"
+    },
+    {
+      "id": "1768391438605-trfpstw5m",
+      "timestamp": "2026-01-14T11:50:38.605Z",
+      "level": "error",
+      "message": "BLE Error Details: {\n  \"message\": \"Operation was cancelled\",\n  \"reason\": \"\",\n  \"errorCode\": 2,\n  \"androidErrorCode\": null,\n  \"iosErrorCode\": null,\n  \"attErrorCode\": null,\n  \"name\": \"BleError\",\n  \"stack\": \"BleError: Operation was cancelled\\n    at construct (native)\\n    at apply (native)\\n    at _construct (address at index.android.bundle:1:133076)\\n    at Wrapper (address at index.android.bundle:1:132729)\\n    at construct (native)\\n    at _callSuper (address at index.android.bundle:1:117621)\\n    at BleError (address at index.android.bundle:1:2041459)\\n    at parseBleError (address at index.android.bundle:1:2041263)\\n    at ?anon_0_ (address at index.android.bundle:1:2044797)\\n    at throw (native)\\n    a\"\n}",
+      "source": "console.error"
+    },
+    {
+      "id": "1768391438602-jsq6p1bzw",
+      "timestamp": "2026-01-14T11:50:38.602Z",
+      "level": "error",
+      "message": "Connection cycle 3 error: BleError: Operation was cancelled\nBleError: Operation was cancelled\n    at construct (native)\n    at apply (native)\n    at _construct (address at index.android.bundle:1:133076)\n    at Wrapper (address at index.android.bundle:1:132729)\n    at construct (native)\n    at _callSuper (address at index.android.bundle:1:117621)\n    at BleError (address at index.android.bundle:1:2041459)\n    at parseBleError (address at index.android.bundle:1:2041263)\n    at ?anon_0_ (address at index.android.bundle:1:2044797)\n    at throw (native)\n    at asyncGeneratorStep (address at index.android.bundle:1:560500)\n    at _throw (address at index.android.bundle:1:560805)\n    at tryCallOne (address at InternalBytecode.js:1:1180)\n    at anonymous (address at InternalBytecode.js:1:1874)",
+      "source": "console.error"
+    },
+    {
+      "id": "1768391423555-4di51gua4",
+      "timestamp": "2026-01-14T11:50:23.555Z",
+      "level": "error",
+      "message": "Connection cycle 2 error: BleError: Operation was cancelled\nBleError: Operation was cancelled\n    at construct (native)\n    at apply (native)\n    at _construct (address at index.android.bundle:1:133076)\n    at Wrapper (address at index.android.bundle:1:132729)\n    at construct (native)\n    at _callSuper (address at index.android.bundle:1:117621)\n    at BleError (address at index.android.bundle:1:2041459)\n    at parseBleError (address at index.android.bundle:1:2041263)\n    at ?anon_0_ (address at index.android.bundle:1:2044797)\n    at throw (native)\n    at asyncGeneratorStep (address at index.android.bundle:1:560500)\n    at _throw (address at index.android.bundle:1:560805)\n    at tryCallOne (address at InternalBytecode.js:1:1180)\n    at anonymous (address at InternalBytecode.js:1:1874)",
+      "source": "console.error"
+    },
+    {
+      "id": "1768391403519-tgwsdmkja",
+      "timestamp": "2026-01-14T11:50:03.520Z",
+      "level": "warn",
+      "message": "BLE: Shearwater service not found, disconnecting to clear GATT cache (cycle 1)",
+      "source": "console.warn"
+    },
+    {
+      "id": "1768391375566-b4r7wuld8",
+      "timestamp": "2026-01-14T11:49:35.566Z",
+      "level": "error",
+      "message": "Error getting last sync time: Call to function 'NativeDatabase.prepareAsync' has been rejected.\n→ Caused by: java.lang.NullPointerException: java.lang.NullPointerException",
+      "source": "console.error"
+    },
+    {
+      "id": "1768391375557-hq14pdbov",
+      "timestamp": "2026-01-14T11:49:35.557Z",
+      "level": "error",
+      "message": "Error getting pending mutations: Call to function 'NativeDatabase.prepareAsync' has been rejected.\n→ Caused by: java.lang.NullPointerException: java.lang.NullPointerException",
+      "source": "console.error"
+    },
+    {
+      "id": "1768391375248-2yoxc9ik4",
+      "timestamp": "2026-01-14T11:49:35.248Z",
+      "level": "error",
+      "message": "Error getting last sync time: Call to function 'NativeDatabase.prepareAsync' has been rejected.\n→ Caused by: java.lang.NullPointerException: java.lang.NullPointerException",
+      "source": "console.error"
+    },
+    {
+      "id": "1768391375235-f9c1nhkj8",
+      "timestamp": "2026-01-14T11:49:35.235Z",
+      "level": "error",
+      "message": "Error getting pending mutations: Call to function 'NativeDatabase.prepareAsync' has been rejected.\n→ Caused by: java.lang.NullPointerException: java.lang.NullPointerException",
+      "source": "console.error"
+    }
+  ]
+}
