@@ -1831,13 +1831,8 @@ app.get('/api/objects/url', authenticateToken, async (req, res) => {
     if (!objectPath) {
       return res.status(400).json({ error: 'Missing required parameter: path' });
     }
-    // The objectPath should be like /objects/uploads/uuid
-    // We'll return a URL that points to our object streaming endpoint
-    const host = req.get('host');
-    // Always use https in production (Replit uses reverse proxy)
-    const protocol = process.env.NODE_ENV === 'production' || host.includes('replit') ? 'https' : req.protocol;
-    const url = `${protocol}://${host}${objectPath}`;
-    res.json({ url });
+    // Return the relative path - frontend will prepend API URL
+    res.json({ url: objectPath });
   } catch (error) {
     console.error('Error getting object URL:', error);
     res.status(500).json({ error: 'Failed to get object URL' });

@@ -286,6 +286,14 @@ export default function PhotosScreen() {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
+  // Helper to get the full image URL (relative paths need API URL prefix)
+  const getImageUrl = (url: string) => {
+    if (url.startsWith('/')) {
+      return `${getApiUrl()}${url}`;
+    }
+    return url;
+  };
+
   const renderPhoto = (photo: Photo, index: number) => {
     const isSelected = selectedIds.has(photo.id);
     
@@ -300,7 +308,7 @@ export default function PhotosScreen() {
         }}
       >
         <Image
-          source={{ uri: photo.thumbnailUrl || photo.imageUrl }}
+          source={{ uri: getImageUrl(photo.thumbnailUrl || photo.imageUrl) }}
           style={styles.photoImage}
           resizeMode="cover"
         />
@@ -380,7 +388,7 @@ export default function PhotosScreen() {
             {photos.map((photo) => (
               <View key={photo.id} style={{ width: SCREEN_WIDTH, justifyContent: 'center', alignItems: 'center' }}>
                 <Image
-                  source={{ uri: photo.imageUrl }}
+                  source={{ uri: getImageUrl(photo.imageUrl) }}
                   style={styles.viewerImage}
                   resizeMode="contain"
                 />
