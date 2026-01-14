@@ -30,6 +30,14 @@ The application is built using Expo React Native, targeting both iOS and Android
 ### Feature Specifications
 - **User Management**: Admin users can view, block/unblock, change roles, and reset passwords.
 - **Dev Log**: Admin-only feature for tracking development tasks with color-coded status (To Do, In Progress, Completed), page type badges (Card, Detail, Edit), page name autocomplete, and CRUD operations via modal interface.
+- **Gear Profiles**: Comprehensive diving equipment configuration management with:
+  - 4 configuration types: Single Tank, Twinset, Sidemount, CCR (with distinct icons)
+  - Exposure section: suit type/thickness/undersuit, gloves, boots, hood with nickname fields
+  - Gas & Cylinders: multiple cylinders with gas mix selection (Air/Nitrox/Trimix/Heliox/O2), O2%/He% inputs, automatic MOD calculation (PPO2 1.4), standard sizes, cylinder roles
+  - Dynamic Weighting: config-specific weight placements with stepper inputs (0.5kg increments)
+  - Template system: reusable templates that can be applied to dive logs
+  - Database tables: gear_profiles, gear_cylinders, gear_weights with foreign key relationships
+  - Integration with dive_logs via gear_profile_id with authorization guard
 - **Dive Site Details**: Comprehensive fields including site type, water type, difficulty, access notes, hazards, and best season.
 - **Dive Site Images**: Supports image uploads to Replit Object Storage via presigned URLs, camera photo capture, primary image selection, and "Search Web" for Google Images.
 - **Wreck Site Specifics**: Dedicated fields and a conditional "Wreck" tab.
