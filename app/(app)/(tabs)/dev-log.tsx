@@ -10,7 +10,8 @@ import {
   Modal, 
   TextInput,
   FlatList,
-  Platform
+  Platform,
+  RefreshControl
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { Ionicons, Feather } from '@expo/vector-icons';
@@ -72,6 +73,7 @@ export default function DevLogScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [toastVisible, setToastVisible] = useState(false);
   const [statusCounts, setStatusCounts] = useState<{ todo: number; in_progress: number; completed: number }>({ todo: 0, in_progress: 0, completed: 0 });
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     if (!isAdmin) {
@@ -143,6 +145,12 @@ export default function DevLogScreen() {
       console.error('Failed to fetch status counts:', err);
     }
   };
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await Promise.all([fetchEntries(), fetchStatusCounts()]);
+    setRefreshing(false);
+  }, [fetchEntries]);
 
   useEffect(() => {
     if (token) {
@@ -434,7 +442,13 @@ Please help me with this development task.`;
           </Text>
         </View>
       ) : (
-        <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+        <ScrollView 
+          style={styles.scrollView} 
+          contentContainerStyle={styles.scrollContent}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} tintColor={colors.primary} />
+          }
+        >
           {entries
             .filter(entry => {
               if (!searchQuery.trim()) return true;

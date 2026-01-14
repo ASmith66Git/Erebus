@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Switch, Modal, ActivityIndicator, Platform } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, Pressable, Switch, Modal, ActivityIndicator, Platform, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -41,6 +41,7 @@ export default function ProfileScreen() {
   const [loading, setLoading] = useState(false);
   const [showBrandPicker, setShowBrandPicker] = useState(false);
   const [showModelPicker, setShowModelPicker] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     loadManufacturers();
@@ -88,6 +89,12 @@ export default function ProfileScreen() {
       console.error('Error loading user dive computer:', error);
     }
   };
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await Promise.all([loadManufacturers(), loadUserDiveComputer()]);
+    setRefreshing(false);
+  }, []);
 
   const saveDiveComputer = async (brand: string | null, model: string | null) => {
     setLoading(true);
@@ -145,7 +152,12 @@ export default function ProfileScreen() {
   ];
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
+    <ScrollView 
+      style={[styles.container, { backgroundColor: colors.background }]}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} tintColor={colors.primary} />
+      }
+    >
       <View style={[styles.profileHeader, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
         <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
           <Text style={styles.avatarText}>

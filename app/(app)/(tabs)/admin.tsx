@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Alert, Platform } from 'react-native';
+import React, { useEffect, useState, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Alert, Platform, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -26,6 +26,7 @@ export default function AdminScreen() {
   const [error, setError] = useState('');
   const [resetLoading, setResetLoading] = useState<number | null>(null);
   const [errorCount, setErrorCount] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     if (!isAdmin) {
@@ -62,6 +63,12 @@ export default function AdminScreen() {
       setIsLoading(false);
     }
   }
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await fetchUsers();
+    setRefreshing(false);
+  }, []);
 
   async function toggleUserRole(userId: number, currentRole: string) {
     const newRole = currentRole === 'admin' ? 'user' : 'admin';
@@ -211,7 +218,12 @@ export default function AdminScreen() {
   }
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
+    <ScrollView 
+      style={[styles.container, { backgroundColor: colors.background }]}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} tintColor={colors.primary} />
+      }
+    >
       <View style={styles.header}>
         <View style={[styles.headerIcon, { backgroundColor: colors.primary }]}>
           <Ionicons name="settings" size={24} color="#FFFFFF" />
