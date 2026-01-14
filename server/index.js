@@ -1824,6 +1824,25 @@ app.post('/api/uploads/request-url', authenticateToken, async (req, res) => {
   }
 });
 
+// Get a URL for accessing an uploaded object
+app.get('/api/objects/url', authenticateToken, async (req, res) => {
+  try {
+    const { path: objectPath } = req.query;
+    if (!objectPath) {
+      return res.status(400).json({ error: 'Missing required parameter: path' });
+    }
+    // The objectPath should be like /objects/uploads/uuid
+    // We'll return a URL that points to our object streaming endpoint
+    const host = req.get('host');
+    const protocol = req.protocol;
+    const url = `${protocol}://${host}${objectPath}`;
+    res.json({ url });
+  } catch (error) {
+    console.error('Error getting object URL:', error);
+    res.status(500).json({ error: 'Failed to get object URL' });
+  }
+});
+
 app.get(/^\/objects\/(.+)$/, async (req, res) => {
   try {
     const objectPath = req.path;
@@ -2293,7 +2312,7 @@ app.get('/api/photos', authenticateToken, async (req, res) => {
   
   try {
     let query = `
-      SELECT p.*, dl.dive_number, dl.dive_date, ds.name as dive_site_name
+      SELECT p.*, dl.dive_number, dl.dive_datetime, ds.name as dive_site_name
       FROM dive_photos p
       LEFT JOIN dive_logs dl ON p.dive_log_id = dl.id
       LEFT JOIN dive_sites ds ON dl.dive_site_id = ds.id
@@ -2326,7 +2345,7 @@ app.get('/api/photos', authenticateToken, async (req, res) => {
         userId: row.user_id,
         diveLogId: row.dive_log_id,
         diveNumber: row.dive_number,
-        diveDate: row.dive_date,
+        diveDate: row.dive_datetime,
         diveSiteName: row.dive_site_name,
         imageUrl: row.image_url,
         thumbnailUrl: row.thumbnail_url,
@@ -2357,7 +2376,7 @@ app.get('/api/photos/:id', authenticateToken, async (req, res) => {
   
   try {
     const result = await pool.query(`
-      SELECT p.*, dl.dive_number, dl.dive_date, ds.name as dive_site_name
+      SELECT p.*, dl.dive_number, dl.dive_datetime, ds.name as dive_site_name
       FROM dive_photos p
       LEFT JOIN dive_logs dl ON p.dive_log_id = dl.id
       LEFT JOIN dive_sites ds ON dl.dive_site_id = ds.id
@@ -2374,7 +2393,7 @@ app.get('/api/photos/:id', authenticateToken, async (req, res) => {
       userId: row.user_id,
       diveLogId: row.dive_log_id,
       diveNumber: row.dive_number,
-      diveDate: row.dive_date,
+      diveDate: row.dive_datetime,
       diveSiteName: row.dive_site_name,
       imageUrl: row.image_url,
       thumbnailUrl: row.thumbnail_url,
