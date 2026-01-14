@@ -70,7 +70,7 @@ export default function DevLogScreen() {
     devices: [] as ('android' | 'ios' | 'web')[],
   });
 
-  const [filterStatus, setFilterStatus] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'active' | 'completed'>('active');
   const [searchQuery, setSearchQuery] = useState('');
   const [toastVisible, setToastVisible] = useState(false);
   const [statusCounts, setStatusCounts] = useState<{ todo: number; in_progress: number; completed: number }>({ todo: 0, in_progress: 0, completed: 0 });
@@ -89,12 +89,7 @@ export default function DevLogScreen() {
   const fetchEntries = useCallback(async () => {
     try {
       setIsLoading(true);
-      let url = `/api/admin/dev-log`;
-      if (filterStatus) {
-        url += `?status=${filterStatus}`;
-      }
-      
-      const response = await authFetch(url, token);
+      const response = await authFetch('/api/admin/dev-log', token);
 
       if (response.ok) {
         const data = await response.json();
@@ -107,7 +102,7 @@ export default function DevLogScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, [token, filterStatus]);
+  }, [token]);
 
   const fetchPageNames = async () => {
     try {
@@ -375,40 +370,39 @@ Please help me with this development task.`;
         </View>
       </View>
 
-      <View style={styles.filterContainer}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
-          <Pressable
-            style={[
-              styles.filterChip,
-              { backgroundColor: filterStatus === null ? colors.primary : colors.surface, borderColor: colors.border }
-            ]}
-            onPress={() => setFilterStatus(null)}
-          >
-            <Text style={[styles.filterChipText, { color: filterStatus === null ? '#FFFFFF' : colors.text }]}>
-              All
+      <View style={styles.tabContainer}>
+        <Pressable
+          style={[
+            styles.tab,
+            { borderBottomColor: activeTab === 'active' ? colors.primary : 'transparent' }
+          ]}
+          onPress={() => setActiveTab('active')}
+        >
+          <Text style={[styles.tabText, { color: activeTab === 'active' ? colors.primary : colors.textSecondary }]}>
+            Active
+          </Text>
+          <View style={[styles.tabBadge, { backgroundColor: activeTab === 'active' ? colors.primary : colors.surface }]}>
+            <Text style={[styles.tabBadgeText, { color: activeTab === 'active' ? '#FFFFFF' : colors.text }]}>
+              {statusCounts.todo + statusCounts.in_progress}
             </Text>
-            <View style={[styles.badge, { backgroundColor: filterStatus === null ? 'rgba(255,255,255,0.3)' : colors.primary }]}>
-              <Text style={styles.badgeText}>{statusCounts.todo + statusCounts.in_progress + statusCounts.completed}</Text>
-            </View>
-          </Pressable>
-          {Object.entries(STATUS_COLORS).map(([key, config]) => (
-            <Pressable
-              key={key}
-              style={[
-                styles.filterChip,
-                { backgroundColor: filterStatus === key ? config.bg : colors.surface, borderColor: colors.border }
-              ]}
-              onPress={() => setFilterStatus(key)}
-            >
-              <Text style={[styles.filterChipText, { color: filterStatus === key ? config.text : colors.text }]}>
-                {config.label}
-              </Text>
-              <View style={[styles.badge, { backgroundColor: filterStatus === key ? 'rgba(255,255,255,0.3)' : config.bg }]}>
-                <Text style={styles.badgeText}>{statusCounts[key as keyof typeof statusCounts]}</Text>
-              </View>
-            </Pressable>
-          ))}
-        </ScrollView>
+          </View>
+        </Pressable>
+        <Pressable
+          style={[
+            styles.tab,
+            { borderBottomColor: activeTab === 'completed' ? colors.primary : 'transparent' }
+          ]}
+          onPress={() => setActiveTab('completed')}
+        >
+          <Text style={[styles.tabText, { color: activeTab === 'completed' ? colors.primary : colors.textSecondary }]}>
+            Completed
+          </Text>
+          <View style={[styles.tabBadge, { backgroundColor: activeTab === 'completed' ? colors.primary : colors.surface }]}>
+            <Text style={[styles.tabBadgeText, { color: activeTab === 'completed' ? '#FFFFFF' : colors.text }]}>
+              {statusCounts.completed}
+            </Text>
+          </View>
+        </Pressable>
       </View>
 
       {isLoading ? (
@@ -442,6 +436,10 @@ Please help me with this development task.`;
         >
           {entries
             .filter(entry => {
+              const matchesTab = activeTab === 'completed' 
+                ? entry.status === 'completed' 
+                : entry.status !== 'completed';
+              if (!matchesTab) return false;
               if (!searchQuery.trim()) return true;
               const query = searchQuery.toLowerCase();
               return (
@@ -449,11 +447,7 @@ Please help me with this development task.`;
                 (entry.pageName && entry.pageName.toLowerCase().includes(query))
               );
             })
-            .sort((a, b) => {
-              if (a.status === 'completed' && b.status !== 'completed') return 1;
-              if (a.status !== 'completed' && b.status === 'completed') return -1;
-              return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-            })
+            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
             .map(renderEntry)}
         </ScrollView>
       )}
@@ -660,6 +654,34 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     padding: 0,
+  },
+  tabContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+  },
+  tab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 2,
+    gap: 8,
+  },
+  tabText: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  tabBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 12,
+    minWidth: 24,
+    alignItems: 'center',
+  },
+  tabBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
   },
   filterContainer: {
     paddingVertical: 12,
