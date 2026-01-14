@@ -61,6 +61,7 @@ export default function PhotosScreen() {
   const [showUploadMenu, setShowUploadMenu] = useState(false);
 
   const fetchPhotos = async () => {
+    console.log('Fetching photos...', 'token exists:', !!token);
     try {
       const params = new URLSearchParams();
       if (filter === 'favorites') params.append('favorites', 'true');
@@ -69,13 +70,18 @@ export default function PhotosScreen() {
         headers: { Authorization: `Bearer ${token}` },
       });
       
+      console.log('Photos response status:', response.status);
       if (response.ok) {
         const data = await response.json();
-        let filteredPhotos = data.photos;
+        console.log('Photos fetched:', data.photos?.length || 0);
+        let filteredPhotos = data.photos || [];
         if (filter === 'unlinked') {
           filteredPhotos = filteredPhotos.filter((p: Photo) => !p.diveLogId);
         }
         setPhotos(filteredPhotos);
+      } else {
+        const errorText = await response.text();
+        console.error('Photos fetch failed:', response.status, errorText);
       }
     } catch (error) {
       console.error('Error fetching photos:', error);
