@@ -725,7 +725,7 @@ export default function DivePlanningScreen() {
         const totalGas = gas.cylinderVolume * gas.fillPressure;
         
         return (
-          <View key={gas.id} style={[styles.gasCard, { borderColor: colors.border }]}>
+          <View key={gas.id} style={[styles.gasCard, { borderColor: colors.border, zIndex: showCylinderDropdown === gas.id ? 1000 : 1 }]}>
             <View style={styles.gasHeader}>
               <Text style={[styles.gasIndex, { color: colors.primary }]}>
                 {gas.isBottomGas ? 'Bottom Gas' : `Deco Gas ${i}`}
