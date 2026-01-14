@@ -1834,7 +1834,8 @@ app.get('/api/objects/url', authenticateToken, async (req, res) => {
     // The objectPath should be like /objects/uploads/uuid
     // We'll return a URL that points to our object streaming endpoint
     const host = req.get('host');
-    const protocol = req.protocol;
+    // Always use https in production (Replit uses reverse proxy)
+    const protocol = process.env.NODE_ENV === 'production' || host.includes('replit') ? 'https' : req.protocol;
     const url = `${protocol}://${host}${objectPath}`;
     res.json({ url });
   } catch (error) {
