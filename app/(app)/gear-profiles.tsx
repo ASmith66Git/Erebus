@@ -30,10 +30,10 @@ interface GearProfile {
 }
 
 const CONFIG_TYPE_ICONS: { [key: string]: string } = {
-  single_tank: 'disc',
-  twinset: 'columns',
-  sidemount: 'sidebar',
-  ccr: 'cpu',
+  single_tank: 'circle',
+  twinset: 'pause',
+  sidemount: 'more-horizontal',
+  ccr: 'refresh-cw',
 };
 
 const CONFIG_TYPE_LABELS: { [key: string]: string } = {

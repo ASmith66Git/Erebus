@@ -67,10 +67,10 @@ interface GearProfile {
 }
 
 const CONFIG_TYPES = [
-  { value: 'single_tank', label: 'Single Tank', icon: 'disc' },
-  { value: 'twinset', label: 'Twinset', icon: 'columns' },
-  { value: 'sidemount', label: 'Sidemount', icon: 'sidebar' },
-  { value: 'ccr', label: 'CCR', icon: 'cpu' },
+  { value: 'single_tank', label: 'Single Tank', icon: 'circle' },
+  { value: 'twinset', label: 'Twinset', icon: 'pause' },
+  { value: 'sidemount', label: 'Sidemount', icon: 'more-horizontal' },
+  { value: 'ccr', label: 'CCR', icon: 'refresh-cw' },
 ];
 
 const SUIT_TYPES = ['Wetsuit', 'Drysuit', 'Rash Suit'];
@@ -500,10 +500,10 @@ export default function GearProfileEditScreen() {
         <SelectOption
           options={GLOVES_TYPES}
           value={profile.glovesType}
-          onChange={v => setProfile(prev => ({ ...prev, glovesType: v }))}
+          onChange={v => setProfile(prev => ({ ...prev, glovesType: v, glovesThickness: v === 'Dry' ? null : profile.glovesThickness }))}
           label="Type"
         />
-        {profile.glovesType && (
+        {profile.glovesType === 'Wet' && (
           <SelectOption
             options={THICKNESS_OPTIONS}
             value={profile.glovesThickness}
@@ -511,6 +511,13 @@ export default function GearProfileEditScreen() {
             label="Thickness"
           />
         )}
+        <TextInput
+          style={[styles.textInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text, marginTop: 8 }]}
+          value={profile.glovesNickname || ''}
+          onChangeText={glovesNickname => setProfile(prev => ({ ...prev, glovesNickname }))}
+          placeholder="e.g., Kubi dry gloves"
+          placeholderTextColor={colors.textSecondary}
+        />
       </View>
 
       <View style={styles.section}>
@@ -518,10 +525,10 @@ export default function GearProfileEditScreen() {
         <SelectOption
           options={['Dry', 'Neoprene']}
           value={profile.bootsType}
-          onChange={v => setProfile(prev => ({ ...prev, bootsType: v }))}
+          onChange={v => setProfile(prev => ({ ...prev, bootsType: v, bootsThickness: v === 'Dry' ? null : profile.bootsThickness }))}
           label="Type"
         />
-        {profile.bootsType && (
+        {profile.bootsType === 'Neoprene' && (
           <SelectOption
             options={THICKNESS_OPTIONS}
             value={profile.bootsThickness}
@@ -529,6 +536,13 @@ export default function GearProfileEditScreen() {
             label="Thickness"
           />
         )}
+        <TextInput
+          style={[styles.textInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text, marginTop: 8 }]}
+          value={profile.bootsNickname || ''}
+          onChangeText={bootsNickname => setProfile(prev => ({ ...prev, bootsNickname }))}
+          placeholder="e.g., Fourth Element rockhopper"
+          placeholderTextColor={colors.textSecondary}
+        />
       </View>
 
       <View style={styles.section}>
@@ -538,6 +552,13 @@ export default function GearProfileEditScreen() {
           value={profile.hoodThickness}
           onChange={v => setProfile(prev => ({ ...prev, hoodThickness: v }))}
           label="Thickness"
+        />
+        <TextInput
+          style={[styles.textInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text, marginTop: 8 }]}
+          value={profile.hoodNickname || ''}
+          onChangeText={hoodNickname => setProfile(prev => ({ ...prev, hoodNickname }))}
+          placeholder="e.g., Fourth Element hood"
+          placeholderTextColor={colors.textSecondary}
         />
       </View>
     </View>
