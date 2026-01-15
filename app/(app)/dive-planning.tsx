@@ -12,6 +12,7 @@ import {
   DEFAULT_SETTINGS, GasMix, DivePlanResult, TissueState, DivePlanInput, DivePlanSettings,
   CircuitType, DecoModel, WaterType, UnitSystem, calculateCNS, calculateOTU, GasConsumption
 } from '../../services/divePlanner';
+import { CYLINDER_PRESETS_LEGACY as CYLINDER_PRESETS } from '../../services/cylinderCatalog';
 
 const CHART_HEIGHT = 280;
 const TISSUE_CHART_HEIGHT = 180;
@@ -32,29 +33,10 @@ interface GasEntry {
   hePercent: number;
   switchDepth: number | null;
   isBottomGas: boolean;
-  cylinderVolume: number; // liters
-  fillPressure: number; // bar
-  reservePressure: number; // bar
+  cylinderVolume: number;
+  fillPressure: number;
+  reservePressure: number;
 }
-
-// Cylinder presets with volume in liters and fill in bar (220 bar standard)
-const CYLINDER_PRESETS = [
-  { label: 'Aluminum 80 (AL80)', volumeL: 11.1, fillBar: 220, volumeCuft: 80 },
-  { label: 'Aluminum 63 (AL63)', volumeL: 8.9, fillBar: 220, volumeCuft: 63 },
-  { label: 'Aluminum 100 (AL100)', volumeL: 12.9, fillBar: 220, volumeCuft: 100 },
-  { label: 'Steel 80 (HP80)', volumeL: 10.2, fillBar: 220, volumeCuft: 80 },
-  { label: 'Steel 100 (HP100)', volumeL: 12.7, fillBar: 220, volumeCuft: 100 },
-  { label: 'Steel 120 (HP120)', volumeL: 15.3, fillBar: 220, volumeCuft: 120 },
-  { label: 'Steel 12L', volumeL: 12, fillBar: 220, volumeCuft: 85 },
-  { label: 'Steel 15L', volumeL: 15, fillBar: 220, volumeCuft: 106 },
-  { label: 'Twinset 12L x2', volumeL: 24, fillBar: 220, volumeCuft: 170 },
-  { label: 'Twinset 15L x2', volumeL: 30, fillBar: 220, volumeCuft: 212 },
-  { label: 'Stage AL40', volumeL: 5.7, fillBar: 220, volumeCuft: 40 },
-  { label: 'Stage AL30', volumeL: 4.0, fillBar: 220, volumeCuft: 30 },
-  { label: 'Stage Steel 7L', volumeL: 7, fillBar: 220, volumeCuft: 50 },
-  { label: 'Pony AL13', volumeL: 1.9, fillBar: 220, volumeCuft: 13 },
-  { label: 'Custom', volumeL: 12, fillBar: 220, volumeCuft: 85 },
-];
 
 const DECO_MODELS: { value: DecoModel; label: string; description: string }[] = [
   { value: 'zhl16a', label: 'ZHL-16A', description: 'Original Buhlmann algorithm' },

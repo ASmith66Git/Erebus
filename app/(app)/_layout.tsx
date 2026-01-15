@@ -38,7 +38,7 @@ function CustomDrawerContent(props: any) {
     { icon: 'tool', label: 'Gear Profiles', action: () => handleNavigation('/gear-profiles') },
     { icon: 'users', label: 'Buddies', action: () => showComingSoon('Buddies') },
     { icon: 'activity', label: 'Dive Planning', action: () => handleNavigation('/dive-planning') },
-    { icon: 'database', label: 'Gas', action: () => showComingSoon('Gas') },
+    { icon: 'database', label: 'Gas', action: () => handleNavigation('/gas-calculator') },
     { icon: 'image', label: 'Photos', action: () => handleNavigation('/photos') },
     { icon: 'map', label: 'Trips', action: () => showComingSoon('Trips') },
     { icon: 'award', label: 'Training', action: () => showComingSoon('Training') },
