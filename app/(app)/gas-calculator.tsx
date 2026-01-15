@@ -251,9 +251,28 @@ export default function GasCalculatorScreen() {
             width: `${Math.min(100, (densityResult.depthDensity / 8) * 100)}%`,
             backgroundColor: densityResult.depthDensity > 6.2 ? colors.danger : densityResult.depthDensity > 5.7 ? colors.warning : colors.success
           }]} />
+          <View style={[styles.densityMarker, { left: '65%' }]} />
           <View style={[styles.densityMarker, { left: '77.5%' }]} />
         </View>
-        <Text style={[styles.densityScale, { color: colors.textSecondary }]}>0 -------- 3 -------- 6.2 (max) -------- 8</Text>
+        <Text style={[styles.densityScale, { color: colors.textSecondary }]}>0 -------- 5.2 ---- 6.2 -------- 8</Text>
+      </View>
+
+      <View style={[styles.infoCard, { backgroundColor: colors.card }]}>
+        <Text style={[styles.infoTitle, { color: colors.text }]}>Gas Density Thresholds</Text>
+        <View style={styles.infoRow}>
+          <View style={[styles.infoDot, { backgroundColor: colors.success }]} />
+          <View style={styles.infoContent}>
+            <Text style={[styles.infoLabel, { color: colors.text }]}>Ideal Maximum: 5.2 g/L</Text>
+            <Text style={[styles.infoText, { color: colors.textSecondary }]}>Considered safe and optimal for minimizing work of breathing and physiological risks.</Text>
+          </View>
+        </View>
+        <View style={styles.infoRow}>
+          <View style={[styles.infoDot, { backgroundColor: colors.danger }]} />
+          <View style={styles.infoContent}>
+            <Text style={[styles.infoLabel, { color: colors.text }]}>Hard Maximum: 6.2 g/L</Text>
+            <Text style={[styles.infoText, { color: colors.textSecondary }]}>Absolute upper limit. Exceeding this significantly increases risk of CO2 retention, oxygen toxicity, inert gas narcosis, decompression illness, and immersion pulmonary edema.</Text>
+          </View>
+        </View>
       </View>
     </ScrollView>
   );
@@ -687,6 +706,40 @@ const styles = StyleSheet.create({
     fontSize: 10,
     marginTop: 4,
     textAlign: 'center',
+  },
+  infoCard: {
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 16,
+    marginBottom: 16,
+  },
+  infoTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 12,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    marginBottom: 12,
+  },
+  infoDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginTop: 4,
+    marginRight: 12,
+  },
+  infoContent: {
+    flex: 1,
+  },
+  infoLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  infoText: {
+    fontSize: 13,
+    lineHeight: 18,
   },
   switchRow: {
     flexDirection: 'row',
