@@ -38,6 +38,29 @@ export default function GasCalculatorScreen() {
   const [showCylinderPicker, setShowCylinderPicker] = useState(false);
   const [selectedCylinder, setSelectedCylinder] = useState<Cylinder>(CYLINDER_CATALOG.find(c => c.id === 'al80') || CYLINDER_CATALOG[0]);
   const [materialFilter, setMaterialFilter] = useState<CylinderMaterial | 'all'>('all');
+  
+  const [selectedO2, setSelectedO2] = useState('21');
+  const [selectedHe, setSelectedHe] = useState('0');
+  const [customMixName, setCustomMixName] = useState('');
+
+  const STANDARD_MIXES = [
+    { name: 'Air', o2: 21, he: 0 },
+    { name: 'EAN28', o2: 28, he: 0 },
+    { name: 'EAN30', o2: 30, he: 0 },
+    { name: 'EAN32', o2: 32, he: 0 },
+    { name: 'EAN34', o2: 34, he: 0 },
+    { name: 'EAN36', o2: 36, he: 0 },
+    { name: 'EAN40', o2: 40, he: 0 },
+    { name: 'EAN50', o2: 50, he: 0 },
+    { name: 'EAN80', o2: 80, he: 0 },
+    { name: 'Oxygen', o2: 100, he: 0 },
+    { name: 'Tx21/35', o2: 21, he: 35 },
+    { name: 'Tx18/45', o2: 18, he: 45 },
+    { name: 'Tx15/55', o2: 15, he: 55 },
+    { name: 'Tx12/60', o2: 12, he: 60 },
+    { name: 'Tx10/70', o2: 10, he: 70 },
+    { name: 'Heliox 21/79', o2: 21, he: 79 },
+  ];
 
   const [densityO2, setDensityO2] = useState('21');
   const [densityHe, setDensityHe] = useState('0');
@@ -178,11 +201,131 @@ export default function GasCalculatorScreen() {
     </View>
   );
 
-  const renderCylindersTab = () => (
-    <ScrollView style={styles.tabContent}>
-      <Text style={[styles.sectionTitle, { color: colors.text }]}>Cylinder Catalog</Text>
-      <Text style={[styles.sectionSubtitle, { color: colors.textSecondary }]}>Select a cylinder for calculations</Text>
+  const applyMixToCalculators = (o2: number, he: number) => {
+    setSelectedO2(String(o2));
+    setSelectedHe(String(he));
+    setDensityO2(String(o2));
+    setDensityHe(String(he));
+  };
 
+  const currentMixMOD = calculateMOD(parseFloat(selectedO2) || 21, 1.4);
+  const currentMixName = getMixName(parseFloat(selectedO2) || 21, parseFloat(selectedHe) || 0);
+
+  const renderGasesTab = () => (
+    <ScrollView style={styles.tabContent}>
+      <Text style={[styles.sectionTitle, { color: colors.text }]}>Current Configuration</Text>
+      <Text style={[styles.sectionSubtitle, { color: colors.textSecondary }]}>Select cylinder and gas mix for calculations</Text>
+
+      <View style={[styles.configCard, { backgroundColor: colors.card, borderColor: colors.primary }]}>
+        <View style={styles.configHeader}>
+          <Text style={[styles.configTitle, { color: colors.primary }]}>{currentMixName}</Text>
+          <Text style={[styles.configMod, { color: colors.textSecondary }]}>MOD: {currentMixMOD}m</Text>
+        </View>
+        
+        <TouchableOpacity
+          style={[styles.configRow, { borderColor: colors.border }]}
+          onPress={() => setShowCylinderPicker(true)}
+        >
+          <Text style={[styles.configLabel, { color: colors.textSecondary }]}>Cylinder</Text>
+          <View style={styles.configValue}>
+            <Text style={[styles.configValueText, { color: colors.text }]}>{selectedCylinder.label}</Text>
+            <Feather name="chevron-right" size={18} color={colors.textSecondary} />
+          </View>
+        </TouchableOpacity>
+
+        <View style={styles.configMixRow}>
+          <View style={styles.configMixInput}>
+            <Text style={[styles.configLabel, { color: colors.textSecondary }]}>O2 %</Text>
+            <TextInput
+              style={[styles.mixInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
+              value={selectedO2}
+              onChangeText={(val) => {
+                setSelectedO2(val);
+                setDensityO2(val);
+              }}
+              keyboardType="numeric"
+              maxLength={3}
+            />
+          </View>
+          <View style={styles.configMixInput}>
+            <Text style={[styles.configLabel, { color: colors.textSecondary }]}>He %</Text>
+            <TextInput
+              style={[styles.mixInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
+              value={selectedHe}
+              onChangeText={(val) => {
+                setSelectedHe(val);
+                setDensityHe(val);
+              }}
+              keyboardType="numeric"
+              maxLength={3}
+            />
+          </View>
+          <View style={styles.configMixInput}>
+            <Text style={[styles.configLabel, { color: colors.textSecondary }]}>N2 %</Text>
+            <View style={[styles.mixInput, styles.mixInputDisabled, { backgroundColor: colors.border }]}>
+              <Text style={[styles.mixInputText, { color: colors.textSecondary }]}>
+                {Math.max(0, 100 - (parseFloat(selectedO2) || 0) - (parseFloat(selectedHe) || 0))}
+              </Text>
+            </View>
+          </View>
+        </View>
+      </View>
+
+      <Text style={[styles.sectionTitle, { color: colors.text, marginTop: 24 }]}>Standard Mixes</Text>
+      <Text style={[styles.sectionSubtitle, { color: colors.textSecondary }]}>Tap to apply</Text>
+
+      <Text style={[styles.mixCategoryLabel, { color: colors.textSecondary }]}>Nitrox</Text>
+      <View style={styles.mixGrid}>
+        {STANDARD_MIXES.filter(m => m.he === 0 && m.o2 <= 40).map((mix) => (
+          <TouchableOpacity
+            key={mix.name}
+            style={[styles.mixChip, 
+              (parseFloat(selectedO2) === mix.o2 && parseFloat(selectedHe) === mix.he) && { backgroundColor: colors.primary }
+            ]}
+            onPress={() => applyMixToCalculators(mix.o2, mix.he)}
+          >
+            <Text style={[styles.mixChipText, { 
+              color: (parseFloat(selectedO2) === mix.o2 && parseFloat(selectedHe) === mix.he) ? '#FFF' : colors.text 
+            }]}>{mix.name}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      <Text style={[styles.mixCategoryLabel, { color: colors.textSecondary }]}>Deco Gases</Text>
+      <View style={styles.mixGrid}>
+        {STANDARD_MIXES.filter(m => m.he === 0 && m.o2 > 40).map((mix) => (
+          <TouchableOpacity
+            key={mix.name}
+            style={[styles.mixChip, 
+              (parseFloat(selectedO2) === mix.o2 && parseFloat(selectedHe) === mix.he) && { backgroundColor: colors.primary }
+            ]}
+            onPress={() => applyMixToCalculators(mix.o2, mix.he)}
+          >
+            <Text style={[styles.mixChipText, { 
+              color: (parseFloat(selectedO2) === mix.o2 && parseFloat(selectedHe) === mix.he) ? '#FFF' : colors.text 
+            }]}>{mix.name}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      <Text style={[styles.mixCategoryLabel, { color: colors.textSecondary }]}>Trimix / Heliox</Text>
+      <View style={styles.mixGrid}>
+        {STANDARD_MIXES.filter(m => m.he > 0).map((mix) => (
+          <TouchableOpacity
+            key={mix.name}
+            style={[styles.mixChip, 
+              (parseFloat(selectedO2) === mix.o2 && parseFloat(selectedHe) === mix.he) && { backgroundColor: colors.primary }
+            ]}
+            onPress={() => applyMixToCalculators(mix.o2, mix.he)}
+          >
+            <Text style={[styles.mixChipText, { 
+              color: (parseFloat(selectedO2) === mix.o2 && parseFloat(selectedHe) === mix.he) ? '#FFF' : colors.text 
+            }]}>{mix.name}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      <Text style={[styles.sectionTitle, { color: colors.text, marginTop: 24 }]}>Cylinder Reference</Text>
       <View style={styles.filterRow}>
         {(['all', 'steel', 'aluminum'] as const).map((filter) => (
           <TouchableOpacity
@@ -197,20 +340,6 @@ export default function GasCalculatorScreen() {
         ))}
       </View>
 
-      <TouchableOpacity
-        style={[styles.selectedCylinder, { backgroundColor: colors.card, borderColor: colors.border }]}
-        onPress={() => setShowCylinderPicker(true)}
-      >
-        <View>
-          <Text style={[styles.cylinderLabel, { color: colors.text }]}>{selectedCylinder.label}</Text>
-          <Text style={[styles.cylinderDetails, { color: colors.textSecondary }]}>
-            {selectedCylinder.volumeL}L | {selectedCylinder.workingPressureBar} bar | {selectedCylinder.volumeCuft} cuft | {selectedCylinder.material}
-          </Text>
-        </View>
-        <Feather name="chevron-down" size={24} color={colors.textSecondary} />
-      </TouchableOpacity>
-
-      <Text style={[styles.sectionTitle, { color: colors.text, marginTop: 24 }]}>Quick Reference</Text>
       <View style={[styles.card, { backgroundColor: colors.card }]}>
         <View style={styles.tableHeader}>
           <Text style={[styles.tableHeaderText, { color: colors.textSecondary, flex: 2 }]}>Cylinder</Text>
@@ -218,7 +347,7 @@ export default function GasCalculatorScreen() {
           <Text style={[styles.tableHeaderText, { color: colors.textSecondary, flex: 1 }]}>Bar</Text>
           <Text style={[styles.tableHeaderText, { color: colors.textSecondary, flex: 1 }]}>Cuft</Text>
         </View>
-        {filteredCylinders.slice(0, 15).map((cyl) => (
+        {filteredCylinders.slice(0, 12).map((cyl) => (
           <TouchableOpacity
             key={cyl.id}
             style={[styles.tableRow, selectedCylinder.id === cyl.id && { backgroundColor: colors.primary + '20' }]}
@@ -459,7 +588,7 @@ export default function GasCalculatorScreen() {
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'gases': return renderCylindersTab();
+      case 'gases': return renderGasesTab();
       case 'density': return renderDensityTab();
       case 'fill': return renderFillTab();
       case 'topup': return renderTopUpTab();
@@ -582,6 +711,92 @@ const styles = StyleSheet.create({
   sectionSubtitle: {
     fontSize: 14,
     marginBottom: 16,
+  },
+  configCard: {
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 2,
+  },
+  configHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  configTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+  },
+  configMod: {
+    fontSize: 14,
+  },
+  configRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderTopWidth: 1,
+  },
+  configLabel: {
+    fontSize: 14,
+  },
+  configValue: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  configValueText: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  configMixRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 12,
+  },
+  configMixInput: {
+    flex: 1,
+  },
+  mixInput: {
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 18,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginTop: 6,
+  },
+  mixInputDisabled: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  mixInputText: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  mixCategoryLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    marginBottom: 8,
+    marginTop: 8,
+  },
+  mixGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 8,
+  },
+  mixChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: '#38383A',
+  },
+  mixChipText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
   card: {
     borderRadius: 12,
