@@ -403,52 +403,63 @@ export default function EmbeddedMapPicker({
     <View style={styles.container}>
       <View style={styles.searchRow}>
         <View style={{ flex: 1, marginRight: 8 }}>
-          <GooglePlacesAutocomplete
-            placeholder="Search for a location..."
-            onPress={handlePlaceSelect}
-            fetchDetails={true}
-            query={{
-              key: apiKey,
-              language: 'en',
-            }}
-            styles={{
-              container: {
-                flex: 0,
-              },
-              textInputContainer: {
-                backgroundColor: colors.surface,
-                borderRadius: 8,
-                borderWidth: 1,
-                borderColor: colors.border,
-              },
-              textInput: {
-                height: 44,
-                color: colors.text,
-                fontSize: 16,
-                backgroundColor: 'transparent',
-              },
-              listView: {
-                backgroundColor: colors.surface,
-                borderRadius: 8,
-                marginTop: 4,
-                borderWidth: 1,
-                borderColor: colors.border,
-              },
-              row: {
-                backgroundColor: colors.surface,
-                padding: 13,
-              },
-              description: {
-                color: colors.text,
-              },
-              poweredContainer: {
-                display: 'none',
-              },
-            }}
-            enablePoweredByContainer={false}
-            minLength={2}
-            debounce={300}
-          />
+          {apiKey && apiKey.length > 10 ? (
+            <GooglePlacesAutocomplete
+              placeholder="Search for a location..."
+              onPress={handlePlaceSelect}
+              fetchDetails={true}
+              query={{
+                key: apiKey,
+                language: 'en',
+              }}
+              styles={{
+                container: {
+                  flex: 0,
+                },
+                textInputContainer: {
+                  backgroundColor: colors.surface,
+                  borderRadius: 8,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                },
+                textInput: {
+                  height: 44,
+                  color: colors.text,
+                  fontSize: 16,
+                  backgroundColor: 'transparent',
+                },
+                listView: {
+                  backgroundColor: colors.surface,
+                  borderRadius: 8,
+                  marginTop: 4,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                },
+                row: {
+                  backgroundColor: colors.surface,
+                  padding: 13,
+                },
+                description: {
+                  color: colors.text,
+                },
+                poweredContainer: {
+                  display: 'none',
+                },
+              }}
+              enablePoweredByContainer={false}
+              minLength={2}
+              debounce={300}
+            />
+          ) : (
+            <View style={[styles.searchFallback, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <TextInput
+                style={[styles.searchFallbackInput, { color: colors.text }]}
+                placeholder="Enter coordinates manually below"
+                placeholderTextColor={colors.textSecondary}
+                editable={false}
+              />
+            </View>
+          )}
         </View>
         <Pressable
           style={[styles.locationButton, { backgroundColor: colors.primary }]}
@@ -569,6 +580,16 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     height: '100%',
+  },
+  searchFallback: {
+    borderWidth: 1,
+    borderRadius: 8,
+    height: 44,
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+  },
+  searchFallbackInput: {
+    fontSize: 14,
   },
   locationButton: {
     flexDirection: 'row',
