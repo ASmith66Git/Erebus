@@ -47,7 +47,7 @@ const ITEM_SIZE = (SCREEN_WIDTH - GAP * (NUM_COLUMNS + 1)) / NUM_COLUMNS;
 
 export default function PhotosScreen() {
   const { colors } = useTheme();
-  const { token } = useAuth();
+  const { token, isLoading: authLoading } = useAuth();
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -101,10 +101,10 @@ export default function PhotosScreen() {
   };
 
   useEffect(() => {
-    if (token) {
+    if (!authLoading && token) {
       fetchPhotos();
     }
-  }, [filter, token]);
+  }, [filter, token, authLoading]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);

@@ -186,7 +186,7 @@ function StatsCard({ stats, colors }: { stats: DiveStats; colors: any }) {
 
 export default function DiveLogsScreen() {
   const { colors } = useTheme();
-  const { token } = useAuth();
+  const { token, isLoading: authLoading } = useAuth();
   const router = useRouter();
 
   const [logs, setLogs] = useState<DiveLog[]>([]);
@@ -265,11 +265,23 @@ export default function DiveLogsScreen() {
 
   useFocusEffect(
     useCallback(() => {
+      if (!authLoading && token) {
+        fetchLogs();
+        fetchStats();
+        fetchDiveComputer();
+      }
+    }, [fetchLogs, fetchStats, fetchDiveComputer, authLoading, token])
+  );
+
+  // Retry fetch when token becomes available after initial load
+  useEffect(() => {
+    if (!authLoading && token && logs.length === 0 && !loading) {
+      setLoading(true);
       fetchLogs();
       fetchStats();
       fetchDiveComputer();
-    }, [fetchLogs, fetchStats, fetchDiveComputer])
-  );
+    }
+  }, [authLoading, token]);
 
   const onRefresh = () => {
     setRefreshing(true);

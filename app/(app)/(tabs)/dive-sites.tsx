@@ -138,7 +138,7 @@ function DiveSiteCard({ site, onPress, colors }: { site: DiveSite; onPress: () =
 
 export default function DiveSitesScreen() {
   const { colors } = useTheme();
-  const { token } = useAuth();
+  const { token, isLoading: authLoading } = useAuth();
   const router = useRouter();
 
   const [sites, setSites] = useState<DiveSite[]>([]);
@@ -172,8 +172,10 @@ export default function DiveSitesScreen() {
   }, [token, searchQuery]);
 
   useEffect(() => {
-    fetchSites();
-  }, [fetchSites]);
+    if (!authLoading && token) {
+      fetchSites();
+    }
+  }, [fetchSites, authLoading, token]);
 
   const onRefresh = () => {
     setRefreshing(true);
