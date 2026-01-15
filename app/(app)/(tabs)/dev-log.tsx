@@ -75,6 +75,7 @@ export default function DevLogScreen() {
   const [toastVisible, setToastVisible] = useState(false);
   const [statusCounts, setStatusCounts] = useState<{ todo: number; in_progress: number; completed: number }>({ todo: 0, in_progress: 0, completed: 0 });
   const [refreshing, setRefreshing] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<'all' | 'todo' | 'in_progress'>('all');
 
   useEffect(() => {
     if (!isAdmin) {
@@ -376,7 +377,7 @@ Please help me with this development task.`;
             styles.tab,
             { borderBottomColor: activeTab === 'active' ? colors.primary : 'transparent' }
           ]}
-          onPress={() => setActiveTab('active')}
+          onPress={() => { setActiveTab('active'); setStatusFilter('all'); }}
         >
           <Text style={[styles.tabText, { color: activeTab === 'active' ? colors.primary : colors.textSecondary }]}>
             Active
@@ -404,6 +405,70 @@ Please help me with this development task.`;
           </View>
         </Pressable>
       </View>
+
+      {activeTab === 'active' && (
+        <View style={styles.filterContainer}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
+            <Pressable
+              style={[
+                styles.filterChip,
+                { 
+                  backgroundColor: statusFilter === 'all' ? colors.primary : colors.surface,
+                  borderColor: statusFilter === 'all' ? colors.primary : colors.border 
+                }
+              ]}
+              onPress={() => setStatusFilter('all')}
+            >
+              <Text style={[styles.filterChipText, { color: statusFilter === 'all' ? '#FFFFFF' : colors.text }]}>
+                All
+              </Text>
+              <View style={[styles.filterBadge, { backgroundColor: statusFilter === 'all' ? 'rgba(255,255,255,0.3)' : colors.border }]}>
+                <Text style={[styles.filterBadgeText, { color: statusFilter === 'all' ? '#FFFFFF' : colors.text }]}>
+                  {statusCounts.todo + statusCounts.in_progress}
+                </Text>
+              </View>
+            </Pressable>
+            <Pressable
+              style={[
+                styles.filterChip,
+                { 
+                  backgroundColor: statusFilter === 'todo' ? STATUS_COLORS.todo.bg : colors.surface,
+                  borderColor: statusFilter === 'todo' ? STATUS_COLORS.todo.bg : colors.border 
+                }
+              ]}
+              onPress={() => setStatusFilter('todo')}
+            >
+              <Text style={[styles.filterChipText, { color: statusFilter === 'todo' ? STATUS_COLORS.todo.text : colors.text }]}>
+                To Do
+              </Text>
+              <View style={[styles.filterBadge, { backgroundColor: statusFilter === 'todo' ? 'rgba(255,255,255,0.3)' : colors.border }]}>
+                <Text style={[styles.filterBadgeText, { color: statusFilter === 'todo' ? STATUS_COLORS.todo.text : colors.text }]}>
+                  {statusCounts.todo}
+                </Text>
+              </View>
+            </Pressable>
+            <Pressable
+              style={[
+                styles.filterChip,
+                { 
+                  backgroundColor: statusFilter === 'in_progress' ? STATUS_COLORS.in_progress.bg : colors.surface,
+                  borderColor: statusFilter === 'in_progress' ? STATUS_COLORS.in_progress.bg : colors.border 
+                }
+              ]}
+              onPress={() => setStatusFilter('in_progress')}
+            >
+              <Text style={[styles.filterChipText, { color: statusFilter === 'in_progress' ? STATUS_COLORS.in_progress.text : colors.text }]}>
+                In Progress
+              </Text>
+              <View style={[styles.filterBadge, { backgroundColor: statusFilter === 'in_progress' ? 'rgba(0,0,0,0.2)' : colors.border }]}>
+                <Text style={[styles.filterBadgeText, { color: statusFilter === 'in_progress' ? STATUS_COLORS.in_progress.text : colors.text }]}>
+                  {statusCounts.in_progress}
+                </Text>
+              </View>
+            </Pressable>
+          </ScrollView>
+        </View>
+      )}
 
       {isLoading ? (
         <View style={styles.centerContainer}>
@@ -436,10 +501,12 @@ Please help me with this development task.`;
         >
           {entries
             .filter(entry => {
-              const matchesTab = activeTab === 'completed' 
-                ? entry.status === 'completed' 
-                : entry.status !== 'completed';
-              if (!matchesTab) return false;
+              if (activeTab === 'completed') {
+                if (entry.status !== 'completed') return false;
+              } else {
+                if (entry.status === 'completed') return false;
+                if (statusFilter !== 'all' && entry.status !== statusFilter) return false;
+              }
               if (!searchQuery.trim()) return true;
               const query = searchQuery.toLowerCase();
               return (
@@ -703,6 +770,17 @@ const styles = StyleSheet.create({
   filterChipText: {
     fontSize: 12,
     fontWeight: '500',
+  },
+  filterBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 8,
+    minWidth: 20,
+    alignItems: 'center',
+  },
+  filterBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
   },
   badge: {
     minWidth: 20,
