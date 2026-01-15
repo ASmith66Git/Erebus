@@ -1,0 +1,54 @@
+{
+  "deviceInfo": {
+    "platform": "android",
+    "version": 35,
+    "timestamp": "2026-01-15T17:54:34.583Z"
+  },
+  "logs": [
+    {
+      "id": "1768499634247-jm9odu4pr",
+      "timestamp": "2026-01-15T17:53:54.247Z",
+      "level": "error",
+      "message": "React Error: Property 'useEffect' doesn't exist",
+      "source": "ErrorBoundary",
+      "details": "Component Stack:\n\n    at DiveLogsScreen (address at index.android.bundle:1:1323732)\n    at Suspense (<anonymous>)\n    at Route (address at index.android.bundle:1:936207)\n    at BaseRoute (address at index.android.bundle:1:943096)\n    at StaticContainer (address at index.android.bundle:1:907625)\n    at EnsureSingleNavigator (address at index.android.bundle:1:854643)\n    at SceneView (address at index.android.bundle:1:905413)\n    at RCTView (<anonymous>)\n    at View (address at index.android.bundle:1:489305)\n    at RCTView (<anonymous>)\n    at View (address at index.android.bundle:1:489305)\n    at Animated(View) (address at index.android.bundle:1:642707)\n    at Background (address at index.android.bundle:1:954863)\n    at Screen (address at index.android.bundle:1:1001162)\n    at RNSScreen (<anonymous>)\n    at Animated(Anonymous) (address at index.android.bundle:1:642707)\n    at Suspender (address at index.android.bundle:1:1019445)\n    at Suspense (<anonymous>)\n    at Freeze (address at index.android.bundle:1:1019506)\n    at DelayedFreeze (address at index.android.bundle:1:1019087)\n    at InnerScreen (address at index.android.bundle:1:1016802)\n    at anonymous (address at index.android.bundle:1:1018485)\n    at MaybeScreen (address at index.android.bundle:1:1012352)\n    at RNSScreenContainer (<anonymous>)\n    at ScreenContainer (address at index.android.bundle:1:1026355)\n    at MaybeScreenContainer (address at index.android.bundle:1:1012515)\n    at RCTView (<anonymous>)\n    at View (address at index.android.bundle:1:489305)\n    at FrameSizeProvider (address at index.android.bundle:1:988953)\n    at SafeAreaProviderCompat (address at index.android.bundle:1:1000369)\n    at BottomTabView (address at index.android.bundle:1:949330)\n    at PreventRemoveProvider (address at index.android.bundle:1:885780)\n    at NavigationStateListenerProvider (address at index.android.bundle:1:912952)\n    at NavigationContent (address at index.android.bundle:1:902509)\n    at anonymous (address a"
+    },
+    {
+      "id": "1768499634247-4wqctxnlg",
+      "timestamp": "2026-01-15T17:53:54.247Z",
+      "level": "error",
+      "message": "ReferenceError: Property 'useEffect' doesn't exist\nReferenceError: Property 'useEffect' doesn't exist\n    at DiveLogsScreen (address at index.android.bundle:1:1324329)\n    at renderWithHooks (address at index.android.bundle:1:248149)\n    at updateFunctionComponent (address at index.android.bundle:1:266934)\n    at beginWork (address at index.android.bundle:1:274769)\n    at performUnitOfWork (address at index.android.bundle:1:293418)\n    at workLoopSync (address at index.android.bundle:1:292426)\n    at renderRootSync (address at index.android.bundle:1:292258)\n    at performWorkOnRoot (address at index.android.bundle:1:289904)\n    at performSyncWorkOnRoot (address at index.android.bundle:1:243732)\n    at flushSyncWorkAcrossRoots_impl (address at index.android.bundle:1:242623)\n    at processRootScheduleInMicrotask (address at index.android.bundle:1:242983)\n    at anonymous (address at index.android.bundle:1:243827)",
+      "source": "console.error"
+    },
+    {
+      "id": "1768498797458-dai4jzf23",
+      "timestamp": "2026-01-15T17:39:57.458Z",
+      "level": "error",
+      "message": "React Error: Property 'useEffect' doesn't exist",
+      "source": "ErrorBoundary",
+      "details": "Component Stack:\n\n    at DiveLogsScreen (address at index.android.bundle:1:1323732)\n    at Suspense (<anonymous>)\n    at Route (address at index.android.bundle:1:936207)\n    at BaseRoute (address at index.android.bundle:1:943096)\n    at StaticContainer (address at index.android.bundle:1:907625)\n    at EnsureSingleNavigator (address at index.android.bundle:1:854643)\n    at SceneView (address at index.android.bundle:1:905413)\n    at RCTView (<anonymous>)\n    at View (address at index.android.bundle:1:489305)\n    at RCTView (<anonymous>)\n    at View (address at index.android.bundle:1:489305)\n    at Animated(View) (address at index.android.bundle:1:642707)\n    at Background (address at index.android.bundle:1:954863)\n    at Screen (address at index.android.bundle:1:1001162)\n    at RNSScreen (<anonymous>)\n    at Animated(Anonymous) (address at index.android.bundle:1:642707)\n    at Suspender (address at index.android.bundle:1:1019445)\n    at Suspense (<anonymous>)\n    at Freeze (address at index.android.bundle:1:1019506)\n    at DelayedFreeze (address at index.android.bundle:1:1019087)\n    at InnerScreen (address at index.android.bundle:1:1016802)\n    at anonymous (address at index.android.bundle:1:1018485)\n    at MaybeScreen (address at index.android.bundle:1:1012352)\n    at RNSScreenContainer (<anonymous>)\n    at ScreenContainer (address at index.android.bundle:1:1026355)\n    at MaybeScreenContainer (address at index.android.bundle:1:1012515)\n    at RCTView (<anonymous>)\n    at View (address at index.android.bundle:1:489305)\n    at FrameSizeProvider (address at index.android.bundle:1:988953)\n    at SafeAreaProviderCompat (address at index.android.bundle:1:1000369)\n    at BottomTabView (address at index.android.bundle:1:949330)\n    at PreventRemoveProvider (address at index.android.bundle:1:885780)\n    at NavigationStateListenerProvider (address at index.android.bundle:1:912952)\n    at NavigationContent (address at index.android.bundle:1:902509)\n    at anonymous (address a"
+    },
+    {
+      "id": "1768498797457-jco49xuwf",
+      "timestamp": "2026-01-15T17:39:57.457Z",
+      "level": "error",
+      "message": "ReferenceError: Property 'useEffect' doesn't exist\nReferenceError: Property 'useEffect' doesn't exist\n    at DiveLogsScreen (address at index.android.bundle:1:1324329)\n    at renderWithHooks (address at index.android.bundle:1:248149)\n    at updateFunctionComponent (address at index.android.bundle:1:266934)\n    at beginWork (address at index.android.bundle:1:274769)\n    at performUnitOfWork (address at index.android.bundle:1:293418)\n    at workLoopSync (address at index.android.bundle:1:292426)\n    at renderRootSync (address at index.android.bundle:1:292258)\n    at performWorkOnRoot (address at index.android.bundle:1:289904)\n    at performSyncWorkOnRoot (address at index.android.bundle:1:243732)\n    at flushSyncWorkAcrossRoots_impl (address at index.android.bundle:1:242623)\n    at processRootScheduleInMicrotask (address at index.android.bundle:1:242983)\n    at anonymous (address at index.android.bundle:1:243827)",
+      "source": "console.error"
+    },
+    {
+      "id": "1768498787241-2mjabl6nf",
+      "timestamp": "2026-01-15T17:39:47.241Z",
+      "level": "error",
+      "message": "React Error: Property 'useEffect' doesn't exist",
+      "source": "ErrorBoundary",
+      "details": "Component Stack:\n\n    at DiveLogsScreen (address at index.android.bundle:1:1323732)\n    at Suspense (<anonymous>)\n    at Route (address at index.android.bundle:1:936207)\n    at BaseRoute (address at index.android.bundle:1:943096)\n    at StaticContainer (address at index.android.bundle:1:907625)\n    at EnsureSingleNavigator (address at index.android.bundle:1:854643)\n    at SceneView (address at index.android.bundle:1:905413)\n    at RCTView (<anonymous>)\n    at View (address at index.android.bundle:1:489305)\n    at RCTView (<anonymous>)\n    at View (address at index.android.bundle:1:489305)\n    at Animated(View) (address at index.android.bundle:1:642707)\n    at Background (address at index.android.bundle:1:954863)\n    at Screen (address at index.android.bundle:1:1001162)\n    at RNSScreen (<anonymous>)\n    at Animated(Anonymous) (address at index.android.bundle:1:642707)\n    at Suspender (address at index.android.bundle:1:1019445)\n    at Suspense (<anonymous>)\n    at Freeze (address at index.android.bundle:1:1019506)\n    at DelayedFreeze (address at index.android.bundle:1:1019087)\n    at InnerScreen (address at index.android.bundle:1:1016802)\n    at anonymous (address at index.android.bundle:1:1018485)\n    at MaybeScreen (address at index.android.bundle:1:1012352)\n    at RNSScreenContainer (<anonymous>)\n    at ScreenContainer (address at index.android.bundle:1:1026355)\n    at MaybeScreenContainer (address at index.android.bundle:1:1012515)\n    at RCTView (<anonymous>)\n    at View (address at index.android.bundle:1:489305)\n    at FrameSizeProvider (address at index.android.bundle:1:988953)\n    at SafeAreaProviderCompat (address at index.android.bundle:1:1000369)\n    at BottomTabView (address at index.android.bundle:1:949330)\n    at PreventRemoveProvider (address at index.android.bundle:1:885780)\n    at NavigationStateListenerProvider (address at index.android.bundle:1:912952)\n    at NavigationContent (address at index.android.bundle:1:902509)\n    at anonymous (address a"
+    },
+    {
+      "id": "1768498787240-ee9l5zfwr",
+      "timestamp": "2026-01-15T17:39:47.240Z",
+      "level": "error",
+      "message": "ReferenceError: Property 'useEffect' doesn't exist\nReferenceError: Property 'useEffect' doesn't exist\n    at DiveLogsScreen (address at index.android.bundle:1:1324329)\n    at renderWithHooks (address at index.android.bundle:1:248149)\n    at updateFunctionComponent (address at index.android.bundle:1:266934)\n    at beginWork (address at index.android.bundle:1:274769)\n    at performUnitOfWork (address at index.android.bundle:1:293418)\n    at workLoopSync (address at index.android.bundle:1:292426)\n    at renderRootSync (address at index.android.bundle:1:292258)\n    at performWorkOnRoot (address at index.android.bundle:1:289904)\n    at performSyncWorkOnRoot (address at index.android.bundle:1:243732)\n    at flushSyncWorkAcrossRoots_impl (address at index.android.bundle:1:242623)\n    at processRootScheduleInMicrotask (address at index.android.bundle:1:242983)\n    at anonymous (address at index.android.bundle:1:243827)",
+      "source": "console.error"
+    }
+  ]
+}
