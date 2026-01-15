@@ -125,19 +125,21 @@ export default function GasCalculatorScreen() {
   }, [bestmixDepth, bestmixPpo2, bestmixTargetEnd, bestmixO2Narcotic]);
 
   const renderTabBar = () => (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={[styles.tabBar, { backgroundColor: colors.card }]}>
-      {(['gases', 'density', 'fill', 'topup', 'trimix', 'bestmix'] as TabType[]).map((tab) => (
-        <TouchableOpacity
-          key={tab}
-          style={[styles.tab, activeTab === tab && { borderBottomColor: colors.primary, borderBottomWidth: 2 }]}
-          onPress={() => setActiveTab(tab)}
-        >
-          <Text style={[styles.tabText, { color: activeTab === tab ? colors.primary : colors.textSecondary }]}>
-            {tab === 'gases' ? 'Cylinders' : tab === 'density' ? 'Density' : tab === 'fill' ? 'Fill' : tab === 'topup' ? 'Top Up' : tab === 'trimix' ? 'Trimix' : 'Best Mix'}
-          </Text>
-        </TouchableOpacity>
-      ))}
-    </ScrollView>
+    <View style={[styles.tabBarContainer, { backgroundColor: colors.card }]}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabBarContent}>
+        {(['gases', 'density', 'fill', 'topup', 'trimix', 'bestmix'] as TabType[]).map((tab) => (
+          <TouchableOpacity
+            key={tab}
+            style={[styles.tab, activeTab === tab && { borderBottomColor: colors.primary, borderBottomWidth: 2 }]}
+            onPress={() => setActiveTab(tab)}
+          >
+            <Text style={[styles.tabText, { color: activeTab === tab ? colors.primary : colors.textSecondary }]}>
+              {tab === 'gases' ? 'Cylinders' : tab === 'density' ? 'Density' : tab === 'fill' ? 'Fill' : tab === 'topup' ? 'Top Up' : tab === 'trimix' ? 'Trimix' : 'Best Mix'}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+    </View>
   );
 
   const renderInput = (label: string, value: string, onChangeText: (text: string) => void, unit: string = '', keyboardType: 'numeric' | 'default' = 'numeric') => (
@@ -517,10 +519,12 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
   },
-  tabBar: {
-    flexDirection: 'row',
+  tabBarContainer: {
     borderBottomWidth: 1,
     borderBottomColor: '#38383A',
+  },
+  tabBarContent: {
+    flexDirection: 'row',
   },
   tab: {
     paddingHorizontal: 16,
