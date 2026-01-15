@@ -54,6 +54,14 @@ The application is built using Expo React Native, targeting both iOS and Android
 - **Dive Site Images**: Supports image uploads to Replit Object Storage via presigned URLs, camera photo capture, primary image selection, and "Search Web" for Google Images.
 - **Wreck Site Specifics**: Dedicated fields and a conditional "Wreck" tab.
 - **Weather Forecast**: Integrates 7-day marine and atmospheric weather forecasts based on dive site location using Open-Meteo API.
+- **Gas Calculator**: Comprehensive gas calculation tools with 6 tabs:
+  - Cylinders: Browse and select from unified catalog (1L-18L Steel/Aluminum, plus AL80, HP120, twinsets, stages, ponies)
+  - Density: Calculate breathing gas density at depth with high-density warnings (>6.2 g/L)
+  - Fill Capacity: Calculate total/usable gas volume and bottom time at SAC rate
+  - Top Up: Calculate resulting mix when topping up with different gas
+  - Trimix: Full blending sequence calculator (He, O2, Air/Nitrox steps)
+  - Best Mix: Calculate optimal O2/He percentages for target depth based on PPO2 and END limits
+  - Shared services: services/cylinderCatalog.ts and services/gasMath.ts for reuse across dive planning and gear profiles
 - **Dive Planning (MultiDeco-style)**: Full-featured decompression dive planning module with:
   - Buhlmann ZHL-16C algorithm with 16 tissue compartments for N2 and He (ZHL-16A/B also available)
   - Gradient Factor (GF Low/High) dropdowns for conservative deco planning
