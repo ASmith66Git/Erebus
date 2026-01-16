@@ -103,6 +103,19 @@ The application is built using Expo React Native, targeting both iOS and Android
   - Course wishlist for future training goals with priority and target date
   - Promote wishlist items to completed certifications when course is finished
   - Database tables: training_agencies, training_courses, user_certifications, certification_images, user_course_wishlist
+- **Dive Trips**: Comprehensive dive trip/holiday tracking with:
+  - 6 trip types: Liveaboard, Dive Center, Dive Safari, Dive Resort, Day Trip, Other
+  - Date range tracking (start/end dates)
+  - Operator/vessel name for liveaboards
+  - Dive center/resort name for shore-based trips
+  - Location with country and Google Maps coordinates integration
+  - Accommodation details
+  - Trip notes for highlights and memories
+  - Link dive logs to trips for organized dive history
+  - Card-based list view with FAB for quick trip creation
+  - Detail modal with edit and delete functionality
+  - Soft-delete for data protection
+  - Database tables: dive_trips, dive_trip_logs (for linking dives to trips)
 
 ## External Dependencies
 - **PostgreSQL**: Primary database.

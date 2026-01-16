@@ -41,6 +41,7 @@ function CustomDrawerContent(props: any) {
     { icon: 'database', label: 'Gas', action: () => handleNavigation('/gas-calculator') },
     { icon: 'image', label: 'Photos', action: () => handleNavigation('/photos') },
     { icon: 'award', label: 'Certifications', action: () => handleNavigation('/certifications') },
+    { icon: 'navigation', label: 'Dive Trips', action: () => handleNavigation('/dive-trips') },
     { icon: 'settings', label: 'Settings', action: () => showComingSoon('Settings') },
   ];
 

@@ -583,6 +583,66 @@ async function initDatabase() {
         EXECUTE FUNCTION update_updated_at_column();
     `).catch(() => {});
     
+    // Dive Trips tables
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS dive_trips (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        name VARCHAR(255) NOT NULL,
+        trip_type VARCHAR(50) DEFAULT 'dive_center',
+        start_date DATE,
+        end_date DATE,
+        operator_name VARCHAR(255),
+        vessel_name VARCHAR(255),
+        dive_center_name VARCHAR(255),
+        location VARCHAR(255),
+        country VARCHAR(100),
+        latitude DECIMAL(10, 8),
+        longitude DECIMAL(11, 8),
+        accommodation VARCHAR(255),
+        total_dives INTEGER DEFAULT 0,
+        notes TEXT,
+        cover_image_key VARCHAR(500),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        deleted_at TIMESTAMP
+      );
+    `).catch(() => {});
+    
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS dive_trip_logs (
+        id SERIAL PRIMARY KEY,
+        trip_id INTEGER REFERENCES dive_trips(id) ON DELETE CASCADE,
+        dive_log_id INTEGER REFERENCES dive_logs(id) ON DELETE CASCADE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(trip_id, dive_log_id)
+      );
+    `).catch(() => {});
+    
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_dive_trips_user_id ON dive_trips(user_id);
+    `).catch(() => {});
+    
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_dive_trips_dates ON dive_trips(start_date, end_date);
+    `).catch(() => {});
+    
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_dive_trip_logs_trip_id ON dive_trip_logs(trip_id);
+    `).catch(() => {});
+    
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_dive_trip_logs_dive_log_id ON dive_trip_logs(dive_log_id);
+    `).catch(() => {});
+    
+    await client.query(`
+      DROP TRIGGER IF EXISTS update_dive_trips_updated_at ON dive_trips;
+      CREATE TRIGGER update_dive_trips_updated_at
+        BEFORE UPDATE ON dive_trips
+        FOR EACH ROW
+        EXECUTE FUNCTION update_updated_at_column();
+    `).catch(() => {});
+    
     const adminCheck = await client.query("SELECT id FROM users WHERE email = 'admin@erebus.app'");
     if (adminCheck.rows.length === 0) {
       const hashedPassword = await bcrypt.hash('admin123', 10);
@@ -4889,6 +4949,237 @@ app.post('/api/certification-wishlist/:id/complete', authenticateToken, async (r
     res.status(500).json({ error: 'Server error' });
   } finally {
     client.release();
+  }
+});
+
+// ============== DIVE TRIPS API ==============
+
+// Get all dive trips for user
+app.get('/api/dive-trips', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT dt.*, 
+              (SELECT COUNT(*) FROM dive_trip_logs dtl WHERE dtl.trip_id = dt.id) as linked_dives
+       FROM dive_trips dt
+       WHERE dt.user_id = $1 AND dt.deleted_at IS NULL
+       ORDER BY dt.start_date DESC NULLS LAST, dt.created_at DESC`,
+      [req.user.id]
+    );
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Get dive trips error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Get single dive trip with linked dives
+app.get('/api/dive-trips/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const tripResult = await pool.query(
+      `SELECT * FROM dive_trips WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL`,
+      [id, req.user.id]
+    );
+    
+    if (tripResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Trip not found' });
+    }
+    
+    // Get linked dive logs
+    const logsResult = await pool.query(
+      `SELECT dl.id, dl.dive_date, dl.site_name, dl.max_depth_meters, dl.duration_minutes
+       FROM dive_logs dl
+       JOIN dive_trip_logs dtl ON dl.id = dtl.dive_log_id
+       WHERE dtl.trip_id = $1
+       ORDER BY dl.dive_date ASC`,
+      [id]
+    );
+    
+    res.json({
+      ...tripResult.rows[0],
+      linked_dives: logsResult.rows
+    });
+  } catch (error) {
+    console.error('Get dive trip error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Create dive trip
+app.post('/api/dive-trips', authenticateToken, async (req, res) => {
+  try {
+    const { name, tripType, startDate, endDate, operatorName, vesselName,
+            diveCenterName, location, country, latitude, longitude,
+            accommodation, notes, coverImageKey } = req.body;
+    
+    if (!name) {
+      return res.status(400).json({ error: 'Trip name is required' });
+    }
+    
+    const result = await pool.query(
+      `INSERT INTO dive_trips 
+       (user_id, name, trip_type, start_date, end_date, operator_name, vessel_name,
+        dive_center_name, location, country, latitude, longitude, accommodation, notes, cover_image_key)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+       RETURNING *`,
+      [req.user.id, name, tripType || 'dive_center', startDate || null, endDate || null,
+       operatorName || null, vesselName || null, diveCenterName || null,
+       location || null, country || null, latitude || null, longitude || null,
+       accommodation || null, notes || null, coverImageKey || null]
+    );
+    
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('Create dive trip error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Update dive trip
+app.put('/api/dive-trips/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, tripType, startDate, endDate, operatorName, vesselName,
+            diveCenterName, location, country, latitude, longitude,
+            accommodation, notes, coverImageKey } = req.body;
+    
+    const result = await pool.query(
+      `UPDATE dive_trips SET
+        name = COALESCE($1, name),
+        trip_type = COALESCE($2, trip_type),
+        start_date = $3,
+        end_date = $4,
+        operator_name = $5,
+        vessel_name = $6,
+        dive_center_name = $7,
+        location = $8,
+        country = $9,
+        latitude = $10,
+        longitude = $11,
+        accommodation = $12,
+        notes = $13,
+        cover_image_key = COALESCE($14, cover_image_key)
+       WHERE id = $15 AND user_id = $16 AND deleted_at IS NULL
+       RETURNING *`,
+      [name, tripType, startDate || null, endDate || null, operatorName || null,
+       vesselName || null, diveCenterName || null, location || null, country || null,
+       latitude || null, longitude || null, accommodation || null, notes || null,
+       coverImageKey, id, req.user.id]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Trip not found' });
+    }
+    
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Update dive trip error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Delete dive trip (soft delete)
+app.delete('/api/dive-trips/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const result = await pool.query(
+      `UPDATE dive_trips SET deleted_at = CURRENT_TIMESTAMP
+       WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL
+       RETURNING id`,
+      [id, req.user.id]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Trip not found' });
+    }
+    
+    res.json({ message: 'Trip deleted successfully' });
+  } catch (error) {
+    console.error('Delete dive trip error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Link dive log to trip
+app.post('/api/dive-trips/:id/logs', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { diveLogId } = req.body;
+    
+    // Verify trip belongs to user
+    const tripCheck = await pool.query(
+      'SELECT id FROM dive_trips WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL',
+      [id, req.user.id]
+    );
+    
+    if (tripCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Trip not found' });
+    }
+    
+    // Verify dive log belongs to user
+    const logCheck = await pool.query(
+      'SELECT id FROM dive_logs WHERE id = $1 AND user_id = $2',
+      [diveLogId, req.user.id]
+    );
+    
+    if (logCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Dive log not found' });
+    }
+    
+    await pool.query(
+      `INSERT INTO dive_trip_logs (trip_id, dive_log_id)
+       VALUES ($1, $2)
+       ON CONFLICT (trip_id, dive_log_id) DO NOTHING`,
+      [id, diveLogId]
+    );
+    
+    // Update total dives count
+    await pool.query(
+      `UPDATE dive_trips SET total_dives = (SELECT COUNT(*) FROM dive_trip_logs WHERE trip_id = $1)
+       WHERE id = $1`,
+      [id]
+    );
+    
+    res.json({ message: 'Dive linked to trip' });
+  } catch (error) {
+    console.error('Link dive to trip error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Unlink dive log from trip
+app.delete('/api/dive-trips/:tripId/logs/:logId', authenticateToken, async (req, res) => {
+  try {
+    const { tripId, logId } = req.params;
+    
+    // Verify trip belongs to user
+    const tripCheck = await pool.query(
+      'SELECT id FROM dive_trips WHERE id = $1 AND user_id = $2',
+      [tripId, req.user.id]
+    );
+    
+    if (tripCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Trip not found' });
+    }
+    
+    await pool.query(
+      'DELETE FROM dive_trip_logs WHERE trip_id = $1 AND dive_log_id = $2',
+      [tripId, logId]
+    );
+    
+    // Update total dives count
+    await pool.query(
+      `UPDATE dive_trips SET total_dives = (SELECT COUNT(*) FROM dive_trip_logs WHERE trip_id = $1)
+       WHERE id = $1`,
+      [tripId]
+    );
+    
+    res.json({ message: 'Dive unlinked from trip' });
+  } catch (error) {
+    console.error('Unlink dive from trip error:', error);
+    res.status(500).json({ error: 'Server error' });
   }
 });
 
