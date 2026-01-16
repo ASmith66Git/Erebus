@@ -184,8 +184,8 @@ export default function HomeScreen() {
           >
             <LinearGradient
               colors={isDark 
-                ? [colors.background + 'CC', colors.background + 'E6', colors.background]
-                : [colors.background + 'B3', colors.background + 'D9', colors.background]
+                ? ['transparent', colors.background + '40', colors.background + 'CC']
+                : ['transparent', colors.background + '30', colors.background + 'B3']
               }
               style={styles.heroOverlay}
               start={{ x: 0, y: 0 }}
@@ -193,8 +193,8 @@ export default function HomeScreen() {
             />
             <LinearGradient
               colors={isDark 
-                ? [colors.primary + '40', colors.primary + '20', 'transparent']
-                : [colors.primary + '30', colors.primary + '15', 'transparent']
+                ? [colors.primary + '30', colors.primary + '15', 'transparent']
+                : [colors.primary + '20', colors.primary + '10', 'transparent']
               }
               style={styles.heroColorTint}
               start={{ x: 0, y: 0 }}
@@ -325,7 +325,7 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   heroImage: {
-    opacity: 0.6,
+    opacity: 0.85,
   },
   heroOverlay: {
     position: 'absolute',
