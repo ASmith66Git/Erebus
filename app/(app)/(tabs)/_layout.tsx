@@ -101,19 +101,25 @@ export default function TabLayout() {
         <Tabs.Screen
           name="dive-sites"
           options={{
+            href: null,
             tabBarButton: () => null,
+            tabBarItemStyle: { display: 'none', width: 0, height: 0 },
           }}
         />
         <Tabs.Screen
           name="admin"
           options={{
+            href: null,
             tabBarButton: () => null,
+            tabBarItemStyle: { display: 'none', width: 0, height: 0 },
           }}
         />
         <Tabs.Screen
           name="dev-log"
           options={{
+            href: null,
             tabBarButton: () => null,
+            tabBarItemStyle: { display: 'none', width: 0, height: 0 },
           }}
         />
       </Tabs>
