@@ -32,24 +32,24 @@ function CustomDrawerContent(props: any) {
   };
 
   const menuItems = [
-    { icon: 'home', label: 'Home', action: () => handleNavigation('/(app)/(tabs)') },
-    { icon: 'book', label: 'Dive Logs', action: () => handleNavigation('/(app)/(tabs)/dive-logs') },
-    { icon: 'map-pin', label: 'Dive Sites', action: () => handleNavigation('/(app)/(tabs)/dive-sites') },
-    { icon: 'tool', label: 'Gear Profiles', action: () => handleNavigation('/(app)/gear-profiles') },
-    { icon: 'users', label: 'Dive Buddies', action: () => handleNavigation('/(app)/dive-buddies') },
-    { icon: 'activity', label: 'Dive Planning', action: () => handleNavigation('/(app)/dive-planning') },
-    { icon: 'database', label: 'Gas', action: () => handleNavigation('/(app)/gas-calculator') },
-    { icon: 'image', label: 'Photos', action: () => handleNavigation('/(app)/(tabs)/photos') },
-    { icon: 'award', label: 'Certifications', action: () => handleNavigation('/(app)/certifications') },
-    { icon: 'navigation', label: 'Dive Trips', action: () => handleNavigation('/(app)/dive-trips') },
-    { icon: 'settings', label: 'Settings', action: () => showComingSoon('Settings') },
+    { icon: 'home-outline', label: 'Home', action: () => handleNavigation('/(app)/(tabs)') },
+    { icon: 'journal-outline', label: 'Dive Logs', action: () => handleNavigation('/(app)/(tabs)/dive-logs') },
+    { icon: 'location-outline', label: 'Dive Sites', action: () => handleNavigation('/(app)/(tabs)/dive-sites') },
+    { icon: 'build-outline', label: 'Gear Profiles', action: () => handleNavigation('/(app)/gear-profiles') },
+    { icon: 'people-outline', label: 'Dive Buddies', action: () => handleNavigation('/(app)/dive-buddies') },
+    { icon: 'analytics-outline', label: 'Dive Planning', action: () => handleNavigation('/(app)/dive-planning') },
+    { icon: 'flask-outline', label: 'Gas', action: () => handleNavigation('/(app)/gas-calculator') },
+    { icon: 'images-outline', label: 'Photos', action: () => handleNavigation('/(app)/(tabs)/photos') },
+    { icon: 'ribbon-outline', label: 'Certifications', action: () => handleNavigation('/(app)/certifications') },
+    { icon: 'airplane-outline', label: 'Dive Trips', action: () => handleNavigation('/(app)/dive-trips') },
+    { icon: 'settings-outline', label: 'Settings', action: () => showComingSoon('Settings') },
   ];
 
   const adminItems = [
-    { icon: 'users', label: 'User Management', action: () => handleNavigation('/(app)/(tabs)/admin') },
-    { icon: 'code', label: 'Dev Log', action: () => handleNavigation('/(app)/(tabs)/dev-log') },
-    { icon: 'alert-triangle', label: 'Debug Logs', action: () => handleNavigation('/debug-log') },
-    { icon: 'sliders', label: 'Other Settings', action: () => showComingSoon('Other Settings') },
+    { icon: 'people-outline', label: 'User Management', action: () => handleNavigation('/(app)/(tabs)/admin') },
+    { icon: 'code-slash-outline', label: 'Dev Log', action: () => handleNavigation('/(app)/(tabs)/dev-log') },
+    { icon: 'bug-outline', label: 'Debug Logs', action: () => handleNavigation('/debug-log') },
+    { icon: 'options-outline', label: 'Other Settings', action: () => showComingSoon('Other Settings') },
   ];
 
   return (
@@ -78,8 +78,8 @@ function CustomDrawerContent(props: any) {
               key={index}
               label={item.label}
               onPress={item.action}
-              icon={({ size }) => (
-                <Feather name={item.icon as any} size={size} color={colors.primary} />
+              icon={() => (
+                <Ionicons name={item.icon as any} size={22} color={colors.primary} />
               )}
               labelStyle={{ color: colors.text }}
               style={styles.drawerItem}
@@ -95,8 +95,8 @@ function CustomDrawerContent(props: any) {
                   key={`admin-${index}`}
                   label={item.label}
                   onPress={item.action}
-                  icon={({ size }) => (
-                    <Feather name={item.icon as any} size={size} color={colors.primary} />
+                  icon={() => (
+                    <Ionicons name={item.icon as any} size={22} color={colors.primary} />
                   )}
                   labelStyle={{ color: colors.text }}
                   style={styles.drawerItem}
