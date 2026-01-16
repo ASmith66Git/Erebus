@@ -68,15 +68,15 @@ export default function RootLayout() {
 
   return (
     <ErrorBoundary>
-      <ThemeProvider>
-        <SettingsProvider>
+      <SettingsProvider>
+        <ThemeProvider>
           <AuthProvider>
             <SyncProvider>
               <RootLayoutNav />
             </SyncProvider>
           </AuthProvider>
-        </SettingsProvider>
-      </ThemeProvider>
+        </ThemeProvider>
+      </SettingsProvider>
     </ErrorBoundary>
   );
 }

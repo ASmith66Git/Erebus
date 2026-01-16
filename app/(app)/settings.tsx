@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Modal, FlatList } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
-import { useSettings, languageOptions, UnitSystem, DateFormat, Language } from '@/contexts/SettingsContext';
+import { useSettings, languageOptions, themeColorOptions, UnitSystem, DateFormat, Language } from '@/contexts/SettingsContext';
 import PageHeader from '@/components/PageHeader';
 
 const dateFormatOptions: { value: DateFormat; label: string; example: string }[] = [
@@ -13,7 +13,7 @@ const dateFormatOptions: { value: DateFormat; label: string; example: string }[]
 
 export default function SettingsScreen() {
   const { colors } = useTheme();
-  const { units, setUnits, dateFormat, setDateFormat, language, setLanguage } = useSettings();
+  const { units, setUnits, dateFormat, setDateFormat, language, setLanguage, themeColor, setThemeColor } = useSettings();
   const [showLanguagePicker, setShowLanguagePicker] = useState(false);
 
   const selectedLanguage = languageOptions.find(l => l.value === language);
@@ -107,6 +107,33 @@ export default function SettingsScreen() {
             </Text>
             <Ionicons name="chevron-down" size={20} color={colors.textSecondary} />
           </Pressable>
+        </View>
+
+        <View style={[styles.section, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Theme Color</Text>
+          <Text style={[styles.sectionDescription, { color: colors.textSecondary }]}>
+            Choose your accent color
+          </Text>
+          <View style={styles.colorGrid}>
+            {themeColorOptions.map((option) => (
+              <Pressable
+                key={option.value}
+                style={[
+                  styles.colorOption,
+                  { backgroundColor: option.value },
+                  themeColor === option.value && styles.colorOptionSelected,
+                ]}
+                onPress={() => setThemeColor(option.value)}
+              >
+                {themeColor === option.value && (
+                  <Ionicons name="checkmark" size={24} color="#FFF" />
+                )}
+              </Pressable>
+            ))}
+          </View>
+          <Text style={[styles.colorLabel, { color: colors.textSecondary }]}>
+            {themeColorOptions.find(c => c.value === themeColor)?.label || 'Red'}
+          </Text>
         </View>
 
         <View style={{ height: 40 }} />
@@ -280,5 +307,31 @@ const styles = StyleSheet.create({
   },
   languageOptionText: {
     fontSize: 16,
+  },
+  colorGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  colorOption: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  colorOptionSelected: {
+    borderWidth: 3,
+    borderColor: '#FFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  colorLabel: {
+    fontSize: 14,
+    marginTop: 12,
+    textAlign: 'center',
   },
 });
