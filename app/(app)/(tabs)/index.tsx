@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
+import PageHeader from '@/components/PageHeader';
 
 export default function HomeScreen() {
   const { colors } = useTheme();
@@ -15,8 +16,10 @@ export default function HomeScreen() {
   ];
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={styles.welcomeSection}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
+      <PageHeader title="Erebus" />
+      <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={styles.welcomeSection}>
         <Text style={[styles.greeting, { color: colors.textSecondary }]}>Welcome back,</Text>
         <Text style={[styles.name, { color: colors.text }]}>
           {user?.firstName || user?.email?.split('@')[0] || 'Diver'}!
@@ -68,7 +71,8 @@ export default function HomeScreen() {
           </Text>
         </View>
       </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 

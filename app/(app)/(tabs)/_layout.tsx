@@ -1,40 +1,14 @@
 import React from 'react';
-import { Tabs, useNavigation } from 'expo-router';
-import { View, Text, StyleSheet, SafeAreaView, Pressable } from 'react-native';
+import { Tabs } from 'expo-router';
+import { View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
-import { DrawerActions } from '@react-navigation/native';
-
-function CustomHeader() {
-  const { colors, isDark, toggleTheme } = useTheme();
-  const navigation = useNavigation();
-
-  const openDrawer = () => {
-    navigation.dispatch(DrawerActions.openDrawer());
-  };
-
-  return (
-    <SafeAreaView style={[styles.header, { backgroundColor: colors.headerBackground, borderBottomColor: colors.border }]}>
-      <Pressable onPress={openDrawer} style={styles.menuButton}>
-        <Ionicons name="menu-outline" size={24} color={colors.text} />
-      </Pressable>
-      <View style={styles.headerCenter}>
-        <Ionicons name="water" size={20} color={colors.primary} />
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Erebus</Text>
-      </View>
-      <Pressable onPress={toggleTheme} style={styles.themeButton}>
-        <Ionicons name={isDark ? 'sunny-outline' : 'moon-outline'} size={22} color={colors.text} />
-      </Pressable>
-    </SafeAreaView>
-  );
-}
 
 export default function TabLayout() {
   const { colors } = useTheme();
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <CustomHeader />
       <Tabs
         screenOptions={{
           tabBarActiveTintColor: colors.text,
@@ -120,34 +94,3 @@ export default function TabLayout() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingTop: 20,
-    paddingBottom: 10,
-    minHeight: 75,
-    borderBottomWidth: 1,
-  },
-  menuButton: {
-    padding: 8,
-  },
-  headerCenter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  headerRight: {
-    width: 36,
-  },
-  themeButton: {
-    padding: 8,
-  },
-});

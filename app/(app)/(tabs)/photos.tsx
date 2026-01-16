@@ -18,6 +18,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { getApiUrl } from '@/utils/apiConfig';
+import PageHeader from '@/components/PageHeader';
 
 interface Photo {
   id: number;
@@ -449,14 +450,18 @@ export default function PhotosScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.container, styles.centered, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={colors.primary} />
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <PageHeader title="Photos" />
+        <View style={[styles.container, styles.centered]}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
       </View>
     );
   }
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <PageHeader title="Photos" />
       <View style={[styles.toolbar, { borderBottomColor: colors.border }]}>
         {selectionMode ? (
           <>

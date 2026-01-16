@@ -16,6 +16,7 @@ import { Feather } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { getApiUrl } from '@/utils/apiConfig';
+import PageHeader from '@/components/PageHeader';
 
 interface DiveSite {
   id: number;
@@ -213,6 +214,7 @@ export default function DiveSitesScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <PageHeader title="Dive Sites" />
       <View style={styles.searchContainer}>
         <View style={[styles.searchBar, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <Feather name="search" size={20} color={colors.textSecondary} />
