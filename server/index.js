@@ -5183,6 +5183,277 @@ app.delete('/api/dive-trips/:tripId/logs/:logId', authenticateToken, async (req,
   }
 });
 
+// ==================== DIVE BUDDIES ====================
+
+// Get all dive buddies for user
+app.get('/api/dive-buddies', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT db.*, u.username AS linked_username, u.email AS linked_email
+       FROM dive_buddies db
+       LEFT JOIN users u ON db.linked_user_id = u.id
+       WHERE db.user_id = $1 AND db.deleted_at IS NULL
+       ORDER BY db.name ASC`,
+      [req.user.id]
+    );
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Get dive buddies error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Get single dive buddy
+app.get('/api/dive-buddies/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query(
+      `SELECT db.*, u.username AS linked_username, u.email AS linked_email
+       FROM dive_buddies db
+       LEFT JOIN users u ON db.linked_user_id = u.id
+       WHERE db.id = $1 AND db.user_id = $2 AND db.deleted_at IS NULL`,
+      [id, req.user.id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Buddy not found' });
+    }
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Get dive buddy error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Create dive buddy
+app.post('/api/dive-buddies', authenticateToken, async (req, res) => {
+  try {
+    const { name, photo_url, notes, linked_user_id } = req.body;
+    if (!name || !name.trim()) {
+      return res.status(400).json({ error: 'Name is required' });
+    }
+    const result = await pool.query(
+      `INSERT INTO dive_buddies (user_id, name, photo_url, notes, linked_user_id)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING *`,
+      [req.user.id, name.trim(), photo_url || null, notes || null, linked_user_id || null]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('Create dive buddy error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Update dive buddy
+app.put('/api/dive-buddies/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, photo_url, notes, linked_user_id } = req.body;
+    
+    const check = await pool.query(
+      'SELECT id FROM dive_buddies WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL',
+      [id, req.user.id]
+    );
+    if (check.rows.length === 0) {
+      return res.status(404).json({ error: 'Buddy not found' });
+    }
+    
+    const result = await pool.query(
+      `UPDATE dive_buddies 
+       SET name = COALESCE($1, name),
+           photo_url = $2,
+           notes = $3,
+           linked_user_id = $4,
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = $5 AND user_id = $6
+       RETURNING *`,
+      [name?.trim(), photo_url || null, notes || null, linked_user_id || null, id, req.user.id]
+    );
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Update dive buddy error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Delete dive buddy (soft delete)
+app.delete('/api/dive-buddies/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query(
+      `UPDATE dive_buddies SET deleted_at = CURRENT_TIMESTAMP
+       WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL
+       RETURNING id`,
+      [id, req.user.id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Buddy not found' });
+    }
+    res.json({ message: 'Buddy deleted' });
+  } catch (error) {
+    console.error('Delete dive buddy error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Search for users with searchable profiles
+app.get('/api/users/search', authenticateToken, async (req, res) => {
+  try {
+    const { query } = req.query;
+    if (!query || query.length < 2) {
+      return res.json([]);
+    }
+    const result = await pool.query(
+      `SELECT id, username, email
+       FROM users 
+       WHERE searchable_profile = TRUE 
+         AND id != $1
+         AND (LOWER(username) LIKE LOWER($2) OR LOWER(email) LIKE LOWER($2))
+       ORDER BY username ASC
+       LIMIT 20`,
+      [req.user.id, `%${query}%`]
+    );
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Search users error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Toggle profile searchability
+app.patch('/api/profile/searchable', authenticateToken, async (req, res) => {
+  try {
+    const { searchable } = req.body;
+    await pool.query(
+      'UPDATE users SET searchable_profile = $1 WHERE id = $2',
+      [!!searchable, req.user.id]
+    );
+    res.json({ searchable_profile: !!searchable });
+  } catch (error) {
+    console.error('Update searchable error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Get current user's searchable status
+app.get('/api/profile/searchable', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT searchable_profile FROM users WHERE id = $1',
+      [req.user.id]
+    );
+    res.json({ searchable_profile: result.rows[0]?.searchable_profile || false });
+  } catch (error) {
+    console.error('Get searchable error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Link buddy to dive log
+app.post('/api/dive-logs/:logId/buddies', authenticateToken, async (req, res) => {
+  try {
+    const { logId } = req.params;
+    const { buddy_id } = req.body;
+    
+    // Verify dive log belongs to user
+    const logCheck = await pool.query(
+      'SELECT id FROM dive_logs WHERE id = $1 AND user_id = $2',
+      [logId, req.user.id]
+    );
+    if (logCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Dive log not found' });
+    }
+    
+    // Verify buddy belongs to user
+    const buddyCheck = await pool.query(
+      'SELECT id FROM dive_buddies WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL',
+      [buddy_id, req.user.id]
+    );
+    if (buddyCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Buddy not found' });
+    }
+    
+    await pool.query(
+      `INSERT INTO dive_log_buddies (dive_log_id, buddy_id)
+       VALUES ($1, $2)
+       ON CONFLICT (dive_log_id, buddy_id) DO NOTHING`,
+      [logId, buddy_id]
+    );
+    res.json({ message: 'Buddy linked to dive' });
+  } catch (error) {
+    console.error('Link buddy to dive error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Unlink buddy from dive log
+app.delete('/api/dive-logs/:logId/buddies/:buddyId', authenticateToken, async (req, res) => {
+  try {
+    const { logId, buddyId } = req.params;
+    
+    // Verify dive log belongs to user
+    const logCheck = await pool.query(
+      'SELECT id FROM dive_logs WHERE id = $1 AND user_id = $2',
+      [logId, req.user.id]
+    );
+    if (logCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Dive log not found' });
+    }
+    
+    await pool.query(
+      'DELETE FROM dive_log_buddies WHERE dive_log_id = $1 AND buddy_id = $2',
+      [logId, buddyId]
+    );
+    res.json({ message: 'Buddy unlinked from dive' });
+  } catch (error) {
+    console.error('Unlink buddy from dive error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Get buddies for a dive log
+app.get('/api/dive-logs/:logId/buddies', authenticateToken, async (req, res) => {
+  try {
+    const { logId } = req.params;
+    
+    const result = await pool.query(
+      `SELECT db.* FROM dive_buddies db
+       INNER JOIN dive_log_buddies dlb ON db.id = dlb.buddy_id
+       INNER JOIN dive_logs dl ON dlb.dive_log_id = dl.id
+       WHERE dl.id = $1 AND dl.user_id = $2 AND db.deleted_at IS NULL
+       ORDER BY db.name ASC`,
+      [logId, req.user.id]
+    );
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Get dive buddies for log error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Get presigned URL for buddy photo upload
+app.post('/api/dive-buddies/upload-url', authenticateToken, async (req, res) => {
+  try {
+    const { fileName, contentType } = req.body;
+    if (!fileName) {
+      return res.status(400).json({ error: 'fileName is required' });
+    }
+    
+    const ext = fileName.split('.').pop() || 'jpg';
+    const key = `buddy-photos/${req.user.id}/${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
+    
+    const { uploadUrl, publicUrl } = await objectStorage.createPresignedUploadUrl(key, {
+      contentType: contentType || 'image/jpeg',
+      expiresIn: 3600
+    });
+    
+    res.json({ uploadUrl, publicUrl, key });
+  } catch (error) {
+    console.error('Buddy photo upload URL error:', error);
+    res.status(500).json({ error: 'Failed to generate upload URL' });
+  }
+});
+
 const distPath = path.join(__dirname, '..', 'dist');
 
 if (process.env.NODE_ENV === 'production' || process.env.PORT) {
