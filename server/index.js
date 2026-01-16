@@ -452,6 +452,137 @@ async function initDatabase() {
         EXECUTE FUNCTION update_updated_at_column();
     `).catch(() => {});
     
+    // Training Agencies and Certifications tables
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS training_agencies (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(100) NOT NULL UNIQUE,
+        full_name VARCHAR(255),
+        website VARCHAR(500),
+        logo_url VARCHAR(500),
+        description TEXT,
+        founded_year INTEGER,
+        headquarters VARCHAR(255),
+        is_active BOOLEAN DEFAULT TRUE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `).catch(() => {});
+    
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS training_courses (
+        id SERIAL PRIMARY KEY,
+        agency_id INTEGER REFERENCES training_agencies(id) ON DELETE CASCADE,
+        name VARCHAR(255) NOT NULL,
+        level VARCHAR(50) NOT NULL DEFAULT 'recreational',
+        category VARCHAR(100),
+        description TEXT,
+        prerequisites TEXT,
+        min_age INTEGER,
+        min_dives INTEGER,
+        sort_order INTEGER DEFAULT 0,
+        is_active BOOLEAN DEFAULT TRUE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(agency_id, name)
+      );
+    `).catch(() => {});
+    
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS user_certifications (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        course_id INTEGER REFERENCES training_courses(id) ON DELETE SET NULL,
+        certification_date DATE,
+        certification_number VARCHAR(100),
+        instructor_name VARCHAR(255),
+        instructor_number VARCHAR(100),
+        dive_center VARCHAR(255),
+        location VARCHAR(255),
+        notes TEXT,
+        is_verified BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `).catch(() => {});
+    
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS certification_images (
+        id SERIAL PRIMARY KEY,
+        certification_id INTEGER REFERENCES user_certifications(id) ON DELETE CASCADE,
+        image_url VARCHAR(500) NOT NULL,
+        image_side VARCHAR(20) NOT NULL DEFAULT 'front',
+        caption VARCHAR(255),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `).catch(() => {});
+    
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS user_course_wishlist (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        course_id INTEGER REFERENCES training_courses(id) ON DELETE CASCADE,
+        priority INTEGER DEFAULT 0,
+        target_date DATE,
+        notes TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(user_id, course_id)
+      );
+    `).catch(() => {});
+    
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_training_courses_agency_id ON training_courses(agency_id);
+    `).catch(() => {});
+    
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_user_certifications_user_id ON user_certifications(user_id);
+    `).catch(() => {});
+    
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_user_certifications_course_id ON user_certifications(course_id);
+    `).catch(() => {});
+    
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_certification_images_cert_id ON certification_images(certification_id);
+    `).catch(() => {});
+    
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_user_course_wishlist_user_id ON user_course_wishlist(user_id);
+    `).catch(() => {});
+    
+    await client.query(`
+      DROP TRIGGER IF EXISTS update_training_agencies_updated_at ON training_agencies;
+      CREATE TRIGGER update_training_agencies_updated_at
+        BEFORE UPDATE ON training_agencies
+        FOR EACH ROW
+        EXECUTE FUNCTION update_updated_at_column();
+    `).catch(() => {});
+    
+    await client.query(`
+      DROP TRIGGER IF EXISTS update_training_courses_updated_at ON training_courses;
+      CREATE TRIGGER update_training_courses_updated_at
+        BEFORE UPDATE ON training_courses
+        FOR EACH ROW
+        EXECUTE FUNCTION update_updated_at_column();
+    `).catch(() => {});
+    
+    await client.query(`
+      DROP TRIGGER IF EXISTS update_user_certifications_updated_at ON user_certifications;
+      CREATE TRIGGER update_user_certifications_updated_at
+        BEFORE UPDATE ON user_certifications
+        FOR EACH ROW
+        EXECUTE FUNCTION update_updated_at_column();
+    `).catch(() => {});
+    
+    await client.query(`
+      DROP TRIGGER IF EXISTS update_user_course_wishlist_updated_at ON user_course_wishlist;
+      CREATE TRIGGER update_user_course_wishlist_updated_at
+        BEFORE UPDATE ON user_course_wishlist
+        FOR EACH ROW
+        EXECUTE FUNCTION update_updated_at_column();
+    `).catch(() => {});
+    
     const adminCheck = await client.query("SELECT id FROM users WHERE email = 'admin@erebus.app'");
     if (adminCheck.rows.length === 0) {
       const hashedPassword = await bcrypt.hash('admin123', 10);
@@ -460,6 +591,182 @@ async function initDatabase() {
         [hashedPassword]
       );
       console.log('Default admin user created: admin@erebus.app / admin123');
+    }
+    
+    // Seed training agencies and courses
+    const agencyCheck = await client.query("SELECT id FROM training_agencies LIMIT 1");
+    if (agencyCheck.rows.length === 0) {
+      console.log('Seeding training agencies and courses...');
+      
+      const agencies = [
+        { name: 'PADI', full_name: 'Professional Association of Diving Instructors', website: 'https://www.padi.com', founded_year: 1966, headquarters: 'Rancho Santa Margarita, CA, USA' },
+        { name: 'SSI', full_name: 'Scuba Schools International', website: 'https://www.divessi.com', founded_year: 1970, headquarters: 'Fort Collins, CO, USA' },
+        { name: 'NAUI', full_name: 'National Association of Underwater Instructors', website: 'https://www.naui.org', founded_year: 1959, headquarters: 'Tampa, FL, USA' },
+        { name: 'BSAC', full_name: 'British Sub-Aqua Club', website: 'https://www.bsac.com', founded_year: 1953, headquarters: 'Ellesmere Port, UK' },
+        { name: 'SDI', full_name: 'Scuba Diving International', website: 'https://www.tdisdi.com', founded_year: 1998, headquarters: 'Stuart, FL, USA' },
+        { name: 'TDI', full_name: 'Technical Diving International', website: 'https://www.tdisdi.com', founded_year: 1994, headquarters: 'Stuart, FL, USA' },
+        { name: 'GUE', full_name: 'Global Underwater Explorers', website: 'https://www.gue.com', founded_year: 1998, headquarters: 'High Springs, FL, USA' },
+        { name: 'IANTD', full_name: 'International Association of Nitrox and Technical Divers', website: 'https://www.iantd.com', founded_year: 1985, headquarters: 'Miami, FL, USA' },
+        { name: 'RAID', full_name: 'Rebreather Association of International Divers', website: 'https://www.diveraid.com', founded_year: 2007, headquarters: 'Sweden' },
+        { name: 'CMAS', full_name: 'Confederation Mondiale des Activites Subaquatiques', website: 'https://www.cmas.org', founded_year: 1959, headquarters: 'Rome, Italy' },
+        { name: 'ANDI', full_name: 'American Nitrox Divers International', website: 'https://www.andihq.com', founded_year: 1988, headquarters: 'Freeport, NY, USA' },
+      ];
+      
+      const agencyIds = {};
+      for (const agency of agencies) {
+        const result = await client.query(
+          `INSERT INTO training_agencies (name, full_name, website, founded_year, headquarters) 
+           VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+          [agency.name, agency.full_name, agency.website, agency.founded_year, agency.headquarters]
+        );
+        agencyIds[agency.name] = result.rows[0].id;
+      }
+      
+      const courses = [
+        // PADI Courses
+        { agency: 'PADI', name: 'Open Water Diver', level: 'recreational', category: 'Entry', sort_order: 1 },
+        { agency: 'PADI', name: 'Advanced Open Water Diver', level: 'recreational', category: 'Continuing Education', sort_order: 2 },
+        { agency: 'PADI', name: 'Rescue Diver', level: 'recreational', category: 'Continuing Education', sort_order: 3 },
+        { agency: 'PADI', name: 'Master Scuba Diver', level: 'recreational', category: 'Continuing Education', sort_order: 4 },
+        { agency: 'PADI', name: 'Divemaster', level: 'professional', category: 'Professional', sort_order: 5 },
+        { agency: 'PADI', name: 'Open Water Scuba Instructor', level: 'professional', category: 'Professional', sort_order: 6 },
+        { agency: 'PADI', name: 'Enriched Air Diver', level: 'recreational', category: 'Specialty', sort_order: 10 },
+        { agency: 'PADI', name: 'Deep Diver', level: 'recreational', category: 'Specialty', sort_order: 11 },
+        { agency: 'PADI', name: 'Wreck Diver', level: 'recreational', category: 'Specialty', sort_order: 12 },
+        { agency: 'PADI', name: 'Night Diver', level: 'recreational', category: 'Specialty', sort_order: 13 },
+        { agency: 'PADI', name: 'Dry Suit Diver', level: 'recreational', category: 'Specialty', sort_order: 14 },
+        { agency: 'PADI', name: 'Sidemount Diver', level: 'recreational', category: 'Specialty', sort_order: 15 },
+        { agency: 'PADI', name: 'Tec 40', level: 'technical', category: 'Technical', sort_order: 20 },
+        { agency: 'PADI', name: 'Tec 45', level: 'technical', category: 'Technical', sort_order: 21 },
+        { agency: 'PADI', name: 'Tec 50', level: 'technical', category: 'Technical', sort_order: 22 },
+        { agency: 'PADI', name: 'Tec Trimix 65', level: 'technical', category: 'Technical', sort_order: 23 },
+        { agency: 'PADI', name: 'Tec Trimix Diver', level: 'technical', category: 'Technical', sort_order: 24 },
+        { agency: 'PADI', name: 'Rebreather Diver', level: 'technical', category: 'Technical', sort_order: 25 },
+        
+        // SSI Courses
+        { agency: 'SSI', name: 'Open Water Diver', level: 'recreational', category: 'Entry', sort_order: 1 },
+        { agency: 'SSI', name: 'Advanced Adventurer', level: 'recreational', category: 'Continuing Education', sort_order: 2 },
+        { agency: 'SSI', name: 'Diver Stress & Rescue', level: 'recreational', category: 'Continuing Education', sort_order: 3 },
+        { agency: 'SSI', name: 'Master Diver', level: 'recreational', category: 'Continuing Education', sort_order: 4 },
+        { agency: 'SSI', name: 'Dive Guide', level: 'professional', category: 'Professional', sort_order: 5 },
+        { agency: 'SSI', name: 'Open Water Instructor', level: 'professional', category: 'Professional', sort_order: 6 },
+        { agency: 'SSI', name: 'Enriched Air Nitrox', level: 'recreational', category: 'Specialty', sort_order: 10 },
+        { agency: 'SSI', name: 'Deep Diving', level: 'recreational', category: 'Specialty', sort_order: 11 },
+        { agency: 'SSI', name: 'Wreck Diving', level: 'recreational', category: 'Specialty', sort_order: 12 },
+        { agency: 'SSI', name: 'Extended Range', level: 'technical', category: 'Technical', sort_order: 20 },
+        { agency: 'SSI', name: 'Technical Extended Range', level: 'technical', category: 'Technical', sort_order: 21 },
+        { agency: 'SSI', name: 'Hypoxic Trimix', level: 'technical', category: 'Technical', sort_order: 22 },
+        { agency: 'SSI', name: 'CCR Diving', level: 'technical', category: 'Technical', sort_order: 23 },
+        
+        // TDI Courses
+        { agency: 'TDI', name: 'Intro to Tech', level: 'technical', category: 'Entry', sort_order: 1 },
+        { agency: 'TDI', name: 'Nitrox Diver', level: 'recreational', category: 'Specialty', sort_order: 2 },
+        { agency: 'TDI', name: 'Advanced Nitrox', level: 'technical', category: 'Technical', sort_order: 3 },
+        { agency: 'TDI', name: 'Decompression Procedures', level: 'technical', category: 'Technical', sort_order: 4 },
+        { agency: 'TDI', name: 'Extended Range', level: 'technical', category: 'Technical', sort_order: 5 },
+        { agency: 'TDI', name: 'Trimix Diver', level: 'technical', category: 'Technical', sort_order: 6 },
+        { agency: 'TDI', name: 'Advanced Trimix', level: 'technical', category: 'Technical', sort_order: 7 },
+        { agency: 'TDI', name: 'Sidemount Diver', level: 'technical', category: 'Specialty', sort_order: 10 },
+        { agency: 'TDI', name: 'Intro to Cave', level: 'technical', category: 'Cave', sort_order: 15 },
+        { agency: 'TDI', name: 'Full Cave Diver', level: 'technical', category: 'Cave', sort_order: 16 },
+        { agency: 'TDI', name: 'Advanced Wreck', level: 'technical', category: 'Wreck', sort_order: 17 },
+        { agency: 'TDI', name: 'CCR Air Diluent', level: 'technical', category: 'Rebreather', sort_order: 20 },
+        { agency: 'TDI', name: 'CCR Mixed Gas Diluent', level: 'technical', category: 'Rebreather', sort_order: 21 },
+        { agency: 'TDI', name: 'CCR Advanced Mixed Gas', level: 'technical', category: 'Rebreather', sort_order: 22 },
+        
+        // GUE Courses
+        { agency: 'GUE', name: 'Recreational Diver 1', level: 'recreational', category: 'Entry', sort_order: 1 },
+        { agency: 'GUE', name: 'Recreational Diver 2', level: 'recreational', category: 'Continuing Education', sort_order: 2 },
+        { agency: 'GUE', name: 'Recreational Diver 3', level: 'recreational', category: 'Continuing Education', sort_order: 3 },
+        { agency: 'GUE', name: 'Fundamentals', level: 'recreational', category: 'Foundational', sort_order: 4 },
+        { agency: 'GUE', name: 'Doubles Diver', level: 'recreational', category: 'Specialty', sort_order: 5 },
+        { agency: 'GUE', name: 'Drysuit Diver', level: 'recreational', category: 'Specialty', sort_order: 6 },
+        { agency: 'GUE', name: 'Tech 1', level: 'technical', category: 'Technical', sort_order: 10 },
+        { agency: 'GUE', name: 'Tech 2', level: 'technical', category: 'Technical', sort_order: 11 },
+        { agency: 'GUE', name: 'Cave 1', level: 'technical', category: 'Cave', sort_order: 15 },
+        { agency: 'GUE', name: 'Cave 2', level: 'technical', category: 'Cave', sort_order: 16 },
+        { agency: 'GUE', name: 'CCR 1', level: 'technical', category: 'Rebreather', sort_order: 20 },
+        { agency: 'GUE', name: 'CCR 2', level: 'technical', category: 'Rebreather', sort_order: 21 },
+        
+        // NAUI Courses
+        { agency: 'NAUI', name: 'Scuba Diver', level: 'recreational', category: 'Entry', sort_order: 1 },
+        { agency: 'NAUI', name: 'Advanced Scuba Diver', level: 'recreational', category: 'Continuing Education', sort_order: 2 },
+        { agency: 'NAUI', name: 'Rescue Diver', level: 'recreational', category: 'Continuing Education', sort_order: 3 },
+        { agency: 'NAUI', name: 'Master Scuba Diver', level: 'recreational', category: 'Continuing Education', sort_order: 4 },
+        { agency: 'NAUI', name: 'Divemaster', level: 'professional', category: 'Professional', sort_order: 5 },
+        { agency: 'NAUI', name: 'Instructor', level: 'professional', category: 'Professional', sort_order: 6 },
+        { agency: 'NAUI', name: 'Enriched Air Nitrox', level: 'recreational', category: 'Specialty', sort_order: 10 },
+        { agency: 'NAUI', name: 'Deep Diver', level: 'recreational', category: 'Specialty', sort_order: 11 },
+        { agency: 'NAUI', name: 'Wreck Diver', level: 'recreational', category: 'Specialty', sort_order: 12 },
+        { agency: 'NAUI', name: 'Technical Decompression', level: 'technical', category: 'Technical', sort_order: 20 },
+        { agency: 'NAUI', name: 'Technical Trimix', level: 'technical', category: 'Technical', sort_order: 21 },
+        
+        // BSAC Courses
+        { agency: 'BSAC', name: 'Ocean Diver', level: 'recreational', category: 'Entry', sort_order: 1 },
+        { agency: 'BSAC', name: 'Sports Diver', level: 'recreational', category: 'Continuing Education', sort_order: 2 },
+        { agency: 'BSAC', name: 'Dive Leader', level: 'recreational', category: 'Continuing Education', sort_order: 3 },
+        { agency: 'BSAC', name: 'Advanced Diver', level: 'recreational', category: 'Continuing Education', sort_order: 4 },
+        { agency: 'BSAC', name: 'First Class Diver', level: 'recreational', category: 'Continuing Education', sort_order: 5 },
+        { agency: 'BSAC', name: 'Open Water Instructor', level: 'professional', category: 'Professional', sort_order: 6 },
+        { agency: 'BSAC', name: 'Nitrox Diver', level: 'recreational', category: 'Specialty', sort_order: 10 },
+        { agency: 'BSAC', name: 'Accelerated Decompression Procedures', level: 'technical', category: 'Technical', sort_order: 20 },
+        
+        // IANTD Courses
+        { agency: 'IANTD', name: 'Open Water Diver', level: 'recreational', category: 'Entry', sort_order: 1 },
+        { agency: 'IANTD', name: 'Advanced Open Water', level: 'recreational', category: 'Continuing Education', sort_order: 2 },
+        { agency: 'IANTD', name: 'EANx Diver', level: 'recreational', category: 'Specialty', sort_order: 3 },
+        { agency: 'IANTD', name: 'Advanced EANx', level: 'technical', category: 'Technical', sort_order: 10 },
+        { agency: 'IANTD', name: 'Technical Diver', level: 'technical', category: 'Technical', sort_order: 11 },
+        { agency: 'IANTD', name: 'Trimix Diver', level: 'technical', category: 'Technical', sort_order: 12 },
+        { agency: 'IANTD', name: 'Advanced Trimix', level: 'technical', category: 'Technical', sort_order: 13 },
+        { agency: 'IANTD', name: 'Cave Diver', level: 'technical', category: 'Cave', sort_order: 15 },
+        { agency: 'IANTD', name: 'Full Cave Diver', level: 'technical', category: 'Cave', sort_order: 16 },
+        { agency: 'IANTD', name: 'CCR Diver', level: 'technical', category: 'Rebreather', sort_order: 20 },
+        
+        // SDI Courses
+        { agency: 'SDI', name: 'Open Water Scuba Diver', level: 'recreational', category: 'Entry', sort_order: 1 },
+        { agency: 'SDI', name: 'Advanced Adventure Diver', level: 'recreational', category: 'Continuing Education', sort_order: 2 },
+        { agency: 'SDI', name: 'Rescue Diver', level: 'recreational', category: 'Continuing Education', sort_order: 3 },
+        { agency: 'SDI', name: 'Master Diver', level: 'recreational', category: 'Continuing Education', sort_order: 4 },
+        { agency: 'SDI', name: 'Divemaster', level: 'professional', category: 'Professional', sort_order: 5 },
+        { agency: 'SDI', name: 'Solo Diver', level: 'recreational', category: 'Specialty', sort_order: 10 },
+        { agency: 'SDI', name: 'Computer Nitrox', level: 'recreational', category: 'Specialty', sort_order: 11 },
+        
+        // RAID Courses
+        { agency: 'RAID', name: 'Open Water 20', level: 'recreational', category: 'Entry', sort_order: 1 },
+        { agency: 'RAID', name: 'Advanced 35', level: 'recreational', category: 'Continuing Education', sort_order: 2 },
+        { agency: 'RAID', name: 'Rescue Diver', level: 'recreational', category: 'Continuing Education', sort_order: 3 },
+        { agency: 'RAID', name: 'Master Diver', level: 'recreational', category: 'Continuing Education', sort_order: 4 },
+        { agency: 'RAID', name: 'Deco 40', level: 'technical', category: 'Technical', sort_order: 10 },
+        { agency: 'RAID', name: 'Deco 50', level: 'technical', category: 'Technical', sort_order: 11 },
+        { agency: 'RAID', name: 'Trimix Normoxic', level: 'technical', category: 'Technical', sort_order: 12 },
+        { agency: 'RAID', name: 'Trimix Hypoxic', level: 'technical', category: 'Technical', sort_order: 13 },
+        { agency: 'RAID', name: 'CCR Mod 1', level: 'technical', category: 'Rebreather', sort_order: 20 },
+        { agency: 'RAID', name: 'CCR Mod 2', level: 'technical', category: 'Rebreather', sort_order: 21 },
+        
+        // ANDI Courses
+        { agency: 'ANDI', name: 'Open Water Diver', level: 'recreational', category: 'Entry', sort_order: 1 },
+        { agency: 'ANDI', name: 'Advanced Open Water', level: 'recreational', category: 'Continuing Education', sort_order: 2 },
+        { agency: 'ANDI', name: 'Rescue Diver', level: 'recreational', category: 'Continuing Education', sort_order: 3 },
+        { agency: 'ANDI', name: 'SafeAir (Nitrox)', level: 'recreational', category: 'Specialty', sort_order: 10 },
+        { agency: 'ANDI', name: 'Technical SafeAir', level: 'technical', category: 'Technical', sort_order: 11 },
+        { agency: 'ANDI', name: 'Technical Diver', level: 'technical', category: 'Technical', sort_order: 12 },
+        { agency: 'ANDI', name: 'Trimix Diver', level: 'technical', category: 'Technical', sort_order: 13 },
+        { agency: 'ANDI', name: 'CCR Diver', level: 'technical', category: 'Rebreather', sort_order: 20 },
+      ];
+      
+      for (const course of courses) {
+        const agencyId = agencyIds[course.agency];
+        if (agencyId) {
+          await client.query(
+            `INSERT INTO training_courses (agency_id, name, level, category, sort_order) 
+             VALUES ($1, $2, $3, $4, $5)`,
+            [agencyId, course.name, course.level, course.category, course.sort_order]
+          );
+        }
+      }
+      
+      console.log('Training agencies and courses seeded successfully');
     }
     
     console.log('Database initialized successfully');
@@ -4182,6 +4489,405 @@ app.delete('/api/dive-plans/:id', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Delete dive plan error:', error);
     res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// ============================================
+// Training Agencies and Certifications API
+// ============================================
+
+// Get all training agencies
+app.get('/api/training-agencies', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT id, name, full_name, website, logo_url, description, founded_year, headquarters
+       FROM training_agencies WHERE is_active = TRUE ORDER BY name`
+    );
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Get training agencies error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Get courses for an agency
+app.get('/api/training-agencies/:agencyId/courses', authenticateToken, async (req, res) => {
+  try {
+    const { agencyId } = req.params;
+    const result = await pool.query(
+      `SELECT id, name, level, category, description, prerequisites, min_age, min_dives, sort_order
+       FROM training_courses 
+       WHERE agency_id = $1 AND is_active = TRUE 
+       ORDER BY sort_order, name`,
+      [agencyId]
+    );
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Get agency courses error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Get all courses (with agency info)
+app.get('/api/training-courses', authenticateToken, async (req, res) => {
+  try {
+    const { level, category } = req.query;
+    let query = `
+      SELECT c.id, c.name, c.level, c.category, c.description, c.sort_order,
+             a.id as agency_id, a.name as agency_name, a.logo_url as agency_logo
+      FROM training_courses c
+      JOIN training_agencies a ON c.agency_id = a.id
+      WHERE c.is_active = TRUE AND a.is_active = TRUE
+    `;
+    const params = [];
+    
+    if (level) {
+      params.push(level);
+      query += ` AND c.level = $${params.length}`;
+    }
+    if (category) {
+      params.push(category);
+      query += ` AND c.category = $${params.length}`;
+    }
+    
+    query += ' ORDER BY a.name, c.sort_order, c.name';
+    
+    const result = await pool.query(query, params);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Get all courses error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Get user certifications
+app.get('/api/certifications', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT uc.id, uc.certification_date, uc.certification_number, 
+              uc.instructor_name, uc.instructor_number, uc.dive_center, 
+              uc.location, uc.notes, uc.is_verified, uc.created_at,
+              tc.id as course_id, tc.name as course_name, tc.level as course_level, tc.category as course_category,
+              ta.id as agency_id, ta.name as agency_name, ta.logo_url as agency_logo,
+              (SELECT json_agg(json_build_object('id', ci.id, 'image_url', ci.image_url, 'image_side', ci.image_side))
+               FROM certification_images ci WHERE ci.certification_id = uc.id) as images
+       FROM user_certifications uc
+       LEFT JOIN training_courses tc ON uc.course_id = tc.id
+       LEFT JOIN training_agencies ta ON tc.agency_id = ta.id
+       WHERE uc.user_id = $1
+       ORDER BY uc.certification_date DESC NULLS LAST, uc.created_at DESC`,
+      [req.user.id]
+    );
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Get certifications error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Get single certification
+app.get('/api/certifications/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query(
+      `SELECT uc.id, uc.certification_date, uc.certification_number, 
+              uc.instructor_name, uc.instructor_number, uc.dive_center, 
+              uc.location, uc.notes, uc.is_verified, uc.created_at,
+              tc.id as course_id, tc.name as course_name, tc.level as course_level, tc.category as course_category,
+              ta.id as agency_id, ta.name as agency_name, ta.logo_url as agency_logo,
+              (SELECT json_agg(json_build_object('id', ci.id, 'image_url', ci.image_url, 'image_side', ci.image_side))
+               FROM certification_images ci WHERE ci.certification_id = uc.id) as images
+       FROM user_certifications uc
+       LEFT JOIN training_courses tc ON uc.course_id = tc.id
+       LEFT JOIN training_agencies ta ON tc.agency_id = ta.id
+       WHERE uc.id = $1 AND uc.user_id = $2`,
+      [id, req.user.id]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Certification not found' });
+    }
+    
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Get certification error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Create certification
+app.post('/api/certifications', authenticateToken, async (req, res) => {
+  try {
+    const { courseId, certificationDate, certificationNumber, instructorName, 
+            instructorNumber, diveCenter, location, notes } = req.body;
+    
+    const result = await pool.query(
+      `INSERT INTO user_certifications 
+       (user_id, course_id, certification_date, certification_number, 
+        instructor_name, instructor_number, dive_center, location, notes)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+       RETURNING *`,
+      [req.user.id, courseId || null, certificationDate || null, certificationNumber || null,
+       instructorName || null, instructorNumber || null, diveCenter || null, location || null, notes || null]
+    );
+    
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('Create certification error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Update certification
+app.put('/api/certifications/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { courseId, certificationDate, certificationNumber, instructorName, 
+            instructorNumber, diveCenter, location, notes } = req.body;
+    
+    const result = await pool.query(
+      `UPDATE user_certifications 
+       SET course_id = $1, certification_date = $2, certification_number = $3,
+           instructor_name = $4, instructor_number = $5, dive_center = $6,
+           location = $7, notes = $8
+       WHERE id = $9 AND user_id = $10
+       RETURNING *`,
+      [courseId || null, certificationDate || null, certificationNumber || null,
+       instructorName || null, instructorNumber || null, diveCenter || null,
+       location || null, notes || null, id, req.user.id]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Certification not found' });
+    }
+    
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Update certification error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Delete certification
+app.delete('/api/certifications/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query(
+      'DELETE FROM user_certifications WHERE id = $1 AND user_id = $2 RETURNING id',
+      [id, req.user.id]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Certification not found' });
+    }
+    
+    res.json({ message: 'Certification deleted successfully' });
+  } catch (error) {
+    console.error('Delete certification error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Add certification image
+app.post('/api/certifications/:id/images', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { imageUrl, imageSide, caption } = req.body;
+    
+    // Verify certification belongs to user
+    const certCheck = await pool.query(
+      'SELECT id FROM user_certifications WHERE id = $1 AND user_id = $2',
+      [id, req.user.id]
+    );
+    
+    if (certCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Certification not found' });
+    }
+    
+    const result = await pool.query(
+      `INSERT INTO certification_images (certification_id, image_url, image_side, caption)
+       VALUES ($1, $2, $3, $4)
+       RETURNING *`,
+      [id, imageUrl, imageSide || 'front', caption || null]
+    );
+    
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('Add certification image error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Delete certification image
+app.delete('/api/certifications/:certId/images/:imageId', authenticateToken, async (req, res) => {
+  try {
+    const { certId, imageId } = req.params;
+    
+    // Verify certification belongs to user
+    const certCheck = await pool.query(
+      'SELECT id FROM user_certifications WHERE id = $1 AND user_id = $2',
+      [certId, req.user.id]
+    );
+    
+    if (certCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Certification not found' });
+    }
+    
+    const result = await pool.query(
+      'DELETE FROM certification_images WHERE id = $1 AND certification_id = $2 RETURNING id',
+      [imageId, certId]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Image not found' });
+    }
+    
+    res.json({ message: 'Image deleted successfully' });
+  } catch (error) {
+    console.error('Delete certification image error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Get user wishlist
+app.get('/api/certification-wishlist', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT w.id, w.priority, w.target_date, w.notes, w.created_at,
+              tc.id as course_id, tc.name as course_name, tc.level as course_level, tc.category as course_category,
+              ta.id as agency_id, ta.name as agency_name, ta.logo_url as agency_logo
+       FROM user_course_wishlist w
+       JOIN training_courses tc ON w.course_id = tc.id
+       JOIN training_agencies ta ON tc.agency_id = ta.id
+       WHERE w.user_id = $1
+       ORDER BY w.priority DESC, w.target_date NULLS LAST, w.created_at`,
+      [req.user.id]
+    );
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Get wishlist error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Add to wishlist
+app.post('/api/certification-wishlist', authenticateToken, async (req, res) => {
+  try {
+    const { courseId, priority, targetDate, notes } = req.body;
+    
+    if (!courseId) {
+      return res.status(400).json({ error: 'Course ID is required' });
+    }
+    
+    const result = await pool.query(
+      `INSERT INTO user_course_wishlist (user_id, course_id, priority, target_date, notes)
+       VALUES ($1, $2, $3, $4, $5)
+       ON CONFLICT (user_id, course_id) DO UPDATE 
+       SET priority = EXCLUDED.priority, target_date = EXCLUDED.target_date, notes = EXCLUDED.notes
+       RETURNING *`,
+      [req.user.id, courseId, priority || 0, targetDate || null, notes || null]
+    );
+    
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('Add to wishlist error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Update wishlist item
+app.put('/api/certification-wishlist/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { priority, targetDate, notes } = req.body;
+    
+    const result = await pool.query(
+      `UPDATE user_course_wishlist 
+       SET priority = $1, target_date = $2, notes = $3
+       WHERE id = $4 AND user_id = $5
+       RETURNING *`,
+      [priority || 0, targetDate || null, notes || null, id, req.user.id]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Wishlist item not found' });
+    }
+    
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Update wishlist error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Remove from wishlist
+app.delete('/api/certification-wishlist/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query(
+      'DELETE FROM user_course_wishlist WHERE id = $1 AND user_id = $2 RETURNING id',
+      [id, req.user.id]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Wishlist item not found' });
+    }
+    
+    res.json({ message: 'Removed from wishlist' });
+  } catch (error) {
+    console.error('Remove from wishlist error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Promote wishlist item to certification
+app.post('/api/certification-wishlist/:id/complete', authenticateToken, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const { id } = req.params;
+    const { certificationDate, certificationNumber, instructorName, 
+            instructorNumber, diveCenter, location, notes } = req.body;
+    
+    await client.query('BEGIN');
+    
+    // Get the wishlist item
+    const wishlistResult = await client.query(
+      'SELECT course_id FROM user_course_wishlist WHERE id = $1 AND user_id = $2',
+      [id, req.user.id]
+    );
+    
+    if (wishlistResult.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Wishlist item not found' });
+    }
+    
+    const courseId = wishlistResult.rows[0].course_id;
+    
+    // Create the certification
+    const certResult = await client.query(
+      `INSERT INTO user_certifications 
+       (user_id, course_id, certification_date, certification_number, 
+        instructor_name, instructor_number, dive_center, location, notes)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+       RETURNING *`,
+      [req.user.id, courseId, certificationDate || null, certificationNumber || null,
+       instructorName || null, instructorNumber || null, diveCenter || null, location || null, notes || null]
+    );
+    
+    // Remove from wishlist
+    await client.query(
+      'DELETE FROM user_course_wishlist WHERE id = $1',
+      [id]
+    );
+    
+    await client.query('COMMIT');
+    res.status(201).json(certResult.rows[0]);
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Complete wishlist error:', error);
+    res.status(500).json({ error: 'Server error' });
+  } finally {
+    client.release();
   }
 });
 

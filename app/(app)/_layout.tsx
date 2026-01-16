@@ -40,8 +40,7 @@ function CustomDrawerContent(props: any) {
     { icon: 'activity', label: 'Dive Planning', action: () => handleNavigation('/dive-planning') },
     { icon: 'database', label: 'Gas', action: () => handleNavigation('/gas-calculator') },
     { icon: 'image', label: 'Photos', action: () => handleNavigation('/photos') },
-    { icon: 'map', label: 'Trips', action: () => showComingSoon('Trips') },
-    { icon: 'award', label: 'Training', action: () => showComingSoon('Training') },
+    { icon: 'award', label: 'Certifications', action: () => handleNavigation('/certifications') },
     { icon: 'settings', label: 'Settings', action: () => showComingSoon('Settings') },
   ];
 
