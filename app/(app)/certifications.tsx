@@ -678,16 +678,26 @@ export default function CertificationsScreen() {
               </View>
               
               <View style={styles.formGroup}>
-                <Text style={[styles.formLabel, { color: colors.text }]}>Location</Text>
+                <Text style={[styles.formLabel, { color: colors.text }]}>Location Name</Text>
+                <TextInput
+                  style={[styles.formInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
+                  value={formData.location}
+                  onChangeText={(v) => setFormData({ ...formData, location: v })}
+                  placeholder="e.g., Koh Tao, Thailand"
+                  placeholderTextColor={colors.textSecondary}
+                />
+              </View>
+              
+              <View style={styles.formGroup}>
+                <Text style={[styles.formLabel, { color: colors.text }]}>Map Location</Text>
                 <EmbeddedMapPicker
                   latitude={formData.latitude || 0}
                   longitude={formData.longitude || 0}
-                  onLocationChange={(lat, lng, address) => {
+                  onCoordinatesChange={(lat, lng) => {
                     setFormData({
                       ...formData,
                       latitude: lat,
                       longitude: lng,
-                      location: address || formData.location,
                     });
                   }}
                   colors={{
@@ -914,7 +924,7 @@ export default function CertificationsScreen() {
                     <EmbeddedMapPicker
                       latitude={selectedCertification.latitude}
                       longitude={selectedCertification.longitude}
-                      onLocationChange={() => {}}
+                      onCoordinatesChange={() => {}}
                       colors={{
                         background: colors.background,
                         surface: colors.surface,
