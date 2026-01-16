@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Dimensions, ImageBackground } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path, Circle, Defs, RadialGradient, Stop } from 'react-native-svg';
+
+const underwaterImage = require('../../../../assets/images/underwater-hero.png');
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'expo-router';
@@ -174,30 +176,46 @@ export default function HomeScreen() {
         contentContainerStyle={styles.contentContainer}
       >
         <View style={styles.heroSection}>
-          <LinearGradient
-            colors={isDark 
-              ? [colors.primary + '30', colors.primary + '10', 'transparent']
-              : [colors.primary + '20', colors.primary + '08', 'transparent']
-            }
-            style={styles.heroGradient}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-          />
-          <BubbleDecoration color={colors.primary} />
-          
-          <View style={styles.welcomeContent}>
-            <Text style={[styles.timeGreeting, { color: colors.primary }]}>
-              {getTimeGreeting()}
-            </Text>
-            <Text style={[styles.userName, { color: colors.text }]}>
-              {user?.firstName || user?.email?.split('@')[0] || 'Diver'}
-            </Text>
-            <Text style={[styles.welcomeMessage, { color: colors.textSecondary }]}>
-              Ready for your next underwater adventure?
-            </Text>
-          </View>
-          
-          <WavePattern color={colors.primary} opacity={isDark ? 0.2 : 0.15} />
+          <ImageBackground
+            source={underwaterImage}
+            style={styles.heroImageBackground}
+            imageStyle={styles.heroImage}
+            resizeMode="cover"
+          >
+            <LinearGradient
+              colors={isDark 
+                ? [colors.background + 'CC', colors.background + 'E6', colors.background]
+                : [colors.background + 'B3', colors.background + 'D9', colors.background]
+              }
+              style={styles.heroOverlay}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 0, y: 1 }}
+            />
+            <LinearGradient
+              colors={isDark 
+                ? [colors.primary + '40', colors.primary + '20', 'transparent']
+                : [colors.primary + '30', colors.primary + '15', 'transparent']
+              }
+              style={styles.heroColorTint}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            />
+            <BubbleDecoration color={colors.primary} />
+            
+            <View style={styles.welcomeContent}>
+              <Text style={[styles.timeGreeting, { color: colors.primary }]}>
+                {getTimeGreeting()}
+              </Text>
+              <Text style={[styles.userName, { color: colors.text }]}>
+                {user?.firstName || user?.email?.split('@')[0] || 'Diver'}
+              </Text>
+              <Text style={[styles.welcomeMessage, { color: colors.textSecondary }]}>
+                Ready for your next underwater adventure?
+              </Text>
+            </View>
+            
+            <WavePattern color={colors.primary} opacity={isDark ? 0.25 : 0.2} />
+          </ImageBackground>
         </View>
 
         <View style={styles.statsSection}>
@@ -300,9 +318,30 @@ const styles = StyleSheet.create({
   },
   heroSection: {
     position: 'relative',
+    overflow: 'hidden',
+  },
+  heroImageBackground: {
     paddingTop: 20,
     paddingBottom: 40,
-    overflow: 'hidden',
+  },
+  heroImage: {
+    opacity: 0.6,
+  },
+  heroOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 0,
+  },
+  heroColorTint: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 0,
   },
   heroGradient: {
     position: 'absolute',
