@@ -4566,7 +4566,7 @@ app.get('/api/certifications', authenticateToken, async (req, res) => {
     const result = await pool.query(
       `SELECT uc.id, uc.certification_date, uc.certification_number, 
               uc.instructor_name, uc.instructor_number, uc.dive_center, 
-              uc.location, uc.notes, uc.is_verified, uc.created_at,
+              uc.location, uc.latitude, uc.longitude, uc.notes, uc.is_verified, uc.created_at,
               tc.id as course_id, tc.name as course_name, tc.level as course_level, tc.category as course_category,
               ta.id as agency_id, ta.name as agency_name, ta.logo_url as agency_logo,
               (SELECT json_agg(json_build_object('id', ci.id, 'image_url', ci.image_url, 'image_side', ci.image_side))
@@ -4592,7 +4592,7 @@ app.get('/api/certifications/:id', authenticateToken, async (req, res) => {
     const result = await pool.query(
       `SELECT uc.id, uc.certification_date, uc.certification_number, 
               uc.instructor_name, uc.instructor_number, uc.dive_center, 
-              uc.location, uc.notes, uc.is_verified, uc.created_at,
+              uc.location, uc.latitude, uc.longitude, uc.notes, uc.is_verified, uc.created_at,
               tc.id as course_id, tc.name as course_name, tc.level as course_level, tc.category as course_category,
               ta.id as agency_id, ta.name as agency_name, ta.logo_url as agency_logo,
               (SELECT json_agg(json_build_object('id', ci.id, 'image_url', ci.image_url, 'image_side', ci.image_side))
@@ -4619,16 +4619,17 @@ app.get('/api/certifications/:id', authenticateToken, async (req, res) => {
 app.post('/api/certifications', authenticateToken, async (req, res) => {
   try {
     const { courseId, certificationDate, certificationNumber, instructorName, 
-            instructorNumber, diveCenter, location, notes } = req.body;
+            instructorNumber, diveCenter, location, latitude, longitude, notes } = req.body;
     
     const result = await pool.query(
       `INSERT INTO user_certifications 
        (user_id, course_id, certification_date, certification_number, 
-        instructor_name, instructor_number, dive_center, location, notes)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        instructor_name, instructor_number, dive_center, location, latitude, longitude, notes)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
        RETURNING *`,
       [req.user.id, courseId || null, certificationDate || null, certificationNumber || null,
-       instructorName || null, instructorNumber || null, diveCenter || null, location || null, notes || null]
+       instructorName || null, instructorNumber || null, diveCenter || null, location || null, 
+       latitude || null, longitude || null, notes || null]
     );
     
     res.status(201).json(result.rows[0]);
@@ -4643,18 +4644,18 @@ app.put('/api/certifications/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { courseId, certificationDate, certificationNumber, instructorName, 
-            instructorNumber, diveCenter, location, notes } = req.body;
+            instructorNumber, diveCenter, location, latitude, longitude, notes } = req.body;
     
     const result = await pool.query(
       `UPDATE user_certifications 
        SET course_id = $1, certification_date = $2, certification_number = $3,
            instructor_name = $4, instructor_number = $5, dive_center = $6,
-           location = $7, notes = $8
-       WHERE id = $9 AND user_id = $10
+           location = $7, latitude = $8, longitude = $9, notes = $10
+       WHERE id = $11 AND user_id = $12
        RETURNING *`,
       [courseId || null, certificationDate || null, certificationNumber || null,
        instructorName || null, instructorNumber || null, diveCenter || null,
-       location || null, notes || null, id, req.user.id]
+       location || null, latitude || null, longitude || null, notes || null, id, req.user.id]
     );
     
     if (result.rows.length === 0) {

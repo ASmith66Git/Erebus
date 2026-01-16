@@ -19,6 +19,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { getApiUrl } from '@/utils/apiConfig';
 import * as ImagePicker from 'expo-image-picker';
+import EmbeddedMapPicker from '@/components/EmbeddedMapPicker';
 
 interface TrainingAgency {
   id: number;
@@ -59,6 +60,8 @@ interface Certification {
   instructor_number: string | null;
   dive_center: string | null;
   location: string | null;
+  latitude: number | null;
+  longitude: number | null;
   notes: string | null;
   is_verified: boolean;
   images: CertificationImage[] | null;
@@ -107,6 +110,8 @@ export default function CertificationsScreen() {
     instructorNumber: '',
     diveCenter: '',
     location: '',
+    latitude: null as number | null,
+    longitude: null as number | null,
     notes: '',
   });
   const [editingCertification, setEditingCertification] = useState<Certification | null>(null);
@@ -117,14 +122,11 @@ export default function CertificationsScreen() {
 
   const fetchData = useCallback(async () => {
     if (!token) {
-      console.log('fetchData: No token available');
       setLoading(false);
       return;
     }
     
-    console.log('fetchData: Fetching data with token');
     const apiUrl = getApiUrl();
-    console.log('fetchData: API URL is', apiUrl);
     
     try {
       const [certsRes, wishRes, agenciesRes] = await Promise.all([
@@ -139,35 +141,22 @@ export default function CertificationsScreen() {
         }),
       ]);
       
-      console.log('fetchData: Responses received', {
-        certs: certsRes.status,
-        wish: wishRes.status,
-        agencies: agenciesRes.status
-      });
-      
       if (certsRes.ok) {
         const certsData = await certsRes.json();
         setCertifications(certsData);
-      } else {
-        console.error('fetchData: Certifications fetch failed', certsRes.status);
       }
       
       if (wishRes.ok) {
         const wishData = await wishRes.json();
         setWishlist(wishData);
-      } else {
-        console.error('fetchData: Wishlist fetch failed', wishRes.status);
       }
       
       if (agenciesRes.ok) {
         const agenciesData = await agenciesRes.json();
-        console.log('fetchData: Agencies loaded', agenciesData.length);
         setAgencies(agenciesData);
-      } else {
-        console.error('fetchData: Agencies fetch failed', agenciesRes.status);
       }
     } catch (error) {
-      console.error('fetchData: Error fetching certifications:', error);
+      console.error('Error fetching certifications:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -220,6 +209,8 @@ export default function CertificationsScreen() {
       instructorNumber: '',
       diveCenter: '',
       location: '',
+      latitude: null,
+      longitude: null,
       notes: '',
     });
     setSelectedAgency(null);
@@ -254,6 +245,8 @@ export default function CertificationsScreen() {
           instructorNumber: formData.instructorNumber || null,
           diveCenter: formData.diveCenter || null,
           location: formData.location || null,
+          latitude: formData.latitude || null,
+          longitude: formData.longitude || null,
           notes: formData.notes || null,
         }),
       });
@@ -686,12 +679,25 @@ export default function CertificationsScreen() {
               
               <View style={styles.formGroup}>
                 <Text style={[styles.formLabel, { color: colors.text }]}>Location</Text>
-                <TextInput
-                  style={[styles.formInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
-                  value={formData.location}
-                  onChangeText={(v) => setFormData({ ...formData, location: v })}
-                  placeholder="City, Country"
-                  placeholderTextColor={colors.textSecondary}
+                <EmbeddedMapPicker
+                  latitude={formData.latitude || 0}
+                  longitude={formData.longitude || 0}
+                  onLocationChange={(lat, lng, address) => {
+                    setFormData({
+                      ...formData,
+                      latitude: lat,
+                      longitude: lng,
+                      location: address || formData.location,
+                    });
+                  }}
+                  colors={{
+                    background: colors.background,
+                    surface: colors.surface,
+                    text: colors.text,
+                    textSecondary: colors.textSecondary,
+                    border: colors.border,
+                    primary: colors.primary,
+                  }}
                 />
               </View>
               
@@ -870,6 +876,25 @@ export default function CertificationsScreen() {
                     </View>
                   )}
                 </View>
+                
+                {selectedCertification.latitude && selectedCertification.longitude && (
+                  <View style={{ marginTop: 16, marginBottom: 8 }}>
+                    <Text style={[styles.sectionTitle, { color: colors.text }]}>Training Location</Text>
+                    <EmbeddedMapPicker
+                      latitude={selectedCertification.latitude}
+                      longitude={selectedCertification.longitude}
+                      onLocationChange={() => {}}
+                      colors={{
+                        background: colors.background,
+                        surface: colors.surface,
+                        text: colors.text,
+                        textSecondary: colors.textSecondary,
+                        border: colors.border,
+                        primary: colors.primary,
+                      }}
+                    />
+                  </View>
+                )}
                 
                 <Text style={[styles.sectionTitle, { color: colors.text }]}>Certification Card</Text>
                 <View style={styles.cardScanButtons}>
