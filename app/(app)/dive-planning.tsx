@@ -5,7 +5,6 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
 import Svg, { Path, Line, Text as SvgText, Rect, G, Circle } from 'react-native-svg';
 import {
   calculateDivePlan, calculateMultiDivePlan, createGasMix, initializeTissues,
@@ -48,7 +47,6 @@ const DECO_MODELS: { value: DecoModel; label: string; description: string }[] = 
 export default function DivePlanningScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
-  const router = useRouter();
 
   const colors = {
     background: isDark ? '#000000' : '#FFFFFF',
@@ -1496,9 +1494,7 @@ export default function DivePlanningScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Feather name="arrow-left" size={24} color={colors.text} />
-        </TouchableOpacity>
+        <View style={{ width: 40 }} />
         <Text style={[styles.headerTitle, { color: colors.text }]}>Dive Planning</Text>
         <View style={{ width: 40 }} />
       </View>

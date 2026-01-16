@@ -517,9 +517,7 @@ export default function CertificationsScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-        <Pressable style={styles.backButton} onPress={() => router.back()}>
-          <Feather name="arrow-left" size={24} color={colors.text} />
-        </Pressable>
+        <View style={{ width: 40 }} />
         <Text style={[styles.headerTitle, { color: colors.text }]}>Certifications</Text>
         <Pressable
           style={styles.addButton}

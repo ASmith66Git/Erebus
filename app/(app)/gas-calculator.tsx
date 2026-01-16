@@ -5,7 +5,6 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
 import {
   CYLINDER_CATALOG, Cylinder, getCylindersByMaterial, CylinderMaterial
 } from '../../services/cylinderCatalog';
@@ -19,7 +18,6 @@ type TabType = 'gases' | 'density' | 'fill' | 'topup' | 'trimix' | 'bestmix';
 export default function GasCalculatorScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
-  const router = useRouter();
 
   const colors = {
     background: isDark ? '#000000' : '#FFFFFF',
@@ -601,9 +599,7 @@ export default function GasCalculatorScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <View style={[styles.header, { backgroundColor: colors.background, borderBottomColor: colors.border }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Feather name="arrow-left" size={24} color={colors.text} />
-        </TouchableOpacity>
+        <View style={{ width: 40 }} />
         <Text style={[styles.headerTitle, { color: colors.text }]}>Gas Calculator</Text>
         <View style={{ width: 40 }} />
       </View>
