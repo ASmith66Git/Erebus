@@ -960,22 +960,208 @@ function NotesTab({ diveLog, colors }: { diveLog: DiveLog; colors: any }) {
   );
 }
 
-function TeamTab({ diveLog, colors }: { diveLog: DiveLog; colors: any }) {
+interface Buddy {
+  id: number;
+  name: string;
+  photo_url: string | null;
+  notes: string | null;
+  linked_user_id: number | null;
+}
+
+function TeamTab({ diveLog, colors, token, onRefresh }: { diveLog: DiveLog; colors: any; token: string | null; onRefresh: () => void }) {
+  const [linkedBuddies, setLinkedBuddies] = useState<Buddy[]>([]);
+  const [allBuddies, setAllBuddies] = useState<Buddy[]>([]);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  const fetchBuddies = useCallback(async () => {
+    if (!token) return;
+    setLoading(true);
+    try {
+      const [linkedRes, allRes] = await Promise.all([
+        fetch(`${getApiUrl()}/api/dive-logs/${diveLog.id}/buddies`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        fetch(`${getApiUrl()}/api/dive-buddies`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+      ]);
+      if (linkedRes.ok) {
+        setLinkedBuddies(await linkedRes.json());
+      }
+      if (allRes.ok) {
+        setAllBuddies(await allRes.json());
+      }
+    } catch (error) {
+      console.error('Fetch buddies error:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [token, diveLog.id]);
+
+  useEffect(() => {
+    fetchBuddies();
+  }, [fetchBuddies]);
+
+  const addBuddy = async (buddyId: number) => {
+    if (!token) return;
+    try {
+      const res = await fetch(`${getApiUrl()}/api/dive-logs/${diveLog.id}/buddies`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ buddy_id: buddyId }),
+      });
+      if (res.ok) {
+        fetchBuddies();
+        setShowAddModal(false);
+      }
+    } catch (error) {
+      console.error('Add buddy error:', error);
+    }
+  };
+
+  const removeBuddy = async (buddyId: number) => {
+    if (!token) return;
+    const doRemove = async () => {
+      try {
+        const res = await fetch(`${getApiUrl()}/api/dive-logs/${diveLog.id}/buddies/${buddyId}`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          fetchBuddies();
+        }
+      } catch (error) {
+        console.error('Remove buddy error:', error);
+      }
+    };
+
+    if (Platform.OS === 'web') {
+      if (window.confirm('Remove this buddy from the dive?')) {
+        doRemove();
+      }
+    } else {
+      Alert.alert('Remove Buddy', 'Remove this buddy from the dive?', [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Remove', style: 'destructive', onPress: doRemove },
+      ]);
+    }
+  };
+
+  const availableBuddies = allBuddies.filter(b => !linkedBuddies.some(lb => lb.id === b.id));
+
   return (
     <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
       <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <View style={styles.fieldRow}>
-          <Feather name="users" size={16} color={colors.textSecondary} />
-          <Text style={[styles.cardTitle, { color: colors.text }]}>Team / Buddy</Text>
+        <View style={[styles.fieldRow, { justifyContent: 'space-between' }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Feather name="users" size={16} color={colors.textSecondary} />
+            <Text style={[styles.cardTitle, { color: colors.text }]}>Dive Buddies</Text>
+          </View>
+          <Pressable
+            onPress={() => setShowAddModal(true)}
+            style={[styles.addBuddyBtn, { backgroundColor: colors.primary }]}
+          >
+            <Feather name="plus" size={16} color="#fff" />
+            <Text style={styles.addBuddyBtnText}>Add</Text>
+          </Pressable>
         </View>
-        <View style={[styles.textArea, { backgroundColor: colors.background, borderColor: colors.border, minHeight: 120 }]}>
-          <Text style={[styles.textAreaText, { color: diveLog.buddy ? colors.text : colors.textSecondary }]}>
-            {diveLog.buddy || 'Add buddy or team members...'}
-          </Text>
-        </View>
+
+        {loading ? (
+          <ActivityIndicator size="small" color={colors.primary} style={{ marginVertical: 20 }} />
+        ) : linkedBuddies.length === 0 ? (
+          <View style={[styles.emptyBuddies, { borderColor: colors.border }]}>
+            <Feather name="user-plus" size={32} color={colors.textSecondary} />
+            <Text style={[styles.emptyBuddiesText, { color: colors.textSecondary }]}>
+              No buddies linked to this dive
+            </Text>
+            <Text style={[styles.emptyBuddiesSubtext, { color: colors.textSecondary }]}>
+              Tap "Add" to link dive buddies
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.buddyList}>
+            {linkedBuddies.map(buddy => (
+              <View key={buddy.id} style={[styles.buddyCard, { backgroundColor: colors.background, borderColor: colors.border }]}>
+                <View style={[styles.buddyAvatar, { backgroundColor: colors.primary + '20' }]}>
+                  {buddy.photo_url ? (
+                    <View style={styles.buddyPhotoContainer}>
+                      <View style={[styles.buddyPhoto, { backgroundColor: colors.primary + '20' }]}>
+                        <Feather name="user" size={20} color={colors.primary} />
+                      </View>
+                    </View>
+                  ) : (
+                    <Feather name="user" size={20} color={colors.primary} />
+                  )}
+                </View>
+                <View style={styles.buddyInfo}>
+                  <Text style={[styles.buddyName, { color: colors.text }]}>{buddy.name}</Text>
+                  {buddy.linked_user_id && (
+                    <Text style={[styles.buddyConnected, { color: colors.primary }]}>Erebus User</Text>
+                  )}
+                </View>
+                <Pressable onPress={() => removeBuddy(buddy.id)} hitSlop={10}>
+                  <Feather name="x-circle" size={20} color={colors.error} />
+                </Pressable>
+              </View>
+            ))}
+          </View>
+        )}
       </View>
 
+      {diveLog.buddy && (
+        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <View style={styles.fieldRow}>
+            <Feather name="edit-3" size={16} color={colors.textSecondary} />
+            <Text style={[styles.cardTitle, { color: colors.text }]}>Notes (from import)</Text>
+          </View>
+          <View style={[styles.textArea, { backgroundColor: colors.background, borderColor: colors.border }]}>
+            <Text style={[styles.textAreaText, { color: colors.text }]}>{diveLog.buddy}</Text>
+          </View>
+        </View>
+      )}
+
       <View style={{ height: 40 }} />
+
+      {showAddModal && (
+        <View style={styles.buddyModalOverlay}>
+          <View style={[styles.buddyModalContent, { backgroundColor: colors.surface }]}>
+            <View style={[styles.buddyModalHeader, { borderBottomColor: colors.border }]}>
+              <Text style={[styles.buddyModalTitle, { color: colors.text }]}>Add Buddy to Dive</Text>
+              <Pressable onPress={() => setShowAddModal(false)}>
+                <Feather name="x" size={24} color={colors.text} />
+              </Pressable>
+            </View>
+            <ScrollView style={styles.buddyModalList}>
+              {availableBuddies.length === 0 ? (
+                <View style={styles.noBuddiesAvailable}>
+                  <Feather name="users" size={32} color={colors.textSecondary} />
+                  <Text style={[styles.noBuddiesText, { color: colors.textSecondary }]}>
+                    {allBuddies.length === 0 ? 'No buddies in your list yet' : 'All buddies already added'}
+                  </Text>
+                </View>
+              ) : (
+                availableBuddies.map(buddy => (
+                  <Pressable
+                    key={buddy.id}
+                    style={[styles.buddySelectItem, { borderBottomColor: colors.border }]}
+                    onPress={() => addBuddy(buddy.id)}
+                  >
+                    <View style={[styles.buddyAvatar, { backgroundColor: colors.primary + '20' }]}>
+                      <Feather name="user" size={18} color={colors.primary} />
+                    </View>
+                    <Text style={[styles.buddySelectName, { color: colors.text }]}>{buddy.name}</Text>
+                    <Feather name="plus-circle" size={22} color={colors.primary} />
+                  </Pressable>
+                ))
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      )}
     </ScrollView>
   );
 }
@@ -1111,7 +1297,7 @@ export default function DiveLogDetailScreen() {
       case 'Notes':
         return <NotesTab diveLog={diveLog} colors={colors} />;
       case 'Team':
-        return <TeamTab diveLog={diveLog} colors={colors} />;
+        return <TeamTab diveLog={diveLog} colors={colors} token={token} onRefresh={fetchDiveLog} />;
       default:
         return null;
     }
@@ -1478,5 +1664,127 @@ const styles = StyleSheet.create({
   retryButtonText: {
     color: 'white',
     fontWeight: '600',
+  },
+  addBuddyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  addBuddyBtnText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  emptyBuddies: {
+    alignItems: 'center',
+    paddingVertical: 32,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+  },
+  emptyBuddiesText: {
+    fontSize: 15,
+    marginTop: 12,
+  },
+  emptyBuddiesSubtext: {
+    fontSize: 13,
+    marginTop: 4,
+  },
+  buddyList: {
+    gap: 8,
+  },
+  buddyCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    gap: 12,
+  },
+  buddyAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  buddyPhotoContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
+  buddyPhoto: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  buddyInfo: {
+    flex: 1,
+  },
+  buddyName: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  buddyConnected: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  buddyModalOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 100,
+  },
+  buddyModalContent: {
+    width: '90%',
+    maxWidth: 400,
+    maxHeight: '70%',
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  buddyModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+  },
+  buddyModalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  buddyModalList: {
+    padding: 8,
+  },
+  noBuddiesAvailable: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  noBuddiesText: {
+    fontSize: 15,
+    marginTop: 12,
+    textAlign: 'center',
+  },
+  buddySelectItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    gap: 12,
+    borderBottomWidth: 1,
+  },
+  buddySelectName: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '500',
   },
 });
