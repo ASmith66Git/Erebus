@@ -15,6 +15,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { errorLogger, LogEntry, LogLevel } from '@/services/errorLogger';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
+import PageHeader from '@/components/PageHeader';
 
 const LOG_COLORS: Record<LogLevel, string> = {
   debug: '#888888',
@@ -148,23 +149,22 @@ export default function DebugLogScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={[styles.header, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
-        <Pressable style={styles.menuButton} onPress={() => navigation.dispatch(DrawerActions.openDrawer())}>
-          <Ionicons name="menu" size={24} color={colors.text} />
-        </Pressable>
-        <Text style={[styles.title, { color: colors.text }]}>Debug Logs</Text>
-        <View style={styles.headerActions}>
-          <Pressable onPress={handleDownloadToFile} style={styles.actionButton}>
-            <Ionicons name="download-outline" size={22} color={colors.primary} />
-          </Pressable>
-          <Pressable onPress={handleShare} style={styles.actionButton}>
-            <Ionicons name="share-outline" size={22} color={colors.primary} />
-          </Pressable>
-          <Pressable onPress={handleClear} style={styles.actionButton}>
-            <Ionicons name="trash-outline" size={22} color={colors.error} />
-          </Pressable>
-        </View>
-      </View>
+      <PageHeader 
+        title="Debug Logs" 
+        rightAction={
+          <View style={styles.headerActions}>
+            <Pressable onPress={handleDownloadToFile} style={styles.actionButton}>
+              <Ionicons name="download-outline" size={22} color={colors.primary} />
+            </Pressable>
+            <Pressable onPress={handleShare} style={styles.actionButton}>
+              <Ionicons name="share-outline" size={22} color={colors.primary} />
+            </Pressable>
+            <Pressable onPress={handleClear} style={styles.actionButton}>
+              <Ionicons name="trash-outline" size={22} color={colors.error} />
+            </Pressable>
+          </View>
+        }
+      />
 
       <View style={styles.filterRow}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterContent}>

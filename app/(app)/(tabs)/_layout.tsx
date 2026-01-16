@@ -16,14 +16,14 @@ function CustomHeader() {
   return (
     <SafeAreaView style={[styles.header, { backgroundColor: colors.headerBackground, borderBottomColor: colors.border }]}>
       <Pressable onPress={openDrawer} style={styles.menuButton}>
-        <Ionicons name="menu" size={28} color={colors.text} />
+        <Ionicons name="menu-outline" size={24} color={colors.text} />
       </Pressable>
       <View style={styles.headerCenter}>
-        <Ionicons name="water" size={24} color={colors.primary} />
+        <Ionicons name="water" size={20} color={colors.primary} />
         <Text style={[styles.headerTitle, { color: colors.text }]}>Erebus</Text>
       </View>
       <Pressable onPress={toggleTheme} style={styles.themeButton}>
-        <Ionicons name={isDark ? 'sunny' : 'moon'} size={24} color={colors.text} />
+        <Ionicons name={isDark ? 'sunny-outline' : 'moon-outline'} size={22} color={colors.text} />
       </Pressable>
     </SafeAreaView>
   );

@@ -21,6 +21,7 @@ import { useNavigation, DrawerActions } from '@react-navigation/native';
 import { getApiUrl } from '@/utils/apiConfig';
 import EmbeddedMapPicker from '@/components/EmbeddedMapPicker';
 import DatePickerField from '@/components/DatePickerField';
+import PageHeader from '@/components/PageHeader';
 
 interface LinkedDiveLog {
   id: number;
@@ -326,19 +327,7 @@ export default function DiveTripsScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-        <Pressable style={styles.menuButton} onPress={() => navigation.dispatch(DrawerActions.openDrawer())}>
-          <Feather name="menu" size={24} color={colors.text} />
-        </Pressable>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Dive Trips</Text>
-        <Pressable 
-          style={styles.menuButton} 
-          onPress={() => { setRefreshing(true); fetchTrips(); }}
-          disabled={refreshing}
-        >
-          <Feather name="refresh-cw" size={20} color={refreshing ? colors.textSecondary : colors.text} />
-        </Pressable>
-      </View>
+      <PageHeader title="Dive Trips" />
 
       <FlatList
         data={trips}

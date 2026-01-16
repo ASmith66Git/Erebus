@@ -13,6 +13,7 @@ import {
   CircuitType, DecoModel, WaterType, UnitSystem, calculateCNS, calculateOTU, GasConsumption
 } from '../../services/divePlanner';
 import { CYLINDER_PRESETS_LEGACY as CYLINDER_PRESETS } from '../../services/cylinderCatalog';
+import PageHeader from '@/components/PageHeader';
 
 const CHART_HEIGHT = 280;
 const TISSUE_CHART_HEIGHT = 180;
@@ -1494,14 +1495,8 @@ export default function DivePlanningScreen() {
   );
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <TouchableOpacity style={styles.menuButton} onPress={() => navigation.dispatch(DrawerActions.openDrawer())}>
-          <Feather name="menu" size={24} color={colors.text} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Dive Planning</Text>
-        <View style={{ width: 40 }} />
-      </View>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <PageHeader title="Dive Planning" />
 
       {renderTabBar()}
 
@@ -1513,7 +1508,7 @@ export default function DivePlanningScreen() {
       </ScrollView>
 
       {renderScrubberModal()}
-    </SafeAreaView>
+    </View>
   );
 }
 

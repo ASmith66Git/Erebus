@@ -16,6 +16,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { getApiUrl } from '@/utils/apiConfig';
 import { DrawerActions, useNavigation } from '@react-navigation/native';
+import PageHeader from '@/components/PageHeader';
 
 interface GearProfile {
   id: number;
@@ -179,21 +180,17 @@ export default function GearProfilesScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={[styles.header, { paddingTop: insets.top + 8, backgroundColor: colors.headerBackground, borderBottomColor: colors.border }]}>
-        <Pressable
-          style={styles.menuButton}
-          onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
-        >
-          <Feather name="menu" size={24} color={colors.text} />
-        </Pressable>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Gear Profiles</Text>
-        <Pressable
-          style={[styles.addButton, { backgroundColor: colors.primary }]}
-          onPress={() => router.push('/gear-profile/new' as any)}
-        >
-          <Feather name="plus" size={20} color="#FFFFFF" />
-        </Pressable>
-      </View>
+      <PageHeader 
+        title="Gear Profiles" 
+        rightAction={
+          <Pressable
+            style={[styles.addButton, { backgroundColor: colors.primary }]}
+            onPress={() => router.push('/gear-profile/new' as any)}
+          >
+            <Feather name="plus" size={18} color="#FFFFFF" />
+          </Pressable>
+        }
+      />
 
       {loading ? (
         <View style={styles.loadingContainer}>

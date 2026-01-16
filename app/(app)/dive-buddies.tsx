@@ -20,6 +20,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useFocusEffect, useNavigation, DrawerActions } from '@react-navigation/native';
 import { getApiUrl } from '@/utils/apiConfig';
 import * as ImagePicker from 'expo-image-picker';
+import PageHeader from '@/components/PageHeader';
 
 interface Buddy {
   id: number;
@@ -354,19 +355,7 @@ export default function DiveBuddiesScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-        <Pressable style={styles.menuButton} onPress={() => navigation.dispatch(DrawerActions.openDrawer())}>
-          <Feather name="menu" size={24} color={colors.text} />
-        </Pressable>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Dive Buddies</Text>
-        <Pressable 
-          style={styles.menuButton} 
-          onPress={() => { setRefreshing(true); fetchBuddies(); }}
-          disabled={refreshing}
-        >
-          <Feather name="refresh-cw" size={20} color={refreshing ? colors.textSecondary : colors.text} />
-        </Pressable>
-      </View>
+      <PageHeader title="Dive Buddies" />
 
       <FlatList
         data={buddies}

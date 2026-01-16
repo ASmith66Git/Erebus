@@ -20,6 +20,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'expo-router';
 import { authFetch } from '@/utils/authFetch';
+import PageHeader from '@/components/PageHeader';
 
 interface DevLogEntry {
   id: number;
@@ -345,11 +346,7 @@ Please help me with this development task.`;
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <View style={{ width: 40 }} />
-        <Text style={[styles.title, { color: colors.text }]}>Dev Log</Text>
-        <View style={{ width: 40 }} />
-      </View>
+      <PageHeader title="Dev Log" />
 
       <View style={styles.searchContainer}>
         <View style={[styles.searchInputContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>

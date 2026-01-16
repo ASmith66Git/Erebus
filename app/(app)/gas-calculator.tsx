@@ -13,6 +13,7 @@ import {
   calculateGasDensity, calculateFillCapacity, calculateTopUp,
   calculateTrimixBlend, calculateBestMix, calculateMOD, calculateEND, getMixName
 } from '../../services/gasMath';
+import PageHeader from '@/components/PageHeader';
 
 type TabType = 'gases' | 'density' | 'fill' | 'topup' | 'trimix' | 'bestmix';
 
@@ -599,14 +600,8 @@ export default function GasCalculatorScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      <View style={[styles.header, { backgroundColor: colors.background, borderBottomColor: colors.border }]}>
-        <TouchableOpacity style={styles.menuButton} onPress={() => navigation.dispatch(DrawerActions.openDrawer())}>
-          <Feather name="menu" size={24} color={colors.text} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Gas Calculator</Text>
-        <View style={{ width: 40 }} />
-      </View>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <PageHeader title="Gas Calculator" />
 
       {renderTabBar()}
       {renderContent()}
@@ -657,7 +652,7 @@ export default function GasCalculatorScreen() {
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
 

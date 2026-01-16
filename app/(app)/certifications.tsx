@@ -22,6 +22,7 @@ import { getApiUrl } from '@/utils/apiConfig';
 import * as ImagePicker from 'expo-image-picker';
 import EmbeddedMapPicker from '@/components/EmbeddedMapPicker';
 import DatePickerField from '@/components/DatePickerField';
+import PageHeader from '@/components/PageHeader';
 
 interface TrainingAgency {
   id: number;
@@ -518,21 +519,20 @@ export default function CertificationsScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-        <Pressable style={styles.menuButton} onPress={() => navigation.dispatch(DrawerActions.openDrawer())}>
-          <Feather name="menu" size={24} color={colors.text} />
-        </Pressable>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Certifications</Text>
-        <Pressable
-          style={styles.addButton}
-          onPress={() => {
-            resetForm();
-            setShowAddModal(true);
-          }}
-        >
-          <Feather name="plus" size={24} color={colors.primary} />
-        </Pressable>
-      </View>
+      <PageHeader 
+        title="Certifications" 
+        rightAction={
+          <Pressable
+            style={styles.addButton}
+            onPress={() => {
+              resetForm();
+              setShowAddModal(true);
+            }}
+          >
+            <Feather name="plus" size={22} color={colors.primary} />
+          </Pressable>
+        }
+      />
 
       <View style={[styles.tabBar, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <Pressable
