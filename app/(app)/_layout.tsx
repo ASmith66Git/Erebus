@@ -32,22 +32,22 @@ function CustomDrawerContent(props: any) {
   };
 
   const menuItems = [
-    { icon: 'home', label: 'Home', action: () => handleNavigation('/') },
-    { icon: 'book', label: 'Dive Logs', action: () => handleNavigation('/dive-logs') },
-    { icon: 'map-pin', label: 'Dive Sites', action: () => handleNavigation('/dive-sites') },
-    { icon: 'tool', label: 'Gear Profiles', action: () => handleNavigation('/gear-profiles') },
-    { icon: 'users', label: 'Dive Buddies', action: () => handleNavigation('/dive-buddies') },
-    { icon: 'activity', label: 'Dive Planning', action: () => handleNavigation('/dive-planning') },
-    { icon: 'database', label: 'Gas', action: () => handleNavigation('/gas-calculator') },
-    { icon: 'image', label: 'Photos', action: () => handleNavigation('/photos') },
-    { icon: 'award', label: 'Certifications', action: () => handleNavigation('/certifications') },
-    { icon: 'navigation', label: 'Dive Trips', action: () => handleNavigation('/dive-trips') },
+    { icon: 'home', label: 'Home', action: () => handleNavigation('/(app)/(tabs)') },
+    { icon: 'book', label: 'Dive Logs', action: () => handleNavigation('/(app)/(tabs)/dive-logs') },
+    { icon: 'map-pin', label: 'Dive Sites', action: () => handleNavigation('/(app)/(tabs)/dive-sites') },
+    { icon: 'tool', label: 'Gear Profiles', action: () => handleNavigation('/(app)/gear-profiles') },
+    { icon: 'users', label: 'Dive Buddies', action: () => handleNavigation('/(app)/dive-buddies') },
+    { icon: 'activity', label: 'Dive Planning', action: () => handleNavigation('/(app)/dive-planning') },
+    { icon: 'database', label: 'Gas', action: () => handleNavigation('/(app)/gas-calculator') },
+    { icon: 'image', label: 'Photos', action: () => handleNavigation('/(app)/(tabs)/photos') },
+    { icon: 'award', label: 'Certifications', action: () => handleNavigation('/(app)/certifications') },
+    { icon: 'navigation', label: 'Dive Trips', action: () => handleNavigation('/(app)/dive-trips') },
     { icon: 'settings', label: 'Settings', action: () => showComingSoon('Settings') },
   ];
 
   const adminItems = [
-    { icon: 'users', label: 'User Management', action: () => handleNavigation('/admin') },
-    { icon: 'code', label: 'Dev Log', action: () => handleNavigation('/(tabs)/dev-log') },
+    { icon: 'users', label: 'User Management', action: () => handleNavigation('/(app)/(tabs)/admin') },
+    { icon: 'code', label: 'Dev Log', action: () => handleNavigation('/(app)/(tabs)/dev-log') },
     { icon: 'sliders', label: 'Other Settings', action: () => showComingSoon('Other Settings') },
   ];
 
