@@ -93,6 +93,16 @@ The application is built using Expo React Native, targeting both iOS and Android
     - Dive Monitor Controls: ppO2 above/below thresholds, OTU/CNS thresholds, IBCD N2/He thresholds, CCR diluent check - all with enable toggles and sliders
   - Database tables: dive_plans, dive_plan_dives, dive_plan_gases
   - Algorithm validated against published Buhlmann standards (Baker's GF method)
+- **Certifications Tracker**: Complete diving certification management with:
+  - Pre-seeded database of 11 major training agencies (PADI, SSI, NAUI, BSAC, TDI, SDI, GUE, IANTD, RAID, CMAS, ANDI)
+  - 100+ courses across recreational, technical, professional, cave, wreck, and rebreather categories
+  - Two-tab interface: Completed certifications and Course Wishlist
+  - Add/edit certifications with agency/course picker, date, certification number, instructor details, dive center, location
+  - Card scanning: capture front/back of certification cards using device camera
+  - Images stored in Replit Object Storage via presigned URLs
+  - Course wishlist for future training goals with priority and target date
+  - Promote wishlist items to completed certifications when course is finished
+  - Database tables: training_agencies, training_courses, user_certifications, certification_images, user_course_wishlist
 
 ## External Dependencies
 - **PostgreSQL**: Primary database.
