@@ -147,32 +147,45 @@ export default function DiveBuddiesScreen() {
   };
 
   const handleDelete = async (id: number) => {
-    Alert.alert(
-      'Delete Buddy',
-      'Are you sure you want to remove this buddy?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const res = await fetch(`${getApiUrl()}/api/dive-buddies/${id}`, {
-                method: 'DELETE',
-                headers: { Authorization: `Bearer ${token}` },
-              });
-              if (res.ok) {
-                setShowDetailModal(false);
-                setSelectedBuddy(null);
-                fetchBuddies();
-              }
-            } catch (error) {
-              console.error('Delete buddy error:', error);
-            }
+    if (Platform.OS === 'web') {
+      const confirmed = window.confirm('Are you sure you want to remove this buddy?');
+      if (confirmed) {
+        await performDelete(id);
+      }
+    } else {
+      Alert.alert(
+        'Delete Buddy',
+        'Are you sure you want to remove this buddy?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Delete',
+            style: 'destructive',
+            onPress: () => performDelete(id),
           },
-        },
-      ]
-    );
+        ]
+      );
+    }
+  };
+
+  const performDelete = async (id: number) => {
+    try {
+      const res = await fetch(`${getApiUrl()}/api/dive-buddies/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        setShowDetailModal(false);
+        setSelectedBuddy(null);
+        fetchBuddies();
+      } else {
+        const err = await res.json();
+        Alert.alert('Error', err.error || 'Failed to delete buddy');
+      }
+    } catch (error) {
+      console.error('Delete buddy error:', error);
+      Alert.alert('Error', 'Failed to delete buddy');
+    }
   };
 
   const pickImage = async () => {
