@@ -92,7 +92,17 @@ export default function EmbeddedMapPicker({
 
       try {
         let google = (window as any).google;
-        const { setOptions, importLibrary } = await import('@googlemaps/js-api-loader');
+        
+        let loader;
+        try {
+          loader = await import('@googlemaps/js-api-loader');
+        } catch (importError) {
+          console.error('Failed to load Google Maps loader:', importError);
+          setMapError('Map unavailable on this browser');
+          return;
+        }
+        
+        const { setOptions, importLibrary } = loader;
         
         setOptions({
           key: apiKey,
