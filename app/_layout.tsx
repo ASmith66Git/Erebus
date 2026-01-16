@@ -9,6 +9,7 @@ import 'react-native-reanimated';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
 import { SyncProvider } from '@/contexts/SyncContext';
+import { SettingsProvider } from '@/contexts/SettingsContext';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { errorLogger } from '@/services/errorLogger';
 
@@ -68,11 +69,13 @@ export default function RootLayout() {
   return (
     <ErrorBoundary>
       <ThemeProvider>
-        <AuthProvider>
-          <SyncProvider>
-            <RootLayoutNav />
-          </SyncProvider>
-        </AuthProvider>
+        <SettingsProvider>
+          <AuthProvider>
+            <SyncProvider>
+              <RootLayoutNav />
+            </SyncProvider>
+          </AuthProvider>
+        </SettingsProvider>
       </ThemeProvider>
     </ErrorBoundary>
   );

@@ -116,6 +116,13 @@ The application is built using Expo React Native, targeting both iOS and Android
   - Detail modal with edit and delete functionality
   - Soft-delete for data protection
   - Database tables: dive_trips, dive_trip_logs (for linking dives to trips)
+- **App Settings**: User preference management with:
+  - Unit system toggle: Metric (meters, °C) or Imperial (feet, °F)
+  - Date format selection: Day/Month/Year, Month/Day/Year, or Year-Month-Day
+  - Language selection from dropdown: English, Spanish, French, German, Italian, Portuguese, Dutch, Japanese, Chinese
+  - Settings persisted via AsyncStorage
+  - SettingsContext provides formatDepth, formatTemperature, and formatDate helper functions
+  - Accessible from drawer menu
 - **Dive Buddies**: Social dive buddy management with:
   - Add buddies with name, photo, and notes
   - Photo upload via camera or gallery with Replit Object Storage

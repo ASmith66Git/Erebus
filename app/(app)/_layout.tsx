@@ -42,7 +42,7 @@ function CustomDrawerContent(props: any) {
     { icon: 'images-outline', label: 'Photos', action: () => handleNavigation('/(app)/(tabs)/photos') },
     { icon: 'ribbon-outline', label: 'Certifications', action: () => handleNavigation('/(app)/certifications') },
     { icon: 'airplane-outline', label: 'Dive Trips', action: () => handleNavigation('/(app)/dive-trips') },
-    { icon: 'settings-outline', label: 'Settings', action: () => showComingSoon('Settings') },
+    { icon: 'settings-outline', label: 'Settings', action: () => handleNavigation('/(app)/settings') },
   ];
 
   const adminItems = [
