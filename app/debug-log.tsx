@@ -10,6 +10,7 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { DrawerActions, useNavigation } from '@react-navigation/native';
 import { useTheme } from '@/contexts/ThemeContext';
 import { errorLogger, LogEntry, LogLevel } from '@/services/errorLogger';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -24,6 +25,7 @@ const LOG_COLORS: Record<LogLevel, string> = {
 
 export default function DebugLogScreen() {
   const { colors } = useTheme();
+  const navigation = useNavigation();
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [filter, setFilter] = useState<LogLevel | 'all'>('all');
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
@@ -147,7 +149,9 @@ export default function DebugLogScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.header, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
-        <View style={{ width: 40 }} />
+        <Pressable style={styles.menuButton} onPress={() => navigation.dispatch(DrawerActions.openDrawer())}>
+          <Ionicons name="menu" size={24} color={colors.text} />
+        </Pressable>
         <Text style={[styles.title, { color: colors.text }]}>Debug Logs</Text>
         <View style={styles.headerActions}>
           <Pressable onPress={handleDownloadToFile} style={styles.actionButton}>
@@ -283,7 +287,7 @@ const styles = StyleSheet.create({
     paddingTop: 50,
     borderBottomWidth: 1,
   },
-  backButton: {
+  menuButton: {
     padding: 8,
     marginRight: 8,
   },

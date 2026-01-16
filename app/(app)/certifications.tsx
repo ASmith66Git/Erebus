@@ -14,6 +14,7 @@ import {
   Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { DrawerActions, useNavigation } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -90,6 +91,7 @@ export default function CertificationsScreen() {
   const { colors } = useTheme();
   const { token, isLoading: authLoading } = useAuth();
   const router = useRouter();
+  const navigation = useNavigation();
   
   const [activeTab, setActiveTab] = useState<TabType>('completed');
   const [certifications, setCertifications] = useState<Certification[]>([]);
@@ -517,7 +519,9 @@ export default function CertificationsScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-        <View style={{ width: 40 }} />
+        <Pressable style={styles.menuButton} onPress={() => navigation.dispatch(DrawerActions.openDrawer())}>
+          <Feather name="menu" size={24} color={colors.text} />
+        </Pressable>
         <Text style={[styles.headerTitle, { color: colors.text }]}>Certifications</Text>
         <Pressable
           style={styles.addButton}
@@ -1015,7 +1019,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: 1,
   },
-  backButton: { padding: 8 },
+  menuButton: { padding: 8 },
   headerTitle: { fontSize: 18, fontWeight: '600' },
   addButton: { padding: 8 },
   tabBar: {

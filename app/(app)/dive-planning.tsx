@@ -4,6 +4,7 @@ import {
   useColorScheme, Dimensions, Platform, Modal, Switch
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { DrawerActions, useNavigation } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
 import Svg, { Path, Line, Text as SvgText, Rect, G, Circle } from 'react-native-svg';
 import {
@@ -47,6 +48,7 @@ const DECO_MODELS: { value: DecoModel; label: string; description: string }[] = 
 export default function DivePlanningScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
+  const navigation = useNavigation();
 
   const colors = {
     background: isDark ? '#000000' : '#FFFFFF',
@@ -1494,7 +1496,9 @@ export default function DivePlanningScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <View style={{ width: 40 }} />
+        <TouchableOpacity style={styles.menuButton} onPress={() => navigation.dispatch(DrawerActions.openDrawer())}>
+          <Feather name="menu" size={24} color={colors.text} />
+        </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.text }]}>Dive Planning</Text>
         <View style={{ width: 40 }} />
       </View>
@@ -1523,7 +1527,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: 1,
   },
-  backButton: { padding: 8 },
+  menuButton: { padding: 8 },
   headerTitle: { fontSize: 18, fontWeight: '600' },
   tabBar: {
     flexDirection: 'row',
