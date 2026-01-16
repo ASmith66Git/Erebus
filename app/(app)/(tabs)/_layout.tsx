@@ -46,8 +46,10 @@ export default function TabLayout() {
             paddingBottom: 6,
             paddingTop: 6,
             height: 60,
+            justifyContent: 'space-around',
           },
           tabBarItemStyle: {
+            flex: 1,
             paddingVertical: 4,
           },
           tabBarLabelStyle: {
