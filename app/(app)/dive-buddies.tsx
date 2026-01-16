@@ -4,6 +4,7 @@ import {
   Text,
   StyleSheet,
   ScrollView,
+  FlatList,
   Pressable,
   ActivityIndicator,
   Modal,
@@ -11,6 +12,7 @@ import {
   Image,
   Alert,
   Platform,
+  RefreshControl,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -43,6 +45,7 @@ export default function DiveBuddiesScreen() {
 
   const [buddies, setBuddies] = useState<Buddy[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showSearchModal, setShowSearchModal] = useState(false);
@@ -76,6 +79,7 @@ export default function DiveBuddiesScreen() {
       console.error('Fetch buddies error:', error);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }, [token]);
 
@@ -355,11 +359,27 @@ export default function DiveBuddiesScreen() {
           <Feather name="menu" size={24} color={colors.text} />
         </Pressable>
         <Text style={[styles.headerTitle, { color: colors.text }]}>Dive Buddies</Text>
-        <View style={{ width: 40 }} />
+        <Pressable 
+          style={styles.menuButton} 
+          onPress={() => { setRefreshing(true); fetchBuddies(); }}
+          disabled={refreshing}
+        >
+          <Feather name="refresh-cw" size={20} color={refreshing ? colors.textSecondary : colors.text} />
+        </Pressable>
       </View>
 
-      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
-        {buddies.length === 0 ? (
+      <FlatList
+        data={buddies}
+        keyExtractor={(item) => item.id.toString()}
+        renderItem={({ item }) => renderBuddyCard(item)}
+        style={styles.content}
+        contentContainerStyle={[styles.contentContainer, buddies.length === 0 && styles.emptyContainer]}
+        refreshControl={
+          Platform.OS !== 'web' ? (
+            <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchBuddies(); }} />
+          ) : undefined
+        }
+        ListEmptyComponent={
           <View style={styles.emptyState}>
             <Feather name="users" size={64} color={colors.textSecondary} />
             <Text style={[styles.emptyStateTitle, { color: colors.text }]}>No Dive Buddies Yet</Text>
@@ -374,10 +394,8 @@ export default function DiveBuddiesScreen() {
               <Text style={styles.emptyStateBtnText}>Add Buddy</Text>
             </Pressable>
           </View>
-        ) : (
-          buddies.map(renderBuddyCard)
-        )}
-      </ScrollView>
+        }
+      />
 
       {buddies.length > 0 && (
         <Pressable
@@ -636,6 +654,7 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 18, fontWeight: '600' },
   content: { flex: 1 },
   contentContainer: { padding: 16 },
+  emptyContainer: { flexGrow: 1, justifyContent: 'center' },
   emptyState: { alignItems: 'center', paddingVertical: 48 },
   emptyStateTitle: { fontSize: 20, fontWeight: '600', marginTop: 16 },
   emptyStateText: { fontSize: 14, textAlign: 'center', marginTop: 8, paddingHorizontal: 32 },

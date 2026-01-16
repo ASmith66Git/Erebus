@@ -4,12 +4,14 @@ import {
   Text,
   StyleSheet,
   ScrollView,
+  FlatList,
   Pressable,
   Modal,
   TextInput,
   ActivityIndicator,
   RefreshControl,
   Alert,
+  Platform,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -329,17 +331,27 @@ export default function DiveTripsScreen() {
           <Feather name="menu" size={24} color={colors.text} />
         </Pressable>
         <Text style={[styles.headerTitle, { color: colors.text }]}>Dive Trips</Text>
-        <View style={{ width: 40 }} />
+        <Pressable 
+          style={styles.menuButton} 
+          onPress={() => { setRefreshing(true); fetchTrips(); }}
+          disabled={refreshing}
+        >
+          <Feather name="refresh-cw" size={20} color={refreshing ? colors.textSecondary : colors.text} />
+        </Pressable>
       </View>
 
-      <ScrollView
+      <FlatList
+        data={trips}
+        keyExtractor={(item) => item.id.toString()}
+        renderItem={({ item }) => renderTripCard(item)}
         style={styles.content}
-        contentContainerStyle={styles.contentContainer}
+        contentContainerStyle={[styles.contentContainer, trips.length === 0 && styles.emptyContainer]}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchTrips(); }} />
+          Platform.OS !== 'web' ? (
+            <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchTrips(); }} />
+          ) : undefined
         }
-      >
-        {trips.length === 0 ? (
+        ListEmptyComponent={
           <View style={styles.emptyState}>
             <Feather name="navigation" size={48} color={colors.textSecondary} />
             <Text style={[styles.emptyStateTitle, { color: colors.text }]}>No Dive Trips Yet</Text>
@@ -354,10 +366,8 @@ export default function DiveTripsScreen() {
               <Text style={styles.emptyStateBtnText}>Add Dive Trip</Text>
             </Pressable>
           </View>
-        ) : (
-          trips.map(renderTripCard)
-        )}
-      </ScrollView>
+        }
+      />
 
       <Pressable
         style={[styles.fab, { backgroundColor: colors.primary }]}
@@ -745,6 +755,7 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 18, fontWeight: '600' },
   content: { flex: 1 },
   contentContainer: { padding: 16 },
+  emptyContainer: { flexGrow: 1, justifyContent: 'center' },
   emptyState: { alignItems: 'center', paddingVertical: 48 },
   emptyStateTitle: { fontSize: 20, fontWeight: '600', marginTop: 16 },
   emptyStateText: { fontSize: 14, textAlign: 'center', marginTop: 8, paddingHorizontal: 32 },
