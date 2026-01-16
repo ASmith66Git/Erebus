@@ -58,6 +58,62 @@ function getTimeGreeting(): string {
   return 'Good evening';
 }
 
+function hexToHsl(hex: string): { h: number; s: number; l: number } {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  if (!result) return { h: 0, s: 0, l: 0 };
+  
+  let r = parseInt(result[1], 16) / 255;
+  let g = parseInt(result[2], 16) / 255;
+  let b = parseInt(result[3], 16) / 255;
+  
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  let h = 0, s = 0;
+  const l = (max + min) / 2;
+
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+      case g: h = ((b - r) / d + 2) / 6; break;
+      case b: h = ((r - g) / d + 4) / 6; break;
+    }
+  }
+
+  return { h: h * 360, s: s * 100, l: l * 100 };
+}
+
+function hslToHex(h: number, s: number, l: number): string {
+  s /= 100;
+  l /= 100;
+  const a = s * Math.min(l, 1 - l);
+  const f = (n: number) => {
+    const k = (n + h / 30) % 12;
+    const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+    return Math.round(255 * color).toString(16).padStart(2, '0');
+  };
+  return `#${f(0)}${f(8)}${f(4)}`;
+}
+
+function generateColorShades(baseColor: string): string[][] {
+  const { h, s, l } = hexToHsl(baseColor);
+  
+  // Generate 6 distinct shades by varying hue and lightness
+  const shades: string[][] = [
+    // Stats cards - deeper, richer tones
+    [hslToHex(h, Math.min(s + 10, 100), Math.max(l - 5, 30)), hslToHex(h, Math.min(s + 15, 100), Math.max(l - 12, 25))],
+    [hslToHex((h + 15) % 360, Math.min(s + 5, 100), Math.max(l - 3, 35)), hslToHex((h + 15) % 360, Math.min(s + 10, 100), Math.max(l - 10, 28))],
+    [hslToHex((h + 30) % 360, Math.min(s + 8, 100), Math.max(l - 8, 32)), hslToHex((h + 30) % 360, Math.min(s + 12, 100), Math.max(l - 15, 26))],
+    // Quick action cards - slightly lighter
+    [hslToHex((h + 45) % 360, Math.min(s, 100), Math.min(l + 5, 55)), hslToHex((h + 45) % 360, Math.min(s + 5, 100), l)],
+    [hslToHex((h + 60) % 360, Math.min(s - 5, 100), Math.min(l + 8, 58)), hslToHex((h + 60) % 360, Math.min(s, 100), Math.min(l + 3, 52))],
+    [hslToHex((h + 75) % 360, Math.min(s - 8, 100), Math.min(l + 10, 60)), hslToHex((h + 75) % 360, Math.min(s - 3, 100), Math.min(l + 5, 55))],
+  ];
+  
+  return shades;
+}
+
 export default function HomeScreen() {
   const { colors, isDark } = useTheme();
   const { user, token } = useAuth();
@@ -94,16 +150,19 @@ export default function HomeScreen() {
     return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
   };
 
+  // Generate graduated color shades from the theme color
+  const colorShades = generateColorShades(colors.primary);
+
   const statsData = [
-    { icon: 'water', label: 'Total Dives', value: stats.totalDives.toString(), gradient: ['#0EA5E9', '#0284C7'] },
-    { icon: 'time', label: 'Dive Time', value: formatDiveTime(stats.totalTime), gradient: ['#8B5CF6', '#7C3AED'] },
-    { icon: 'navigate', label: 'Max Depth', value: stats.maxDepth > 0 ? `${stats.maxDepth}m` : '--', gradient: ['#10B981', '#059669'] },
+    { icon: 'water', label: 'Total Dives', value: stats.totalDives.toString(), gradient: colorShades[0] },
+    { icon: 'time', label: 'Dive Time', value: formatDiveTime(stats.totalTime), gradient: colorShades[1] },
+    { icon: 'navigate', label: 'Max Depth', value: stats.maxDepth > 0 ? `${stats.maxDepth}m` : '--', gradient: colorShades[2] },
   ];
 
   const quickActions = [
-    { icon: 'add-circle', label: 'Log Dive', route: '/(app)/dive-logs', gradient: [colors.primary, colors.primary] },
-    { icon: 'compass', label: 'Explore Sites', route: '/(app)/(tabs)/explore', gradient: ['#06B6D4', '#0891B2'] },
-    { icon: 'airplane', label: 'Plan Trip', route: '/(app)/dive-trips', gradient: ['#F59E0B', '#D97706'] },
+    { icon: 'add-circle', label: 'Log Dive', route: '/(app)/dive-logs', gradient: colorShades[3] },
+    { icon: 'compass', label: 'Explore Sites', route: '/(app)/(tabs)/explore', gradient: colorShades[4] },
+    { icon: 'airplane', label: 'Plan Trip', route: '/(app)/dive-trips', gradient: colorShades[5] },
   ];
 
   return (
