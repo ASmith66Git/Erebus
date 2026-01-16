@@ -16,7 +16,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'expo-router';
 import { useNavigation, DrawerActions } from '@react-navigation/native';
-import { API_BASE_URL } from '@/utils/apiConfig';
+import { getApiUrl } from '@/utils/apiConfig';
 import EmbeddedMapPicker from '@/components/EmbeddedMapPicker';
 import DatePickerField from '@/components/DatePickerField';
 
@@ -112,7 +112,7 @@ export default function DiveTripsScreen() {
   const fetchTrips = useCallback(async () => {
     if (!token) return;
     try {
-      const response = await fetch(`${API_BASE_URL}/api/dive-trips`, {
+      const response = await fetch(`${getApiUrl()}/api/dive-trips`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (response.ok) {
@@ -131,7 +131,7 @@ export default function DiveTripsScreen() {
     if (!token) return;
     setLoadingDetail(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/api/dive-trips/${tripId}`, {
+      const response = await fetch(`${getApiUrl()}/api/dive-trips/${tripId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (response.ok) {
@@ -161,8 +161,8 @@ export default function DiveTripsScreen() {
     setSaving(true);
     try {
       const url = editingTrip
-        ? `${API_BASE_URL}/api/dive-trips/${editingTrip.id}`
-        : `${API_BASE_URL}/api/dive-trips`;
+        ? `${getApiUrl()}/api/dive-trips/${editingTrip.id}`
+        : `${getApiUrl()}/api/dive-trips`;
       const method = editingTrip ? 'PUT' : 'POST';
 
       const response = await fetch(url, {
@@ -201,7 +201,7 @@ export default function DiveTripsScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              const response = await fetch(`${API_BASE_URL}/api/dive-trips/${id}`, {
+              const response = await fetch(`${getApiUrl()}/api/dive-trips/${id}`, {
                 method: 'DELETE',
                 headers: { Authorization: `Bearer ${token}` },
               });
