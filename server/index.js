@@ -5189,7 +5189,7 @@ app.delete('/api/dive-trips/:tripId/logs/:logId', authenticateToken, async (req,
 app.get('/api/dive-buddies', authenticateToken, async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT db.*, u.username AS linked_username, u.email AS linked_email
+      `SELECT db.*, CONCAT(u.first_name, ' ', u.last_name) AS linked_username, u.email AS linked_email
        FROM dive_buddies db
        LEFT JOIN users u ON db.linked_user_id = u.id
        WHERE db.user_id = $1 AND db.deleted_at IS NULL
@@ -5208,7 +5208,7 @@ app.get('/api/dive-buddies/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const result = await pool.query(
-      `SELECT db.*, u.username AS linked_username, u.email AS linked_email
+      `SELECT db.*, CONCAT(u.first_name, ' ', u.last_name) AS linked_username, u.email AS linked_email
        FROM dive_buddies db
        LEFT JOIN users u ON db.linked_user_id = u.id
        WHERE db.id = $1 AND db.user_id = $2 AND db.deleted_at IS NULL`,
@@ -5304,12 +5304,12 @@ app.get('/api/users/search', authenticateToken, async (req, res) => {
       return res.json([]);
     }
     const result = await pool.query(
-      `SELECT id, username, email
+      `SELECT id, CONCAT(first_name, ' ', last_name) AS username, email
        FROM users 
        WHERE searchable_profile = TRUE 
          AND id != $1
-         AND (LOWER(username) LIKE LOWER($2) OR LOWER(email) LIKE LOWER($2))
-       ORDER BY username ASC
+         AND (LOWER(first_name) LIKE LOWER($2) OR LOWER(last_name) LIKE LOWER($2) OR LOWER(email) LIKE LOWER($2))
+       ORDER BY first_name ASC
        LIMIT 20`,
       [req.user.id, `%${query}%`]
     );
