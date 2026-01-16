@@ -346,9 +346,7 @@ Please help me with this development task.`;
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <Pressable onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={colors.text} />
-        </Pressable>
+        <View style={{ width: 40 }} />
         <Text style={[styles.title, { color: colors.text }]}>Dev Log</Text>
         <View style={{ width: 40 }} />
       </View>
