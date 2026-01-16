@@ -180,17 +180,7 @@ export default function GearProfilesScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <PageHeader 
-        title="Gear Profiles" 
-        rightAction={
-          <Pressable
-            style={[styles.addButton, { backgroundColor: colors.primary }]}
-            onPress={() => router.push('/gear-profile/new' as any)}
-          >
-            <Feather name="plus" size={18} color="#FFFFFF" />
-          </Pressable>
-        }
-      />
+      <PageHeader title="Gear Profiles" />
 
       {loading ? (
         <View style={styles.loadingContainer}>
@@ -225,6 +215,13 @@ export default function GearProfilesScreen() {
           )}
         </ScrollView>
       )}
+
+      <Pressable
+        style={[styles.fab, { backgroundColor: colors.primary }]}
+        onPress={() => router.push('/gear-profile/new' as any)}
+      >
+        <Feather name="plus" size={24} color="#FFFFFF" />
+      </Pressable>
     </View>
   );
 }
@@ -249,12 +246,15 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '700',
   },
-  addButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
+  fab: {
+    position: 'absolute',
+    bottom: 24,
+    right: 24,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     justifyContent: 'center',
+    alignItems: 'center',
   },
   scrollView: {
     flex: 1,
