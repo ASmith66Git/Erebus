@@ -594,6 +594,14 @@ export default function CertificationsScreen() {
         )}
       </ScrollView>
 
+      {/* Floating Action Button */}
+      <Pressable
+        style={[styles.fab, { backgroundColor: colors.primary }]}
+        onPress={() => { resetForm(); setShowAddModal(true); }}
+      >
+        <Feather name="plus" size={24} color="#FFF" />
+      </Pressable>
+
       {/* Add/Edit Certification Modal */}
       <Modal visible={showAddModal} animationType="slide" transparent>
         <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
@@ -1095,4 +1103,19 @@ const styles = StyleSheet.create({
   scannedImagePlaceholder: { height: 100, borderRadius: 8, borderWidth: 1, alignItems: 'center', justifyContent: 'center', gap: 4 },
   scannedImageText: { fontSize: 12 },
   notesText: { fontSize: 14, lineHeight: 20 },
+  fab: {
+    position: 'absolute',
+    bottom: 24,
+    right: 24,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+  },
 });
