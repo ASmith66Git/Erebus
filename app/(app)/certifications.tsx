@@ -826,9 +826,40 @@ export default function CertificationsScreen() {
                 <Feather name="x" size={24} color={colors.text} />
               </Pressable>
               <Text style={[styles.modalTitle, { color: colors.text }]}>Certification Details</Text>
-              <Pressable onPress={() => selectedCertification && handleDeleteCertification(selectedCertification.id)}>
-                <Feather name="trash-2" size={22} color={colors.danger} />
-              </Pressable>
+              <View style={{ flexDirection: 'row', gap: 16 }}>
+                <Pressable onPress={() => {
+                  if (selectedCertification) {
+                    setEditingCertification(selectedCertification);
+                    setSelectedCourse({
+                      id: selectedCertification.course_id || 0,
+                      name: selectedCertification.course_name || '',
+                      level: selectedCertification.course_level || '',
+                      category: selectedCertification.course_category || '',
+                      agency_id: selectedCertification.agency_id || 0,
+                      agency_name: selectedCertification.agency_name || '',
+                      agency_logo: selectedCertification.agency_logo,
+                    });
+                    setFormData({
+                      certificationDate: selectedCertification.certification_date || '',
+                      certificationNumber: selectedCertification.certification_number || '',
+                      instructorName: selectedCertification.instructor_name || '',
+                      instructorNumber: selectedCertification.instructor_number || '',
+                      diveCenter: selectedCertification.dive_center || '',
+                      location: selectedCertification.location || '',
+                      latitude: selectedCertification.latitude,
+                      longitude: selectedCertification.longitude,
+                      notes: selectedCertification.notes || '',
+                    });
+                    setShowDetailModal(false);
+                    setShowAddModal(true);
+                  }
+                }}>
+                  <Feather name="edit-2" size={22} color={colors.primary} />
+                </Pressable>
+                <Pressable onPress={() => selectedCertification && handleDeleteCertification(selectedCertification.id)}>
+                  <Feather name="trash-2" size={22} color={colors.danger} />
+                </Pressable>
+              </View>
             </View>
             
             {selectedCertification && (
