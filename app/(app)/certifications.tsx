@@ -20,6 +20,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { getApiUrl } from '@/utils/apiConfig';
 import * as ImagePicker from 'expo-image-picker';
 import EmbeddedMapPicker from '@/components/EmbeddedMapPicker';
+import DatePickerField from '@/components/DatePickerField';
 
 interface TrainingAgency {
   id: number;
@@ -629,16 +630,12 @@ export default function CertificationsScreen() {
                 </View>
               </Pressable>
               
-              <View style={styles.formGroup}>
-                <Text style={[styles.formLabel, { color: colors.text }]}>Date Certified</Text>
-                <TextInput
-                  style={[styles.formInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
-                  value={formData.certificationDate}
-                  onChangeText={(v) => setFormData({ ...formData, certificationDate: v })}
-                  placeholder="YYYY-MM-DD"
-                  placeholderTextColor={colors.textSecondary}
-                />
-              </View>
+              <DatePickerField
+                label="Date Certified"
+                value={formData.certificationDate}
+                onChange={(v) => setFormData({ ...formData, certificationDate: v })}
+                placeholder="Select certification date"
+              />
               
               <View style={styles.formGroup}>
                 <Text style={[styles.formLabel, { color: colors.text }]}>Certification Number</Text>

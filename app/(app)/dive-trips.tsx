@@ -18,6 +18,7 @@ import { useRouter } from 'expo-router';
 import { useNavigation, DrawerActions } from '@react-navigation/native';
 import { API_BASE_URL } from '@/utils/apiConfig';
 import EmbeddedMapPicker from '@/components/EmbeddedMapPicker';
+import DatePickerField from '@/components/DatePickerField';
 
 interface LinkedDiveLog {
   id: number;
@@ -412,24 +413,20 @@ export default function DiveTripsScreen() {
               </View>
 
               <View style={styles.formRow}>
-                <View style={[styles.formGroup, { flex: 1 }]}>
-                  <Text style={[styles.formLabel, { color: colors.text }]}>Start Date</Text>
-                  <TextInput
-                    style={[styles.formInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
+                <View style={{ flex: 1 }}>
+                  <DatePickerField
+                    label="Start Date"
                     value={formData.startDate}
-                    onChangeText={(v) => setFormData({ ...formData, startDate: v })}
-                    placeholder="YYYY-MM-DD"
-                    placeholderTextColor={colors.textSecondary}
+                    onChange={(v) => setFormData({ ...formData, startDate: v })}
+                    placeholder="Select start date"
                   />
                 </View>
-                <View style={[styles.formGroup, { flex: 1 }]}>
-                  <Text style={[styles.formLabel, { color: colors.text }]}>End Date</Text>
-                  <TextInput
-                    style={[styles.formInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
+                <View style={{ flex: 1 }}>
+                  <DatePickerField
+                    label="End Date"
                     value={formData.endDate}
-                    onChangeText={(v) => setFormData({ ...formData, endDate: v })}
-                    placeholder="YYYY-MM-DD"
-                    placeholderTextColor={colors.textSecondary}
+                    onChange={(v) => setFormData({ ...formData, endDate: v })}
+                    placeholder="Select end date"
                   />
                 </View>
               </View>
