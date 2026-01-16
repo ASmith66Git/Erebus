@@ -1,6 +1,6 @@
 import React from 'react';
 import { Drawer } from 'expo-router/drawer';
-import { View, Text, StyleSheet, SafeAreaView, Switch, Alert, Pressable } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, Alert, Pressable } from 'react-native';
 import { DrawerContentScrollView, DrawerItem } from '@react-navigation/drawer';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Ionicons, Feather } from '@expo/vector-icons';
@@ -9,7 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'expo-router';
 
 function CustomDrawerContent(props: any) {
-  const { colors, isDark, toggleTheme } = useTheme();
+  const { colors } = useTheme();
   const { user, logout, isAdmin, isLoading } = useAuth();
   const router = useRouter();
   
@@ -104,20 +104,6 @@ function CustomDrawerContent(props: any) {
             </>
           )}
 
-          <View style={[styles.divider, { backgroundColor: colors.border, marginVertical: 12 }]} />
-
-          <View style={styles.themeToggle}>
-            <View style={styles.themeToggleLeft}>
-              <Feather name={isDark ? 'moon' : 'sun'} size={22} color={colors.primary} />
-              <Text style={[styles.menuItemText, { color: colors.text }]}>Dark Mode</Text>
-            </View>
-            <Switch
-              value={isDark}
-              onValueChange={toggleTheme}
-              trackColor={{ false: colors.border, true: colors.primary }}
-              thumbColor="#FFFFFF"
-            />
-          </View>
         </DrawerContentScrollView>
 
         <Pressable 
@@ -209,21 +195,6 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     marginBottom: 8,
     marginLeft: 16,
-  },
-  themeToggle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-  },
-  themeToggleLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-  },
-  menuItemText: {
-    fontSize: 16,
   },
   logoutButton: {
     flexDirection: 'row',
