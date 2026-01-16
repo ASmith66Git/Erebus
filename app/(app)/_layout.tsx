@@ -105,7 +105,10 @@ function CustomDrawerContent(props: any) {
             </>
           )}
 
-          <View style={[styles.divider, { backgroundColor: colors.border, marginVertical: 12 }]} />
+        </DrawerContentScrollView>
+
+        <View style={styles.logoutContainer}>
+          <View style={[styles.divider, { backgroundColor: colors.border, marginBottom: 8 }]} />
           <DrawerItem
             label="Logout"
             onPress={handleLogout}
@@ -115,8 +118,7 @@ function CustomDrawerContent(props: any) {
             labelStyle={{ color: colors.error }}
             style={styles.drawerItem}
           />
-
-        </DrawerContentScrollView>
+        </View>
       </SafeAreaView>
     </View>
   );
@@ -199,5 +201,9 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     marginBottom: 8,
     marginLeft: 16,
+  },
+  logoutContainer: {
+    paddingHorizontal: 8,
+    paddingBottom: 8,
   },
 });
