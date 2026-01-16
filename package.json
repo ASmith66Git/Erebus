@@ -8,7 +8,7 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "web:build": "expo export --platform web",
+    "web:build": "expo export --platform web --output-dir dist --clear",
     "test": "jest --watchAll",
     "lint": "expo lint",
     "postinstall": "patch-package"
