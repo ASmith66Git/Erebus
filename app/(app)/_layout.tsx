@@ -1,9 +1,9 @@
 import React from 'react';
 import { Drawer } from 'expo-router/drawer';
-import { View, Text, StyleSheet, SafeAreaView, Alert, Pressable } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, Alert } from 'react-native';
 import { DrawerContentScrollView, DrawerItem } from '@react-navigation/drawer';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { Ionicons, Feather } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'expo-router';
@@ -105,15 +105,18 @@ function CustomDrawerContent(props: any) {
             </>
           )}
 
-        </DrawerContentScrollView>
+          <View style={[styles.divider, { backgroundColor: colors.border, marginVertical: 12 }]} />
+          <DrawerItem
+            label="Logout"
+            onPress={handleLogout}
+            icon={() => (
+              <Ionicons name="log-out-outline" size={22} color={colors.error} />
+            )}
+            labelStyle={{ color: colors.error }}
+            style={styles.drawerItem}
+          />
 
-        <Pressable 
-          style={[styles.logoutButton, { borderColor: colors.error }]} 
-          onPress={handleLogout}
-        >
-          <Feather name="log-out" size={22} color={colors.error} />
-          <Text style={[styles.logoutText, { color: colors.error }]}>Logout</Text>
-        </Pressable>
+        </DrawerContentScrollView>
       </SafeAreaView>
     </View>
   );
@@ -196,19 +199,5 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     marginBottom: 8,
     marginLeft: 16,
-  },
-  logoutButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 14,
-    borderWidth: 1,
-    borderRadius: 12,
-    marginTop: 'auto',
-  },
-  logoutText: {
-    fontSize: 16,
-    fontWeight: '600',
   },
 });
