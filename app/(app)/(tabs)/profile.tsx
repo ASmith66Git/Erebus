@@ -42,10 +42,13 @@ export default function ProfileScreen() {
   const [showBrandPicker, setShowBrandPicker] = useState(false);
   const [showModelPicker, setShowModelPicker] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [searchableProfile, setSearchableProfile] = useState(false);
+  const [searchableLoading, setSearchableLoading] = useState(false);
 
   useEffect(() => {
     loadManufacturers();
     loadUserDiveComputer();
+    loadSearchableStatus();
   }, []);
 
   useEffect(() => {
@@ -63,6 +66,40 @@ export default function ProfileScreen() {
       setManufacturers(data.manufacturers || []);
     } catch (error) {
       console.error('Error loading manufacturers:', error);
+    }
+  };
+
+  const loadSearchableStatus = async () => {
+    if (!token) return;
+    try {
+      const response = await fetch(`${getApiUrl()}/api/profile/searchable`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await response.json();
+      setSearchableProfile(data.searchable_profile || false);
+    } catch (error) {
+      console.error('Error loading searchable status:', error);
+    }
+  };
+
+  const toggleSearchable = async (value: boolean) => {
+    setSearchableLoading(true);
+    try {
+      const response = await fetch(`${getApiUrl()}/api/profile/searchable`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ searchable: value })
+      });
+      if (response.ok) {
+        setSearchableProfile(value);
+      }
+    } catch (error) {
+      console.error('Error toggling searchable:', error);
+    } finally {
+      setSearchableLoading(false);
     }
   };
 
@@ -254,6 +291,30 @@ export default function ProfileScreen() {
             </Text>
           </View>
         )}
+        
+        <View style={styles.themeRow}>
+          <View style={styles.themeLeft}>
+            <View style={[styles.menuIcon, { backgroundColor: colors.primary + '20' }]}>
+              <Ionicons name="search-outline" size={20} color={colors.primary} />
+            </View>
+            <View>
+              <Text style={[styles.menuTitle, { color: colors.text }]}>Searchable Profile</Text>
+              <Text style={[styles.menuDescription, { color: colors.textSecondary }]}>
+                {searchableProfile ? 'Other divers can find you' : 'Your profile is private'}
+              </Text>
+            </View>
+          </View>
+          {searchableLoading ? (
+            <ActivityIndicator size="small" color={colors.primary} />
+          ) : (
+            <Switch
+              value={searchableProfile}
+              onValueChange={toggleSearchable}
+              trackColor={{ false: colors.border, true: colors.primary }}
+              thumbColor="#FFFFFF"
+            />
+          )}
+        </View>
       </View>
 
       <View style={[styles.section, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>

@@ -116,6 +116,17 @@ The application is built using Expo React Native, targeting both iOS and Android
   - Detail modal with edit and delete functionality
   - Soft-delete for data protection
   - Database tables: dive_trips, dive_trip_logs (for linking dives to trips)
+- **Dive Buddies**: Social dive buddy management with:
+  - Add buddies with name, photo, and notes
+  - Photo upload via camera or gallery with Replit Object Storage
+  - Search for other Erebus users who have made their profile searchable
+  - Connect buddies to Erebus users for social features
+  - Link buddies to dive logs for team tracking
+  - Card-based list view with FAB for quick buddy creation
+  - Detail modal with edit and delete functionality
+  - Searchable profile toggle in user preferences
+  - Soft-delete for data protection
+  - Database tables: dive_buddies, dive_log_buddies (junction table for linking to dives)
 
 ## External Dependencies
 - **PostgreSQL**: Primary database.

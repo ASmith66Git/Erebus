@@ -36,7 +36,7 @@ function CustomDrawerContent(props: any) {
     { icon: 'book', label: 'Dive Logs', action: () => handleNavigation('/dive-logs') },
     { icon: 'map-pin', label: 'Dive Sites', action: () => handleNavigation('/dive-sites') },
     { icon: 'tool', label: 'Gear Profiles', action: () => handleNavigation('/gear-profiles') },
-    { icon: 'users', label: 'Buddies', action: () => showComingSoon('Buddies') },
+    { icon: 'users', label: 'Dive Buddies', action: () => handleNavigation('/dive-buddies') },
     { icon: 'activity', label: 'Dive Planning', action: () => handleNavigation('/dive-planning') },
     { icon: 'database', label: 'Gas', action: () => handleNavigation('/gas-calculator') },
     { icon: 'image', label: 'Photos', action: () => handleNavigation('/photos') },
