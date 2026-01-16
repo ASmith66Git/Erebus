@@ -341,12 +341,8 @@ export default function AdminScreen() {
         ))
       )}
 
-      <View style={styles.sectionHeader}>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>Developer Tools</Text>
-      </View>
-
       <Pressable 
-        style={[styles.devCard, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}
+        style={[styles.devCard, { backgroundColor: colors.cardBackground, borderColor: colors.border, marginTop: 16 }]}
         onPress={() => router.push('/debug-log')}
       >
         <View style={[styles.devIcon, { backgroundColor: '#e74c3c20' }]}>
