@@ -116,37 +116,58 @@ export default function CertificationsScreen() {
   const [uploadingImage, setUploadingImage] = useState(false);
 
   const fetchData = useCallback(async () => {
-    if (!token) return;
+    if (!token) {
+      console.log('fetchData: No token available');
+      setLoading(false);
+      return;
+    }
+    
+    console.log('fetchData: Fetching data with token');
+    const apiUrl = getApiUrl();
+    console.log('fetchData: API URL is', apiUrl);
     
     try {
       const [certsRes, wishRes, agenciesRes] = await Promise.all([
-        fetch(`${getApiUrl()}/api/certifications`, {
+        fetch(`${apiUrl}/api/certifications`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
-        fetch(`${getApiUrl()}/api/certification-wishlist`, {
+        fetch(`${apiUrl}/api/certification-wishlist`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
-        fetch(`${getApiUrl()}/api/training-agencies`, {
+        fetch(`${apiUrl}/api/training-agencies`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
       ]);
       
+      console.log('fetchData: Responses received', {
+        certs: certsRes.status,
+        wish: wishRes.status,
+        agencies: agenciesRes.status
+      });
+      
       if (certsRes.ok) {
         const certsData = await certsRes.json();
         setCertifications(certsData);
+      } else {
+        console.error('fetchData: Certifications fetch failed', certsRes.status);
       }
       
       if (wishRes.ok) {
         const wishData = await wishRes.json();
         setWishlist(wishData);
+      } else {
+        console.error('fetchData: Wishlist fetch failed', wishRes.status);
       }
       
       if (agenciesRes.ok) {
         const agenciesData = await agenciesRes.json();
+        console.log('fetchData: Agencies loaded', agenciesData.length);
         setAgencies(agenciesData);
+      } else {
+        console.error('fetchData: Agencies fetch failed', agenciesRes.status);
       }
     } catch (error) {
-      console.error('Error fetching certifications:', error);
+      console.error('fetchData: Error fetching certifications:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
