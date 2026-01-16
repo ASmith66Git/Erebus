@@ -43,13 +43,20 @@ export default function TabLayout() {
           tabBarStyle: {
             backgroundColor: colors.surface,
             borderTopColor: colors.border,
-            paddingBottom: 12,
-            paddingTop: 10,
-            height: 75,
+            paddingBottom: 6,
+            paddingTop: 6,
+            height: 60,
+          },
+          tabBarItemStyle: {
+            paddingVertical: 4,
           },
           tabBarLabelStyle: {
-            fontSize: 12,
+            fontSize: 10,
             fontWeight: '500',
+            marginTop: 2,
+          },
+          tabBarIconStyle: {
+            marginBottom: 0,
           },
         }}
       >
@@ -58,7 +65,7 @@ export default function TabLayout() {
           options={{
             title: 'Home',
             tabBarIcon: ({ focused }) => (
-              <Ionicons name={focused ? 'home' : 'home-outline'} size={24} color={colors.primary} />
+              <Ionicons name={focused ? 'home' : 'home-outline'} size={22} color={colors.primary} />
             ),
           }}
         />
@@ -67,7 +74,7 @@ export default function TabLayout() {
           options={{
             title: 'Dive Logs',
             tabBarIcon: ({ focused }) => (
-              <Ionicons name={focused ? 'journal' : 'journal-outline'} size={24} color={colors.primary} />
+              <Ionicons name={focused ? 'journal' : 'journal-outline'} size={22} color={colors.primary} />
             ),
           }}
         />
@@ -76,7 +83,7 @@ export default function TabLayout() {
           options={{
             title: 'Photos',
             tabBarIcon: ({ focused }) => (
-              <Ionicons name={focused ? 'images' : 'images-outline'} size={24} color={colors.primary} />
+              <Ionicons name={focused ? 'images' : 'images-outline'} size={22} color={colors.primary} />
             ),
           }}
         />
@@ -85,7 +92,7 @@ export default function TabLayout() {
           options={{
             title: 'Profile',
             tabBarIcon: ({ focused }) => (
-              <Ionicons name={focused ? 'person' : 'person-outline'} size={24} color={colors.primary} />
+              <Ionicons name={focused ? 'person' : 'person-outline'} size={22} color={colors.primary} />
             ),
           }}
         />
