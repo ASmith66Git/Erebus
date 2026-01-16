@@ -719,8 +719,11 @@ export default function CertificationsScreen() {
               <Pressable onPress={() => {
                 if (selectedAgency && agencyCourses.length > 0) {
                   setAgencyCourses([]);
+                  setSelectedAgency(null);
                 } else {
                   setShowCoursePickerModal(false);
+                  setSelectedAgency(null);
+                  setAgencyCourses([]);
                 }
               }}>
                 <Feather name="arrow-left" size={24} color={colors.text} />
@@ -732,20 +735,32 @@ export default function CertificationsScreen() {
             </View>
             
             <ScrollView style={styles.modalBody}>
-              {!selectedAgency || agencyCourses.length === 0 ? (
-                agencies.map((agency) => (
-                  <Pressable
-                    key={agency.id}
-                    style={[styles.agencyRow, { borderBottomColor: colors.border }]}
-                    onPress={() => handleAgencySelect(agency)}
-                  >
-                    <View>
-                      <Text style={[styles.agencyRowName, { color: colors.text }]}>{agency.name}</Text>
-                      <Text style={[styles.agencyRowFullName, { color: colors.textSecondary }]}>{agency.full_name}</Text>
-                    </View>
-                    <Feather name="chevron-right" size={20} color={colors.textSecondary} />
-                  </Pressable>
-                ))
+              {!selectedAgency ? (
+                agencies.length === 0 ? (
+                  <View style={{ padding: 20, alignItems: 'center' }}>
+                    <ActivityIndicator size="small" color={colors.primary} />
+                    <Text style={{ color: colors.textSecondary, marginTop: 8 }}>Loading agencies...</Text>
+                  </View>
+                ) : (
+                  agencies.map((agency) => (
+                    <Pressable
+                      key={agency.id}
+                      style={[styles.agencyRow, { borderBottomColor: colors.border }]}
+                      onPress={() => handleAgencySelect(agency)}
+                    >
+                      <View>
+                        <Text style={[styles.agencyRowName, { color: colors.text }]}>{agency.name}</Text>
+                        <Text style={[styles.agencyRowFullName, { color: colors.textSecondary }]}>{agency.full_name}</Text>
+                      </View>
+                      <Feather name="chevron-right" size={20} color={colors.textSecondary} />
+                    </Pressable>
+                  ))
+                )
+              ) : agencyCourses.length === 0 ? (
+                <View style={{ padding: 20, alignItems: 'center' }}>
+                  <ActivityIndicator size="small" color={colors.primary} />
+                  <Text style={{ color: colors.textSecondary, marginTop: 8 }}>Loading courses...</Text>
+                </View>
               ) : (
                 agencyCourses.map((course) => (
                   <Pressable
