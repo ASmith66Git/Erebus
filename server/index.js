@@ -4743,6 +4743,7 @@ app.delete('/api/certifications/:id', authenticateToken, async (req, res) => {
 
 // Add certification image
 app.post('/api/certifications/:id/images', authenticateToken, async (req, res) => {
+  console.log('Add certification image request:', { id: req.params.id, body: req.body });
   try {
     const { id } = req.params;
     const { imageUrl, imageSide, caption } = req.body;
