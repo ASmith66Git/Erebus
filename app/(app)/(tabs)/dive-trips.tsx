@@ -12,6 +12,7 @@ import {
   RefreshControl,
   Alert,
   Platform,
+  Image,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -22,6 +23,7 @@ import { getApiUrl } from '@/utils/apiConfig';
 import EmbeddedMapPicker from '@/components/EmbeddedMapPicker';
 import DatePickerField from '@/components/DatePickerField';
 import PageHeader from '@/components/PageHeader';
+import * as ImagePicker from 'expo-image-picker';
 
 interface LinkedDiveLog {
   id: number;
@@ -91,7 +93,9 @@ export default function DiveTripsScreen() {
     longitude: null as number | null,
     accommodation: '',
     notes: '',
+    coverImageKey: null as string | null,
   });
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   const resetForm = () => {
     setFormData({
@@ -108,6 +112,7 @@ export default function DiveTripsScreen() {
       longitude: null,
       accommodation: '',
       notes: '',
+      coverImageKey: null,
     });
     setEditingTrip(null);
   };
@@ -238,9 +243,95 @@ export default function DiveTripsScreen() {
       longitude: trip.longitude,
       accommodation: trip.accommodation || '',
       notes: trip.notes || '',
+      coverImageKey: trip.cover_image_key || null,
     });
     setShowDetailModal(false);
     setShowAddModal(true);
+  };
+
+  const pickImage = async (useCamera: boolean) => {
+    try {
+      let result;
+      if (useCamera) {
+        const permission = await ImagePicker.requestCameraPermissionsAsync();
+        if (!permission.granted) {
+          Alert.alert('Permission Required', 'Camera access is needed to take photos.');
+          return;
+        }
+        result = await ImagePicker.launchCameraAsync({
+          mediaTypes: ImagePicker.MediaTypeOptions.Images,
+          allowsEditing: true,
+          aspect: [16, 9],
+          quality: 0.8,
+        });
+      } else {
+        const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!permission.granted) {
+          Alert.alert('Permission Required', 'Photo library access is needed to select images.');
+          return;
+        }
+        result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ImagePicker.MediaTypeOptions.Images,
+          allowsEditing: true,
+          aspect: [16, 9],
+          quality: 0.8,
+        });
+      }
+
+      if (!result.canceled && result.assets[0]) {
+        await uploadCoverImage(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error('Image picker error:', error);
+      Alert.alert('Error', 'Failed to pick image');
+    }
+  };
+
+  const uploadCoverImage = async (imageUri: string) => {
+    if (!token) return;
+    setUploadingImage(true);
+    try {
+      const filename = `trip-cover-${Date.now()}.jpg`;
+      const presignedResponse = await fetch(`${getApiUrl()}/api/object-storage/presigned-url`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ filename, contentType: 'image/jpeg' }),
+      });
+
+      if (!presignedResponse.ok) {
+        throw new Error('Failed to get upload URL');
+      }
+
+      const { uploadUrl, objectKey } = await presignedResponse.json();
+
+      const imageResponse = await fetch(imageUri);
+      const imageBlob = await imageResponse.blob();
+
+      const uploadResponse = await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'image/jpeg' },
+        body: imageBlob,
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error('Failed to upload image');
+      }
+
+      setFormData(prev => ({ ...prev, coverImageKey: objectKey }));
+    } catch (error) {
+      console.error('Upload error:', error);
+      Alert.alert('Upload Error', 'Failed to upload image. Please try again.');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const getCoverImageUrl = (key: string | null) => {
+    if (!key) return null;
+    return `${getApiUrl()}/api/object-storage/file/${encodeURIComponent(key)}`;
   };
 
   const formatDate = (dateStr: string | null) => {
@@ -255,6 +346,7 @@ export default function DiveTripsScreen() {
 
   const renderTripCard = (trip: DiveTrip) => {
     const typeInfo = getTripTypeInfo(trip.trip_type);
+    const coverUrl = getCoverImageUrl(trip.cover_image_key);
     return (
       <Pressable
         key={trip.id}
@@ -266,6 +358,14 @@ export default function DiveTripsScreen() {
           fetchTripDetails(trip.id);
         }}
       >
+        {coverUrl && (
+          <Image
+            source={{ uri: coverUrl }}
+            style={styles.tripCardCover}
+            resizeMode="cover"
+          />
+        )}
+        <View style={styles.tripCardContent}>
         <View style={styles.tripCardHeader}>
           <View style={[styles.tripTypeIcon, { backgroundColor: colors.primary + '20' }]}>
             <Feather name={typeInfo.icon as any} size={20} color={colors.primary} />
@@ -311,6 +411,7 @@ export default function DiveTripsScreen() {
               {trip.linked_dives || trip.total_dives || 0} dives
             </Text>
           </View>
+        </View>
         </View>
       </Pressable>
     );
@@ -387,6 +488,67 @@ export default function DiveTripsScreen() {
                   placeholder="e.g., Red Sea Liveaboard 2024"
                   placeholderTextColor={colors.textSecondary}
                 />
+              </View>
+
+              <View style={styles.coverImageSection}>
+                <Text style={[styles.formLabel, { color: colors.text }]}>Cover Photo</Text>
+                {formData.coverImageKey ? (
+                  <View>
+                    <Image
+                      source={{ uri: getCoverImageUrl(formData.coverImageKey)! }}
+                      style={styles.coverImagePreview}
+                      resizeMode="cover"
+                    />
+                    <View style={styles.imageButtonRow}>
+                      <Pressable
+                        style={[styles.imageButton, { borderColor: colors.border }]}
+                        onPress={() => setFormData({ ...formData, coverImageKey: null })}
+                      >
+                        <Feather name="trash-2" size={16} color={colors.error} />
+                        <Text style={[styles.imageButtonText, { color: colors.error }]}>Remove</Text>
+                      </Pressable>
+                      <Pressable
+                        style={[styles.imageButton, { borderColor: colors.primary }]}
+                        onPress={() => pickImage(false)}
+                        disabled={uploadingImage}
+                      >
+                        <Feather name="image" size={16} color={colors.primary} />
+                        <Text style={[styles.imageButtonText, { color: colors.primary }]}>Change</Text>
+                      </Pressable>
+                    </View>
+                  </View>
+                ) : (
+                  <View>
+                    <View style={[styles.coverImagePlaceholder, { borderColor: colors.border }]}>
+                      {uploadingImage ? (
+                        <ActivityIndicator size="large" color={colors.primary} />
+                      ) : (
+                        <>
+                          <Feather name="image" size={32} color={colors.textSecondary} />
+                          <Text style={{ color: colors.textSecondary, marginTop: 8 }}>Add a cover photo</Text>
+                        </>
+                      )}
+                    </View>
+                    <View style={styles.imageButtonRow}>
+                      <Pressable
+                        style={[styles.imageButton, { borderColor: colors.border }]}
+                        onPress={() => pickImage(true)}
+                        disabled={uploadingImage}
+                      >
+                        <Feather name="camera" size={16} color={colors.text} />
+                        <Text style={[styles.imageButtonText, { color: colors.text }]}>Camera</Text>
+                      </Pressable>
+                      <Pressable
+                        style={[styles.imageButton, { borderColor: colors.primary }]}
+                        onPress={() => pickImage(false)}
+                        disabled={uploadingImage}
+                      >
+                        <Feather name="image" size={16} color={colors.primary} />
+                        <Text style={[styles.imageButtonText, { color: colors.primary }]}>Gallery</Text>
+                      </Pressable>
+                    </View>
+                  </View>
+                )}
               </View>
 
               <View style={styles.formGroup}>
@@ -577,6 +739,13 @@ export default function DiveTripsScreen() {
 
             {selectedTrip && (
               <ScrollView style={styles.modalBody}>
+                {selectedTrip.cover_image_key && (
+                  <Image
+                    source={{ uri: getCoverImageUrl(selectedTrip.cover_image_key)! }}
+                    style={styles.detailCoverImage}
+                    resizeMode="cover"
+                  />
+                )}
                 <View style={styles.detailSection}>
                   <View style={styles.detailHeader}>
                     <View style={[styles.tripTypeIcon, { backgroundColor: colors.primary + '20' }]}>
@@ -750,7 +919,16 @@ const styles = StyleSheet.create({
   emptyStateText: { fontSize: 14, textAlign: 'center', marginTop: 8, paddingHorizontal: 32 },
   emptyStateBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 20, paddingVertical: 12, borderRadius: 8, marginTop: 24 },
   emptyStateBtnText: { color: '#FFF', fontSize: 16, fontWeight: '500' },
-  tripCard: { borderRadius: 12, padding: 16, marginBottom: 12, borderWidth: 1 },
+  tripCard: { borderRadius: 12, marginBottom: 12, borderWidth: 1, overflow: 'hidden' },
+  tripCardCover: { width: '100%', height: 140 },
+  tripCardContent: { padding: 16 },
+  detailCoverImage: { width: '100%', height: 180, borderRadius: 12, marginBottom: 16 },
+  coverImageSection: { marginBottom: 16 },
+  coverImagePreview: { width: '100%', height: 160, borderRadius: 12, marginBottom: 12 },
+  coverImagePlaceholder: { width: '100%', height: 120, borderRadius: 12, borderWidth: 1, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
+  imageButtonRow: { flexDirection: 'row', gap: 12 },
+  imageButton: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 12, borderRadius: 8, borderWidth: 1 },
+  imageButtonText: { fontSize: 14, fontWeight: '500' },
   tripCardHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
   tripTypeIcon: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   tripCardHeaderText: { flex: 1 },
