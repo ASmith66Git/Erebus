@@ -78,7 +78,7 @@ export default function DivePlanningScreen() {
   const [settings, setSettings] = useState<DivePlanSettings>({
     ...DEFAULT_SETTINGS,
     gfLow: 30,
-    gfHigh: 70,
+    gfHigh: 85, // Match MultiDeco defaults
   });
 
   const [selectedDiveIndex, setSelectedDiveIndex] = useState(0);
