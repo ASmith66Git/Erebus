@@ -1,5 +1,15 @@
 # Erebus - Dive Management App
 
+## Deployment Architecture (CRITICAL - DO NOT CHANGE)
+- **Development**: Two processes - Expo Web on port 5000, API Server on port 3001
+- **Production**: Single Express server on port 5000 serves BOTH API routes AND static files from `dist/`
+- **API URL Detection** (`utils/apiConfig.ts`):
+  - Web production (.replit.app): Uses `window.location.origin` (same origin as frontend)
+  - Web dev (.replit.dev): Uses hostname:3001
+  - Native apps: Uses `EXPO_PUBLIC_API_URL` environment variable
+- **Build**: `npx expo export --platform web` creates `dist/` folder
+- **Deploy command**: `node server/index.js` (server auto-detects production and serves static files)
+
 ## Overview
 Erebus is a cross-platform mobile application for Android and iOS, built with Expo React Native, designed as a comprehensive dive management tool. It enables divers to log dives, manage dive sites, and access relevant information. The project aims to be a leading mobile solution for the global diving community by offering a robust, user-friendly, and feature-rich experience. Key features include user authentication, dark/light theme support, an intuitive ocean-blue UI, and an administrative panel for user oversight.
 
