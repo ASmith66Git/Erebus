@@ -284,9 +284,9 @@ export default function GasCalculatorScreen() {
         {STANDARD_MIXES.filter(m => m.he === 0 && m.o2 <= 40).map((mix) => (
           <TouchableOpacity
             key={mix.name}
-            style={[styles.mixChip, 
-              (parseFloat(selectedO2) === mix.o2 && parseFloat(selectedHe) === mix.he) && { backgroundColor: colors.primary }
-            ]}
+            style={[styles.mixChip, { 
+              backgroundColor: (parseFloat(selectedO2) === mix.o2 && parseFloat(selectedHe) === mix.he) ? colors.primary : colors.card 
+            }]}
             onPress={() => applyMixToCalculators(mix.o2, mix.he)}
           >
             <Text style={[styles.mixChipText, { 
@@ -301,9 +301,9 @@ export default function GasCalculatorScreen() {
         {STANDARD_MIXES.filter(m => m.he === 0 && m.o2 > 40).map((mix) => (
           <TouchableOpacity
             key={mix.name}
-            style={[styles.mixChip, 
-              (parseFloat(selectedO2) === mix.o2 && parseFloat(selectedHe) === mix.he) && { backgroundColor: colors.primary }
-            ]}
+            style={[styles.mixChip, { 
+              backgroundColor: (parseFloat(selectedO2) === mix.o2 && parseFloat(selectedHe) === mix.he) ? colors.primary : colors.card 
+            }]}
             onPress={() => applyMixToCalculators(mix.o2, mix.he)}
           >
             <Text style={[styles.mixChipText, { 
@@ -318,9 +318,9 @@ export default function GasCalculatorScreen() {
         {STANDARD_MIXES.filter(m => m.he > 0).map((mix) => (
           <TouchableOpacity
             key={mix.name}
-            style={[styles.mixChip, 
-              (parseFloat(selectedO2) === mix.o2 && parseFloat(selectedHe) === mix.he) && { backgroundColor: colors.primary }
-            ]}
+            style={[styles.mixChip, { 
+              backgroundColor: (parseFloat(selectedO2) === mix.o2 && parseFloat(selectedHe) === mix.he) ? colors.primary : colors.card 
+            }]}
             onPress={() => applyMixToCalculators(mix.o2, mix.he)}
           >
             <Text style={[styles.mixChipText, { 
@@ -337,7 +337,7 @@ export default function GasCalculatorScreen() {
         {(['all', 'steel', 'aluminum'] as const).map((filter) => (
           <TouchableOpacity
             key={filter}
-            style={[styles.filterChip, materialFilter === filter && { backgroundColor: colors.primary }]}
+            style={[styles.filterChip, { backgroundColor: materialFilter === filter ? colors.primary : colors.card }]}
             onPress={() => setMaterialFilter(filter)}
           >
             <Text style={[styles.filterChipText, { color: materialFilter === filter ? '#FFF' : colors.text }]}>
@@ -621,7 +621,7 @@ export default function GasCalculatorScreen() {
               {(['all', 'steel', 'aluminum'] as const).map((filter) => (
                 <TouchableOpacity
                   key={filter}
-                  style={[styles.filterChip, materialFilter === filter && { backgroundColor: colors.primary }]}
+                  style={[styles.filterChip, { backgroundColor: materialFilter === filter ? colors.primary : colors.border }]}
                   onPress={() => setMaterialFilter(filter)}
                 >
                   <Text style={[styles.filterChipText, { color: materialFilter === filter ? '#FFF' : colors.text }]}>
