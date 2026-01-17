@@ -49,7 +49,6 @@ interface DiveSite {
   country: string | null;
   region: string | null;
   waterType: string;
-  depthMin: number | null;
   depthMax: number | null;
   visibilityMin: number | null;
   visibilityMax: number | null;
@@ -867,17 +866,6 @@ export default function DiveSiteDetailScreen() {
           </View>
 
           <View style={styles.formRow}>
-            <View style={[styles.formGroup, { flex: 1 }]}>
-              <Text style={[styles.formLabel, { color: colors.text }]}>Min Depth (m)</Text>
-              <TextInput
-                style={[styles.formInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
-                value={editedSite.depthMin?.toString() || ''}
-                onChangeText={(v) => updateField('depthMin', v ? parseFloat(v) : null)}
-                placeholder="0"
-                placeholderTextColor={colors.textSecondary}
-                keyboardType="numeric"
-              />
-            </View>
             <View style={{ flex: 1 }}>
               <PickerDropdown
                 label="Current Strength"
@@ -888,6 +876,7 @@ export default function DiveSiteDetailScreen() {
                 placeholder="Select..."
               />
             </View>
+            <View style={{ flex: 1 }} />
           </View>
 
           <View style={styles.formRow}>
@@ -1034,20 +1023,16 @@ export default function DiveSiteDetailScreen() {
                 {displaySite?.waterType === 'marine' ? 'Marine' : 'Normal'}
               </Text>
             </View>
-            {(displaySite?.depthMin || displaySite?.depthMax) && (
+            {displaySite?.depthMax && (
               <>
                 <View style={[styles.detailRowDivider, { backgroundColor: colors.border }]} />
                 <View style={styles.detailRow}>
                   <View style={styles.detailRowIcon}>
                     <Feather name="arrow-down" size={18} color={colors.primary} />
                   </View>
-                  <Text style={[styles.detailRowLabel, { color: colors.textSecondary }]}>Depth</Text>
+                  <Text style={[styles.detailRowLabel, { color: colors.textSecondary }]}>Max Depth</Text>
                   <Text style={[styles.detailRowValue, { color: colors.text }]}>
-                    {displaySite?.depthMin && displaySite?.depthMax 
-                      ? `${displaySite.depthMin} - ${displaySite.depthMax}m`
-                      : displaySite?.depthMax 
-                        ? `${displaySite.depthMax}m` 
-                        : `${displaySite?.depthMin}m`}
+                    {displaySite.depthMax}m
                   </Text>
                 </View>
               </>

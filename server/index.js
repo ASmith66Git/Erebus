@@ -1611,7 +1611,6 @@ app.get('/api/dive-sites', authenticateToken, async (req, res) => {
           country: site.country,
           region: site.region,
           waterType: site.water_type,
-          depthMin: parseFloat(site.depth_min) || null,
           depthMax: parseFloat(site.depth_max) || null,
           visibilityMin: parseFloat(site.visibility_min) || null,
           visibilityMax: parseFloat(site.visibility_max) || null,
@@ -1668,7 +1667,6 @@ app.get('/api/dive-sites/:id', authenticateToken, async (req, res) => {
       country: site.country,
       region: site.region,
       waterType: site.water_type,
-      depthMin: parseFloat(site.depth_min) || null,
       depthMax: parseFloat(site.depth_max) || null,
       visibilityMin: parseFloat(site.visibility_min) || null,
       visibilityMax: parseFloat(site.visibility_max) || null,
@@ -1705,7 +1703,7 @@ app.get('/api/dive-sites/:id', authenticateToken, async (req, res) => {
 app.post('/api/dive-sites', authenticateToken, async (req, res) => {
   const {
     name, description, siteType, latitude, longitude, country, region,
-    waterType, depthMin, depthMax, visibilityMin, visibilityMax,
+    waterType, depthMax, visibilityMin, visibilityMax,
     difficulty, currentStrength, accessNotes, facilities, hazards,
     bestSeason, wikipediaUrl, externalInfo, imageUrl, isWreck, wreckName, wreckUrl, wreckInfo
   } = req.body;
@@ -1718,16 +1716,16 @@ app.post('/api/dive-sites', authenticateToken, async (req, res) => {
     const result = await pool.query(
       `INSERT INTO dive_sites (
         user_id, name, description, site_type, latitude, longitude,
-        country, region, water_type, depth_min, depth_max,
+        country, region, water_type, depth_max,
         visibility_min, visibility_max, difficulty, current_strength,
         access_notes, facilities, hazards, best_season,
         wikipedia_url, external_info, image_url, is_wreck, wreck_name, wreck_url, wreck_info
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25)
       RETURNING *`,
       [
         req.user.id, name, description || null, siteType || 'reef',
         latitude || null, longitude || null, country || null, region || null,
-        waterType || 'marine', depthMin || null, depthMax || null,
+        waterType || 'marine', depthMax || null,
         visibilityMin || null, visibilityMax || null, difficulty || 'intermediate',
         currentStrength || null, accessNotes || null,
         JSON.stringify(facilities || []), JSON.stringify(hazards || []),
@@ -1747,7 +1745,6 @@ app.post('/api/dive-sites', authenticateToken, async (req, res) => {
       country: site.country,
       region: site.region,
       waterType: site.water_type,
-      depthMin: parseFloat(site.depth_min) || null,
       depthMax: parseFloat(site.depth_max) || null,
       difficulty: site.difficulty,
       imageUrl: site.image_url,
@@ -1764,7 +1761,7 @@ app.put('/api/dive-sites/:id', authenticateToken, async (req, res) => {
   const { id } = req.params;
   const {
     name, description, siteType, latitude, longitude, country, region,
-    waterType, depthMin, depthMax, visibilityMin, visibilityMax,
+    waterType, depthMax, visibilityMin, visibilityMax,
     difficulty, currentStrength, accessNotes, facilities, hazards,
     bestSeason, wikipediaUrl, externalInfo, imageUrl, ratingAvg,
     isWreck, wreckName, wreckUrl, wreckInfo
@@ -1786,29 +1783,28 @@ app.put('/api/dive-sites/:id', authenticateToken, async (req, res) => {
         country = $6,
         region = $7,
         water_type = COALESCE($8, water_type),
-        depth_min = $9,
-        depth_max = $10,
-        visibility_min = $11,
-        visibility_max = $12,
-        difficulty = COALESCE($13, difficulty),
-        current_strength = $14,
-        access_notes = $15,
-        facilities = $16,
-        hazards = $17,
-        best_season = $18,
-        wikipedia_url = $19,
-        external_info = $20,
-        image_url = $21,
-        rating_avg = COALESCE($22, rating_avg),
-        is_wreck = $23,
-        wreck_name = $24,
-        wreck_url = $25,
-        wreck_info = $26,
+        depth_max = $9,
+        visibility_min = $10,
+        visibility_max = $11,
+        difficulty = COALESCE($12, difficulty),
+        current_strength = $13,
+        access_notes = $14,
+        facilities = $15,
+        hazards = $16,
+        best_season = $17,
+        wikipedia_url = $18,
+        external_info = $19,
+        image_url = $20,
+        rating_avg = COALESCE($21, rating_avg),
+        is_wreck = $22,
+        wreck_name = $23,
+        wreck_url = $24,
+        wreck_info = $25,
         updated_at = CURRENT_TIMESTAMP
-      WHERE id = $27 RETURNING *`,
+      WHERE id = $26 RETURNING *`,
       [
         name, description, siteType, latitude, longitude, country, region,
-        waterType, depthMin, depthMax, visibilityMin, visibilityMax,
+        waterType, depthMax, visibilityMin, visibilityMax,
         difficulty, currentStrength, accessNotes,
         JSON.stringify(facilities || []), JSON.stringify(hazards || []),
         bestSeason, wikipediaUrl, externalInfo, imageUrl, ratingAvg,
@@ -1827,7 +1823,6 @@ app.put('/api/dive-sites/:id', authenticateToken, async (req, res) => {
       country: site.country,
       region: site.region,
       waterType: site.water_type,
-      depthMin: parseFloat(site.depth_min) || null,
       depthMax: parseFloat(site.depth_max) || null,
       visibilityMin: parseFloat(site.visibility_min) || null,
       visibilityMax: parseFloat(site.visibility_max) || null,
@@ -3020,7 +3015,7 @@ app.get('/api/sync/dive-sites', authenticateToken, async (req, res) => {
     if (since) {
       query = `
         SELECT id, user_id, name, description, site_type, latitude, longitude,
-               country, region, water_type, depth_min, depth_max, visibility_min,
+               country, region, water_type, depth_max, visibility_min,
                visibility_max, difficulty, current_strength, access_notes, facilities,
                hazards, best_season, rating_avg, ratings_count, wikipedia_url,
                external_info, image_url, is_archived, is_wreck, wreck_info, wreck_name,
@@ -3033,7 +3028,7 @@ app.get('/api/sync/dive-sites', authenticateToken, async (req, res) => {
     } else {
       query = `
         SELECT id, user_id, name, description, site_type, latitude, longitude,
-               country, region, water_type, depth_min, depth_max, visibility_min,
+               country, region, water_type, depth_max, visibility_min,
                visibility_max, difficulty, current_strength, access_notes, facilities,
                hazards, best_season, rating_avg, ratings_count, wikipedia_url,
                external_info, image_url, is_archived, is_wreck, wreck_info, wreck_name,
@@ -3057,7 +3052,6 @@ app.get('/api/sync/dive-sites', authenticateToken, async (req, res) => {
       country: row.country,
       region: row.region,
       waterType: row.water_type,
-      depthMin: row.depth_min ? parseFloat(row.depth_min) : null,
       depthMax: row.depth_max ? parseFloat(row.depth_max) : null,
       visibilityMin: row.visibility_min ? parseFloat(row.visibility_min) : null,
       visibilityMax: row.visibility_max ? parseFloat(row.visibility_max) : null,
@@ -3116,10 +3110,10 @@ app.post('/api/sync/dive-sites', authenticateToken, async (req, res) => {
           const insertResult = await client.query(`
             INSERT INTO dive_sites (
               user_id, name, description, site_type, latitude, longitude,
-              country, region, water_type, depth_min, depth_max, difficulty,
+              country, region, water_type, depth_max, difficulty,
               current_strength, access_notes, facilities, hazards, best_season,
               image_url, is_wreck, wreck_info, wreck_name, wreck_url
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
             RETURNING id, updated_at
           `, [
             req.user.id,
@@ -3131,7 +3125,6 @@ app.post('/api/sync/dive-sites', authenticateToken, async (req, res) => {
             data.country || null,
             data.region || null,
             data.waterType || 'marine',
-            data.depthMin || null,
             data.depthMax || null,
             data.difficulty || 'intermediate',
             data.currentStrength || null,
@@ -3173,13 +3166,12 @@ app.post('/api/sync/dive-sites', authenticateToken, async (req, res) => {
               country = COALESCE($6, country),
               region = COALESCE($7, region),
               water_type = COALESCE($8, water_type),
-              depth_min = COALESCE($9, depth_min),
-              depth_max = COALESCE($10, depth_max),
-              difficulty = COALESCE($11, difficulty),
-              current_strength = COALESCE($12, current_strength),
-              access_notes = COALESCE($13, access_notes),
-              image_url = COALESCE($14, image_url)
-            WHERE id = $15 AND deleted_at IS NULL
+              depth_max = COALESCE($9, depth_max),
+              difficulty = COALESCE($10, difficulty),
+              current_strength = COALESCE($11, current_strength),
+              access_notes = COALESCE($12, access_notes),
+              image_url = COALESCE($13, image_url)
+            WHERE id = $14 AND deleted_at IS NULL
             RETURNING id, updated_at
           `, [
             data.name,
@@ -3190,7 +3182,6 @@ app.post('/api/sync/dive-sites', authenticateToken, async (req, res) => {
             data.country,
             data.region,
             data.waterType,
-            data.depthMin,
             data.depthMax,
             data.difficulty,
             data.currentStrength,
