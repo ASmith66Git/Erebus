@@ -22,6 +22,7 @@ interface EmbeddedMapPickerProps {
     border: string;
     primary: string;
   };
+  readOnly?: boolean;
 }
 
 export default function EmbeddedMapPicker({
@@ -29,6 +30,7 @@ export default function EmbeddedMapPicker({
   longitude,
   onCoordinatesChange,
   colors,
+  readOnly = false,
 }: EmbeddedMapPickerProps) {
   const [searchText, setSearchText] = useState('');
   const [markerPosition, setMarkerPosition] = useState({ latitude, longitude });
@@ -244,37 +246,39 @@ export default function EmbeddedMapPicker({
 
   return (
     <View style={styles.container}>
-      <View style={styles.searchRow}>
-        <View style={[styles.searchInputContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Feather name="search" size={18} color={colors.textSecondary} style={styles.searchIcon} />
-          <input
-            id="map-search-input"
-            type="text"
-            placeholder="Search for a location..."
-            style={{
-              flex: 1,
-              border: 'none',
-              outline: 'none',
-              backgroundColor: 'transparent',
-              color: colors.text,
-              fontSize: 16,
-              padding: '8px 0',
-              width: '100%',
-            }}
-          />
+      {!readOnly && (
+        <View style={styles.searchRow}>
+          <View style={[styles.searchInputContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Feather name="search" size={18} color={colors.textSecondary} style={styles.searchIcon} />
+            <input
+              id="map-search-input"
+              type="text"
+              placeholder="Search for a location..."
+              style={{
+                flex: 1,
+                border: 'none',
+                outline: 'none',
+                backgroundColor: 'transparent',
+                color: colors.text,
+                fontSize: 16,
+                padding: '8px 0',
+                width: '100%',
+              }}
+            />
+          </View>
+          <Pressable
+            style={[styles.locationButton, { backgroundColor: colors.primary }]}
+            onPress={getCurrentLocation}
+            disabled={gettingLocation}
+          >
+            {gettingLocation ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <Feather name="crosshair" size={20} color="#FFFFFF" />
+            )}
+          </Pressable>
         </View>
-        <Pressable
-          style={[styles.locationButton, { backgroundColor: colors.primary }]}
-          onPress={getCurrentLocation}
-          disabled={gettingLocation}
-        >
-          {gettingLocation ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
-          ) : (
-            <Feather name="crosshair" size={20} color="#FFFFFF" />
-          )}
-        </Pressable>
-      </View>
+      )}
 
       <View style={[styles.mapContainer, { borderColor: colors.border }]}>
         {mapError ? (
@@ -308,9 +312,11 @@ export default function EmbeddedMapPicker({
         </Text>
       </View>
 
-      <Text style={[styles.helpText, { color: colors.textSecondary }]}>
-        Search for a location, click on the map, or drag the marker to set coordinates
-      </Text>
+      {!readOnly && (
+        <Text style={[styles.helpText, { color: colors.textSecondary }]}>
+          Search for a location, click on the map, or drag the marker to set coordinates
+        </Text>
+      )}
     </View>
   );
 }

@@ -362,60 +362,35 @@ export default function DiveTripsScreen() {
         }}
       >
         <View style={styles.tripCardRow}>
-          {coverUrl && (
+          {coverUrl ? (
             <Image
               source={{ uri: coverUrl }}
               style={styles.tripCardThumbnail}
               resizeMode="cover"
             />
+          ) : (
+            <View style={[styles.tripCardThumbnailPlaceholder, { backgroundColor: colors.primary + '15' }]}>
+              <Feather name={typeInfo.icon as any} size={28} color={colors.primary} />
+            </View>
           )}
-          <View style={[styles.tripCardContent, coverUrl ? { flex: 1 } : null]}>
-            <View style={styles.tripCardHeader}>
-              <View style={[styles.tripTypeIcon, { backgroundColor: colors.primary + '20' }]}>
-                <Feather name={typeInfo.icon as any} size={20} color={colors.primary} />
-              </View>
-              <View style={styles.tripCardHeaderText}>
-                <Text style={[styles.tripName, { color: colors.text }]}>{trip.name}</Text>
-                <Text style={[styles.tripType, { color: colors.textSecondary }]}>{typeInfo.label}</Text>
-              </View>
-            </View>
-
-            <View style={styles.tripCardDetails}>
-              {(trip.start_date || trip.end_date) && (
-                <View style={styles.tripDetailRow}>
-                  <Feather name="calendar" size={14} color={colors.textSecondary} />
-                  <Text style={[styles.tripDetailText, { color: colors.textSecondary }]}>
-                    {formatDate(trip.start_date)}
-                    {trip.end_date && ` - ${formatDate(trip.end_date)}`}
-                  </Text>
-                </View>
-              )}
-              {trip.location && (
-                <View style={styles.tripDetailRow}>
-                  <Feather name="map-pin" size={14} color={colors.textSecondary} />
-                  <Text style={[styles.tripDetailText, { color: colors.textSecondary }]}>
-                    {trip.location}{trip.country ? `, ${trip.country}` : ''}
-                  </Text>
-                </View>
-              )}
-              {(trip.operator_name || trip.vessel_name || trip.dive_center_name) && (
-                <View style={styles.tripDetailRow}>
-                  <Feather name="briefcase" size={14} color={colors.textSecondary} />
-                  <Text style={[styles.tripDetailText, { color: colors.textSecondary }]}>
-                    {trip.vessel_name || trip.dive_center_name || trip.operator_name}
-                  </Text>
-                </View>
-              )}
-            </View>
-
-            <View style={[styles.tripCardFooter, { borderTopColor: colors.border }]}>
-              <View style={styles.tripStat}>
-                <Feather name="activity" size={14} color={colors.primary} />
-                <Text style={[styles.tripStatText, { color: colors.text }]}>
-                  {typeof trip.linked_dives === 'number' ? trip.linked_dives : (Array.isArray(trip.linked_dives) ? trip.linked_dives.length : trip.total_dives || 0)} dives
-                </Text>
-              </View>
-            </View>
+          <View style={styles.tripCardContent}>
+            <Text style={[styles.tripName, { color: colors.text }]} numberOfLines={1}>{trip.name}</Text>
+            <Text style={[styles.tripType, { color: colors.textSecondary }]}>{typeInfo.label}</Text>
+            
+            {(trip.start_date || trip.end_date) && (
+              <Text style={[styles.tripCardMeta, { color: colors.textSecondary }]} numberOfLines={1}>
+                {formatDate(trip.start_date)}{trip.end_date && ` - ${formatDate(trip.end_date)}`}
+              </Text>
+            )}
+            {trip.location && (
+              <Text style={[styles.tripCardMeta, { color: colors.textSecondary }]} numberOfLines={1}>
+                {trip.location}{trip.country ? `, ${trip.country}` : ''}
+              </Text>
+            )}
+            
+            <Text style={[styles.tripCardDives, { color: colors.primary }]}>
+              {typeof trip.linked_dives === 'number' ? trip.linked_dives : (Array.isArray(trip.linked_dives) ? trip.linked_dives.length : trip.total_dives || 0)} dives
+            </Text>
           </View>
         </View>
       </Pressable>
@@ -817,11 +792,12 @@ export default function DiveTripsScreen() {
 
                 {selectedTrip.latitude && selectedTrip.longitude && (
                   <View style={{ marginTop: 16 }}>
-                    <Text style={[styles.sectionTitle, { color: colors.text }]}>Location</Text>
+                    <Text style={[styles.sectionTitle, { color: colors.text }]}>Map</Text>
                     <EmbeddedMapPicker
                       latitude={selectedTrip.latitude}
                       longitude={selectedTrip.longitude}
                       onCoordinatesChange={() => {}}
+                      readOnly={true}
                       colors={{
                         background: colors.background,
                         surface: colors.surface,
@@ -925,9 +901,12 @@ const styles = StyleSheet.create({
   emptyStateBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 20, paddingVertical: 12, borderRadius: 8, marginTop: 24 },
   emptyStateBtnText: { color: '#FFF', fontSize: 16, fontWeight: '500' },
   tripCard: { borderRadius: 12, marginBottom: 12, borderWidth: 1, overflow: 'hidden' },
-  tripCardRow: { flexDirection: 'row' },
-  tripCardThumbnail: { width: 80, height: 80, borderTopLeftRadius: 12, borderBottomLeftRadius: 12 },
-  tripCardContent: { padding: 12, flex: 1 },
+  tripCardRow: { flexDirection: 'row', alignItems: 'stretch' },
+  tripCardThumbnail: { width: 90, height: 110, borderTopLeftRadius: 12, borderBottomLeftRadius: 12 },
+  tripCardThumbnailPlaceholder: { width: 90, height: 110, borderTopLeftRadius: 12, borderBottomLeftRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  tripCardContent: { padding: 10, flex: 1, justifyContent: 'center' },
+  tripCardMeta: { fontSize: 12, marginTop: 2 },
+  tripCardDives: { fontSize: 12, fontWeight: '600', marginTop: 6 },
   detailCoverImage: { width: '100%', height: 180, borderRadius: 12, marginBottom: 16 },
   coverImageSection: { marginBottom: 16 },
   coverImagePreview: { width: '100%', height: 160, borderRadius: 12, marginBottom: 12 },
