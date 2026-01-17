@@ -172,6 +172,26 @@ const waterTypeOptions = [
   { value: 'inland', label: 'Normal (Freshwater)' },
 ];
 
+const currentStrengthOptions = [
+  { value: 'none', label: 'None' },
+  { value: 'mild', label: 'Mild' },
+  { value: 'moderate', label: 'Moderate' },
+  { value: 'strong', label: 'Strong' },
+  { value: 'variable', label: 'Variable' },
+];
+
+const bestSeasonOptions = [
+  { value: 'year-round', label: 'Year Round' },
+  { value: 'spring', label: 'Spring' },
+  { value: 'summer', label: 'Summer' },
+  { value: 'autumn', label: 'Autumn' },
+  { value: 'winter', label: 'Winter' },
+  { value: 'spring-summer', label: 'Spring - Summer' },
+  { value: 'summer-autumn', label: 'Summer - Autumn' },
+  { value: 'autumn-winter', label: 'Autumn - Winter' },
+  { value: 'winter-spring', label: 'Winter - Spring' },
+];
+
 const siteTypeOptions = Object.entries(siteTypeLabels).map(([value, label]) => ({ value, label }));
 const difficultyOptions = Object.entries(difficultyLabels).map(([value, label]) => ({ value, label }));
 
@@ -846,6 +866,66 @@ export default function DiveSiteDetailScreen() {
             </View>
           </View>
 
+          <View style={styles.formRow}>
+            <View style={[styles.formGroup, { flex: 1 }]}>
+              <Text style={[styles.formLabel, { color: colors.text }]}>Min Depth (m)</Text>
+              <TextInput
+                style={[styles.formInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
+                value={editedSite.depthMin?.toString() || ''}
+                onChangeText={(v) => updateField('depthMin', v ? parseFloat(v) : null)}
+                placeholder="0"
+                placeholderTextColor={colors.textSecondary}
+                keyboardType="numeric"
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <PickerDropdown
+                label="Current Strength"
+                value={editedSite.currentStrength}
+                options={currentStrengthOptions}
+                onValueChange={(v) => updateField('currentStrength', v)}
+                colors={colors}
+                placeholder="Select..."
+              />
+            </View>
+          </View>
+
+          <View style={styles.formRow}>
+            <View style={[styles.formGroup, { flex: 1 }]}>
+              <Text style={[styles.formLabel, { color: colors.text }]}>Visibility Min (m)</Text>
+              <TextInput
+                style={[styles.formInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
+                value={editedSite.visibilityMin?.toString() || ''}
+                onChangeText={(v) => updateField('visibilityMin', v ? parseFloat(v) : null)}
+                placeholder="0"
+                placeholderTextColor={colors.textSecondary}
+                keyboardType="numeric"
+              />
+            </View>
+            <View style={[styles.formGroup, { flex: 1 }]}>
+              <Text style={[styles.formLabel, { color: colors.text }]}>Visibility Max (m)</Text>
+              <TextInput
+                style={[styles.formInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
+                value={editedSite.visibilityMax?.toString() || ''}
+                onChangeText={(v) => updateField('visibilityMax', v ? parseFloat(v) : null)}
+                placeholder="0"
+                placeholderTextColor={colors.textSecondary}
+                keyboardType="numeric"
+              />
+            </View>
+          </View>
+
+          <View style={styles.formGroup}>
+            <PickerDropdown
+              label="Best Season"
+              value={editedSite.bestSeason}
+              options={bestSeasonOptions}
+              onValueChange={(v) => updateField('bestSeason', v)}
+              colors={colors}
+              placeholder="Select best season..."
+            />
+          </View>
+
           <View style={styles.formGroup}>
             <Text style={[styles.formLabel, { color: colors.text }]}>Rating</Text>
             <StarRating
@@ -954,16 +1034,66 @@ export default function DiveSiteDetailScreen() {
                 {displaySite?.waterType === 'marine' ? 'Marine' : 'Normal'}
               </Text>
             </View>
-            {displaySite?.depthMax && (
+            {(displaySite?.depthMin || displaySite?.depthMax) && (
               <>
                 <View style={[styles.detailRowDivider, { backgroundColor: colors.border }]} />
                 <View style={styles.detailRow}>
                   <View style={styles.detailRowIcon}>
                     <Feather name="arrow-down" size={18} color={colors.primary} />
                   </View>
-                  <Text style={[styles.detailRowLabel, { color: colors.textSecondary }]}>Max Depth</Text>
+                  <Text style={[styles.detailRowLabel, { color: colors.textSecondary }]}>Depth</Text>
                   <Text style={[styles.detailRowValue, { color: colors.text }]}>
-                    {displaySite.depthMax}m
+                    {displaySite?.depthMin && displaySite?.depthMax 
+                      ? `${displaySite.depthMin} - ${displaySite.depthMax}m`
+                      : displaySite?.depthMax 
+                        ? `${displaySite.depthMax}m` 
+                        : `${displaySite?.depthMin}m`}
+                  </Text>
+                </View>
+              </>
+            )}
+            {(displaySite?.visibilityMin || displaySite?.visibilityMax) && (
+              <>
+                <View style={[styles.detailRowDivider, { backgroundColor: colors.border }]} />
+                <View style={styles.detailRow}>
+                  <View style={styles.detailRowIcon}>
+                    <Feather name="eye" size={18} color={colors.primary} />
+                  </View>
+                  <Text style={[styles.detailRowLabel, { color: colors.textSecondary }]}>Visibility</Text>
+                  <Text style={[styles.detailRowValue, { color: colors.text }]}>
+                    {displaySite?.visibilityMin && displaySite?.visibilityMax 
+                      ? `${displaySite.visibilityMin} - ${displaySite.visibilityMax}m`
+                      : displaySite?.visibilityMax 
+                        ? `${displaySite.visibilityMax}m` 
+                        : `${displaySite?.visibilityMin}m`}
+                  </Text>
+                </View>
+              </>
+            )}
+            {displaySite?.currentStrength && (
+              <>
+                <View style={[styles.detailRowDivider, { backgroundColor: colors.border }]} />
+                <View style={styles.detailRow}>
+                  <View style={styles.detailRowIcon}>
+                    <Feather name="wind" size={18} color={colors.primary} />
+                  </View>
+                  <Text style={[styles.detailRowLabel, { color: colors.textSecondary }]}>Current</Text>
+                  <Text style={[styles.detailRowValue, { color: colors.text }]}>
+                    {currentStrengthOptions.find(o => o.value === displaySite.currentStrength)?.label || displaySite.currentStrength}
+                  </Text>
+                </View>
+              </>
+            )}
+            {displaySite?.bestSeason && (
+              <>
+                <View style={[styles.detailRowDivider, { backgroundColor: colors.border }]} />
+                <View style={styles.detailRow}>
+                  <View style={styles.detailRowIcon}>
+                    <Feather name="calendar" size={18} color={colors.primary} />
+                  </View>
+                  <Text style={[styles.detailRowLabel, { color: colors.textSecondary }]}>Best Season</Text>
+                  <Text style={[styles.detailRowValue, { color: colors.text }]}>
+                    {bestSeasonOptions.find(o => o.value === displaySite.bestSeason)?.label || displaySite.bestSeason}
                   </Text>
                 </View>
               </>
