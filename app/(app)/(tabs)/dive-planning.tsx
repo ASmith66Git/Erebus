@@ -142,7 +142,7 @@ export default function DivePlanningScreen() {
   };
 
   const updateGas = (id: string, field: keyof GasEntry, value: any) => {
-    setGases(gases.map(g => g.id === id ? { ...g, [field]: value } : g));
+    setGases(prev => prev.map(g => g.id === id ? { ...g, [field]: value } : g));
   };
 
   const tissueColors = [
