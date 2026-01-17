@@ -540,20 +540,7 @@ export default function CertificationsScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <PageHeader 
-        title="Certifications" 
-        rightAction={
-          <Pressable
-            style={styles.addButton}
-            onPress={() => {
-              resetForm();
-              setShowAddModal(true);
-            }}
-          >
-            <Feather name="plus" size={22} color={colors.primary} />
-          </Pressable>
-        }
-      />
+      <PageHeader title="Certifications" />
 
       <View style={[styles.tabBar, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <Pressable
@@ -860,9 +847,6 @@ export default function CertificationsScreen() {
         <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
           <View style={[styles.modalContent, { backgroundColor: colors.surface, height: '85%' }]}>
             <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
-              <Pressable onPress={() => setShowDetailModal(false)}>
-                <Feather name="x" size={24} color={colors.text} />
-              </Pressable>
               <Text style={[styles.modalTitle, { color: colors.text }]}>Certification Details</Text>
               <View style={{ flexDirection: 'row', gap: 16 }}>
                 <Pressable onPress={() => {
@@ -896,6 +880,9 @@ export default function CertificationsScreen() {
                 </Pressable>
                 <Pressable onPress={() => selectedCertification && handleDeleteCertification(selectedCertification.id)}>
                   <Feather name="trash-2" size={22} color={colors.danger} />
+                </Pressable>
+                <Pressable onPress={() => setShowDetailModal(false)}>
+                  <Feather name="x" size={24} color={colors.text} />
                 </Pressable>
               </View>
             </View>
