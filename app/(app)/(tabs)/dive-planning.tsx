@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert,
-  useColorScheme, Dimensions, Platform, Modal, Switch
+  Dimensions, Platform, Modal, Switch
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { DrawerActions, useNavigation } from '@react-navigation/native';
@@ -14,6 +14,7 @@ import {
 } from '@/services/divePlanner';
 import { CYLINDER_PRESETS_LEGACY as CYLINDER_PRESETS } from '@/services/cylinderCatalog';
 import PageHeader from '@/components/PageHeader';
+import { useTheme } from '@/contexts/ThemeContext';
 
 const CHART_HEIGHT = 280;
 const TISSUE_CHART_HEIGHT = 180;
@@ -47,17 +48,16 @@ const DECO_MODELS: { value: DecoModel; label: string; description: string }[] = 
 ];
 
 export default function DivePlanningScreen() {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
+  const { colors: themeColors, isDark } = useTheme();
   const navigation = useNavigation();
 
   const colors = {
-    background: isDark ? '#000000' : '#FFFFFF',
+    background: themeColors.background,
     card: isDark ? '#1C1C1E' : '#F2F2F7',
-    text: isDark ? '#FFFFFF' : '#000000',
+    text: themeColors.text,
     textSecondary: isDark ? '#8E8E93' : '#6B6B6B',
     border: isDark ? '#38383A' : '#E5E5EA',
-    primary: '#D22F00',
+    primary: themeColors.primary,
     accent: '#007AFF',
     warning: '#FF9500',
     success: '#34C759',
