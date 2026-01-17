@@ -304,7 +304,7 @@ export default function EmbeddedMapPicker({
           Coordinates:
         </Text>
         <Text style={[styles.coordsValue, { color: colors.text }]}>
-          {markerPosition.latitude.toFixed(6)}, {markerPosition.longitude.toFixed(6)}
+          {Number(markerPosition.latitude).toFixed(6)}, {Number(markerPosition.longitude).toFixed(6)}
         </Text>
       </View>
 
