@@ -101,16 +101,16 @@ function hslToHex(h: number, s: number, l: number): string {
 function generateColorShades(baseColor: string): string[][] {
   const { h, s, l } = hexToHsl(baseColor);
   
-  // Generate 6 distinct shades by varying hue and lightness
+  // Generate 6 distinct gradients using the SAME hue but different lightness levels
   const shades: string[][] = [
-    // Stats cards - deeper, richer tones
-    [hslToHex(h, Math.min(s + 10, 100), Math.max(l - 5, 30)), hslToHex(h, Math.min(s + 15, 100), Math.max(l - 12, 25))],
-    [hslToHex((h + 15) % 360, Math.min(s + 5, 100), Math.max(l - 3, 35)), hslToHex((h + 15) % 360, Math.min(s + 10, 100), Math.max(l - 10, 28))],
-    [hslToHex((h + 30) % 360, Math.min(s + 8, 100), Math.max(l - 8, 32)), hslToHex((h + 30) % 360, Math.min(s + 12, 100), Math.max(l - 15, 26))],
-    // Quick action cards - slightly lighter
-    [hslToHex((h + 45) % 360, Math.min(s, 100), Math.min(l + 5, 55)), hslToHex((h + 45) % 360, Math.min(s + 5, 100), l)],
-    [hslToHex((h + 60) % 360, Math.min(s - 5, 100), Math.min(l + 8, 58)), hslToHex((h + 60) % 360, Math.min(s, 100), Math.min(l + 3, 52))],
-    [hslToHex((h + 75) % 360, Math.min(s - 8, 100), Math.min(l + 10, 60)), hslToHex((h + 75) % 360, Math.min(s - 3, 100), Math.min(l + 5, 55))],
+    // Stats cards - varying darkness levels of the same color
+    [hslToHex(h, Math.min(s + 5, 100), Math.min(l + 8, 55)), hslToHex(h, Math.min(s + 10, 100), Math.max(l - 5, 30))],
+    [hslToHex(h, Math.min(s + 3, 100), Math.min(l + 5, 52)), hslToHex(h, Math.min(s + 8, 100), Math.max(l - 8, 28))],
+    [hslToHex(h, s, Math.min(l + 3, 50)), hslToHex(h, Math.min(s + 5, 100), Math.max(l - 10, 25))],
+    // Quick action cards - slightly different saturation/lightness for variety
+    [hslToHex(h, Math.max(s - 5, 60), Math.min(l + 10, 58)), hslToHex(h, s, Math.min(l + 2, 48))],
+    [hslToHex(h, Math.max(s - 8, 55), Math.min(l + 12, 60)), hslToHex(h, Math.max(s - 3, 65), Math.min(l + 5, 52))],
+    [hslToHex(h, Math.max(s - 10, 50), Math.min(l + 15, 62)), hslToHex(h, Math.max(s - 5, 60), Math.min(l + 8, 55))],
   ];
   
   return shades;
