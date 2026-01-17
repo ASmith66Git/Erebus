@@ -21,9 +21,12 @@ import { useRouter } from 'expo-router';
 import { useNavigation, DrawerActions } from '@react-navigation/native';
 import { getApiUrl } from '@/utils/apiConfig';
 import EmbeddedMapPicker from '@/components/EmbeddedMapPicker';
+import StaticMapView from '@/components/StaticMapView';
 import DatePickerField from '@/components/DatePickerField';
 import PageHeader from '@/components/PageHeader';
 import * as ImagePicker from 'expo-image-picker';
+
+const DEBUG_DISABLE_MAPS = false;
 
 interface LinkedDiveLog {
   id: number;
@@ -635,21 +638,31 @@ export default function DiveTripsScreen() {
 
               <View style={styles.formGroup}>
                 <Text style={[styles.formLabel, { color: colors.text }]}>Map Location</Text>
-                <EmbeddedMapPicker
-                  latitude={formData.latitude || 0}
-                  longitude={formData.longitude || 0}
-                  onCoordinatesChange={(lat, lng) => {
-                    setFormData(prev => ({ ...prev, latitude: lat, longitude: lng }));
-                  }}
-                  colors={{
-                    background: colors.background,
-                    surface: colors.surface,
-                    text: colors.text,
-                    textSecondary: colors.textSecondary,
-                    border: colors.border,
-                    primary: colors.primary,
-                  }}
-                />
+                {DEBUG_DISABLE_MAPS ? (
+                  <View style={[styles.mapPlaceholder, { backgroundColor: colors.background, borderColor: colors.border }]}>
+                    <Feather name="map" size={32} color={colors.textSecondary} />
+                    <Text style={{ color: colors.textSecondary, marginTop: 8 }}>Map disabled for debugging</Text>
+                    <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
+                      Lat: {formData.latitude || 0}, Lng: {formData.longitude || 0}
+                    </Text>
+                  </View>
+                ) : (
+                  <EmbeddedMapPicker
+                    latitude={formData.latitude || 0}
+                    longitude={formData.longitude || 0}
+                    onCoordinatesChange={(lat, lng) => {
+                      setFormData(prev => ({ ...prev, latitude: lat, longitude: lng }));
+                    }}
+                    colors={{
+                      background: colors.background,
+                      surface: colors.surface,
+                      text: colors.text,
+                      textSecondary: colors.textSecondary,
+                      border: colors.border,
+                      primary: colors.primary,
+                    }}
+                  />
+                )}
               </View>
 
               <View style={styles.formGroup}>
@@ -793,20 +806,21 @@ export default function DiveTripsScreen() {
                 {selectedTrip.latitude && selectedTrip.longitude && (
                   <View style={{ marginTop: 16 }}>
                     <Text style={[styles.sectionTitle, { color: colors.text }]}>Map</Text>
-                    <EmbeddedMapPicker
-                      latitude={selectedTrip.latitude}
-                      longitude={selectedTrip.longitude}
-                      onCoordinatesChange={() => {}}
-                      readOnly={true}
-                      colors={{
-                        background: colors.background,
-                        surface: colors.surface,
-                        text: colors.text,
-                        textSecondary: colors.textSecondary,
-                        border: colors.border,
-                        primary: colors.primary,
-                      }}
-                    />
+                    {DEBUG_DISABLE_MAPS ? (
+                      <View style={[styles.mapPlaceholder, { backgroundColor: colors.background, borderColor: colors.border }]}>
+                        <Feather name="map-pin" size={32} color={colors.textSecondary} />
+                        <Text style={{ color: colors.textSecondary, marginTop: 8 }}>Map disabled for debugging</Text>
+                        <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
+                          Lat: {selectedTrip.latitude}, Lng: {selectedTrip.longitude}
+                        </Text>
+                      </View>
+                    ) : (
+                      <StaticMapView
+                        latitude={selectedTrip.latitude}
+                        longitude={selectedTrip.longitude}
+                        colors={colors}
+                      />
+                    )}
                   </View>
                 )}
 
@@ -980,4 +994,5 @@ const styles = StyleSheet.create({
   linkedDiveDate: { fontSize: 12, marginTop: 2 },
   linkedDiveStats: { flexDirection: 'row', gap: 12 },
   linkedDiveStat: { fontSize: 13, fontWeight: '500' },
+  mapPlaceholder: { height: 200, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
 });
