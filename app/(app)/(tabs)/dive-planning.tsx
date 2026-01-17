@@ -6,6 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { DrawerActions, useNavigation } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
+import Slider from '@react-native-community/slider';
 import Svg, { Path, Line, Text as SvgText, Rect, G, Circle } from 'react-native-svg';
 import {
   calculateDivePlan, calculateMultiDivePlan, createGasMix, initializeTissues,
@@ -195,23 +196,17 @@ export default function DivePlanningScreen() {
           <Text style={[styles.sliderLabel, { color: colors.text }]}>{label}</Text>
           <Text style={[styles.sliderValue, { color: colors.primary }]}>{value}{unit}</Text>
         </View>
-        <View style={styles.sliderTrack}>
-          <TouchableOpacity
-            style={[styles.sliderButton, { backgroundColor: colors.card }]}
-            onPress={() => onChange(Math.max(min, value - step))}
-          >
-            <Feather name="minus" size={16} color={colors.text} />
-          </TouchableOpacity>
-          <View style={[styles.sliderFill, { flex: 1, backgroundColor: colors.border }]}>
-            <View style={[styles.sliderProgress, { width: `${((value - min) / (max - min)) * 100}%`, backgroundColor: colors.primary }]} />
-          </View>
-          <TouchableOpacity
-            style={[styles.sliderButton, { backgroundColor: colors.card }]}
-            onPress={() => onChange(Math.min(max, value + step))}
-          >
-            <Feather name="plus" size={16} color={colors.text} />
-          </TouchableOpacity>
-        </View>
+        <Slider
+          style={styles.touchSlider}
+          minimumValue={min}
+          maximumValue={max}
+          step={step}
+          value={value}
+          onValueChange={onChange}
+          minimumTrackTintColor={colors.primary}
+          maximumTrackTintColor={colors.border}
+          thumbTintColor={colors.primary}
+        />
       </View>
     );
   };
@@ -1598,6 +1593,7 @@ const styles = StyleSheet.create({
   },
   sliderLabel: { fontSize: 14 },
   sliderValue: { fontSize: 14, fontWeight: '600' },
+  touchSlider: { width: '100%', height: 40 },
   sliderTrack: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   sliderButton: {
     width: 32,

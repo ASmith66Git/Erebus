@@ -263,6 +263,32 @@ export function getInspiredPressure(ambientPressure: number, gas: GasMix): { ppN
   };
 }
 
+export function getInspiredPressureCCR(
+  ambientPressure: number, 
+  gas: GasMix, 
+  setpoint: number
+): { ppN2: number; ppHe: number; ppO2: number } {
+  const alveolarPressure = ambientPressure - WATER_VAPOR_PRESSURE;
+  
+  const actualPpO2 = Math.min(setpoint, alveolarPressure);
+  
+  const remainingPressure = alveolarPressure - actualPpO2;
+  
+  const inertTotal = gas.n2Percent + gas.hePercent;
+  if (inertTotal === 0) {
+    return { ppN2: remainingPressure, ppHe: 0, ppO2: actualPpO2 };
+  }
+  
+  const n2Ratio = gas.n2Percent / inertTotal;
+  const heRatio = gas.hePercent / inertTotal;
+  
+  return {
+    ppN2: remainingPressure * n2Ratio,
+    ppHe: remainingPressure * heRatio,
+    ppO2: actualPpO2,
+  };
+}
+
 export function initializeTissues(): TissueState[] {
   const surfaceN2 = (SURFACE_PRESSURE - WATER_VAPOR_PRESSURE) * 0.79;
   
@@ -303,10 +329,15 @@ export function calculateTissueLoadingConstantDepth(
   depth: number,
   duration: number,
   gas: GasMix,
-  waterType: WaterType = 'salt'
+  waterType: WaterType = 'salt',
+  circuit: CircuitType = 'open',
+  ccrSetpoint: number = 1.3
 ): TissueState[] {
   const ambientPressure = depthToPressure(depth, waterType);
-  const { ppN2: inspiredN2, ppHe: inspiredHe } = getInspiredPressure(ambientPressure, gas);
+  const inspired = circuit === 'ccr' 
+    ? getInspiredPressureCCR(ambientPressure, gas, ccrSetpoint)
+    : getInspiredPressure(ambientPressure, gas);
+  const { ppN2: inspiredN2, ppHe: inspiredHe } = inspired;
   
   return tissues.map((tissue, i) => {
     const kN2 = Math.LN2 / tissue.halfTimeN2;
@@ -330,13 +361,40 @@ export function calculateTissueLoadingSchreiner(
   endDepth: number,
   duration: number,
   gas: GasMix,
-  waterType: WaterType = 'salt'
+  waterType: WaterType = 'salt',
+  circuit: CircuitType = 'open',
+  ccrSetpoint: number = 1.3
 ): TissueState[] {
   if (duration === 0) return tissues.map(t => ({ ...t }));
   
   const startPressure = depthToPressure(startDepth, waterType);
   const endPressure = depthToPressure(endDepth, waterType);
   const rate = (endPressure - startPressure) / duration;
+  
+  if (circuit === 'ccr') {
+    const startInspired = getInspiredPressureCCR(startPressure, gas, ccrSetpoint);
+    const endInspired = getInspiredPressureCCR(endPressure, gas, ccrSetpoint);
+    const rateN2 = (endInspired.ppN2 - startInspired.ppN2) / duration;
+    const rateHe = (endInspired.ppHe - startInspired.ppHe) / duration;
+    
+    return tissues.map((tissue, i) => {
+      const kN2 = Math.LN2 / tissue.halfTimeN2;
+      const kHe = Math.LN2 / tissue.halfTimeHe;
+      
+      const newPpN2 = startInspired.ppN2 + rateN2 * (duration - 1/kN2) - 
+        (startInspired.ppN2 - tissue.ppN2 - rateN2/kN2) * Math.exp(-kN2 * duration);
+      
+      const newPpHe = startInspired.ppHe + rateHe * (duration - 1/kHe) - 
+        (startInspired.ppHe - tissue.ppHe - rateHe/kHe) * Math.exp(-kHe * duration);
+      
+      return {
+        ...tissue,
+        ppN2: Math.max(0, newPpN2),
+        ppHe: Math.max(0, newPpHe),
+        ppInert: Math.max(0, newPpN2) + Math.max(0, newPpHe),
+      };
+    });
+  }
   
   const { ppN2: startN2, ppHe: startHe } = getInspiredPressure(startPressure, gas);
   const rateN2 = rate * (gas.n2Percent / 100);
@@ -559,7 +617,7 @@ export function calculateDecoSchedule(
     const nextStopDepth = Math.ceil(ceiling / settings.decoStopInterval) * settings.decoStopInterval;
     
     if (nextStopDepth >= depth && depth > 0) {
-      currentTissues = calculateTissueLoadingConstantDepth(currentTissues, depth, 1, gas, settings.waterType);
+      currentTissues = calculateTissueLoadingConstantDepth(currentTissues, depth, 1, gas, settings.waterType, settings.circuit, settings.ccrSetpoint);
       tissueHistory.push(currentTissues.map(t => ({ ...t })));
       
       const existingStop = stops.find(s => s.depth === depth);
@@ -571,7 +629,7 @@ export function calculateDecoSchedule(
     } else {
       const nextDepth = Math.max(0, depth - settings.decoStopInterval);
       const ascentTime = settings.decoStopInterval / settings.ascentRate;
-      currentTissues = calculateTissueLoadingSchreiner(currentTissues, depth, nextDepth, ascentTime, gas, settings.waterType);
+      currentTissues = calculateTissueLoadingSchreiner(currentTissues, depth, nextDepth, ascentTime, gas, settings.waterType, settings.circuit, settings.ccrSetpoint);
       tissueHistory.push(currentTissues.map(t => ({ ...t })));
       depth = nextDepth;
     }
@@ -703,7 +761,7 @@ export function calculateDivePlan(input: DivePlanInput): DivePlanResult {
   
   if (surfaceIntervalMinutes && surfaceIntervalMinutes > 0) {
     const surfaceGas = createGasMix(21, 0, 'Air');
-    tissues = calculateTissueLoadingConstantDepth(tissues, 0, surfaceIntervalMinutes, surfaceGas, settings.waterType);
+    tissues = calculateTissueLoadingConstantDepth(tissues, 0, surfaceIntervalMinutes, surfaceGas, settings.waterType, 'open', 1.3);
   }
   
   const tissueHistory: TissueState[][] = [tissues.map(t => ({ ...t }))];
@@ -719,7 +777,7 @@ export function calculateDivePlan(input: DivePlanInput): DivePlanResult {
   }
   
   const descentTime = depth / settings.descentRate;
-  tissues = calculateTissueLoadingSchreiner(tissues, 0, depth, descentTime, bottomGas, settings.waterType);
+  tissues = calculateTissueLoadingSchreiner(tissues, 0, depth, descentTime, bottomGas, settings.waterType, settings.circuit, settings.ccrSetpoint);
   tissueHistory.push(tissues.map(t => ({ ...t })));
   runTime += descentTime;
   
@@ -736,7 +794,7 @@ export function calculateDivePlan(input: DivePlanInput): DivePlanResult {
   totalCNS += descentTox.cns;
   totalOTU += descentTox.otu;
   
-  tissues = calculateTissueLoadingConstantDepth(tissues, depth, bottomTime, bottomGas, settings.waterType);
+  tissues = calculateTissueLoadingConstantDepth(tissues, depth, bottomTime, bottomGas, settings.waterType, settings.circuit, settings.ccrSetpoint);
   tissueHistory.push(tissues.map(t => ({ ...t })));
   runTime += bottomTime;
   
@@ -759,7 +817,7 @@ export function calculateDivePlan(input: DivePlanInput): DivePlanResult {
   
   if (firstStopDepth > 0) {
     const ascentToFirstStop = (depth - firstStopDepth) / settings.ascentRate;
-    tissues = calculateTissueLoadingSchreiner(tissues, depth, firstStopDepth, ascentToFirstStop, bottomGas, settings.waterType);
+    tissues = calculateTissueLoadingSchreiner(tissues, depth, firstStopDepth, ascentToFirstStop, bottomGas, settings.waterType, settings.circuit, settings.ccrSetpoint);
     tissueHistory.push(tissues.map(t => ({ ...t })));
     runTime += ascentToFirstStop;
     
@@ -824,7 +882,7 @@ export function calculateDivePlan(input: DivePlanInput): DivePlanResult {
       const finalAscentTime = currentDepth / settings.ascentRate;
       runTime += finalAscentTime;
       const lastGas = stops[stops.length - 1]?.gasMix || bottomGas;
-      tissues = calculateTissueLoadingSchreiner(finalTissues, currentDepth, 0, finalAscentTime, lastGas, settings.waterType);
+      tissues = calculateTissueLoadingSchreiner(finalTissues, currentDepth, 0, finalAscentTime, lastGas, settings.waterType, settings.circuit, settings.ccrSetpoint);
       tissueHistory.push(tissues.map(t => ({ ...t })));
       
       const finalAscentSeg: DiveSegment = {
@@ -882,7 +940,7 @@ export function calculateDivePlan(input: DivePlanInput): DivePlanResult {
   } else {
     const directAscentTime = depth / settings.ascentRate;
     runTime += directAscentTime;
-    tissues = calculateTissueLoadingSchreiner(tissues, depth, 0, directAscentTime, bottomGas, settings.waterType);
+    tissues = calculateTissueLoadingSchreiner(tissues, depth, 0, directAscentTime, bottomGas, settings.waterType, settings.circuit, settings.ccrSetpoint);
     tissueHistory.push(tissues.map(t => ({ ...t })));
     
     const directAscentSeg: DiveSegment = {
