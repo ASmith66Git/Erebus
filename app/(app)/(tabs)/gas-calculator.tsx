@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput,
-  useColorScheme, Modal, FlatList
+  Modal, FlatList
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { DrawerActions, useNavigation } from '@react-navigation/native';
@@ -14,13 +14,13 @@ import {
   calculateTrimixBlend, calculateBestMix, calculateMOD, calculateEND, getMixName
 } from '@/services/gasMath';
 import { useSettings } from '@/contexts/SettingsContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import PageHeader from '@/components/PageHeader';
 
 type TabType = 'gases' | 'density' | 'fill' | 'topup' | 'trimix' | 'bestmix';
 
 export default function GasCalculatorScreen() {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
+  const { isDark } = useTheme();
   const navigation = useNavigation();
   const { units, getVolumeUnit, getPressureUnit, getDepthUnit, formatVolume, formatPressure, formatDepth } = useSettings();
 
@@ -39,7 +39,9 @@ export default function GasCalculatorScreen() {
 
   const [activeTab, setActiveTab] = useState<TabType>('gases');
   const [showCylinderPicker, setShowCylinderPicker] = useState(false);
+  const [showCylinderRefPicker, setShowCylinderRefPicker] = useState(false);
   const [selectedCylinder, setSelectedCylinder] = useState<Cylinder>(CYLINDER_CATALOG.find(c => c.id === 'al80') || CYLINDER_CATALOG[0]);
+  const [selectedRefCylinder, setSelectedRefCylinder] = useState<Cylinder>(CYLINDER_CATALOG.find(c => c.id === 'al80') || CYLINDER_CATALOG[0]);
   const [materialFilter, setMaterialFilter] = useState<CylinderMaterial | 'all'>('all');
   
   const [selectedO2, setSelectedO2] = useState('21');
@@ -329,6 +331,8 @@ export default function GasCalculatorScreen() {
       </View>
 
       <Text style={[styles.sectionTitle, { color: colors.text, marginTop: 24 }]}>Cylinder Reference</Text>
+      <Text style={[styles.sectionSubtitle, { color: colors.textSecondary }]}>Select a cylinder to view specs</Text>
+
       <View style={styles.filterRow}>
         {(['all', 'steel', 'aluminum'] as const).map((filter) => (
           <TouchableOpacity
@@ -343,25 +347,20 @@ export default function GasCalculatorScreen() {
         ))}
       </View>
 
-      <View style={[styles.card, { backgroundColor: colors.card }]}>
-        <View style={styles.tableHeader}>
-          <Text style={[styles.tableHeaderText, { color: colors.textSecondary, flex: 2 }]}>Cylinder</Text>
-          <Text style={[styles.tableHeaderText, { color: colors.textSecondary, flex: 1 }]}>Vol (L)</Text>
-          <Text style={[styles.tableHeaderText, { color: colors.textSecondary, flex: 1 }]}>{getPressureUnit()}</Text>
-          <Text style={[styles.tableHeaderText, { color: colors.textSecondary, flex: 1 }]}>Capacity</Text>
-        </View>
-        {filteredCylinders.slice(0, 12).map((cyl) => (
-          <TouchableOpacity
-            key={cyl.id}
-            style={[styles.tableRow, selectedCylinder.id === cyl.id && { backgroundColor: colors.primary + '20' }]}
-            onPress={() => setSelectedCylinder(cyl)}
-          >
-            <Text style={[styles.tableCell, { color: colors.text, flex: 2 }]} numberOfLines={1}>{cyl.label}</Text>
-            <Text style={[styles.tableCell, { color: colors.text, flex: 1 }]}>{cyl.volumeL}</Text>
-            <Text style={[styles.tableCell, { color: colors.text, flex: 1 }]}>{units === 'imperial' ? Math.round(cyl.workingPressureBar * 14.5038) : cyl.workingPressureBar}</Text>
-            <Text style={[styles.tableCell, { color: colors.text, flex: 1 }]}>{units === 'imperial' ? cyl.volumeCuft + ' cuft' : (cyl.volumeL * cyl.workingPressureBar).toFixed(0) + ' L'}</Text>
-          </TouchableOpacity>
-        ))}
+      <TouchableOpacity
+        style={[styles.dropdownButton, { backgroundColor: colors.card, borderColor: colors.border }]}
+        onPress={() => setShowCylinderRefPicker(true)}
+      >
+        <Text style={[styles.dropdownButtonText, { color: colors.text }]}>{selectedRefCylinder.label}</Text>
+        <Feather name="chevron-down" size={20} color={colors.textSecondary} />
+      </TouchableOpacity>
+
+      <View style={[styles.resultsCard, { backgroundColor: colors.card, borderColor: colors.primary }]}>
+        <Text style={[styles.resultsTitle, { color: colors.text }]}>Cylinder Specifications</Text>
+        {renderResultRow('Volume', `${selectedRefCylinder.volumeL} L`)}
+        {renderResultRow('Working Pressure', units === 'imperial' ? `${Math.round(selectedRefCylinder.workingPressureBar * 14.5038)} psi` : `${selectedRefCylinder.workingPressureBar} bar`)}
+        {renderResultRow('Capacity', units === 'imperial' ? `${selectedRefCylinder.volumeCuft} cuft` : `${(selectedRefCylinder.volumeL * selectedRefCylinder.workingPressureBar).toFixed(0)} L`)}
+        {renderResultRow('Material', selectedRefCylinder.material.charAt(0).toUpperCase() + selectedRefCylinder.material.slice(1))}
       </View>
     </ScrollView>
   );
@@ -654,6 +653,39 @@ export default function GasCalculatorScreen() {
           </View>
         </View>
       </Modal>
+
+      <Modal visible={showCylinderRefPicker} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>Select Cylinder</Text>
+              <TouchableOpacity onPress={() => setShowCylinderRefPicker(false)}>
+                <Feather name="x" size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+            
+            <FlatList
+              data={filteredCylinders}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[styles.cylinderOption, selectedRefCylinder.id === item.id && { backgroundColor: colors.primary + '20' }]}
+                  onPress={() => {
+                    setSelectedRefCylinder(item);
+                    setShowCylinderRefPicker(false);
+                  }}
+                >
+                  <Text style={[styles.cylinderOptionLabel, { color: colors.text }]}>{item.label}</Text>
+                  <Text style={[styles.cylinderOptionDetails, { color: colors.textSecondary }]}>
+                    {units === 'imperial' ? `${item.volumeCuft} cuft` : `${item.volumeL}L`} | {units === 'imperial' ? `${(item.workingPressureBar * 14.5038).toFixed(0)} psi` : `${item.workingPressureBar} bar`}
+                  </Text>
+                </TouchableOpacity>
+              )}
+              style={{ maxHeight: 400 }}
+            />
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -864,6 +896,19 @@ const styles = StyleSheet.create({
   },
   filterChipText: {
     fontSize: 14,
+    fontWeight: '500',
+  },
+  dropdownButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 16,
+  },
+  dropdownButtonText: {
+    fontSize: 16,
     fontWeight: '500',
   },
   selectedCylinder: {
