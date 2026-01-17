@@ -147,6 +147,25 @@ export default function EmbeddedMapPicker({
     onCoordinatesChange(lat, lng);
   }, [onCoordinatesChange]);
 
+  const handlePlaceSelect = useCallback((data: any, details: any) => {
+    if (details?.geometry?.location) {
+      const lat = details.geometry.location.lat;
+      const lng = details.geometry.location.lng;
+      setMarkerPosition({ latitude: lat, longitude: lng });
+      onCoordinatesChange(lat, lng);
+      
+      if (mapRef.current) {
+        mapRef.current.animateToRegion({
+          latitude: lat,
+          longitude: lng,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
+        });
+      }
+      Keyboard.dismiss();
+    }
+  }, [onCoordinatesChange]);
+
   const getCurrentLocation = async () => {
     setGettingLocation(true);
     try {
@@ -417,24 +436,6 @@ export default function EmbeddedMapPicker({
       </View>
     );
   }
-
-  const handlePlaceSelect = useCallback((data: any, details: any) => {
-    if (details?.geometry?.location) {
-      const lat = details.geometry.location.lat;
-      const lng = details.geometry.location.lng;
-      handleMarkerChange(lat, lng);
-      
-      if (mapRef.current) {
-        mapRef.current.animateToRegion({
-          latitude: lat,
-          longitude: lng,
-          latitudeDelta: 0.01,
-          longitudeDelta: 0.01,
-        });
-      }
-      Keyboard.dismiss();
-    }
-  }, [handleMarkerChange]);
 
   return (
     <View style={styles.container}>

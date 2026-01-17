@@ -1,0 +1,87 @@
+{
+  "deviceInfo": {
+    "platform": "android",
+    "version": 35,
+    "timestamp": "2026-01-17T12:51:02.838Z"
+  },
+  "logs": [
+    {
+      "id": "1768654236712-1j58n7z0d",
+      "timestamp": "2026-01-17T12:50:36.712Z",
+      "level": "warn",
+      "message": "[Layout children]: No route named \"debug-log\" exists in nested children: [\n  \"+not-found\",\n  \"ble-connect\",\n  \"splash\",\n  \"(app)\",\n  \"(auth)\",\n  \"dive-log/[id]\",\n  \"dive-site/[id]\",\n  \"gear-profile/[id]\",\n  \"photo/[id]\"\n]",
+      "source": "console.warn"
+    },
+    {
+      "id": "1768654233610-gv91eluzp",
+      "timestamp": "2026-01-17T12:50:33.610Z",
+      "level": "warn",
+      "message": "[Layout children]: No route named \"debug-log\" exists in nested children: [\n  \"+not-found\",\n  \"ble-connect\",\n  \"splash\",\n  \"(app)\",\n  \"(auth)\",\n  \"dive-log/[id]\",\n  \"dive-site/[id]\",\n  \"gear-profile/[id]\",\n  \"photo/[id]\"\n]",
+      "source": "console.warn"
+    },
+    {
+      "id": "1768654233416-p23202scp",
+      "timestamp": "2026-01-17T12:50:33.416Z",
+      "level": "warn",
+      "message": "[Layout children]: No route named \"debug-log\" exists in nested children: [\n  \"+not-found\",\n  \"ble-connect\",\n  \"splash\",\n  \"(app)\",\n  \"(auth)\",\n  \"dive-log/[id]\",\n  \"dive-site/[id]\",\n  \"gear-profile/[id]\",\n  \"photo/[id]\"\n]",
+      "source": "console.warn"
+    },
+    {
+      "id": "1768654233391-1tyjqyecd",
+      "timestamp": "2026-01-17T12:50:33.391Z",
+      "level": "warn",
+      "message": "[Layout children]: No route named \"debug-log\" exists in nested children: [\n  \"+not-found\",\n  \"ble-connect\",\n  \"splash\",\n  \"(app)\",\n  \"(auth)\",\n  \"dive-log/[id]\",\n  \"dive-site/[id]\",\n  \"gear-profile/[id]\",\n  \"photo/[id]\"\n]",
+      "source": "console.warn"
+    },
+    {
+      "id": "1768654233336-tygdamtp1",
+      "timestamp": "2026-01-17T12:50:33.336Z",
+      "level": "warn",
+      "message": "[Layout children]: No route named \"debug-log\" exists in nested children: [\n  \"+not-found\",\n  \"ble-connect\",\n  \"splash\",\n  \"(app)\",\n  \"(auth)\",\n  \"dive-log/[id]\",\n  \"dive-site/[id]\",\n  \"gear-profile/[id]\",\n  \"photo/[id]\"\n]",
+      "source": "console.warn"
+    },
+    {
+      "id": "1768654233311-6d3srd05t",
+      "timestamp": "2026-01-17T12:50:33.311Z",
+      "level": "warn",
+      "message": "[Layout children]: No route named \"debug-log\" exists in nested children: [\n  \"+not-found\",\n  \"ble-connect\",\n  \"splash\",\n  \"(app)\",\n  \"(auth)\",\n  \"dive-log/[id]\",\n  \"dive-site/[id]\",\n  \"gear-profile/[id]\",\n  \"photo/[id]\"\n]",
+      "source": "console.warn"
+    },
+    {
+      "id": "1768654233302-szy5ul2kp",
+      "timestamp": "2026-01-17T12:50:33.302Z",
+      "level": "warn",
+      "message": "[Layout children]: No route named \"debug-log\" exists in nested children: [\n  \"+not-found\",\n  \"ble-connect\",\n  \"splash\",\n  \"(app)\",\n  \"(auth)\",\n  \"dive-log/[id]\",\n  \"dive-site/[id]\",\n  \"gear-profile/[id]\",\n  \"photo/[id]\"\n]",
+      "source": "console.warn"
+    },
+    {
+      "id": "1768654233264-shjtllutr",
+      "timestamp": "2026-01-17T12:50:33.264Z",
+      "level": "warn",
+      "message": "[Layout children]: No route named \"debug-log\" exists in nested children: [\n  \"+not-found\",\n  \"ble-connect\",\n  \"splash\",\n  \"(app)\",\n  \"(auth)\",\n  \"dive-log/[id]\",\n  \"dive-site/[id]\",\n  \"gear-profile/[id]\",\n  \"photo/[id]\"\n]",
+      "source": "console.warn"
+    },
+    {
+      "id": "1768654232037-9btjlgj65",
+      "timestamp": "2026-01-17T12:50:32.037Z",
+      "level": "error",
+      "message": "React Error: Rendered more hooks than during the previous render.",
+      "source": "ErrorBoundary",
+      "details": "Component Stack:\n\n    at EmbeddedMapPicker (address at index.android.bundle:1:1332806)\n    at RCTView (<anonymous>)\n    at View (address at index.android.bundle:1:492856)\n    at RCTView (<anonymous>)\n    at View (address at index.android.bundle:1:492856)\n    at RCTScrollView (<anonymous>)\n    at ScrollView (address at index.android.bundle:1:713176)\n    at ScrollView (address at index.android.bundle:1:720056)\n    at RCTView (<anonymous>)\n    at View (address at index.android.bundle:1:492856)\n    at RCTView (<anonymous>)\n    at View (address at index.android.bundle:1:492856)\n    at RCTView (<anonymous>)\n    at View (address at index.android.bundle:1:492856)\n    at VirtualizedListContextResetter (address at index.android.bundle:1:696443)\n    at RCTModalHostView (<anonymous>)\n    at Modal (address at index.android.bundle:1:750015)\n    at Modal (address at index.android.bundle:1:749718)\n    at RCTView (<anonymous>)\n    at View (address at index.android.bundle:1:492856)\n    at DiveTripsScreen (address at index.android.bundle:1:1809916)\n    at Suspense (<anonymous>)\n    at Route (address at index.android.bundle:1:939800)\n    at BaseRoute (address at index.android.bundle:1:946691)\n    at StaticContainer (address at index.android.bundle:1:911214)\n    at EnsureSingleNavigator (address at index.android.bundle:1:858200)\n    at SceneView (address at index.android.bundle:1:909002)\n    at RCTView (<anonymous>)\n    at View (address at index.android.bundle:1:492856)\n    at RCTView (<anonymous>)\n    at View (address at index.android.bundle:1:492856)\n    at Animated(View) (address at index.android.bundle:1:646360)\n    at Background (address at index.android.bundle:1:958459)\n    at Screen (address at index.android.bundle:1:1004753)\n    at RNSScreen (<anonymous>)\n    at Animated(Anonymous) (address at index.android.bundle:1:646360)\n    at Suspender (address at index.android.bundle:1:1023036)\n    at Suspense (<anonymous>)\n    at Freeze (address at index.android.bundle:1:1023097)\n    at D"
+    },
+    {
+      "id": "1768654232036-pisj0xcru",
+      "timestamp": "2026-01-17T12:50:32.036Z",
+      "level": "error",
+      "message": "Error: Rendered more hooks than during the previous render.\nError: Rendered more hooks than during the previous render.\n    at updateWorkInProgressHook (address at index.android.bundle:1:252493)\n    at updateCallback (address at index.android.bundle:1:257391)\n    at anonymous (address at index.android.bundle:1:153585)\n    at EmbeddedMapPicker (address at index.android.bundle:1:1333720)\n    at renderWithHooks (address at index.android.bundle:1:251552)\n    at updateFunctionComponent (address at index.android.bundle:1:270346)\n    at beginWork (address at index.android.bundle:1:278196)\n    at performUnitOfWork (address at index.android.bundle:1:296870)\n    at workLoopSync (address at index.android.bundle:1:295878)\n    at renderRootSync (address at index.android.bundle:1:295710)\n    at performWorkOnRoot (address at index.android.bundle:1:293354)\n    at performSyncWorkOnRoot (address at index.android.bundle:1:247135)\n    at flushSyncWorkAcrossRoots_impl (address at index.android.bundle:1:246",
+      "source": "console.error"
+    },
+    {
+      "id": "1768654230046-1r8izb2a5",
+      "timestamp": "2026-01-17T12:50:30.046Z",
+      "level": "warn",
+      "message": "[Layout children]: No route named \"debug-log\" exists in nested children: [\n  \"+not-found\",\n  \"ble-connect\",\n  \"splash\",\n  \"(app)\",\n  \"(auth)\",\n  \"dive-log/[id]\",\n  \"dive-site/[id]\",\n  \"gear-profile/[id]\",\n  \"photo/[id]\"\n]",
+      "source": "console.warn"
+    }
+  ]
+}
