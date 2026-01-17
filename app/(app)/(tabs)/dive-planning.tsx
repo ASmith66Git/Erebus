@@ -891,8 +891,8 @@ export default function DivePlanningScreen() {
 
       <View style={[styles.section, { backgroundColor: colors.card }]}>
         <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 16 }]}>Gradient Factors</Text>
-        {renderSlider('GF Low', settings.gfLow, 10, 100, 5, (v) => setSettings({ ...settings, gfLow: v }), '%')}
-        {renderSlider('GF High', settings.gfHigh, 10, 100, 5, (v) => setSettings({ ...settings, gfHigh: v }), '%')}
+        {renderSlider('GF Low', settings.gfLow, 10, 100, 5, (v) => setSettings(prev => ({ ...prev, gfLow: v })), '%')}
+        {renderSlider('GF High', settings.gfHigh, 10, 100, 5, (v) => setSettings(prev => ({ ...prev, gfHigh: v })), '%')}
       </View>
 
       {renderDiveProfileChart()}
@@ -1143,7 +1143,7 @@ export default function DivePlanningScreen() {
         {renderPicker('Circuit', [
           { value: 'open', label: 'OC' },
           { value: 'ccr', label: 'CCR' },
-        ], settings.circuit, (v) => setSettings({ ...settings, circuit: v as CircuitType }))}
+        ], settings.circuit, (v) => setSettings(prev => ({ ...prev, circuit: v as CircuitType }))}
 
         <View style={styles.modelPicker}>
           <Text style={[styles.pickerLabel, { color: colors.text }]}>Model</Text>
@@ -1155,7 +1155,7 @@ export default function DivePlanningScreen() {
                 { borderColor: colors.border },
                 settings.decoModel === model.value && { backgroundColor: colors.primary + '20', borderColor: colors.primary }
               ]}
-              onPress={() => setSettings({ ...settings, decoModel: model.value })}
+              onPress={() => setSettings(prev => ({ ...prev, decoModel: model.value })}
             >
               <View style={styles.modelOptionHeader}>
                 <View style={[
@@ -1174,7 +1174,7 @@ export default function DivePlanningScreen() {
         </View>
 
         {renderToggle('O2 narcotic', settings.o2Narcotic, 
-          (v) => setSettings({ ...settings, o2Narcotic: v }),
+          (v) => setSettings(prev => ({ ...prev, o2Narcotic: v }),
           'END calculation - Consider O2 as narcotic?'
         )}
       </View>
@@ -1186,19 +1186,19 @@ export default function DivePlanningScreen() {
         {renderPicker('Depth', [
           { value: 'imperial', label: 'Feet' },
           { value: 'metric', label: 'Meter' },
-        ], settings.units, (v) => setSettings({ ...settings, units: v as UnitSystem }))}
+        ], settings.units, (v) => setSettings(prev => ({ ...prev, units: v as UnitSystem }))}
         <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Depth shown in feet or meters</Text>
 
         {renderPicker('Water', [
           { value: 'salt', label: 'Salt' },
           { value: 'fresh', label: 'Fresh' },
-        ], settings.waterType, (v) => setSettings({ ...settings, waterType: v as WaterType }))}
+        ], settings.waterType, (v) => setSettings(prev => ({ ...prev, waterType: v as WaterType }))}
         <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Type of water - salt or fresh</Text>
 
         {renderPicker('Gas volume', [
           { value: 'cuft', label: 'CuFt.' },
           { value: 'ltr', label: 'Ltr.' },
-        ], settings.gasVolumeUnits, (v) => setSettings({ ...settings, gasVolumeUnits: v as 'cuft' | 'ltr' }))}
+        ], settings.gasVolumeUnits, (v) => setSettings(prev => ({ ...prev, gasVolumeUnits: v as 'cuft' | 'ltr' }))}
         <Text style={[styles.settingHint, { color: colors.textSecondary }]}>RMV or SAC gas units - cubic ft or liter</Text>
       </View>
 
@@ -1207,11 +1207,11 @@ export default function DivePlanningScreen() {
         <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>Gas Consumption</Text>
         
         {renderSlider('Bottom', settings.sacRateBottom, 5, 30, 1,
-          (v) => setSettings({ ...settings, sacRateBottom: v }), '')}
+          (v) => setSettings(prev => ({ ...prev, sacRateBottom: v }), '')}
         <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Bottom mix SAC/RMV rate</Text>
 
         {renderSlider('Deco', settings.sacRateDeco, 5, 25, 1,
-          (v) => setSettings({ ...settings, sacRateDeco: v }), '')}
+          (v) => setSettings(prev => ({ ...prev, sacRateDeco: v }), '')}
         <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Deco mix SAC/RMV rate</Text>
       </View>
 
@@ -1223,13 +1223,13 @@ export default function DivePlanningScreen() {
           {renderPicker('CCR setpoint', [
             { value: 'bar', label: 'BAR' },
             { value: 'ata', label: 'ATA' },
-          ], settings.ccrSetpointUnits, (v) => setSettings({ ...settings, ccrSetpointUnits: v as 'bar' | 'ata' }))}
+          ], settings.ccrSetpointUnits, (v) => setSettings(prev => ({ ...prev, ccrSetpointUnits: v as 'bar' | 'ata' }))}
           <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Set the CCR setpoint base units</Text>
 
           {renderSlider('Setpoint', settings.ccrSetpoint, 0.7, 1.6, 0.1, 
-            (v) => setSettings({ ...settings, ccrSetpoint: Math.round(v * 10) / 10 }), settings.ccrSetpointUnits === 'bar' ? ' bar' : ' ATA')}
+            (v) => setSettings(prev => ({ ...prev, ccrSetpoint: Math.round(v * 10) / 10 }), settings.ccrSetpointUnits === 'bar' ? ' bar' : ' ATA')}
           {renderSlider('Scrubber Duration', settings.scrubberDuration, 60, 300, 30,
-            (v) => setSettings({ ...settings, scrubberDuration: v }), ' min')}
+            (v) => setSettings(prev => ({ ...prev, scrubberDuration: v }), ' min')}
         </View>
       )}
 
@@ -1238,34 +1238,34 @@ export default function DivePlanningScreen() {
         <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>Deco Stop, Deco Mix Settings</Text>
         
         {renderSlider(`Stop size = ${settings.stopSize}${depthUnit}`, settings.stopSize, 3, 6, 3,
-          (v) => setSettings({ ...settings, stopSize: v }), '')}
+          (v) => setSettings(prev => ({ ...prev, stopSize: v }), '')}
         {renderSlider(`Last OC = ${settings.lastOcStopDepth}${depthUnit}`, settings.lastOcStopDepth, 3, 6, 3,
-          (v) => setSettings({ ...settings, lastOcStopDepth: v }), '')}
+          (v) => setSettings(prev => ({ ...prev, lastOcStopDepth: v }), '')}
         {renderSlider(`Last CCR = ${settings.lastCcrStopDepth}${depthUnit}`, settings.lastCcrStopDepth, 3, 9, 3,
-          (v) => setSettings({ ...settings, lastCcrStopDepth: v }), '')}
+          (v) => setSettings(prev => ({ ...prev, lastCcrStopDepth: v }), '')}
         <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Stop size dimensions, last stop depths</Text>
 
         {renderSlider(`Stop = ${settings.minStopTime} min`, settings.minStopTime, 1, 3, 1,
-          (v) => setSettings({ ...settings, minStopTime: v }), '')}
+          (v) => setSettings(prev => ({ ...prev, minStopTime: v }), '')}
         <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Minimum stop time intervals</Text>
 
         {renderSlider(`45..99% = ${settings.ppo2High}`, settings.ppo2High, 1.4, 1.6, 0.1,
-          (v) => setSettings({ ...settings, ppo2High: Math.round(v * 10) / 10 }), '')}
+          (v) => setSettings(prev => ({ ...prev, ppo2High: Math.round(v * 10) / 10 }), '')}
         {renderSlider(`28..45% = ${settings.ppo2Medium}`, settings.ppo2Medium, 1.3, 1.6, 0.1,
-          (v) => setSettings({ ...settings, ppo2Medium: Math.round(v * 10) / 10 }), '')}
+          (v) => setSettings(prev => ({ ...prev, ppo2Medium: Math.round(v * 10) / 10 }), '')}
         {renderSlider(`up to 28% = ${settings.ppo2Low}`, settings.ppo2Low, 1.2, 1.6, 0.1,
-          (v) => setSettings({ ...settings, ppo2Low: Math.round(v * 10) / 10 }), '')}
+          (v) => setSettings(prev => ({ ...prev, ppo2Low: Math.round(v * 10) / 10 }), '')}
         <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Deco mix switch depth - ppO2 threshold</Text>
 
         {renderSlider(`100% O2 = ${settings.maxO2Depth}${depthUnit}`, settings.maxO2Depth, 3, 9, 1,
-          (v) => setSettings({ ...settings, maxO2Depth: v }), '')}
+          (v) => setSettings(prev => ({ ...prev, maxO2Depth: v }), '')}
         <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Maximum depth for 100% O2 use</Text>
 
         {renderToggle('30 sec stops', settings.use30SecStops, 
-          (v) => setSettings({ ...settings, use30SecStops: v })
+          (v) => setSettings(prev => ({ ...prev, use30SecStops: v })
         )}
         {renderToggle('6 m steps', settings.use6mSteps, 
-          (v) => setSettings({ ...settings, use6mSteps: v }),
+          (v) => setSettings(prev => ({ ...prev, use6mSteps: v }),
           'Controls initial (deepest) stop dimensions'
         )}
       </View>
@@ -1275,28 +1275,28 @@ export default function DivePlanningScreen() {
         <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>Extended Stops</Text>
         
         {renderToggle('Extended stops', settings.extendedStops, 
-          (v) => setSettings({ ...settings, extendedStops: v }),
+          (v) => setSettings(prev => ({ ...prev, extendedStops: v }),
           'Include extended stops with deco mix swaps'
         )}
 
         {settings.extendedStops && (
           <>
             {renderSlider(`7..30 m = ${settings.extendedStopShallow}min`, settings.extendedStopShallow, 1, 10, 1,
-              (v) => setSettings({ ...settings, extendedStopShallow: v }), '')}
+              (v) => setSettings(prev => ({ ...prev, extendedStopShallow: v }), '')}
             {renderSlider(`30 + m = ${settings.extendedStopDeep}min`, settings.extendedStopDeep, 1, 5, 1,
-              (v) => setSettings({ ...settings, extendedStopDeep: v }), '')}
+              (v) => setSettings(prev => ({ ...prev, extendedStopDeep: v }), '')}
             <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Extra stop time with deco mix changes</Text>
           </>
         )}
 
         {renderToggle('Add time to stop', settings.addTimeToStop, 
-          (v) => setSettings({ ...settings, addTimeToStop: v })
+          (v) => setSettings(prev => ({ ...prev, addTimeToStop: v })
         )}
         {renderToggle('All mix changes', settings.allMixChanges, 
-          (v) => setSettings({ ...settings, allMixChanges: v })
+          (v) => setSettings(prev => ({ ...prev, allMixChanges: v })
         )}
         {renderToggle('O2 window effect', settings.o2WindowEffect, 
-          (v) => setSettings({ ...settings, o2WindowEffect: v }),
+          (v) => setSettings(prev => ({ ...prev, o2WindowEffect: v }),
           'Controls extended stop time behavior'
         )}
       </View>
@@ -1306,15 +1306,15 @@ export default function DivePlanningScreen() {
         <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>Descent / Ascent Rates</Text>
         
         {renderSlider(`Descent`, settings.descentRate, 5, 30, 1,
-          (v) => setSettings({ ...settings, descentRate: v }), ` ${rateUnit}`)}
+          (v) => setSettings(prev => ({ ...prev, descentRate: v }), ` ${rateUnit}`)}
         <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Descent rates throughout the plan</Text>
 
         {renderSlider(`Surface`, settings.surfaceRate, 3, 18, 1,
-          (v) => setSettings({ ...settings, surfaceRate: v }), ` ${rateUnit}`)}
+          (v) => setSettings(prev => ({ ...prev, surfaceRate: v }), ` ${rateUnit}`)}
         {renderSlider(`Deco`, settings.decoRate, 3, 15, 1,
-          (v) => setSettings({ ...settings, decoRate: v }), ` ${rateUnit}`)}
+          (v) => setSettings(prev => ({ ...prev, decoRate: v }), ` ${rateUnit}`)}
         {renderSlider(`Ascent`, settings.ascentRate, 3, 18, 1,
-          (v) => setSettings({ ...settings, ascentRate: v }), ` ${rateUnit}`)}
+          (v) => setSettings(prev => ({ ...prev, ascentRate: v }), ` ${rateUnit}`)}
         <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Ascent rates throughout the plan</Text>
       </View>
 
@@ -1323,11 +1323,11 @@ export default function DivePlanningScreen() {
         <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>Dive Site Elevation</Text>
         
         {renderSlider(`Elevation`, settings.elevation, 0, 3000, 100,
-          (v) => setSettings({ ...settings, elevation: v }), 'm')}
+          (v) => setSettings(prev => ({ ...prev, elevation: v }), 'm')}
         <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Dive site elevation</Text>
 
         {renderSlider(`Acclimatized`, settings.acclimatizedElevation, 0, 3000, 100,
-          (v) => setSettings({ ...settings, acclimatizedElevation: v }), 'm')}
+          (v) => setSettings(prev => ({ ...prev, acclimatizedElevation: v }), 'm')}
       </View>
 
       {/* Gauge & Display */}
@@ -1337,11 +1337,11 @@ export default function DivePlanningScreen() {
         {renderPicker('Gauge', [
           { value: 'simple', label: 'Simple' },
           { value: 'digital', label: 'Digital' },
-        ], settings.gaugeType, (v) => setSettings({ ...settings, gaugeType: v as 'simple' | 'digital' }))}
+        ], settings.gaugeType, (v) => setSettings(prev => ({ ...prev, gaugeType: v as 'simple' | 'digital' }))}
         <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Depth gauge calibration type</Text>
 
         {renderSlider('Gas Switch Time', settings.gasSwitchTime, 0, 5, 1, 
-          (v) => setSettings({ ...settings, gasSwitchTime: v }), ' min')}
+          (v) => setSettings(prev => ({ ...prev, gasSwitchTime: v }), ' min')}
       </View>
 
       {/* Dive Monitor Controls */}
@@ -1350,12 +1350,12 @@ export default function DivePlanningScreen() {
         
         <View style={styles.monitorRow}>
           {renderToggle(`ppO2 above = ${settings.ppo2AboveThreshold.toFixed(2)}`, settings.ppo2AboveEnabled,
-            (v) => setSettings({ ...settings, ppo2AboveEnabled: v })
+            (v) => setSettings(prev => ({ ...prev, ppo2AboveEnabled: v })
           )}
           {settings.ppo2AboveEnabled && (
             <View style={styles.monitorSlider}>
               {renderSlider('', settings.ppo2AboveThreshold, 1.0, 2.0, 0.1,
-                (v) => setSettings({ ...settings, ppo2AboveThreshold: Math.round(v * 100) / 100 }), '')}
+                (v) => setSettings(prev => ({ ...prev, ppo2AboveThreshold: Math.round(v * 100) / 100 }), '')}
             </View>
           )}
         </View>
@@ -1363,12 +1363,12 @@ export default function DivePlanningScreen() {
 
         <View style={styles.monitorRow}>
           {renderToggle(`ppO2 below = ${settings.ppo2BelowThreshold.toFixed(2)}`, settings.ppo2BelowEnabled,
-            (v) => setSettings({ ...settings, ppo2BelowEnabled: v })
+            (v) => setSettings(prev => ({ ...prev, ppo2BelowEnabled: v })
           )}
           {settings.ppo2BelowEnabled && (
             <View style={styles.monitorSlider}>
               {renderSlider('', settings.ppo2BelowThreshold, 0.10, 0.21, 0.01,
-                (v) => setSettings({ ...settings, ppo2BelowThreshold: Math.round(v * 100) / 100 }), '')}
+                (v) => setSettings(prev => ({ ...prev, ppo2BelowThreshold: Math.round(v * 100) / 100 }), '')}
             </View>
           )}
         </View>
@@ -1376,12 +1376,12 @@ export default function DivePlanningScreen() {
 
         <View style={styles.monitorRow}>
           {renderToggle(`OTU's above = ${settings.otuAboveThreshold}`, settings.otuAboveEnabled,
-            (v) => setSettings({ ...settings, otuAboveEnabled: v })
+            (v) => setSettings(prev => ({ ...prev, otuAboveEnabled: v })
           )}
           {settings.otuAboveEnabled && (
             <View style={styles.monitorSlider}>
               {renderSlider('', settings.otuAboveThreshold, 100, 600, 50,
-                (v) => setSettings({ ...settings, otuAboveThreshold: v }), '')}
+                (v) => setSettings(prev => ({ ...prev, otuAboveThreshold: v }), '')}
             </View>
           )}
         </View>
@@ -1389,12 +1389,12 @@ export default function DivePlanningScreen() {
 
         <View style={styles.monitorRow}>
           {renderToggle(`CNS % above = ${settings.cnsAboveThreshold}%`, settings.cnsAboveEnabled,
-            (v) => setSettings({ ...settings, cnsAboveEnabled: v })
+            (v) => setSettings(prev => ({ ...prev, cnsAboveEnabled: v })
           )}
           {settings.cnsAboveEnabled && (
             <View style={styles.monitorSlider}>
               {renderSlider('', settings.cnsAboveThreshold, 50, 100, 5,
-                (v) => setSettings({ ...settings, cnsAboveThreshold: v }), '')}
+                (v) => setSettings(prev => ({ ...prev, cnsAboveThreshold: v }), '')}
             </View>
           )}
         </View>
@@ -1402,12 +1402,12 @@ export default function DivePlanningScreen() {
 
         <View style={styles.monitorRow}>
           {renderToggle(`IBCD N2 = ${settings.ibcdN2Threshold} ATA`, settings.ibcdN2Enabled,
-            (v) => setSettings({ ...settings, ibcdN2Enabled: v })
+            (v) => setSettings(prev => ({ ...prev, ibcdN2Enabled: v })
           )}
           {settings.ibcdN2Enabled && (
             <View style={styles.monitorSlider}>
               {renderSlider('', settings.ibcdN2Threshold, 0.1, 1.0, 0.1,
-                (v) => setSettings({ ...settings, ibcdN2Threshold: Math.round(v * 10) / 10 }), '')}
+                (v) => setSettings(prev => ({ ...prev, ibcdN2Threshold: Math.round(v * 10) / 10 }), '')}
             </View>
           )}
         </View>
@@ -1415,12 +1415,12 @@ export default function DivePlanningScreen() {
 
         <View style={styles.monitorRow}>
           {renderToggle(`IBCD He = ${settings.ibcdHeThreshold} ATA`, settings.ibcdHeEnabled,
-            (v) => setSettings({ ...settings, ibcdHeEnabled: v })
+            (v) => setSettings(prev => ({ ...prev, ibcdHeEnabled: v })
           )}
           {settings.ibcdHeEnabled && (
             <View style={styles.monitorSlider}>
               {renderSlider('', settings.ibcdHeThreshold, 0.1, 1.0, 0.1,
-                (v) => setSettings({ ...settings, ibcdHeThreshold: Math.round(v * 10) / 10 }), '')}
+                (v) => setSettings(prev => ({ ...prev, ibcdHeThreshold: Math.round(v * 10) / 10 }), '')}
             </View>
           )}
         </View>
@@ -1429,7 +1429,7 @@ export default function DivePlanningScreen() {
         {settings.circuit === 'ccr' && (
           <>
             {renderToggle('CCR diluent check', settings.ccrDiluentCheck,
-              (v) => setSettings({ ...settings, ccrDiluentCheck: v }),
+              (v) => setSettings(prev => ({ ...prev, ccrDiluentCheck: v }),
               'CCR diluent pp exceeds ATA'
             )}
           </>
