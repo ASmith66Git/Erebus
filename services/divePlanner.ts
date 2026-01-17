@@ -436,15 +436,15 @@ export function calculateTissueLoadingSchreiner(
 export function calculateMValueAtPressure(tissue: TissueState, compartmentIndex: number, ambientPressure: number): number {
   // Use weighted coefficients based on tissue inert gas loading
   const { a, b } = getWeightedCoefficients(tissue.ppN2, tissue.ppHe, compartmentIndex);
-  // M = a + b * Pamb
-  return a + b * ambientPressure;
+  // ZHL-16C: M = a + Pamb / b (b is divisor, not multiplier)
+  return a + ambientPressure / b;
 }
 
 export function calculateToleratedAmbientPressure(tissue: TissueState, compartmentIndex: number): number {
   // Use weighted coefficients based on tissue inert gas loading
   const { a, b } = getWeightedCoefficients(tissue.ppN2, tissue.ppHe, compartmentIndex);
-  // P_tolerated = (Pt - a) / b
-  return (tissue.ppInert - a) / b;
+  // ZHL-16C: M = a + P/b  =>  P_ceiling = (Pt - a) * b
+  return (tissue.ppInert - a) * b;
 }
 
 export function calculateCeilingWithGF(
@@ -456,12 +456,11 @@ export function calculateCeilingWithGF(
   const { a, b } = getWeightedCoefficients(tissue.ppN2, tissue.ppHe, compartmentIndex);
   const g = gf / 100;
   
-  // Bühlmann ceiling formula with gradient factor
-  // Standard form: M = a + b * Pamb  =>  Pamb_ceiling = (Pt - a) / b
+  // ZHL-16C ceiling formula with gradient factor
+  // Standard form: M = a + Pamb/b  =>  Pamb_ceiling = (Pt - a) * b
   // With GF applied to limit supersaturation:
-  // Pamb_ceiling = (Pt - a * g) / (g * b + 1 - g)
-  // Note: This uses the convention where b is the slope (M = a + b*P), not the inverse
-  const denominator = g * b + 1 - g;
+  // Pamb_ceiling = (Pt - a * g) / (g/b + 1 - g)
+  const denominator = g / b + 1 - g;
   if (denominator <= 0) return 0;
   const pAmb = (tissue.ppInert - a * g) / denominator;
   return Math.max(0, pAmb);
@@ -566,7 +565,8 @@ export function calculateNDL(
     // Use weighted coefficients based on the INSPIRED gas mix
     const { a, b } = getWeightedCoefficients(inspiredN2, inspiredHe, i);
     
-    const mValueAtSurface = a + b * SURFACE_PRESSURE;
+    // ZHL-16C: M = a + P/b (b is divisor)
+    const mValueAtSurface = a + SURFACE_PRESSURE / b;
     const toleratedAtSurface = SURFACE_PRESSURE + (mValueAtSurface - SURFACE_PRESSURE) * (gfHigh / 100);
     
     if (inspiredInert <= toleratedAtSurface) {
