@@ -361,60 +361,62 @@ export default function DiveTripsScreen() {
           fetchTripDetails(trip.id);
         }}
       >
-        {coverUrl && (
-          <Image
-            source={{ uri: coverUrl }}
-            style={styles.tripCardCover}
-            resizeMode="cover"
-          />
-        )}
-        <View style={styles.tripCardContent}>
-        <View style={styles.tripCardHeader}>
-          <View style={[styles.tripTypeIcon, { backgroundColor: colors.primary + '20' }]}>
-            <Feather name={typeInfo.icon as any} size={20} color={colors.primary} />
-          </View>
-          <View style={styles.tripCardHeaderText}>
-            <Text style={[styles.tripName, { color: colors.text }]}>{trip.name}</Text>
-            <Text style={[styles.tripType, { color: colors.textSecondary }]}>{typeInfo.label}</Text>
-          </View>
-        </View>
+        <View style={styles.tripCardRow}>
+          {coverUrl && (
+            <Image
+              source={{ uri: coverUrl }}
+              style={styles.tripCardThumbnail}
+              resizeMode="cover"
+            />
+          )}
+          <View style={[styles.tripCardContent, coverUrl ? { flex: 1 } : null]}>
+            <View style={styles.tripCardHeader}>
+              <View style={[styles.tripTypeIcon, { backgroundColor: colors.primary + '20' }]}>
+                <Feather name={typeInfo.icon as any} size={20} color={colors.primary} />
+              </View>
+              <View style={styles.tripCardHeaderText}>
+                <Text style={[styles.tripName, { color: colors.text }]}>{trip.name}</Text>
+                <Text style={[styles.tripType, { color: colors.textSecondary }]}>{typeInfo.label}</Text>
+              </View>
+            </View>
 
-        <View style={styles.tripCardDetails}>
-          {(trip.start_date || trip.end_date) && (
-            <View style={styles.tripDetailRow}>
-              <Feather name="calendar" size={14} color={colors.textSecondary} />
-              <Text style={[styles.tripDetailText, { color: colors.textSecondary }]}>
-                {formatDate(trip.start_date)}
-                {trip.end_date && ` - ${formatDate(trip.end_date)}`}
-              </Text>
+            <View style={styles.tripCardDetails}>
+              {(trip.start_date || trip.end_date) && (
+                <View style={styles.tripDetailRow}>
+                  <Feather name="calendar" size={14} color={colors.textSecondary} />
+                  <Text style={[styles.tripDetailText, { color: colors.textSecondary }]}>
+                    {formatDate(trip.start_date)}
+                    {trip.end_date && ` - ${formatDate(trip.end_date)}`}
+                  </Text>
+                </View>
+              )}
+              {trip.location && (
+                <View style={styles.tripDetailRow}>
+                  <Feather name="map-pin" size={14} color={colors.textSecondary} />
+                  <Text style={[styles.tripDetailText, { color: colors.textSecondary }]}>
+                    {trip.location}{trip.country ? `, ${trip.country}` : ''}
+                  </Text>
+                </View>
+              )}
+              {(trip.operator_name || trip.vessel_name || trip.dive_center_name) && (
+                <View style={styles.tripDetailRow}>
+                  <Feather name="briefcase" size={14} color={colors.textSecondary} />
+                  <Text style={[styles.tripDetailText, { color: colors.textSecondary }]}>
+                    {trip.vessel_name || trip.dive_center_name || trip.operator_name}
+                  </Text>
+                </View>
+              )}
             </View>
-          )}
-          {trip.location && (
-            <View style={styles.tripDetailRow}>
-              <Feather name="map-pin" size={14} color={colors.textSecondary} />
-              <Text style={[styles.tripDetailText, { color: colors.textSecondary }]}>
-                {trip.location}{trip.country ? `, ${trip.country}` : ''}
-              </Text>
-            </View>
-          )}
-          {(trip.operator_name || trip.vessel_name || trip.dive_center_name) && (
-            <View style={styles.tripDetailRow}>
-              <Feather name="briefcase" size={14} color={colors.textSecondary} />
-              <Text style={[styles.tripDetailText, { color: colors.textSecondary }]}>
-                {trip.vessel_name || trip.dive_center_name || trip.operator_name}
-              </Text>
-            </View>
-          )}
-        </View>
 
-        <View style={[styles.tripCardFooter, { borderTopColor: colors.border }]}>
-          <View style={styles.tripStat}>
-            <Feather name="activity" size={14} color={colors.primary} />
-            <Text style={[styles.tripStatText, { color: colors.text }]}>
-              {trip.linked_dives || trip.total_dives || 0} dives
-            </Text>
+            <View style={[styles.tripCardFooter, { borderTopColor: colors.border }]}>
+              <View style={styles.tripStat}>
+                <Feather name="activity" size={14} color={colors.primary} />
+                <Text style={[styles.tripStatText, { color: colors.text }]}>
+                  {typeof trip.linked_dives === 'number' ? trip.linked_dives : (Array.isArray(trip.linked_dives) ? trip.linked_dives.length : trip.total_dives || 0)} dives
+                </Text>
+              </View>
+            </View>
           </View>
-        </View>
         </View>
       </Pressable>
     );
@@ -923,8 +925,9 @@ const styles = StyleSheet.create({
   emptyStateBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 20, paddingVertical: 12, borderRadius: 8, marginTop: 24 },
   emptyStateBtnText: { color: '#FFF', fontSize: 16, fontWeight: '500' },
   tripCard: { borderRadius: 12, marginBottom: 12, borderWidth: 1, overflow: 'hidden' },
-  tripCardCover: { width: '100%', height: 140 },
-  tripCardContent: { padding: 16 },
+  tripCardRow: { flexDirection: 'row' },
+  tripCardThumbnail: { width: 80, height: 80, borderTopLeftRadius: 12, borderBottomLeftRadius: 12 },
+  tripCardContent: { padding: 12, flex: 1 },
   detailCoverImage: { width: '100%', height: 180, borderRadius: 12, marginBottom: 16 },
   coverImageSection: { marginBottom: 16 },
   coverImagePreview: { width: '100%', height: 160, borderRadius: 12, marginBottom: 12 },
