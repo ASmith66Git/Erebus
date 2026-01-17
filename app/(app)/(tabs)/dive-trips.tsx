@@ -292,25 +292,25 @@ export default function DiveTripsScreen() {
     setUploadingImage(true);
     try {
       const filename = `trip-cover-${Date.now()}.jpg`;
-      const presignedResponse = await fetch(`${getApiUrl()}/api/object-storage/presigned-url`, {
+      const presignedResponse = await fetch(`${getApiUrl()}/api/uploads/request-url`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ filename, contentType: 'image/jpeg' }),
+        body: JSON.stringify({ name: filename, contentType: 'image/jpeg' }),
       });
 
       if (!presignedResponse.ok) {
         throw new Error('Failed to get upload URL');
       }
 
-      const { uploadUrl, objectKey } = await presignedResponse.json();
+      const { uploadURL, objectPath } = await presignedResponse.json();
 
       const imageResponse = await fetch(imageUri);
       const imageBlob = await imageResponse.blob();
 
-      const uploadResponse = await fetch(uploadUrl, {
+      const uploadResponse = await fetch(uploadURL, {
         method: 'PUT',
         headers: { 'Content-Type': 'image/jpeg' },
         body: imageBlob,
@@ -320,7 +320,7 @@ export default function DiveTripsScreen() {
         throw new Error('Failed to upload image');
       }
 
-      setFormData(prev => ({ ...prev, coverImageKey: objectKey }));
+      setFormData(prev => ({ ...prev, coverImageKey: objectPath }));
     } catch (error) {
       console.error('Upload error:', error);
       Alert.alert('Upload Error', 'Failed to upload image. Please try again.');
@@ -331,7 +331,10 @@ export default function DiveTripsScreen() {
 
   const getCoverImageUrl = (key: string | null) => {
     if (!key) return null;
-    return `${getApiUrl()}/api/object-storage/file/${encodeURIComponent(key)}`;
+    if (key.startsWith('/objects/')) {
+      return `${getApiUrl()}${key}`;
+    }
+    return `${getApiUrl()}/objects/${key}`;
   };
 
   const formatDate = (dateStr: string | null) => {
