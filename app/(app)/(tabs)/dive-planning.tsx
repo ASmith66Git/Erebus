@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert,
-  Dimensions, Platform, Modal, Switch
+  Dimensions, Platform, Modal, Switch, Pressable
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { DrawerActions, useNavigation } from '@react-navigation/native';
@@ -968,15 +968,20 @@ export default function DivePlanningScreen() {
               
               {showCylinderDropdown === gas.id && (
                 <View style={[styles.cylinderDropdownList, { backgroundColor: isDark ? '#2C2C2E' : '#FFFFFF', borderColor: colors.border }]}>
-                  <ScrollView style={{ maxHeight: 200 }} nestedScrollEnabled>
+                  <ScrollView 
+                    style={{ maxHeight: 200 }} 
+                    nestedScrollEnabled
+                    keyboardShouldPersistTaps="handled"
+                  >
                     {CYLINDER_PRESETS.map(preset => (
-                      <TouchableOpacity
+                      <Pressable
                         key={preset.label}
-                        style={[
+                        style={({ pressed }) => [
                           styles.cylinderDropdownItem,
                           { borderBottomColor: colors.border },
                           Math.abs(preset.volumeL - gas.cylinderVolume) < 0.5 && Math.abs(preset.fillBar - gas.fillPressure) < 10 &&
-                            { backgroundColor: colors.primary + '15' }
+                            { backgroundColor: colors.primary + '15' },
+                          pressed && { backgroundColor: colors.primary + '25' }
                         ]}
                         onPress={() => {
                           updateGas(gas.id, 'cylinderVolume', preset.volumeL);
@@ -991,7 +996,7 @@ export default function DivePlanningScreen() {
                             : `${preset.volumeL}L @ ${preset.fillBar} bar`
                           }
                         </Text>
-                      </TouchableOpacity>
+                      </Pressable>
                     ))}
                   </ScrollView>
                 </View>
