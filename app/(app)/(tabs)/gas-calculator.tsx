@@ -8,11 +8,11 @@ import { DrawerActions, useNavigation } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
 import {
   CYLINDER_CATALOG, Cylinder, getCylindersByMaterial, CylinderMaterial
-} from '../../services/cylinderCatalog';
+} from '@/services/cylinderCatalog';
 import {
   calculateGasDensity, calculateFillCapacity, calculateTopUp,
   calculateTrimixBlend, calculateBestMix, calculateMOD, calculateEND, getMixName
-} from '../../services/gasMath';
+} from '@/services/gasMath';
 import PageHeader from '@/components/PageHeader';
 
 type TabType = 'gases' | 'density' | 'fill' | 'topup' | 'trimix' | 'bestmix';

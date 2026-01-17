@@ -164,7 +164,7 @@ export default function HomeScreen() {
   const quickActions = [
     { icon: 'add-circle', label: 'Log Dive', route: '/(app)/dive-logs', gradient: colorShades[3] },
     { icon: 'compass', label: 'Explore Sites', route: '/(app)/(tabs)/explore', gradient: colorShades[4] },
-    { icon: 'airplane', label: 'Plan Trip', route: '/(app)/dive-trips', gradient: colorShades[5] },
+    { icon: 'airplane', label: 'Plan Trip', route: '/(app)/(tabs)/dive-trips', gradient: colorShades[5] },
   ];
 
   return (

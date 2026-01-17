@@ -11,8 +11,8 @@ import {
   calculateDivePlan, calculateMultiDivePlan, createGasMix, initializeTissues,
   DEFAULT_SETTINGS, GasMix, DivePlanResult, TissueState, DivePlanInput, DivePlanSettings,
   CircuitType, DecoModel, WaterType, UnitSystem, calculateCNS, calculateOTU, GasConsumption
-} from '../../services/divePlanner';
-import { CYLINDER_PRESETS_LEGACY as CYLINDER_PRESETS } from '../../services/cylinderCatalog';
+} from '@/services/divePlanner';
+import { CYLINDER_PRESETS_LEGACY as CYLINDER_PRESETS } from '@/services/cylinderCatalog';
 import PageHeader from '@/components/PageHeader';
 
 const CHART_HEIGHT = 280;

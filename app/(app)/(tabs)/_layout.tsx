@@ -90,6 +90,60 @@ export default function TabLayout() {
             href: null,
           }}
         />
+        <Tabs.Screen
+          name="certifications"
+          options={{
+            href: null,
+          }}
+        />
+        <Tabs.Screen
+          name="dive-buddies"
+          options={{
+            href: null,
+          }}
+        />
+        <Tabs.Screen
+          name="dive-planning"
+          options={{
+            href: null,
+          }}
+        />
+        <Tabs.Screen
+          name="dive-trips"
+          options={{
+            href: null,
+          }}
+        />
+        <Tabs.Screen
+          name="gas-calculator"
+          options={{
+            href: null,
+          }}
+        />
+        <Tabs.Screen
+          name="gear-profiles"
+          options={{
+            href: null,
+          }}
+        />
+        <Tabs.Screen
+          name="settings"
+          options={{
+            href: null,
+          }}
+        />
+        <Tabs.Screen
+          name="import-dive-log"
+          options={{
+            href: null,
+          }}
+        />
+        <Tabs.Screen
+          name="manual-dive-entry"
+          options={{
+            href: null,
+          }}
+        />
       </Tabs>
     </View>
   );

@@ -35,14 +35,14 @@ function CustomDrawerContent(props: any) {
     { icon: 'home-outline', label: 'Home', action: () => handleNavigation('/(app)/(tabs)') },
     { icon: 'journal-outline', label: 'Dive Logs', action: () => handleNavigation('/(app)/(tabs)/dive-logs') },
     { icon: 'location-outline', label: 'Dive Sites', action: () => handleNavigation('/(app)/(tabs)/dive-sites') },
-    { icon: 'build-outline', label: 'Gear Profiles', action: () => handleNavigation('/(app)/gear-profiles') },
-    { icon: 'people-outline', label: 'Dive Buddies', action: () => handleNavigation('/(app)/dive-buddies') },
-    { icon: 'analytics-outline', label: 'Dive Planning', action: () => handleNavigation('/(app)/dive-planning') },
-    { icon: 'flask-outline', label: 'Gas', action: () => handleNavigation('/(app)/gas-calculator') },
+    { icon: 'build-outline', label: 'Gear Profiles', action: () => handleNavigation('/(app)/(tabs)/gear-profiles') },
+    { icon: 'people-outline', label: 'Dive Buddies', action: () => handleNavigation('/(app)/(tabs)/dive-buddies') },
+    { icon: 'analytics-outline', label: 'Dive Planning', action: () => handleNavigation('/(app)/(tabs)/dive-planning') },
+    { icon: 'flask-outline', label: 'Gas', action: () => handleNavigation('/(app)/(tabs)/gas-calculator') },
     { icon: 'images-outline', label: 'Photos', action: () => handleNavigation('/(app)/(tabs)/photos') },
-    { icon: 'ribbon-outline', label: 'Certifications', action: () => handleNavigation('/(app)/certifications') },
-    { icon: 'airplane-outline', label: 'Dive Trips', action: () => handleNavigation('/(app)/dive-trips') },
-    { icon: 'settings-outline', label: 'Settings', action: () => handleNavigation('/(app)/settings') },
+    { icon: 'ribbon-outline', label: 'Certifications', action: () => handleNavigation('/(app)/(tabs)/certifications') },
+    { icon: 'airplane-outline', label: 'Dive Trips', action: () => handleNavigation('/(app)/(tabs)/dive-trips') },
+    { icon: 'settings-outline', label: 'Settings', action: () => handleNavigation('/(app)/(tabs)/settings') },
   ];
 
   const adminItems = [
