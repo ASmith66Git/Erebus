@@ -32,8 +32,13 @@ export default function EmbeddedMapPicker({
   colors,
   readOnly = false,
 }: EmbeddedMapPickerProps) {
+  const parsedLat = typeof latitude === 'string' ? parseFloat(latitude) : (latitude || 0);
+  const parsedLng = typeof longitude === 'string' ? parseFloat(longitude) : (longitude || 0);
+  const validLat = isFinite(parsedLat) ? parsedLat : 0;
+  const validLng = isFinite(parsedLng) ? parsedLng : 0;
+  
   const [searchText, setSearchText] = useState('');
-  const [markerPosition, setMarkerPosition] = useState({ latitude, longitude });
+  const [markerPosition, setMarkerPosition] = useState({ latitude: validLat, longitude: validLng });
   const [gettingLocation, setGettingLocation] = useState(false);
   const [mapLoaded, setMapLoaded] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
@@ -45,7 +50,11 @@ export default function EmbeddedMapPicker({
   const apiKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || Constants.expoConfig?.extra?.googleMapsApiKey || '';
 
   useEffect(() => {
-    setMarkerPosition({ latitude, longitude });
+    const lat = typeof latitude === 'string' ? parseFloat(latitude) : (latitude || 0);
+    const lng = typeof longitude === 'string' ? parseFloat(longitude) : (longitude || 0);
+    const safeLat = isFinite(lat) ? lat : 0;
+    const safeLng = isFinite(lng) ? lng : 0;
+    setMarkerPosition({ latitude: safeLat, longitude: safeLng });
   }, [latitude, longitude]);
 
   const handleMarkerChange = useCallback((lat: number, lng: number) => {
@@ -126,9 +135,14 @@ export default function EmbeddedMapPicker({
           throw new Error('Google Maps failed to initialize');
         }
         
+        const initLat = typeof latitude === 'string' ? parseFloat(latitude) : (latitude || 0);
+        const initLng = typeof longitude === 'string' ? parseFloat(longitude) : (longitude || 0);
+        const safeLat = isFinite(initLat) ? initLat : 0;
+        const safeLng = isFinite(initLng) ? initLng : 0;
+        
         const map = new google.maps.Map(mapElement, {
-          center: { lat: latitude || 0, lng: longitude || 0 },
-          zoom: latitude && longitude ? 12 : 2,
+          center: { lat: safeLat, lng: safeLng },
+          zoom: safeLat !== 0 && safeLng !== 0 ? 12 : 2,
           mapTypeControl: true,
           streetViewControl: false,
           fullscreenControl: false,
@@ -136,9 +150,9 @@ export default function EmbeddedMapPicker({
         googleMapRef.current = map;
 
         const marker = new google.maps.Marker({
-          position: { lat: latitude || 0, lng: longitude || 0 },
+          position: { lat: safeLat, lng: safeLng },
           map: map,
-          draggable: true,
+          draggable: !readOnly,
         });
         markerRef.current = marker;
 
@@ -238,9 +252,10 @@ export default function EmbeddedMapPicker({
 
   useEffect(() => {
     if (googleMapRef.current && markerRef.current) {
-      const lat = markerPosition.latitude;
-      const lng = markerPosition.longitude;
+      const lat = isFinite(markerPosition.latitude) ? markerPosition.latitude : 0;
+      const lng = isFinite(markerPosition.longitude) ? markerPosition.longitude : 0;
       markerRef.current.setPosition({ lat, lng });
+      googleMapRef.current.setCenter({ lat, lng });
     }
   }, [markerPosition]);
 
