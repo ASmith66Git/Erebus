@@ -354,6 +354,7 @@ export default function CertificationsScreen() {
         const asset = result.assets[0];
         const filename = `cert_${selectedCertification.id}_${side}_${Date.now()}.jpg`;
         
+        console.log('Step 1: Requesting upload URL for', filename);
         const urlResponse = await fetch(`${getApiUrl()}/api/uploads/request-url`, {
           method: 'POST',
           headers: {
@@ -367,11 +368,17 @@ export default function CertificationsScreen() {
           }),
         });
         
-        if (!urlResponse.ok) throw new Error('Failed to get upload URL');
+        if (!urlResponse.ok) {
+          const errorText = await urlResponse.text();
+          console.error('Failed to get upload URL:', urlResponse.status, errorText);
+          throw new Error('Failed to get upload URL');
+        }
         
         const { uploadURL, objectPath } = await urlResponse.json();
+        console.log('Step 2: Got upload URL, objectPath:', objectPath);
         
         const imageBlob = await fetch(asset.uri).then(r => r.blob());
+        console.log('Step 3: Created blob, size:', imageBlob.size);
         
         const uploadResponse = await fetch(uploadURL, {
           method: 'PUT',
@@ -379,7 +386,12 @@ export default function CertificationsScreen() {
           headers: { 'Content-Type': 'image/jpeg' },
         });
         
-        if (!uploadResponse.ok) throw new Error('Failed to upload image');
+        if (!uploadResponse.ok) {
+          const errorText = await uploadResponse.text();
+          console.error('Failed to upload to storage:', uploadResponse.status, errorText);
+          throw new Error('Failed to upload image');
+        }
+        console.log('Step 4: Uploaded to storage successfully');
         
         const addImageResponse = await fetch(
           `${getApiUrl()}/api/certifications/${selectedCertification.id}/images`,
@@ -396,14 +408,23 @@ export default function CertificationsScreen() {
           }
         );
         
-        if (addImageResponse.ok) {
-          Alert.alert('Success', `${side === 'front' ? 'Front' : 'Back'} of card scanned`);
-          fetchData();
-          setShowDetailModal(false);
+        if (!addImageResponse.ok) {
+          const errorText = await addImageResponse.text();
+          console.error('Failed to save image record:', addImageResponse.status, errorText);
+          throw new Error('Failed to save image record');
+        }
+        
+        console.log('Step 5: Image record saved to database');
+        Alert.alert('Success', `${side === 'front' ? 'Front' : 'Back'} of card scanned`);
+        await fetchData();
+        
+        const updatedCert = certifications.find(c => c.id === selectedCertification.id);
+        if (updatedCert) {
+          setSelectedCertification(updatedCert);
         }
       } catch (error) {
         console.error('Error scanning card:', error);
-        Alert.alert('Error', 'Failed to scan card');
+        Alert.alert('Error', 'Failed to scan card. Please try again.');
       } finally {
         setUploadingImage(false);
       }
@@ -978,17 +999,23 @@ export default function CertificationsScreen() {
                 
                 {selectedCertification.images && selectedCertification.images.length > 0 && (
                   <View style={styles.scannedImages}>
-                    {selectedCertification.images.map((img) => (
-                      <View key={img.id} style={styles.scannedImageContainer}>
-                        <Text style={[styles.scannedImageLabel, { color: colors.textSecondary }]}>
-                          {img.image_side === 'front' ? 'Front' : 'Back'}
-                        </Text>
-                        <View style={[styles.scannedImagePlaceholder, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                          <Feather name="credit-card" size={32} color={colors.textSecondary} />
-                          <Text style={[styles.scannedImageText, { color: colors.textSecondary }]}>Image saved</Text>
+                    {selectedCertification.images.map((img) => {
+                      const imageUrl = img.image_url.startsWith('http') 
+                        ? img.image_url 
+                        : `${getApiUrl()}${img.image_url}`;
+                      return (
+                        <View key={img.id} style={styles.scannedImageContainer}>
+                          <Text style={[styles.scannedImageLabel, { color: colors.textSecondary }]}>
+                            {img.image_side === 'front' ? 'Front' : 'Back'}
+                          </Text>
+                          <Image
+                            source={{ uri: imageUrl }}
+                            style={styles.scannedImage}
+                            resizeMode="cover"
+                          />
                         </View>
-                      </View>
-                    ))}
+                      );
+                    })}
                   </View>
                 )}
                 
@@ -1099,6 +1126,7 @@ const styles = StyleSheet.create({
   scannedImages: { flexDirection: 'row', gap: 12, marginTop: 16 },
   scannedImageContainer: { flex: 1 },
   scannedImageLabel: { fontSize: 12, marginBottom: 4 },
+  scannedImage: { width: '100%', height: 120, borderRadius: 8 },
   scannedImagePlaceholder: { height: 100, borderRadius: 8, borderWidth: 1, alignItems: 'center', justifyContent: 'center', gap: 4 },
   scannedImageText: { fontSize: 12 },
   notesText: { fontSize: 14, lineHeight: 20 },
