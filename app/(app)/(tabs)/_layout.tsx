@@ -144,6 +144,12 @@ export default function TabLayout() {
             href: null,
           }}
         />
+        <Tabs.Screen
+          name="debug-log"
+          options={{
+            href: null,
+          }}
+        />
       </Tabs>
     </View>
   );
