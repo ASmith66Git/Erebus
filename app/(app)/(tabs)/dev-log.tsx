@@ -77,6 +77,7 @@ export default function DevLogScreen() {
   const [statusCounts, setStatusCounts] = useState<{ todo: number; in_progress: number; completed: number }>({ todo: 0, in_progress: 0, completed: 0 });
   const [refreshing, setRefreshing] = useState(false);
   const [statusFilter, setStatusFilter] = useState<'all' | 'todo' | 'in_progress'>('all');
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (!isAdmin) {
@@ -183,6 +184,9 @@ export default function DevLogScreen() {
       return;
     }
 
+    if (isSaving) return;
+    setIsSaving(true);
+
     try {
       const url = editingEntry 
         ? `/api/admin/dev-log/${editingEntry.id}`
@@ -204,6 +208,8 @@ export default function DevLogScreen() {
       }
     } catch (err) {
       Alert.alert('Error', 'Network error');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -652,12 +658,17 @@ Please help me with this development task.`;
             </View>
 
             <Pressable
-              style={[styles.saveButton, { backgroundColor: colors.primary }]}
+              style={[styles.saveButton, { backgroundColor: colors.primary, opacity: isSaving ? 0.6 : 1 }]}
               onPress={handleSave}
+              disabled={isSaving}
             >
-              <Text style={styles.saveButtonText}>
-                {editingEntry ? 'Update' : 'Add Entry'}
-              </Text>
+              {isSaving ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <Text style={styles.saveButtonText}>
+                  {editingEntry ? 'Update' : 'Add Entry'}
+                </Text>
+              )}
             </Pressable>
             </ScrollView>
           </View>
