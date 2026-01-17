@@ -18,6 +18,19 @@ interface SettingsContextType {
   formatDepth: (meters: number | null) => string;
   formatTemperature: (celsius: number | null) => string;
   formatDate: (date: Date | string) => string;
+  formatWeight: (kg: number | null) => string;
+  formatVolume: (liters: number | null) => string;
+  formatPressure: (bar: number | null) => string;
+  getWeightUnit: () => string;
+  getVolumeUnit: () => string;
+  getPressureUnit: () => string;
+  getDepthUnit: () => string;
+  convertWeightToMetric: (value: number) => number;
+  convertWeightFromMetric: (kg: number) => number;
+  convertVolumeToMetric: (value: number) => number;
+  convertVolumeFromMetric: (liters: number) => number;
+  convertDepthToMetric: (value: number) => number;
+  convertDepthFromMetric: (meters: number) => number;
 }
 
 const STORAGE_KEY = 'erebus_settings';
@@ -146,6 +159,80 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const formatWeight = (kg: number | null): string => {
+    if (kg === null || kg === undefined) return '--';
+    if (units === 'imperial') {
+      const lbs = kg * 2.20462;
+      return `${lbs.toFixed(1)} lbs`;
+    }
+    return `${kg.toFixed(1)} kg`;
+  };
+
+  const formatVolume = (liters: number | null): string => {
+    if (liters === null || liters === undefined) return '--';
+    if (units === 'imperial') {
+      const cuft = liters * 0.0353147;
+      return `${cuft.toFixed(1)} cuft`;
+    }
+    return `${liters.toFixed(1)} L`;
+  };
+
+  const formatPressure = (bar: number | null): string => {
+    if (bar === null || bar === undefined) return '--';
+    if (units === 'imperial') {
+      const psi = bar * 14.5038;
+      return `${psi.toFixed(0)} psi`;
+    }
+    return `${bar.toFixed(0)} bar`;
+  };
+
+  const getWeightUnit = (): string => units === 'imperial' ? 'lbs' : 'kg';
+  const getVolumeUnit = (): string => units === 'imperial' ? 'cuft' : 'L';
+  const getPressureUnit = (): string => units === 'imperial' ? 'psi' : 'bar';
+  const getDepthUnit = (): string => units === 'imperial' ? 'ft' : 'm';
+
+  const convertWeightToMetric = (value: number): number => {
+    if (units === 'imperial') {
+      return value / 2.20462;
+    }
+    return value;
+  };
+
+  const convertWeightFromMetric = (kg: number): number => {
+    if (units === 'imperial') {
+      return kg * 2.20462;
+    }
+    return kg;
+  };
+
+  const convertVolumeToMetric = (value: number): number => {
+    if (units === 'imperial') {
+      return value / 0.0353147;
+    }
+    return value;
+  };
+
+  const convertVolumeFromMetric = (liters: number): number => {
+    if (units === 'imperial') {
+      return liters * 0.0353147;
+    }
+    return liters;
+  };
+
+  const convertDepthToMetric = (value: number): number => {
+    if (units === 'imperial') {
+      return value / 3.28084;
+    }
+    return value;
+  };
+
+  const convertDepthFromMetric = (meters: number): number => {
+    if (units === 'imperial') {
+      return meters * 3.28084;
+    }
+    return meters;
+  };
+
   return (
     <SettingsContext.Provider
       value={{
@@ -160,6 +247,19 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         formatDepth,
         formatTemperature,
         formatDate,
+        formatWeight,
+        formatVolume,
+        formatPressure,
+        getWeightUnit,
+        getVolumeUnit,
+        getPressureUnit,
+        getDepthUnit,
+        convertWeightToMetric,
+        convertWeightFromMetric,
+        convertVolumeToMetric,
+        convertVolumeFromMetric,
+        convertDepthToMetric,
+        convertDepthFromMetric,
       }}
     >
       {children}

@@ -13,6 +13,7 @@ import {
   calculateGasDensity, calculateFillCapacity, calculateTopUp,
   calculateTrimixBlend, calculateBestMix, calculateMOD, calculateEND, getMixName
 } from '@/services/gasMath';
+import { useSettings } from '@/contexts/SettingsContext';
 import PageHeader from '@/components/PageHeader';
 
 type TabType = 'gases' | 'density' | 'fill' | 'topup' | 'trimix' | 'bestmix';
@@ -21,6 +22,7 @@ export default function GasCalculatorScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const navigation = useNavigation();
+  const { units, getVolumeUnit, getPressureUnit, getDepthUnit, formatVolume, formatPressure, formatDepth } = useSettings();
 
   const colors = {
     background: isDark ? '#000000' : '#FFFFFF',
@@ -345,8 +347,8 @@ export default function GasCalculatorScreen() {
         <View style={styles.tableHeader}>
           <Text style={[styles.tableHeaderText, { color: colors.textSecondary, flex: 2 }]}>Cylinder</Text>
           <Text style={[styles.tableHeaderText, { color: colors.textSecondary, flex: 1 }]}>Vol (L)</Text>
-          <Text style={[styles.tableHeaderText, { color: colors.textSecondary, flex: 1 }]}>Bar</Text>
-          <Text style={[styles.tableHeaderText, { color: colors.textSecondary, flex: 1 }]}>Cuft</Text>
+          <Text style={[styles.tableHeaderText, { color: colors.textSecondary, flex: 1 }]}>{getPressureUnit()}</Text>
+          <Text style={[styles.tableHeaderText, { color: colors.textSecondary, flex: 1 }]}>Capacity</Text>
         </View>
         {filteredCylinders.slice(0, 12).map((cyl) => (
           <TouchableOpacity
@@ -356,8 +358,8 @@ export default function GasCalculatorScreen() {
           >
             <Text style={[styles.tableCell, { color: colors.text, flex: 2 }]} numberOfLines={1}>{cyl.label}</Text>
             <Text style={[styles.tableCell, { color: colors.text, flex: 1 }]}>{cyl.volumeL}</Text>
-            <Text style={[styles.tableCell, { color: colors.text, flex: 1 }]}>{cyl.workingPressureBar}</Text>
-            <Text style={[styles.tableCell, { color: colors.text, flex: 1 }]}>{cyl.volumeCuft}</Text>
+            <Text style={[styles.tableCell, { color: colors.text, flex: 1 }]}>{units === 'imperial' ? Math.round(cyl.workingPressureBar * 14.5038) : cyl.workingPressureBar}</Text>
+            <Text style={[styles.tableCell, { color: colors.text, flex: 1 }]}>{units === 'imperial' ? cyl.volumeCuft + ' cuft' : (cyl.volumeL * cyl.workingPressureBar).toFixed(0) + ' L'}</Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -372,7 +374,7 @@ export default function GasCalculatorScreen() {
       <View style={[styles.card, { backgroundColor: colors.card }]}>
         {renderInput('O2 %', densityO2, setDensityO2, '%')}
         {renderInput('He %', densityHe, setDensityHe, '%')}
-        {renderInput('Depth', densityDepth, setDensityDepth, 'm')}
+        {renderInput('Depth', densityDepth, setDensityDepth, getDepthUnit())}
       </View>
 
       <View style={[styles.resultsCard, { backgroundColor: colors.card, borderColor: densityResult.isHighDensity ? colors.danger : colors.success }]}>
@@ -380,7 +382,7 @@ export default function GasCalculatorScreen() {
         {renderResultRow('Surface Density', `${densityResult.surfaceDensity.toFixed(3)} g/L`)}
         {renderResultRow('Depth Density', `${densityResult.depthDensity.toFixed(3)} g/L`, densityResult.isHighDensity)}
         {renderResultRow('Mix', getMixName(parseFloat(densityO2) || 21, parseFloat(densityHe) || 0))}
-        {renderResultRow('MOD (1.4 PPO2)', `${calculateMOD(parseFloat(densityO2) || 21, 1.4)} m`)}
+        {renderResultRow('MOD (1.4 PPO2)', units === 'imperial' ? `${Math.round(calculateMOD(parseFloat(densityO2) || 21, 1.4) * 3.28084)} ft` : `${calculateMOD(parseFloat(densityO2) || 21, 1.4)} m`)}
         
         {densityResult.warningMessage && (
           <View style={[styles.warningBox, { backgroundColor: colors.danger + '20' }]}>
@@ -436,16 +438,16 @@ export default function GasCalculatorScreen() {
             <Feather name="chevron-down" size={20} color={colors.textSecondary} />
           </View>
         </TouchableOpacity>
-        {renderInput('Fill Pressure', fillPressure, setFillPressure, 'bar')}
-        {renderInput('Reserve Pressure', fillReserve, setFillReserve, 'bar')}
+        {renderInput('Fill Pressure', fillPressure, setFillPressure, getPressureUnit())}
+        {renderInput('Reserve Pressure', fillReserve, setFillReserve, getPressureUnit())}
         {renderInput('SAC Rate', fillSac, setFillSac, 'L/min')}
       </View>
 
       <View style={[styles.resultsCard, { backgroundColor: colors.card }]}>
         <Text style={[styles.resultsTitle, { color: colors.text }]}>Results</Text>
-        {renderResultRow('Cylinder Volume', `${selectedCylinder.volumeL} L`)}
-        {renderResultRow('Total Gas', `${fillResult.totalGasLiters.toFixed(0)} L (${fillResult.totalGasCuft.toFixed(0)} cuft)`)}
-        {renderResultRow('Usable Gas', `${fillResult.usableGasLiters.toFixed(0)} L (${fillResult.usableGasCuft.toFixed(0)} cuft)`)}
+        {renderResultRow('Cylinder Volume', units === 'imperial' ? `${selectedCylinder.volumeCuft} cuft` : `${selectedCylinder.volumeL} L`)}
+        {renderResultRow('Total Gas', units === 'imperial' ? `${fillResult.totalGasCuft.toFixed(0)} cuft` : `${fillResult.totalGasLiters.toFixed(0)} L`)}
+        {renderResultRow('Usable Gas', units === 'imperial' ? `${fillResult.usableGasCuft.toFixed(0)} cuft` : `${fillResult.usableGasLiters.toFixed(0)} L`)}
         {renderResultRow('Surface Time @ SAC', `${fillResult.bottomTimeMinutes.toFixed(0)} min`)}
       </View>
     </ScrollView>
@@ -458,14 +460,14 @@ export default function GasCalculatorScreen() {
 
       <View style={[styles.card, { backgroundColor: colors.card }]}>
         <Text style={[styles.cardTitle, { color: colors.text }]}>Current Tank Contents</Text>
-        {renderInput('Current Pressure', topupCurrentPressure, setTopupCurrentPressure, 'bar')}
+        {renderInput('Current Pressure', topupCurrentPressure, setTopupCurrentPressure, getPressureUnit())}
         {renderInput('Current O2 %', topupCurrentO2, setTopupCurrentO2, '%')}
         {renderInput('Current He %', topupCurrentHe, setTopupCurrentHe, '%')}
       </View>
 
       <View style={[styles.card, { backgroundColor: colors.card }]}>
         <Text style={[styles.cardTitle, { color: colors.text }]}>Fill Gas</Text>
-        {renderInput('Fill to Pressure', topupFillPressure, setTopupFillPressure, 'bar')}
+        {renderInput('Fill to Pressure', topupFillPressure, setTopupFillPressure, getPressureUnit())}
         {renderInput('Source O2 %', topupSourceO2, setTopupSourceO2, '%')}
         {renderInput('Source He %', topupSourceHe, setTopupSourceHe, '%')}
       </View>
@@ -475,7 +477,7 @@ export default function GasCalculatorScreen() {
         {renderResultRow('Final O2', `${topupResult.finalO2Percent.toFixed(1)}%`)}
         {renderResultRow('Final He', `${topupResult.finalHePercent.toFixed(1)}%`)}
         {renderResultRow('Final N2', `${topupResult.finalN2Percent.toFixed(1)}%`)}
-        {renderResultRow('Added Pressure', `${topupResult.addedPressureBar.toFixed(0)} bar`)}
+        {renderResultRow('Added Pressure', units === 'imperial' ? `${(topupResult.addedPressureBar * 14.5038).toFixed(0)} psi` : `${topupResult.addedPressureBar.toFixed(0)} bar`)}
         {renderResultRow('Mix Name', getMixName(Math.round(topupResult.finalO2Percent), Math.round(topupResult.finalHePercent)))}
         
         {topupResult.warningMessage && (
@@ -497,12 +499,12 @@ export default function GasCalculatorScreen() {
         <Text style={[styles.cardTitle, { color: colors.text }]}>Target Mix</Text>
         {renderInput('Target O2 %', trimixTargetO2, setTrimixTargetO2, '%')}
         {renderInput('Target He %', trimixTargetHe, setTrimixTargetHe, '%')}
-        {renderInput('Final Pressure', trimixFinalPressure, setTrimixFinalPressure, 'bar')}
+        {renderInput('Final Pressure', trimixFinalPressure, setTrimixFinalPressure, getPressureUnit())}
       </View>
 
       <View style={[styles.card, { backgroundColor: colors.card }]}>
         <Text style={[styles.cardTitle, { color: colors.text }]}>Residual Gas (optional)</Text>
-        {renderInput('Residual Pressure', trimixResidual, setTrimixResidual, 'bar')}
+        {renderInput('Residual Pressure', trimixResidual, setTrimixResidual, getPressureUnit())}
         {renderInput('Residual O2 %', trimixResidualO2, setTrimixResidualO2, '%')}
         {renderInput('Residual He %', trimixResidualHe, setTrimixResidualHe, '%')}
       </View>
@@ -523,12 +525,12 @@ export default function GasCalculatorScreen() {
 
       <View style={[styles.resultsCard, { backgroundColor: colors.card, borderColor: trimixResult.isValid ? colors.success : colors.danger }]}>
         <Text style={[styles.resultsTitle, { color: colors.text }]}>Blending Sequence</Text>
-        {renderResultRow('1. Add Helium', `${trimixResult.hePressureToAdd} bar`)}
-        {renderResultRow('2. Add Pure O2', `${trimixResult.o2PressureToAdd} bar`)}
-        {renderResultRow(`3. Top with ${trimixUseAir ? 'Air' : 'EAN' + trimixNitroxO2}`, `${trimixResult.airOrNitroxPressureToAdd} bar`)}
+        {renderResultRow('1. Add Helium', units === 'imperial' ? `${(trimixResult.hePressureToAdd * 14.5038).toFixed(0)} psi` : `${trimixResult.hePressureToAdd} bar`)}
+        {renderResultRow('2. Add Pure O2', units === 'imperial' ? `${(trimixResult.o2PressureToAdd * 14.5038).toFixed(0)} psi` : `${trimixResult.o2PressureToAdd} bar`)}
+        {renderResultRow(`3. Top with ${trimixUseAir ? 'Air' : 'EAN' + trimixNitroxO2}`, units === 'imperial' ? `${(trimixResult.airOrNitroxPressureToAdd * 14.5038).toFixed(0)} psi` : `${trimixResult.airOrNitroxPressureToAdd} bar`)}
         <View style={styles.divider} />
         {renderResultRow('Final Mix', `Tx${trimixResult.actualO2Percent}/${trimixResult.actualHePercent}`)}
-        {renderResultRow('MOD (1.4 PPO2)', `${calculateMOD(trimixResult.actualO2Percent, 1.4)} m`)}
+        {renderResultRow('MOD (1.4 PPO2)', units === 'imperial' ? `${(calculateMOD(trimixResult.actualO2Percent, 1.4) * 3.28084).toFixed(0)} ft` : `${calculateMOD(trimixResult.actualO2Percent, 1.4)} m`)}
         
         {trimixResult.warningMessage && (
           <View style={[styles.warningBox, { backgroundColor: colors.danger + '20' }]}>
@@ -643,7 +645,7 @@ export default function GasCalculatorScreen() {
                 >
                   <Text style={[styles.cylinderOptionLabel, { color: colors.text }]}>{item.label}</Text>
                   <Text style={[styles.cylinderOptionDetails, { color: colors.textSecondary }]}>
-                    {item.volumeL}L | {item.workingPressureBar} bar | {item.volumeCuft} cuft
+                    {units === 'imperial' ? `${item.volumeCuft} cuft` : `${item.volumeL}L`} | {units === 'imperial' ? `${(item.workingPressureBar * 14.5038).toFixed(0)} psi` : `${item.workingPressureBar} bar`}
                   </Text>
                 </TouchableOpacity>
               )}

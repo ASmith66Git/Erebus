@@ -14,6 +14,7 @@ import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSettings } from '@/contexts/SettingsContext';
 import { getApiUrl } from '@/utils/apiConfig';
 import { DrawerActions, useNavigation } from '@react-navigation/native';
 import PageHeader from '@/components/PageHeader';
@@ -47,6 +48,7 @@ const CONFIG_TYPE_LABELS: { [key: string]: string } = {
 export default function GearProfilesScreen() {
   const { colors } = useTheme();
   const { token, logout } = useAuth();
+  const { formatWeight } = useSettings();
   const router = useRouter();
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
@@ -162,7 +164,7 @@ export default function GearProfilesScreen() {
             <View style={styles.detailRow}>
               <Feather name="anchor" size={14} color={colors.textSecondary} />
               <Text style={[styles.detailText, { color: colors.textSecondary }]}>
-                {profile.totalWeight.toFixed(1)} kg total weight
+                {formatWeight(profile.totalWeight)} total weight
               </Text>
             </View>
           )}

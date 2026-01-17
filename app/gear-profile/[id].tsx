@@ -15,6 +15,7 @@ import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSettings } from '@/contexts/SettingsContext';
 import { getApiUrl } from '@/utils/apiConfig';
 
 interface Cylinder {
@@ -137,6 +138,7 @@ export default function GearProfileEditScreen() {
   const isNew = id === 'new';
   const { colors } = useTheme();
   const { token, logout } = useAuth();
+  const { getWeightUnit, convertWeightFromMetric, convertWeightToMetric } = useSettings();
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
@@ -761,7 +763,7 @@ export default function GearProfileEditScreen() {
           <Feather name="anchor" size={24} color={colors.primary} />
           <View>
             <Text style={[styles.totalWeightLabel, { color: colors.primary }]}>Total Weight</Text>
-            <Text style={[styles.totalWeightValue, { color: colors.primary }]}>{totalWeight.toFixed(1)} kg</Text>
+            <Text style={[styles.totalWeightValue, { color: colors.primary }]}>{convertWeightFromMetric(totalWeight).toFixed(1)} {getWeightUnit()}</Text>
           </View>
         </View>
 
@@ -775,7 +777,7 @@ export default function GearProfileEditScreen() {
               max={20}
               step={0.5}
             />
-            <Text style={[styles.weightUnit, { color: colors.textSecondary }]}>kg</Text>
+            <Text style={[styles.weightUnit, { color: colors.textSecondary }]}>{getWeightUnit()}</Text>
           </View>
         ))}
       </View>
