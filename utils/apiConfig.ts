@@ -15,8 +15,8 @@ export function getApiUrl(): string {
       return `${window.location.protocol}//${hostname}:3001`;
     }
     if (host.includes('.replit.app')) {
-      // Published apps should always use the hardcoded production API URL
-      return PRODUCTION_API_URL;
+      // Published apps serve API and static files from same origin
+      return `${window.location.protocol}//${host}`;
     }
     return `${window.location.protocol}//${host}`;
   }
