@@ -4988,11 +4988,11 @@ app.get('/api/dive-trips/:id', authenticateToken, async (req, res) => {
     
     // Get linked dive logs
     const logsResult = await pool.query(
-      `SELECT dl.id, dl.dive_date, dl.site_name, dl.max_depth_meters, dl.duration_minutes
+      `SELECT dl.id, dl.dive_datetime, dl.site_name, dl.max_depth_meters, dl.duration_minutes
        FROM dive_logs dl
        JOIN dive_trip_logs dtl ON dl.id = dtl.dive_log_id
        WHERE dtl.trip_id = $1
-       ORDER BY dl.dive_date ASC`,
+       ORDER BY dl.dive_datetime ASC`,
       [id]
     );
     

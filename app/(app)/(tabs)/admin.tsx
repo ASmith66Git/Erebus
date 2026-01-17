@@ -5,6 +5,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'expo-router';
 import { authFetch } from '@/utils/authFetch';
+import PageHeader from '@/components/PageHeader';
 
 interface UserData {
   id: number;
@@ -194,21 +195,23 @@ export default function AdminScreen() {
   }
 
   return (
-    <ScrollView 
-      style={[styles.container, { backgroundColor: colors.background }]}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} tintColor={colors.primary} />
-      }
-    >
-      <View style={styles.header}>
-        <View style={[styles.headerIcon, { backgroundColor: colors.primary }]}>
-          <Ionicons name="settings" size={24} color="#FFFFFF" />
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
+      <PageHeader title="Admin" />
+      <ScrollView 
+        style={styles.container}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} tintColor={colors.primary} />
+        }
+      >
+        <View style={styles.header}>
+          <View style={[styles.headerIcon, { backgroundColor: colors.primary }]}>
+            <Ionicons name="settings" size={24} color="#FFFFFF" />
+          </View>
+          <Text style={[styles.title, { color: colors.text }]}>Admin Panel</Text>
+          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+            Manage users and app settings
+          </Text>
         </View>
-        <Text style={[styles.title, { color: colors.text }]}>Admin Panel</Text>
-        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-          Manage users and app settings
-        </Text>
-      </View>
 
       <View style={[styles.statsCard, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
         <View style={styles.statItem}>
@@ -333,7 +336,8 @@ export default function AdminScreen() {
         ))
       )}
 
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
