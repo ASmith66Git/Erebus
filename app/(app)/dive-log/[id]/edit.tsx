@@ -17,6 +17,9 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { getApiUrl } from '@/utils/apiConfig';
 
+const TABS = ['Dive', 'Profile', 'Computer', 'Notes', 'Team'] as const;
+type TabType = typeof TABS[number];
+
 const EQUIPMENT_OPTIONS = [
   'None', 'First Stages', 'Second Stages', 'Gas Hoses', 'Wing', 'Harness',
   'Torches', 'Weights', 'SMBs', 'Reels', 'Suit Inflation', 'Suit Venting',
@@ -33,20 +36,42 @@ const WORKLOAD_OPTIONS = ['Light', 'Moderate', 'Heavy', 'Exhausting'];
 const THERMAL_OPTIONS = ['Cold', 'Cool', 'Comfortable', 'Warm', 'Hot'];
 const SURFACE_CONDITIONS_OPTIONS = ['Calm', 'Slight waves', 'Moderate waves', 'Rough', 'Very rough'];
 const WEATHER_OPTIONS = ['Clear', 'Partly cloudy', 'Overcast', 'Light rain', 'Heavy rain', 'Storm'];
+const DIVE_MODES = ['Open Circuit', 'CCR', 'SCR', 'Sidemount', 'Freedive'];
 
 interface DiveLog {
   id: number;
+  diveNumber: number | null;
+  diveSiteId: number | null;
+  diveSiteName: string | null;
+  diveDateTime: string;
+  durationSeconds: number | null;
+  maxDepthMeters: number | null;
+  avgDepthMeters: number | null;
+  minTemperatureCelsius: number | null;
+  maxTemperatureCelsius: number | null;
+  deviceManufacturer: string | null;
+  deviceModel: string | null;
+  deviceSerial: string | null;
+  deviceFirmware: string | null;
   notes: string | null;
   rating: number | null;
   buddy: string | null;
+  diveMode: string | null;
   surfaceConditions: string | null;
   weatherConditions: string | null;
   workload: string | null;
   thermalComfort: string | null;
+  visibility: string | null;
   equipmentIssues: string[] | null;
   skillsPracticed: string[] | null;
   decompressionSymptoms: boolean | null;
   problemNotes: string | null;
+}
+
+interface DiveBuddy {
+  id: number;
+  name: string;
+  photoUrl: string | null;
 }
 
 export default function EditDiveLogScreen() {
@@ -55,13 +80,29 @@ export default function EditDiveLogScreen() {
   const { colors } = useTheme();
   const { token } = useAuth();
   
+  const [activeTab, setActiveTab] = useState<TabType>('Dive');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
+  const [diveNumber, setDiveNumber] = useState('');
+  const [diveSiteName, setDiveSiteName] = useState('');
+  const [diveDateTime, setDiveDateTime] = useState('');
+  const [durationMinutes, setDurationMinutes] = useState('');
+  const [maxDepth, setMaxDepth] = useState('');
+  const [avgDepth, setAvgDepth] = useState('');
+  const [waterTemp, setWaterTemp] = useState('');
+  
+  const [diveMode, setDiveMode] = useState('');
+  
+  const [deviceManufacturer, setDeviceManufacturer] = useState('');
+  const [deviceModel, setDeviceModel] = useState('');
+  const [deviceSerial, setDeviceSerial] = useState('');
+  const [deviceFirmware, setDeviceFirmware] = useState('');
+  
   const [notes, setNotes] = useState('');
   const [rating, setRating] = useState<number>(0);
-  const [buddy, setBuddy] = useState('');
+  const [visibility, setVisibility] = useState('');
   const [surfaceConditions, setSurfaceConditions] = useState('');
   const [weatherConditions, setWeatherConditions] = useState('');
   const [workload, setWorkload] = useState('');
@@ -70,6 +111,11 @@ export default function EditDiveLogScreen() {
   const [skillsPracticed, setSkillsPracticed] = useState<string[]>([]);
   const [decompressionSymptoms, setDecompressionSymptoms] = useState(false);
   const [problemNotes, setProblemNotes] = useState('');
+  
+  const [buddy, setBuddy] = useState('');
+  const [buddies, setBuddies] = useState<DiveBuddy[]>([]);
+  const [selectedBuddyIds, setSelectedBuddyIds] = useState<number[]>([]);
+  const [loadingBuddies, setLoadingBuddies] = useState(true);
 
   const fetchDiveLog = useCallback(async () => {
     if (!id || !token) return;
@@ -90,8 +136,21 @@ export default function EditDiveLogScreen() {
       
       const data: DiveLog = await response.json();
       
+      setDiveNumber(data.diveNumber?.toString() || '');
+      setDiveSiteName(data.diveSiteName || '');
+      setDiveDateTime(data.diveDateTime || '');
+      setDurationMinutes(data.durationSeconds ? Math.round(data.durationSeconds / 60).toString() : '');
+      setMaxDepth(data.maxDepthMeters?.toString() || '');
+      setAvgDepth(data.avgDepthMeters?.toString() || '');
+      setWaterTemp(data.minTemperatureCelsius?.toString() || '');
+      setDiveMode(data.diveMode || '');
+      setDeviceManufacturer(data.deviceManufacturer || '');
+      setDeviceModel(data.deviceModel || '');
+      setDeviceSerial(data.deviceSerial || '');
+      setDeviceFirmware(data.deviceFirmware || '');
       setNotes(data.notes || '');
       setRating(data.rating || 0);
+      setVisibility(data.visibility || '');
       setBuddy(data.buddy || '');
       setSurfaceConditions(data.surfaceConditions || '');
       setWeatherConditions(data.weatherConditions || '');
@@ -108,9 +167,29 @@ export default function EditDiveLogScreen() {
     }
   }, [id, token]);
 
+  const fetchBuddies = useCallback(async () => {
+    if (!token) return;
+    
+    try {
+      const response = await fetch(`${getApiUrl()}/api/dive-buddies`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setBuddies(data);
+      }
+    } catch (err) {
+      console.error('Error fetching buddies:', err);
+    } finally {
+      setLoadingBuddies(false);
+    }
+  }, [token]);
+
   useEffect(() => {
     fetchDiveLog();
-  }, [fetchDiveLog]);
+    fetchBuddies();
+  }, [fetchDiveLog, fetchBuddies]);
 
   const handleSave = async () => {
     if (!id || !token) return;
@@ -125,72 +204,79 @@ export default function EditDiveLogScreen() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          notes: notes || null,
-          rating: rating || null,
-          buddy: buddy || null,
-          surfaceConditions: surfaceConditions || null,
-          weatherConditions: weatherConditions || null,
-          workload: workload || null,
-          thermalComfort: thermalComfort || null,
-          equipmentIssues: equipmentIssues.length > 0 ? equipmentIssues : null,
-          skillsPracticed: skillsPracticed.length > 0 ? skillsPracticed : null,
+          diveNumber: diveNumber ? parseInt(diveNumber) : null,
+          durationSeconds: durationMinutes ? parseInt(durationMinutes) * 60 : null,
+          maxDepthMeters: maxDepth ? parseFloat(maxDepth) : null,
+          avgDepthMeters: avgDepth ? parseFloat(avgDepth) : null,
+          minTemperatureCelsius: waterTemp ? parseFloat(waterTemp) : null,
+          diveMode,
+          deviceManufacturer,
+          deviceModel,
+          deviceSerial,
+          deviceFirmware,
+          notes,
+          rating,
+          visibility,
+          buddy,
+          surfaceConditions,
+          weatherConditions,
+          workload,
+          thermalComfort,
+          equipmentIssues,
+          skillsPracticed,
           decompressionSymptoms,
-          problemNotes: problemNotes || null,
+          problemNotes,
         }),
       });
       
-      if (response.ok) {
-        router.back();
-      } else {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to save');
+      if (!response.ok) {
+        throw new Error('Failed to save dive log');
       }
+      
+      Alert.alert('Success', 'Dive log updated successfully', [
+        { text: 'OK', onPress: () => router.back() }
+      ]);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to save changes';
-      if (Platform.OS === 'web') {
-        alert(errorMessage);
-      } else {
-        Alert.alert('Error', errorMessage);
-      }
+      Alert.alert('Error', err instanceof Error ? err.message : 'Failed to save');
     } finally {
       setSaving(false);
     }
   };
 
-  const toggleEquipmentIssue = (option: string) => {
-    setEquipmentIssues(prev => 
-      prev.includes(option) 
-        ? prev.filter(e => e !== option) 
-        : [...prev, option]
+  const toggleEquipmentIssue = (issue: string) => {
+    setEquipmentIssues((prev) =>
+      prev.includes(issue) ? prev.filter((i) => i !== issue) : [...prev, issue]
     );
   };
 
-  const toggleSkill = (option: string) => {
-    setSkillsPracticed(prev => 
-      prev.includes(option) 
-        ? prev.filter(s => s !== option) 
-        : [...prev, option]
+  const toggleSkill = (skill: string) => {
+    setSkillsPracticed((prev) =>
+      prev.includes(skill) ? prev.filter((s) => s !== skill) : [...prev, skill]
     );
   };
 
-  const renderStarRating = () => {
-    return (
-      <View style={styles.starsRow}>
-        {[1, 2, 3, 4, 5].map((star) => (
-          <Pressable key={star} onPress={() => setRating(star)}>
-            <Feather
-              name={star <= rating ? 'star' : 'star'}
-              size={32}
-              color={star <= rating ? '#FFD700' : colors.border}
-              style={{ marginHorizontal: 4 }}
-            />
-          </Pressable>
-        ))}
-      </View>
+  const toggleBuddy = (buddyId: number) => {
+    setSelectedBuddyIds((prev) =>
+      prev.includes(buddyId) ? prev.filter((id) => id !== buddyId) : [...prev, buddyId]
     );
   };
 
-  const renderOptionPicker = (
+  const renderStarRating = () => (
+    <View style={styles.starsRow}>
+      {[1, 2, 3, 4, 5].map((star) => (
+        <Pressable key={star} onPress={() => setRating(star)}>
+          <Feather
+            name="star"
+            size={32}
+            color={star <= rating ? '#FFD700' : colors.border}
+            style={{ marginHorizontal: 4 }}
+          />
+        </Pressable>
+      ))}
+    </View>
+  );
+
+  const renderChipSelector = (
     label: string,
     options: string[],
     value: string,
@@ -198,18 +284,18 @@ export default function EditDiveLogScreen() {
   ) => (
     <View style={styles.fieldGroup}>
       <Text style={[styles.label, { color: colors.textSecondary }]}>{label}</Text>
-      <View style={styles.optionsRow}>
+      <View style={styles.chipsRow}>
         {options.map((option) => (
           <Pressable
             key={option}
             style={[
-              styles.optionButton,
+              styles.chip,
               { borderColor: colors.border },
               value === option && { backgroundColor: colors.primary + '20', borderColor: colors.primary }
             ]}
             onPress={() => onChange(value === option ? '' : option)}
           >
-            <Text style={[styles.optionText, { color: value === option ? colors.primary : colors.text }]}>
+            <Text style={[styles.chipText, { color: value === option ? colors.primary : colors.text }]}>
               {option}
             </Text>
           </Pressable>
@@ -217,6 +303,338 @@ export default function EditDiveLogScreen() {
       </View>
     </View>
   );
+
+  const renderDiveTab = () => (
+    <ScrollView style={styles.tabContent} contentContainerStyle={styles.tabContentContainer}>
+      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>Dive Info</Text>
+        
+        <View style={styles.row}>
+          <View style={styles.inputGroup}>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>Dive #</Text>
+            <TextInput
+              style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
+              value={diveNumber}
+              onChangeText={setDiveNumber}
+              keyboardType="numeric"
+              placeholder="1"
+              placeholderTextColor={colors.textSecondary}
+            />
+          </View>
+          <View style={[styles.inputGroup, { flex: 2 }]}>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>Dive Site</Text>
+            <TextInput
+              style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
+              value={diveSiteName}
+              editable={false}
+              placeholder="Site name"
+              placeholderTextColor={colors.textSecondary}
+            />
+          </View>
+        </View>
+
+        <View style={styles.row}>
+          <View style={styles.inputGroup}>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>Duration (min)</Text>
+            <TextInput
+              style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
+              value={durationMinutes}
+              onChangeText={setDurationMinutes}
+              keyboardType="numeric"
+              placeholder="45"
+              placeholderTextColor={colors.textSecondary}
+            />
+          </View>
+          <View style={styles.inputGroup}>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>Max Depth (m)</Text>
+            <TextInput
+              style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
+              value={maxDepth}
+              onChangeText={setMaxDepth}
+              keyboardType="decimal-pad"
+              placeholder="18.5"
+              placeholderTextColor={colors.textSecondary}
+            />
+          </View>
+        </View>
+
+        <View style={styles.row}>
+          <View style={styles.inputGroup}>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>Avg Depth (m)</Text>
+            <TextInput
+              style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
+              value={avgDepth}
+              onChangeText={setAvgDepth}
+              keyboardType="decimal-pad"
+              placeholder="12.0"
+              placeholderTextColor={colors.textSecondary}
+            />
+          </View>
+          <View style={styles.inputGroup}>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>Water Temp (°C)</Text>
+            <TextInput
+              style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
+              value={waterTemp}
+              onChangeText={setWaterTemp}
+              keyboardType="decimal-pad"
+              placeholder="22"
+              placeholderTextColor={colors.textSecondary}
+            />
+          </View>
+        </View>
+      </View>
+
+      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>Rating</Text>
+        {renderStarRating()}
+      </View>
+    </ScrollView>
+  );
+
+  const renderProfileTab = () => (
+    <ScrollView style={styles.tabContent} contentContainerStyle={styles.tabContentContainer}>
+      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>Dive Mode</Text>
+        <View style={styles.chipsRow}>
+          {DIVE_MODES.map((mode) => (
+            <Pressable
+              key={mode}
+              style={[
+                styles.chip,
+                { borderColor: colors.border },
+                diveMode === mode && { backgroundColor: colors.primary + '20', borderColor: colors.primary }
+              ]}
+              onPress={() => setDiveMode(diveMode === mode ? '' : mode)}
+            >
+              <Text style={[styles.chipText, { color: diveMode === mode ? colors.primary : colors.text }]}>
+                {mode}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      </View>
+
+      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>Skills Practiced</Text>
+        <View style={styles.checkboxGrid}>
+          {SKILLS_OPTIONS.map((skill) => {
+            const isChecked = skillsPracticed.includes(skill);
+            return (
+              <Pressable key={skill} style={styles.checkboxItem} onPress={() => toggleSkill(skill)}>
+                <View style={[styles.checkbox, { borderColor: colors.border, backgroundColor: isChecked ? colors.primary + '20' : 'transparent' }]}>
+                  {isChecked && <Feather name="check" size={12} color={colors.primary} />}
+                </View>
+                <Text style={[styles.checkboxLabel, { color: colors.text }]}>{skill}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
+    </ScrollView>
+  );
+
+  const renderComputerTab = () => (
+    <ScrollView style={styles.tabContent} contentContainerStyle={styles.tabContentContainer}>
+      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>Dive Computer</Text>
+        
+        <View style={styles.inputGroup}>
+          <Text style={[styles.label, { color: colors.textSecondary }]}>Brand</Text>
+          <TextInput
+            style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
+            value={deviceManufacturer}
+            onChangeText={setDeviceManufacturer}
+            placeholder="Shearwater, Suunto, etc."
+            placeholderTextColor={colors.textSecondary}
+          />
+        </View>
+
+        <View style={styles.inputGroup}>
+          <Text style={[styles.label, { color: colors.textSecondary }]}>Model</Text>
+          <TextInput
+            style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
+            value={deviceModel}
+            onChangeText={setDeviceModel}
+            placeholder="Perdix, D5, etc."
+            placeholderTextColor={colors.textSecondary}
+          />
+        </View>
+
+        <View style={styles.row}>
+          <View style={styles.inputGroup}>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>Serial #</Text>
+            <TextInput
+              style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
+              value={deviceSerial}
+              onChangeText={setDeviceSerial}
+              placeholder="ABC123"
+              placeholderTextColor={colors.textSecondary}
+            />
+          </View>
+          <View style={styles.inputGroup}>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>Firmware</Text>
+            <TextInput
+              style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
+              value={deviceFirmware}
+              onChangeText={setDeviceFirmware}
+              placeholder="v2.0"
+              placeholderTextColor={colors.textSecondary}
+            />
+          </View>
+        </View>
+      </View>
+
+      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>Equipment Issues</Text>
+        <View style={styles.checkboxGrid}>
+          {EQUIPMENT_OPTIONS.map((equip) => {
+            const isChecked = equipmentIssues.includes(equip);
+            return (
+              <Pressable key={equip} style={styles.checkboxItem} onPress={() => toggleEquipmentIssue(equip)}>
+                <View style={[styles.checkbox, { borderColor: colors.border, backgroundColor: isChecked ? colors.primary + '20' : 'transparent' }]}>
+                  {isChecked && <Feather name="check" size={12} color={colors.primary} />}
+                </View>
+                <Text style={[styles.checkboxLabel, { color: colors.text }]}>{equip}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
+    </ScrollView>
+  );
+
+  const renderNotesTab = () => (
+    <ScrollView style={styles.tabContent} contentContainerStyle={styles.tabContentContainer}>
+      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>Conditions</Text>
+        {renderChipSelector('Surface Conditions', SURFACE_CONDITIONS_OPTIONS, surfaceConditions, setSurfaceConditions)}
+        {renderChipSelector('Weather', WEATHER_OPTIONS, weatherConditions, setWeatherConditions)}
+        {renderChipSelector('Workload', WORKLOAD_OPTIONS, workload, setWorkload)}
+        {renderChipSelector('Thermal Comfort', THERMAL_OPTIONS, thermalComfort, setThermalComfort)}
+        
+        <View style={styles.inputGroup}>
+          <Text style={[styles.label, { color: colors.textSecondary }]}>Visibility</Text>
+          <TextInput
+            style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
+            value={visibility}
+            onChangeText={setVisibility}
+            placeholder="e.g., 15m, Good, Poor"
+            placeholderTextColor={colors.textSecondary}
+          />
+        </View>
+      </View>
+
+      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>Notes</Text>
+        <TextInput
+          style={[styles.textArea, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
+          value={notes}
+          onChangeText={setNotes}
+          placeholder="Add dive notes..."
+          placeholderTextColor={colors.textSecondary}
+          multiline
+          numberOfLines={4}
+          textAlignVertical="top"
+        />
+      </View>
+
+      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>Decompression Symptoms</Text>
+        <View style={styles.radioRow}>
+          <Pressable style={styles.radioItem} onPress={() => setDecompressionSymptoms(false)}>
+            <View style={[styles.radio, { borderColor: colors.border, backgroundColor: !decompressionSymptoms ? colors.primary : 'transparent' }]} />
+            <Text style={[styles.radioLabel, { color: colors.text }]}>No</Text>
+          </Pressable>
+          <Pressable style={styles.radioItem} onPress={() => setDecompressionSymptoms(true)}>
+            <View style={[styles.radio, { borderColor: colors.border, backgroundColor: decompressionSymptoms ? colors.primary : 'transparent' }]} />
+            <Text style={[styles.radioLabel, { color: colors.text }]}>Yes</Text>
+          </Pressable>
+        </View>
+        
+        <Text style={[styles.label, { color: colors.textSecondary, marginTop: 16 }]}>Problem Notes</Text>
+        <TextInput
+          style={[styles.textArea, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
+          value={problemNotes}
+          onChangeText={setProblemNotes}
+          placeholder="Describe any problems encountered..."
+          placeholderTextColor={colors.textSecondary}
+          multiline
+          numberOfLines={3}
+          textAlignVertical="top"
+        />
+      </View>
+    </ScrollView>
+  );
+
+  const renderTeamTab = () => (
+    <ScrollView style={styles.tabContent} contentContainerStyle={styles.tabContentContainer}>
+      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>Buddy / Team</Text>
+        <TextInput
+          style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
+          value={buddy}
+          onChangeText={setBuddy}
+          placeholder="Add buddy or team members..."
+          placeholderTextColor={colors.textSecondary}
+        />
+      </View>
+
+      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>Select from Buddies</Text>
+        {loadingBuddies ? (
+          <ActivityIndicator size="small" color={colors.primary} />
+        ) : buddies.length === 0 ? (
+          <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+            No buddies added yet. Add buddies from the Buddies screen.
+          </Text>
+        ) : (
+          <View style={styles.buddyList}>
+            {buddies.map((b) => {
+              const isSelected = selectedBuddyIds.includes(b.id);
+              return (
+                <Pressable
+                  key={b.id}
+                  style={[
+                    styles.buddyItem,
+                    { borderColor: colors.border },
+                    isSelected && { backgroundColor: colors.primary + '20', borderColor: colors.primary }
+                  ]}
+                  onPress={() => toggleBuddy(b.id)}
+                >
+                  <View style={[styles.buddyAvatar, { backgroundColor: colors.border }]}>
+                    <Text style={[styles.buddyInitial, { color: colors.text }]}>
+                      {b.name.charAt(0).toUpperCase()}
+                    </Text>
+                  </View>
+                  <Text style={[styles.buddyName, { color: colors.text }]}>{b.name}</Text>
+                  {isSelected && (
+                    <Feather name="check" size={18} color={colors.primary} />
+                  )}
+                </Pressable>
+              );
+            })}
+          </View>
+        )}
+      </View>
+    </ScrollView>
+  );
+
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'Dive':
+        return renderDiveTab();
+      case 'Profile':
+        return renderProfileTab();
+      case 'Computer':
+        return renderComputerTab();
+      case 'Notes':
+        return renderNotesTab();
+      case 'Team':
+        return renderTeamTab();
+      default:
+        return null;
+    }
+  };
 
   if (loading) {
     return (
@@ -267,107 +685,29 @@ export default function EditDiveLogScreen() {
         </Pressable>
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={[styles.cardTitle, { color: colors.text }]}>Rating</Text>
-          {renderStarRating()}
-        </View>
+      <View style={[styles.tabBar, { borderBottomColor: colors.border }]}>
+        {TABS.map((tab) => (
+          <Pressable
+            key={tab}
+            style={[
+              styles.tabItem,
+              activeTab === tab && { borderBottomColor: colors.primary, borderBottomWidth: 2 },
+            ]}
+            onPress={() => setActiveTab(tab)}
+          >
+            <Text
+              style={[
+                styles.tabText,
+                { color: activeTab === tab ? colors.primary : colors.textSecondary },
+              ]}
+            >
+              {tab}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
 
-        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={[styles.cardTitle, { color: colors.text }]}>Notes</Text>
-          <TextInput
-            style={[styles.textArea, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
-            value={notes}
-            onChangeText={setNotes}
-            placeholder="Add dive notes..."
-            placeholderTextColor={colors.textSecondary}
-            multiline
-            numberOfLines={4}
-            textAlignVertical="top"
-          />
-        </View>
-
-        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={[styles.cardTitle, { color: colors.text }]}>Buddy / Team</Text>
-          <TextInput
-            style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
-            value={buddy}
-            onChangeText={setBuddy}
-            placeholder="Add buddy or team members..."
-            placeholderTextColor={colors.textSecondary}
-          />
-        </View>
-
-        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={[styles.cardTitle, { color: colors.text }]}>Conditions</Text>
-          {renderOptionPicker('Surface Conditions', SURFACE_CONDITIONS_OPTIONS, surfaceConditions, setSurfaceConditions)}
-          {renderOptionPicker('Weather', WEATHER_OPTIONS, weatherConditions, setWeatherConditions)}
-          {renderOptionPicker('Workload', WORKLOAD_OPTIONS, workload, setWorkload)}
-          {renderOptionPicker('Thermal Comfort', THERMAL_OPTIONS, thermalComfort, setThermalComfort)}
-        </View>
-
-        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={[styles.cardTitle, { color: colors.text }]}>Skills Practiced</Text>
-          <View style={styles.checkboxGrid}>
-            {SKILLS_OPTIONS.map((skill) => {
-              const isChecked = skillsPracticed.includes(skill);
-              return (
-                <Pressable key={skill} style={styles.checkboxItem} onPress={() => toggleSkill(skill)}>
-                  <View style={[styles.checkbox, { borderColor: colors.border, backgroundColor: isChecked ? colors.primary + '20' : 'transparent' }]}>
-                    {isChecked && <Feather name="check" size={12} color={colors.primary} />}
-                  </View>
-                  <Text style={[styles.checkboxLabel, { color: colors.text }]}>{skill}</Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        </View>
-
-        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={[styles.cardTitle, { color: colors.text }]}>Equipment Issues</Text>
-          <View style={styles.checkboxGrid}>
-            {EQUIPMENT_OPTIONS.map((equip) => {
-              const isChecked = equipmentIssues.includes(equip);
-              return (
-                <Pressable key={equip} style={styles.checkboxItem} onPress={() => toggleEquipmentIssue(equip)}>
-                  <View style={[styles.checkbox, { borderColor: colors.border, backgroundColor: isChecked ? colors.primary + '20' : 'transparent' }]}>
-                    {isChecked && <Feather name="check" size={12} color={colors.primary} />}
-                  </View>
-                  <Text style={[styles.checkboxLabel, { color: colors.text }]}>{equip}</Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        </View>
-
-        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={[styles.cardTitle, { color: colors.text }]}>Decompression Symptoms</Text>
-          <View style={styles.radioRow}>
-            <Pressable style={styles.radioItem} onPress={() => setDecompressionSymptoms(false)}>
-              <View style={[styles.radio, { borderColor: colors.border, backgroundColor: !decompressionSymptoms ? colors.primary : 'transparent' }]} />
-              <Text style={[styles.radioLabel, { color: colors.text }]}>No</Text>
-            </Pressable>
-            <Pressable style={styles.radioItem} onPress={() => setDecompressionSymptoms(true)}>
-              <View style={[styles.radio, { borderColor: colors.border, backgroundColor: decompressionSymptoms ? colors.primary : 'transparent' }]} />
-              <Text style={[styles.radioLabel, { color: colors.text }]}>Yes</Text>
-            </Pressable>
-          </View>
-          
-          <Text style={[styles.label, { color: colors.textSecondary, marginTop: 16 }]}>Problem Notes</Text>
-          <TextInput
-            style={[styles.textArea, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
-            value={problemNotes}
-            onChangeText={setProblemNotes}
-            placeholder="Describe any problems encountered..."
-            placeholderTextColor={colors.textSecondary}
-            multiline
-            numberOfLines={3}
-            textAlignVertical="top"
-          />
-        </View>
-
-        <View style={{ height: 100 }} />
-      </ScrollView>
+      {renderTabContent()}
     </KeyboardAvoidingView>
   );
 }
@@ -410,9 +750,26 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '600',
   },
-  content: {
+  tabBar: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    paddingHorizontal: 8,
+  },
+  tabItem: {
     flex: 1,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  tabText: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  tabContent: {
+    flex: 1,
+  },
+  tabContentContainer: {
     padding: 16,
+    paddingBottom: 40,
   },
   card: {
     borderRadius: 12,
@@ -423,55 +780,61 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 16,
     fontWeight: '600',
+    marginBottom: 16,
+  },
+  row: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  inputGroup: {
+    flex: 1,
     marginBottom: 12,
   },
-  starsRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-  },
-  textArea: {
-    borderRadius: 8,
-    borderWidth: 1,
-    padding: 12,
-    minHeight: 100,
-    fontSize: 15,
+  label: {
+    fontSize: 13,
+    marginBottom: 6,
   },
   input: {
-    borderRadius: 8,
     borderWidth: 1,
-    padding: 12,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     fontSize: 15,
+  },
+  textArea: {
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 15,
+    minHeight: 100,
+    textAlignVertical: 'top',
   },
   fieldGroup: {
     marginBottom: 16,
   },
-  label: {
-    fontSize: 13,
-    marginBottom: 8,
-  },
-  optionsRow: {
+  chipsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
   },
-  optionButton: {
+  chip: {
     paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
+    paddingVertical: 6,
+    borderRadius: 16,
     borderWidth: 1,
   },
-  optionText: {
+  chipText: {
     fontSize: 13,
   },
   checkboxGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
   },
   checkboxItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    width: '48%',
+    width: '50%',
     paddingVertical: 8,
   },
   checkbox: {
@@ -480,12 +843,16 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     borderWidth: 1,
     marginRight: 8,
-    alignItems: 'center',
     justifyContent: 'center',
+    alignItems: 'center',
   },
   checkboxLabel: {
     fontSize: 13,
     flex: 1,
+  },
+  starsRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
   },
   radioRow: {
     flexDirection: 'row',
@@ -494,19 +861,51 @@ const styles = StyleSheet.create({
   radioItem: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
   },
   radio: {
     width: 20,
     height: 20,
     borderRadius: 10,
     borderWidth: 2,
-    marginRight: 8,
   },
   radioLabel: {
-    fontSize: 14,
+    fontSize: 15,
   },
   errorText: {
+    marginTop: 16,
     fontSize: 16,
-    marginTop: 12,
+    textAlign: 'center',
+  },
+  buddyList: {
+    gap: 8,
+  },
+  buddyItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    gap: 12,
+  },
+  buddyAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  buddyInitial: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  buddyName: {
+    flex: 1,
+    fontSize: 15,
+  },
+  emptyText: {
+    fontSize: 14,
+    textAlign: 'center',
+    paddingVertical: 16,
   },
 });
