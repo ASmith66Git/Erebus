@@ -822,7 +822,15 @@ export default function DivePlanningScreen() {
 
       <View style={[styles.section, { backgroundColor: colors.card }]}>
         <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Dive Parameters</Text>
+          <View style={styles.sectionTitleRow}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Dive Parameters</Text>
+            {settings.circuit === 'ccr' && (
+              <View style={[styles.modeBadge, { backgroundColor: colors.primary }]}>
+                <Feather name="refresh-cw" size={12} color="#FFF" />
+                <Text style={styles.modeBadgeText}>CCR</Text>
+              </View>
+            )}
+          </View>
           <TouchableOpacity onPress={addDive} style={[styles.addButton, { backgroundColor: colors.primary }]}>
             <Feather name="plus" size={16} color="#FFF" />
             <Text style={styles.addButtonText}>Add Dive</Text>
@@ -1554,6 +1562,16 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   sectionTitle: { fontSize: 16, fontWeight: '600' },
+  sectionTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  modeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4,
+  },
+  modeBadgeText: { color: '#FFF', fontSize: 11, fontWeight: '600' },
   settingsSectionTitle: { fontSize: 16, fontWeight: '600', marginBottom: 16 },
   addButton: {
     flexDirection: 'row',

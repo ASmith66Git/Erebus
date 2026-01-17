@@ -522,10 +522,15 @@ export function calculateNDL(
   depth: number, 
   gas: GasMix, 
   gfHigh: number,
-  waterType: WaterType = 'salt'
+  waterType: WaterType = 'salt',
+  circuit: CircuitType = 'open',
+  ccrSetpoint: number = 1.3
 ): number | null {
   const ambientPressure = depthToPressure(depth, waterType);
-  const { ppN2: inspiredN2, ppHe: inspiredHe } = getInspiredPressure(ambientPressure, gas);
+  const inspired = circuit === 'ccr'
+    ? getInspiredPressureCCR(ambientPressure, gas, ccrSetpoint)
+    : getInspiredPressure(ambientPressure, gas);
+  const { ppN2: inspiredN2, ppHe: inspiredHe } = inspired;
   
   let minNdl = Infinity;
   
@@ -811,7 +816,7 @@ export function calculateDivePlan(input: DivePlanInput): DivePlanResult {
   totalCNS += bottomTox.cns;
   totalOTU += bottomTox.otu;
   
-  const ndl = calculateNDL(tissues, depth, bottomGas, settings.gfHigh, settings.waterType);
+  const ndl = calculateNDL(tissues, depth, bottomGas, settings.gfHigh, settings.waterType, settings.circuit, settings.ccrSetpoint);
   
   const firstStopDepth = findFirstStop(tissues, settings.gfLow, settings.decoStopInterval, settings.waterType);
   
