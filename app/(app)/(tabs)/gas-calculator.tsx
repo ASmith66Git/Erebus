@@ -432,7 +432,7 @@ export default function GasCalculatorScreen() {
           onPress={() => setShowCylinderPicker(true)}
         >
           <Text style={[styles.inputLabel, { color: colors.text }]}>Cylinder</Text>
-          <View style={styles.cylinderSelectorValue}>
+          <View style={[styles.cylinderSelectorValue, { backgroundColor: colors.border }]}>
             <Text style={[styles.cylinderLabel, { color: colors.text }]}>{selectedCylinder.label}</Text>
             <Feather name="chevron-down" size={20} color={colors.textSecondary} />
           </View>
