@@ -107,19 +107,36 @@ export default function EmbeddedMapPicker({
     '';
 
   // Load maps module lazily inside the component to catch any initialization errors
-  const { MapView, Marker } = useMemo(() => loadMapsModule(), []);
+  const [mapsModule, setMapsModule] = useState<{ MapView: any; Marker: any } | null>(null);
+  const [mapsLoadError, setMapsLoadError] = useState(false);
+
+  useEffect(() => {
+    try {
+      const module = loadMapsModule();
+      if (module.MapView) {
+        setMapsModule(module);
+      } else {
+        setMapsLoadError(true);
+      }
+    } catch (e) {
+      console.error('Failed to load maps module:', e);
+      setMapsLoadError(true);
+    }
+  }, []);
+
+  const { MapView, Marker } = mapsModule || { MapView: null, Marker: null };
 
   // For Android native maps, the API key is baked into the build via app.config.js android.config.googleMaps.apiKey
-  // We don't need to check for the key at runtime - react-native-maps uses AndroidManifest.xml directly
-  // If the key wasn't provided during build, the map will show an error, but won't crash
-  const hasValidAndroidKey = true; // Let react-native-maps handle this natively
+  // Check if the androidApiKey was set in the config - if empty, maps will crash on Android
+  const hasValidAndroidKey = Platform.OS !== 'android' || (androidApiKey && androidApiKey.length > 10);
   
   // Log for debugging in case of issues
   useEffect(() => {
     if (Platform.OS === 'android') {
       console.log('EmbeddedMapPicker: Android native maps rendering, coordinates:', latitude, longitude);
+      console.log('EmbeddedMapPicker: Android API key configured:', hasValidAndroidKey);
     }
-  }, [latitude, longitude]);
+  }, [latitude, longitude, hasValidAndroidKey]);
 
   useEffect(() => {
     setMarkerPosition({ latitude, longitude });
@@ -350,7 +367,7 @@ export default function EmbeddedMapPicker({
     );
   }
 
-  if (!MapView || (Platform.OS === 'android' && !hasValidAndroidKey)) {
+  if (!MapView || mapsLoadError || (Platform.OS === 'android' && !hasValidAndroidKey)) {
     return (
       <View style={[styles.fallbackContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
         <Feather name="map-pin" size={32} color={colors.textSecondary} />
