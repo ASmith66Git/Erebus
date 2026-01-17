@@ -12,6 +12,7 @@ import {
   Alert,
   Platform,
   Image,
+  Dimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { DrawerActions, useNavigation } from '@react-navigation/native';
@@ -23,6 +24,17 @@ import * as ImagePicker from 'expo-image-picker';
 import EmbeddedMapPicker from '@/components/EmbeddedMapPicker';
 import DatePickerField from '@/components/DatePickerField';
 import PageHeader from '@/components/PageHeader';
+
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+
+let DocumentScanner: any = null;
+if (Platform.OS !== 'web') {
+  try {
+    DocumentScanner = require('react-native-document-scanner-plugin').default;
+  } catch (e) {
+    console.log('Document scanner not available (requires EAS Build)');
+  }
+}
 
 interface TrainingAgency {
   id: number;
@@ -123,6 +135,9 @@ export default function CertificationsScreen() {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedCertification, setSelectedCertification] = useState<Certification | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [showImageViewer, setShowImageViewer] = useState(false);
+  const [viewingImage, setViewingImage] = useState<CertificationImage | null>(null);
+  const [deletingImageId, setDeletingImageId] = useState<number | null>(null);
 
   const fetchData = useCallback(async () => {
     if (!token) {
@@ -338,9 +353,122 @@ export default function CertificationsScreen() {
     }
   };
 
+  const uploadScannedImage = async (imageUri: string, side: 'front' | 'back') => {
+    if (!selectedCertification || !token) return;
+    
+    setUploadingImage(true);
+    try {
+      const filename = `cert_${selectedCertification.id}_${side}_${Date.now()}.jpg`;
+      
+      console.log('Step 1: Requesting upload URL for', filename);
+      const urlResponse = await fetch(`${getApiUrl()}/api/uploads/request-url`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: filename,
+          size: 1000000,
+          contentType: 'image/jpeg',
+        }),
+      });
+      
+      if (!urlResponse.ok) {
+        const errorText = await urlResponse.text();
+        console.error('Failed to get upload URL:', urlResponse.status, errorText);
+        throw new Error('Failed to get upload URL');
+      }
+      
+      const { uploadURL, objectPath } = await urlResponse.json();
+      console.log('Step 2: Got upload URL, objectPath:', objectPath);
+      
+      const imageBlob = await fetch(imageUri).then(r => r.blob());
+      console.log('Step 3: Created blob, size:', imageBlob.size);
+      
+      const uploadResponse = await fetch(uploadURL, {
+        method: 'PUT',
+        body: imageBlob,
+        headers: { 'Content-Type': 'image/jpeg' },
+      });
+      
+      if (!uploadResponse.ok) {
+        const errorText = await uploadResponse.text();
+        console.error('Failed to upload to storage:', uploadResponse.status, errorText);
+        throw new Error('Failed to upload image');
+      }
+      console.log('Step 4: Uploaded to storage successfully');
+      
+      const addImageResponse = await fetch(
+        `${getApiUrl()}/api/certifications/${selectedCertification.id}/images`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            imageUrl: objectPath,
+            imageSide: side,
+          }),
+        }
+      );
+      
+      if (!addImageResponse.ok) {
+        const errorText = await addImageResponse.text();
+        console.error('Failed to save image record:', addImageResponse.status, errorText);
+        throw new Error('Failed to save image record');
+      }
+      
+      console.log('Step 5: Image record saved to database');
+      Alert.alert('Success', `${side === 'front' ? 'Front' : 'Back'} of card scanned`);
+      
+      // Refetch certifications and update selected certification with fresh data
+      const freshCertsResponse = await fetch(`${getApiUrl()}/api/certifications`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (freshCertsResponse.ok) {
+        const freshCerts = await freshCertsResponse.json();
+        setCertifications(freshCerts);
+        const updatedCert = freshCerts.find((c: Certification) => c.id === selectedCertification.id);
+        if (updatedCert) {
+          setSelectedCertification(updatedCert);
+        }
+      }
+    } catch (error) {
+      console.error('Error scanning card:', error);
+      Alert.alert('Error', 'Failed to scan card. Please try again.');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
   const handleScanCard = async (side: 'front' | 'back') => {
     if (!selectedCertification || !token) return;
     
+    // Try to use document scanner on native platforms (requires EAS Build)
+    if (Platform.OS !== 'web' && DocumentScanner) {
+      try {
+        const { scannedImages } = await DocumentScanner.scanDocument({
+          maxNumDocuments: 1,
+          croppedImageQuality: 80,
+        });
+        
+        if (scannedImages && scannedImages.length > 0) {
+          await uploadScannedImage(scannedImages[0], side);
+        }
+        return;
+      } catch (scanError: any) {
+        // If scanner fails (e.g., user cancelled or not available), fall back to image picker
+        if (scanError?.message !== 'User canceled') {
+          console.log('Document scanner error, falling back to camera:', scanError);
+        } else {
+          return; // User cancelled, don't show fallback
+        }
+      }
+    }
+    
+    // Fallback to expo-image-picker (works on web and when scanner not available)
     const result = await ImagePicker.launchCameraAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
@@ -349,86 +477,94 @@ export default function CertificationsScreen() {
     });
     
     if (!result.canceled && result.assets[0]) {
-      setUploadingImage(true);
+      await uploadScannedImage(result.assets[0].uri, side);
+    }
+  };
+
+  const handleDeleteImage = async (imageId: number) => {
+    if (!selectedCertification || !token) return;
+    
+    const doDelete = async () => {
+      setDeletingImageId(imageId);
       try {
-        const asset = result.assets[0];
-        const filename = `cert_${selectedCertification.id}_${side}_${Date.now()}.jpg`;
-        
-        console.log('Step 1: Requesting upload URL for', filename);
-        const urlResponse = await fetch(`${getApiUrl()}/api/uploads/request-url`, {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            name: filename,
-            size: 1000000,
-            contentType: 'image/jpeg',
-          }),
-        });
-        
-        if (!urlResponse.ok) {
-          const errorText = await urlResponse.text();
-          console.error('Failed to get upload URL:', urlResponse.status, errorText);
-          throw new Error('Failed to get upload URL');
-        }
-        
-        const { uploadURL, objectPath } = await urlResponse.json();
-        console.log('Step 2: Got upload URL, objectPath:', objectPath);
-        
-        const imageBlob = await fetch(asset.uri).then(r => r.blob());
-        console.log('Step 3: Created blob, size:', imageBlob.size);
-        
-        const uploadResponse = await fetch(uploadURL, {
-          method: 'PUT',
-          body: imageBlob,
-          headers: { 'Content-Type': 'image/jpeg' },
-        });
-        
-        if (!uploadResponse.ok) {
-          const errorText = await uploadResponse.text();
-          console.error('Failed to upload to storage:', uploadResponse.status, errorText);
-          throw new Error('Failed to upload image');
-        }
-        console.log('Step 4: Uploaded to storage successfully');
-        
-        const addImageResponse = await fetch(
-          `${getApiUrl()}/api/certifications/${selectedCertification.id}/images`,
+        const response = await fetch(
+          `${getApiUrl()}/api/certifications/${selectedCertification.id}/images/${imageId}`,
           {
-            method: 'POST',
-            headers: {
-              Authorization: `Bearer ${token}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              imageUrl: objectPath,
-              imageSide: side,
-            }),
+            method: 'DELETE',
+            headers: { Authorization: `Bearer ${token}` },
           }
         );
         
-        if (!addImageResponse.ok) {
-          const errorText = await addImageResponse.text();
-          console.error('Failed to save image record:', addImageResponse.status, errorText);
-          throw new Error('Failed to save image record');
-        }
-        
-        console.log('Step 5: Image record saved to database');
-        Alert.alert('Success', `${side === 'front' ? 'Front' : 'Back'} of card scanned`);
-        await fetchData();
-        
-        const updatedCert = certifications.find(c => c.id === selectedCertification.id);
-        if (updatedCert) {
-          setSelectedCertification(updatedCert);
+        if (response.ok) {
+          Alert.alert('Success', 'Image deleted');
+          setShowImageViewer(false);
+          setViewingImage(null);
+          
+          // Refetch certifications and update selected certification with fresh data
+          const freshCertsResponse = await fetch(`${getApiUrl()}/api/certifications`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (freshCertsResponse.ok) {
+            const freshCerts = await freshCertsResponse.json();
+            setCertifications(freshCerts);
+            const updated = freshCerts.find((c: Certification) => c.id === selectedCertification.id);
+            if (updated) {
+              setSelectedCertification(updated);
+            }
+          }
+        } else {
+          Alert.alert('Error', 'Failed to delete image');
         }
       } catch (error) {
-        console.error('Error scanning card:', error);
-        Alert.alert('Error', 'Failed to scan card. Please try again.');
+        console.error('Error deleting image:', error);
+        Alert.alert('Error', 'Failed to delete image');
       } finally {
-        setUploadingImage(false);
+        setDeletingImageId(null);
       }
+    };
+    
+    Alert.alert('Delete Image', 'Are you sure you want to delete this card image?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: doDelete },
+    ]);
+  };
+
+  const handleReplaceImage = async (imageToReplace: CertificationImage) => {
+    if (!selectedCertification || !token) return;
+    
+    const side = imageToReplace.image_side as 'front' | 'back';
+    
+    // First delete the old image
+    setDeletingImageId(imageToReplace.id);
+    try {
+      const deleteResponse = await fetch(
+        `${getApiUrl()}/api/certifications/${selectedCertification.id}/images/${imageToReplace.id}`,
+        {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      
+      if (!deleteResponse.ok) {
+        throw new Error('Failed to delete old image');
+      }
+      
+      setDeletingImageId(null);
+      setShowImageViewer(false);
+      setViewingImage(null);
+      
+      // Now scan a new image
+      await handleScanCard(side);
+    } catch (error) {
+      console.error('Error replacing image:', error);
+      Alert.alert('Error', 'Failed to replace image');
+      setDeletingImageId(null);
     }
+  };
+
+  const openImageViewer = (img: CertificationImage) => {
+    setViewingImage(img);
+    setShowImageViewer(true);
   };
 
   const formatDate = (dateStr: string | null) => {
@@ -990,16 +1126,45 @@ export default function CertificationsScreen() {
                       const imageUrl = img.image_url.startsWith('http') 
                         ? img.image_url 
                         : `${getApiUrl()}${img.image_url}`;
+                      const isDeleting = deletingImageId === img.id;
                       return (
                         <View key={img.id} style={styles.scannedImageContainer}>
-                          <Text style={[styles.scannedImageLabel, { color: colors.textSecondary }]}>
-                            {img.image_side === 'front' ? 'Front' : 'Back'}
-                          </Text>
-                          <Image
-                            source={{ uri: imageUrl }}
-                            style={styles.scannedImage}
-                            resizeMode="cover"
-                          />
+                          <View style={styles.scannedImageHeader}>
+                            <Text style={[styles.scannedImageLabel, { color: colors.textSecondary }]}>
+                              {img.image_side === 'front' ? 'Front' : 'Back'}
+                            </Text>
+                            <View style={styles.scannedImageActions}>
+                              <Pressable
+                                style={[styles.imageActionBtn, { backgroundColor: colors.card }]}
+                                onPress={() => handleReplaceImage(img)}
+                                disabled={isDeleting}
+                              >
+                                <Feather name="refresh-cw" size={16} color={colors.primary} />
+                              </Pressable>
+                              <Pressable
+                                style={[styles.imageActionBtn, { backgroundColor: colors.card }]}
+                                onPress={() => handleDeleteImage(img.id)}
+                                disabled={isDeleting}
+                              >
+                                {isDeleting ? (
+                                  <ActivityIndicator size="small" color={colors.danger} />
+                                ) : (
+                                  <Feather name="trash-2" size={16} color={colors.danger} />
+                                )}
+                              </Pressable>
+                            </View>
+                          </View>
+                          <Pressable onPress={() => openImageViewer(img)}>
+                            <Image
+                              source={{ uri: imageUrl }}
+                              style={styles.scannedImage}
+                              resizeMode="cover"
+                            />
+                            <View style={[styles.tapToViewOverlay, { backgroundColor: 'rgba(0,0,0,0.3)' }]}>
+                              <Feather name="maximize-2" size={20} color="#FFF" />
+                              <Text style={styles.tapToViewText}>Tap to view</Text>
+                            </View>
+                          </Pressable>
                         </View>
                       );
                     })}
@@ -1014,6 +1179,57 @@ export default function CertificationsScreen() {
                 )}
               </ScrollView>
             )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* Full-Screen Image Viewer Modal */}
+      <Modal visible={showImageViewer} animationType="fade" transparent>
+        <View style={styles.imageViewerOverlay}>
+          <View style={styles.imageViewerHeader}>
+            <Text style={styles.imageViewerTitle}>
+              {viewingImage?.image_side === 'front' ? 'Front of Card' : 'Back of Card'}
+            </Text>
+            <Pressable
+              style={styles.imageViewerCloseBtn}
+              onPress={() => {
+                setShowImageViewer(false);
+                setViewingImage(null);
+              }}
+            >
+              <Feather name="x" size={28} color="#FFF" />
+            </Pressable>
+          </View>
+          
+          {viewingImage && (
+            <View style={styles.imageViewerContent}>
+              <Image
+                source={{ 
+                  uri: viewingImage.image_url.startsWith('http') 
+                    ? viewingImage.image_url 
+                    : `${getApiUrl()}${viewingImage.image_url}` 
+                }}
+                style={styles.fullScreenImage}
+                resizeMode="contain"
+              />
+            </View>
+          )}
+          
+          <View style={styles.imageViewerActions}>
+            <Pressable
+              style={[styles.imageViewerActionBtn, { backgroundColor: colors.primary }]}
+              onPress={() => viewingImage && handleReplaceImage(viewingImage)}
+            >
+              <Feather name="refresh-cw" size={20} color="#FFF" />
+              <Text style={styles.imageViewerActionText}>Replace</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.imageViewerActionBtn, { backgroundColor: colors.danger }]}
+              onPress={() => viewingImage && handleDeleteImage(viewingImage.id)}
+            >
+              <Feather name="trash-2" size={20} color="#FFF" />
+              <Text style={styles.imageViewerActionText}>Delete</Text>
+            </Pressable>
           </View>
         </View>
       </Modal>
@@ -1112,11 +1328,25 @@ const styles = StyleSheet.create({
   scanBtnText: { fontSize: 14, fontWeight: '500' },
   scannedImages: { flexDirection: 'row', gap: 12, marginTop: 16 },
   scannedImageContainer: { flex: 1 },
-  scannedImageLabel: { fontSize: 12, marginBottom: 4 },
+  scannedImageHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
+  scannedImageLabel: { fontSize: 12 },
+  scannedImageActions: { flexDirection: 'row', gap: 8 },
+  imageActionBtn: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   scannedImage: { width: '100%', height: 120, borderRadius: 8 },
+  tapToViewOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, borderBottomLeftRadius: 8, borderBottomRightRadius: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 6 },
+  tapToViewText: { color: '#FFF', fontSize: 12, fontWeight: '500' },
   scannedImagePlaceholder: { height: 100, borderRadius: 8, borderWidth: 1, alignItems: 'center', justifyContent: 'center', gap: 4 },
   scannedImageText: { fontSize: 12 },
   notesText: { fontSize: 14, lineHeight: 20 },
+  imageViewerOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.95)', justifyContent: 'space-between' },
+  imageViewerHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingTop: 50, paddingBottom: 16 },
+  imageViewerTitle: { color: '#FFF', fontSize: 18, fontWeight: '600' },
+  imageViewerCloseBtn: { padding: 8 },
+  imageViewerContent: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  fullScreenImage: { width: screenWidth - 32, height: screenHeight * 0.6 },
+  imageViewerActions: { flexDirection: 'row', gap: 16, paddingHorizontal: 16, paddingBottom: 50, justifyContent: 'center' },
+  imageViewerActionBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 24, paddingVertical: 14, borderRadius: 12 },
+  imageViewerActionText: { color: '#FFF', fontSize: 16, fontWeight: '600' },
   fab: {
     position: 'absolute',
     bottom: 24,

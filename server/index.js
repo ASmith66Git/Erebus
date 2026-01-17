@@ -4787,13 +4787,35 @@ app.delete('/api/certifications/:certId/images/:imageId', authenticateToken, asy
       return res.status(404).json({ error: 'Certification not found' });
     }
     
-    const result = await pool.query(
-      'DELETE FROM certification_images WHERE id = $1 AND certification_id = $2 RETURNING id',
+    // Get the image URL before deleting
+    const imageResult = await pool.query(
+      'SELECT image_url FROM certification_images WHERE id = $1 AND certification_id = $2',
       [imageId, certId]
     );
     
-    if (result.rows.length === 0) {
+    if (imageResult.rows.length === 0) {
       return res.status(404).json({ error: 'Image not found' });
+    }
+    
+    const imageUrl = imageResult.rows[0].image_url;
+    
+    // Delete from database
+    await pool.query(
+      'DELETE FROM certification_images WHERE id = $1 AND certification_id = $2',
+      [imageId, certId]
+    );
+    
+    // Delete from Object Storage if it's not an external URL
+    if (imageUrl && !imageUrl.startsWith('http')) {
+      try {
+        const { Client } = require('@replit/object-storage');
+        const objectStorage = new Client();
+        await objectStorage.delete(imageUrl);
+        console.log('Deleted from Object Storage:', imageUrl);
+      } catch (storageError) {
+        console.error('Failed to delete from Object Storage:', storageError);
+        // Continue anyway - the DB record is deleted
+      }
     }
     
     res.json({ message: 'Image deleted successfully' });

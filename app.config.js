@@ -78,6 +78,12 @@ module.exports = {
         {
           faceIDPermission: "Allow Erebus to use Face ID for quick login."
         }
+      ],
+      [
+        "react-native-document-scanner-plugin",
+        {
+          cameraPermission: "Allow Erebus to scan certification cards using your camera."
+        }
       ]
     ],
     experiments: {

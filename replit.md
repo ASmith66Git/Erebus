@@ -109,7 +109,9 @@ The application is built using Expo React Native, targeting both iOS and Android
   - Two-tab interface: Completed certifications and Course Wishlist
   - Add/edit certifications with agency/course picker, date, certification number, instructor details, dive center, location
   - Card scanning: capture front/back of certification cards using device camera
-  - Images stored in Replit Object Storage via presigned URLs
+  - **Auto-scan with edge detection**: Uses react-native-document-scanner-plugin on native platforms (iOS/Android via EAS Build) for automatic card edge detection, perspective correction, and cropping (falls back to standard camera on web)
+  - **Image management**: View scanned cards full-screen, replace with new scan, or delete images
+  - Images stored in Replit Object Storage via presigned URLs with automatic cleanup on delete
   - Course wishlist for future training goals with priority and target date
   - Promote wishlist items to completed certifications when course is finished
   - Database tables: training_agencies, training_courses, user_certifications, certification_images, user_course_wishlist
