@@ -127,24 +127,7 @@ export default function StaticMapView({
     }
   }, [latitude, longitude, hasValidAndroidKey]);
 
-  const openInGoogleMaps = () => {
-    const url = `https://www.google.com/maps?q=${latitude},${longitude}`;
-    Linking.openURL(url);
-  };
-
-  // If no valid Android API key, show fallback button instead of crashing
-  if (Platform.OS === 'android' && !hasValidAndroidKey) {
-    return (
-      <Pressable
-        style={[styles.fallbackButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
-        onPress={openInGoogleMaps}
-      >
-        <Feather name="map" size={18} color={colors.primary} />
-        <Text style={[styles.openButtonText, { color: colors.primary }]}>View on Google Maps</Text>
-      </Pressable>
-    );
-  }
-
+  // Web map initialization - must be defined before any early returns
   useEffect(() => {
     if (Platform.OS !== 'web') return;
     if (googleMapRef.current) return;
@@ -210,6 +193,24 @@ export default function StaticMapView({
     const timer = setTimeout(initWebMap, 50);
     return () => clearTimeout(timer);
   }, [apiKey, latitude, longitude]);
+
+  const openInGoogleMaps = () => {
+    const url = `https://www.google.com/maps?q=${latitude},${longitude}`;
+    Linking.openURL(url);
+  };
+
+  // If no valid Android API key, show fallback button instead of crashing
+  if (Platform.OS === 'android' && !hasValidAndroidKey) {
+    return (
+      <Pressable
+        style={[styles.fallbackButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
+        onPress={openInGoogleMaps}
+      >
+        <Feather name="map" size={18} color={colors.primary} />
+        <Text style={[styles.openButtonText, { color: colors.primary }]}>View on Google Maps</Text>
+      </Pressable>
+    );
+  }
 
   if (Platform.OS === 'web') {
     return (
