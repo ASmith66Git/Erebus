@@ -507,7 +507,7 @@ export default function DiveTripsScreen() {
                     <View style={styles.imageButtonRow}>
                       <Pressable
                         style={[styles.imageButton, { borderColor: colors.border }]}
-                        onPress={() => setFormData({ ...formData, coverImageKey: null })}
+                        onPress={() => setFormData(prev => ({ ...prev, coverImageKey: null }))}
                       >
                         <Feather name="trash-2" size={16} color={colors.error} />
                         <Text style={[styles.imageButtonText, { color: colors.error }]}>Remove</Text>
@@ -567,7 +567,7 @@ export default function DiveTripsScreen() {
                         { borderColor: formData.tripType === type.value ? colors.primary : colors.border },
                         formData.tripType === type.value && { backgroundColor: colors.primary + '10' },
                       ]}
-                      onPress={() => setFormData({ ...formData, tripType: type.value })}
+                      onPress={() => setFormData(prev => ({ ...prev, tripType: type.value }))}
                     >
                       <Feather name={type.icon as any} size={18} color={formData.tripType === type.value ? colors.primary : colors.textSecondary} />
                       <Text style={[styles.tripTypeBtnText, { color: formData.tripType === type.value ? colors.primary : colors.text }]}>
@@ -583,7 +583,7 @@ export default function DiveTripsScreen() {
                   <DatePickerField
                     label="Start Date"
                     value={formData.startDate}
-                    onChange={(v) => setFormData({ ...formData, startDate: v })}
+                    onChange={(v) => setFormData(prev => ({ ...prev, startDate: v }))}
                     placeholder="Select start date"
                   />
                 </View>
@@ -591,7 +591,7 @@ export default function DiveTripsScreen() {
                   <DatePickerField
                     label="End Date"
                     value={formData.endDate}
-                    onChange={(v) => setFormData({ ...formData, endDate: v })}
+                    onChange={(v) => setFormData(prev => ({ ...prev, endDate: v }))}
                     placeholder="Select end date"
                   />
                 </View>
@@ -604,7 +604,7 @@ export default function DiveTripsScreen() {
                     <TextInput
                       style={[styles.formInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
                       value={formData.vesselName}
-                      onChangeText={(v) => setFormData({ ...formData, vesselName: v })}
+                      onChangeText={(v) => setFormData(prev => ({ ...prev, vesselName: v }))}
                       placeholder="e.g., MY Blue Horizon"
                       placeholderTextColor={colors.textSecondary}
                     />
@@ -614,7 +614,7 @@ export default function DiveTripsScreen() {
                     <TextInput
                       style={[styles.formInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
                       value={formData.operatorName}
-                      onChangeText={(v) => setFormData({ ...formData, operatorName: v })}
+                      onChangeText={(v) => setFormData(prev => ({ ...prev, operatorName: v }))}
                       placeholder="e.g., Emperor Divers"
                       placeholderTextColor={colors.textSecondary}
                     />
@@ -628,7 +628,7 @@ export default function DiveTripsScreen() {
                   <TextInput
                     style={[styles.formInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
                     value={formData.diveCenterName}
-                    onChangeText={(v) => setFormData({ ...formData, diveCenterName: v })}
+                    onChangeText={(v) => setFormData(prev => ({ ...prev, diveCenterName: v }))}
                     placeholder="e.g., Coral Divers Koh Tao"
                     placeholderTextColor={colors.textSecondary}
                   />
@@ -641,7 +641,7 @@ export default function DiveTripsScreen() {
                   <TextInput
                     style={[styles.formInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
                     value={formData.location}
-                    onChangeText={(v) => setFormData({ ...formData, location: v })}
+                    onChangeText={(v) => setFormData(prev => ({ ...prev, location: v }))}
                     placeholder="e.g., Sharm El Sheikh"
                     placeholderTextColor={colors.textSecondary}
                   />
@@ -651,7 +651,7 @@ export default function DiveTripsScreen() {
                   <TextInput
                     style={[styles.formInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
                     value={formData.country}
-                    onChangeText={(v) => setFormData({ ...formData, country: v })}
+                    onChangeText={(v) => setFormData(prev => ({ ...prev, country: v }))}
                     placeholder="e.g., Egypt"
                     placeholderTextColor={colors.textSecondary}
                   />
@@ -664,7 +664,7 @@ export default function DiveTripsScreen() {
                   latitude={formData.latitude || 0}
                   longitude={formData.longitude || 0}
                   onCoordinatesChange={(lat, lng) => {
-                    setFormData({ ...formData, latitude: lat, longitude: lng });
+                    setFormData(prev => ({ ...prev, latitude: lat, longitude: lng }));
                   }}
                   colors={{
                     background: colors.background,
@@ -682,7 +682,7 @@ export default function DiveTripsScreen() {
                 <TextInput
                   style={[styles.formInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
                   value={formData.accommodation}
-                  onChangeText={(v) => setFormData({ ...formData, accommodation: v })}
+                  onChangeText={(v) => setFormData(prev => ({ ...prev, accommodation: v }))}
                   placeholder="e.g., Hilton Resort & Spa"
                   placeholderTextColor={colors.textSecondary}
                 />
@@ -693,7 +693,7 @@ export default function DiveTripsScreen() {
                 <TextInput
                   style={[styles.formInput, styles.formTextarea, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
                   value={formData.notes}
-                  onChangeText={(v) => setFormData({ ...formData, notes: v })}
+                  onChangeText={(v) => setFormData(prev => ({ ...prev, notes: v }))}
                   placeholder="Trip highlights, memorable moments..."
                   placeholderTextColor={colors.textSecondary}
                   multiline
