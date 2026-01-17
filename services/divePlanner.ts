@@ -306,17 +306,31 @@ export function initializeTissues(): TissueState[] {
   }));
 }
 
-function getCompartmentCoefficients(tissue: TissueState, compartmentIndex: number): { a: number; b: number } {
+// Get raw coefficients for N2 and He
+function getN2Coefficients(compartmentIndex: number): { a: number; b: number } {
+  const comp = ZHL16C_N2[compartmentIndex];
+  return { a: comp.a, b: comp.b };
+}
+
+function getHeCoefficients(compartmentIndex: number): { a: number; b: number } {
+  const comp = ZHL16C_HE[compartmentIndex];
+  return { a: comp.a, b: comp.b };
+}
+
+// Calculate weighted a/b coefficients based on tissue inert gas loading
+// This is the standard Bühlmann approach for mixed N2/He
+function getWeightedCoefficients(ppN2: number, ppHe: number, compartmentIndex: number): { a: number; b: number } {
   const n2Comp = ZHL16C_N2[compartmentIndex];
   const heComp = ZHL16C_HE[compartmentIndex];
   
-  const totalInert = tissue.ppN2 + tissue.ppHe;
-  if (totalInert === 0) {
+  const totalInert = ppN2 + ppHe;
+  if (totalInert <= 0) {
     return { a: n2Comp.a, b: n2Comp.b };
   }
   
-  const n2Fraction = tissue.ppN2 / totalInert;
-  const heFraction = tissue.ppHe / totalInert;
+  // Weighted average based on partial pressures
+  const n2Fraction = ppN2 / totalInert;
+  const heFraction = ppHe / totalInert;
   
   return {
     a: (n2Fraction * n2Comp.a) + (heFraction * heComp.a),
@@ -420,12 +434,16 @@ export function calculateTissueLoadingSchreiner(
 }
 
 export function calculateMValueAtPressure(tissue: TissueState, compartmentIndex: number, ambientPressure: number): number {
-  const { a, b } = getCompartmentCoefficients(tissue, compartmentIndex);
+  // Use weighted coefficients based on tissue inert gas loading
+  const { a, b } = getWeightedCoefficients(tissue.ppN2, tissue.ppHe, compartmentIndex);
+  // M = a + b * Pamb
   return a + b * ambientPressure;
 }
 
 export function calculateToleratedAmbientPressure(tissue: TissueState, compartmentIndex: number): number {
-  const { a, b } = getCompartmentCoefficients(tissue, compartmentIndex);
+  // Use weighted coefficients based on tissue inert gas loading
+  const { a, b } = getWeightedCoefficients(tissue.ppN2, tissue.ppHe, compartmentIndex);
+  // P_tolerated = (Pt - a) / b
   return (tissue.ppInert - a) / b;
 }
 
@@ -434,9 +452,18 @@ export function calculateCeilingWithGF(
   compartmentIndex: number, 
   gf: number
 ): number {
-  const { a, b } = getCompartmentCoefficients(tissue, compartmentIndex);
+  // Use weighted coefficients based on tissue inert gas loading
+  const { a, b } = getWeightedCoefficients(tissue.ppN2, tissue.ppHe, compartmentIndex);
   const g = gf / 100;
-  const pAmb = (tissue.ppInert - g * a) / (g * b + 1 - g);
+  
+  // Bühlmann ceiling formula with gradient factor
+  // Standard form: M = a + b * Pamb  =>  Pamb_ceiling = (Pt - a) / b
+  // With GF applied to limit supersaturation:
+  // Pamb_ceiling = (Pt - a * g) / (g * b + 1 - g)
+  // Note: This uses the convention where b is the slope (M = a + b*P), not the inverse
+  const denominator = g * b + 1 - g;
+  if (denominator <= 0) return 0;
+  const pAmb = (tissue.ppInert - a * g) / denominator;
   return Math.max(0, pAmb);
 }
 
@@ -531,39 +558,35 @@ export function calculateNDL(
     ? getInspiredPressureCCR(ambientPressure, gas, ccrSetpoint)
     : getInspiredPressure(ambientPressure, gas);
   const { ppN2: inspiredN2, ppHe: inspiredHe } = inspired;
+  const inspiredInert = inspiredN2 + inspiredHe;
   
   let minNdl = Infinity;
   
   tissues.forEach((tissue, i) => {
-    const { a, b } = getCompartmentCoefficients(
-      { ...tissue, ppN2: inspiredN2, ppHe: inspiredHe, ppInert: inspiredN2 + inspiredHe },
-      i
-    );
+    // Use weighted coefficients based on the INSPIRED gas mix
+    const { a, b } = getWeightedCoefficients(inspiredN2, inspiredHe, i);
     
     const mValueAtSurface = a + b * SURFACE_PRESSURE;
     const toleratedAtSurface = SURFACE_PRESSURE + (mValueAtSurface - SURFACE_PRESSURE) * (gfHigh / 100);
     
-    const inspiredInert = inspiredN2 + inspiredHe;
-    
     if (inspiredInert <= toleratedAtSurface) {
-      return;
+      return; // This compartment won't limit NDL
     }
     
+    // Calculate effective k (rate constant) based on gas mix
     const kN2 = Math.LN2 / tissue.halfTimeN2;
     const kHe = Math.LN2 / tissue.halfTimeHe;
-    
-    const n2Fraction = inspiredN2 / (inspiredInert || 1);
-    const heFraction = inspiredHe / (inspiredInert || 1);
+    const n2Fraction = inspiredInert > 0 ? inspiredN2 / inspiredInert : 1;
+    const heFraction = inspiredInert > 0 ? inspiredHe / inspiredInert : 0;
     const kEffective = kN2 * n2Fraction + kHe * heFraction;
     
-    const targetInert = toleratedAtSurface;
     const currentInert = tissue.ppInert;
     
     if (inspiredInert <= currentInert) {
       return;
     }
     
-    const fraction = (targetInert - currentInert) / (inspiredInert - currentInert);
+    const fraction = (toleratedAtSurface - currentInert) / (inspiredInert - currentInert);
     if (fraction <= 0 || fraction >= 1) {
       return;
     }
