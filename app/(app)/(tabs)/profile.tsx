@@ -31,7 +31,7 @@ interface DiveComputerCapabilities {
 }
 
 export default function ProfileScreen() {
-  const { colors, isDark, toggleTheme } = useTheme();
+  const { colors } = useTheme();
   const { user, logout, isAdmin, token, biometricCapability, isBiometricEnabled, setBiometricEnabled } = useAuth();
   
   const [manufacturers, setManufacturers] = useState<Manufacturer[]>([]);
@@ -237,26 +237,6 @@ export default function ProfileScreen() {
 
       <View style={[styles.section, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
         <Text style={[styles.sectionTitle, { color: colors.text }]}>Preferences</Text>
-        
-        <View style={styles.themeRow}>
-          <View style={styles.themeLeft}>
-            <View style={[styles.menuIcon, { backgroundColor: colors.primary + '20' }]}>
-              <Ionicons name={isDark ? 'moon' : 'sunny'} size={20} color={colors.primary} />
-            </View>
-            <View>
-              <Text style={[styles.menuTitle, { color: colors.text }]}>Dark Mode</Text>
-              <Text style={[styles.menuDescription, { color: colors.textSecondary }]}>
-                {isDark ? 'Dark theme active' : 'Light theme active'}
-              </Text>
-            </View>
-          </View>
-          <Switch
-            value={isDark}
-            onValueChange={toggleTheme}
-            trackColor={{ false: colors.border, true: colors.primary }}
-            thumbColor="#FFFFFF"
-          />
-        </View>
         
         {biometricCapability?.isSupported && biometricCapability?.isEnrolled && Platform.OS !== 'web' && (
           <View style={styles.themeRow}>
