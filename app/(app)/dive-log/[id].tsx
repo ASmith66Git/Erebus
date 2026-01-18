@@ -911,7 +911,9 @@ function ProblemsTab({ diveLog, colors }: { diveLog: DiveLog; colors: any }) {
   );
 }
 
-function GasTab({ diveLog, colors }: { diveLog: DiveLog; colors: any }) {
+function GasTab({ diveLog, colors, gearCylinders }: { diveLog: DiveLog; colors: any; gearCylinders: any[] }) {
+  const hasCylinders = gearCylinders && gearCylinders.length > 0;
+  
   return (
     <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
       <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -919,22 +921,22 @@ function GasTab({ diveLog, colors }: { diveLog: DiveLog; colors: any }) {
           <Feather name="disc" size={16} color={colors.primary} />
           <Text style={[styles.cardTitle, { color: colors.text }]}>Cylinders</Text>
         </View>
-        {diveLog.gasPressures && diveLog.gasPressures.length > 0 ? (
+        {hasCylinders ? (
           <View style={styles.gaugesRow}>
-            {diveLog.gasPressures.map((gas, index) => (
+            {gearCylinders.map((cyl, index) => (
               <CircularGauge
                 key={index}
-                label={gas.label}
-                startBar={gas.startBar}
-                endBar={gas.endBar}
-                o2Percent={gas.o2Percent}
-                hePercent={gas.hePercent}
+                label={cyl.nickname || `Cylinder ${index + 1}`}
+                startBar={cyl.startPressure || cyl.start_pressure || 200}
+                endBar={cyl.endPressure || cyl.end_pressure || 50}
+                o2Percent={cyl.o2Percent || cyl.o2_percent || 21}
+                hePercent={cyl.hePercent || cyl.he_percent || 0}
                 colors={colors}
               />
             ))}
           </View>
         ) : (
-          <Text style={[styles.noDataText, { color: colors.textSecondary }]}>No cylinder data available</Text>
+          <Text style={[styles.noDataText, { color: colors.textSecondary }]}>No cylinder data available. Link a gear profile to see cylinders.</Text>
         )}
       </View>
 
@@ -1199,6 +1201,7 @@ export default function DiveLogDetailScreen() {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>('Dive');
   const [gearProfileName, setGearProfileName] = useState<string | null>(null);
+  const [gearCylinders, setGearCylinders] = useState<any[]>([]);
 
   const fetchDiveLog = useCallback(async () => {
     if (!id || !token) return;
@@ -1234,6 +1237,7 @@ export default function DiveLogDetailScreen() {
     const fetchGearProfile = async () => {
       if (!token || !diveLog?.gearProfileId) {
         setGearProfileName(null);
+        setGearCylinders([]);
         return;
       }
       try {
@@ -1243,6 +1247,7 @@ export default function DiveLogDetailScreen() {
         if (response.ok) {
           const data = await response.json();
           setGearProfileName(data.name || null);
+          setGearCylinders(data.cylinders || []);
         }
       } catch (error) {
         console.error('Error fetching gear profile:', error);
@@ -1336,7 +1341,7 @@ export default function DiveLogDetailScreen() {
       case 'Dive':
         return <DiveTab diveLog={diveLog} colors={colors} gearProfileName={gearProfileName} />;
       case 'Gas':
-        return <GasTab diveLog={diveLog} colors={colors} />;
+        return <GasTab diveLog={diveLog} colors={colors} gearCylinders={gearCylinders} />;
       case 'Notes':
         return <NotesTab diveLog={diveLog} colors={colors} />;
       case 'Team':
