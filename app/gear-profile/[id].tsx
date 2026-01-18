@@ -1071,22 +1071,6 @@ export default function GearProfileScreen() {
   };
 
   const renderEquipmentViewTab = () => {
-    const groupedEquipment = profileEquipment.reduce((acc, item) => {
-      if (!acc[item.equipmentType]) {
-        acc[item.equipmentType] = [];
-      }
-      acc[item.equipmentType].push(item);
-      return acc;
-    }, {} as Record<string, Equipment[]>);
-
-    const groupedInventory = allEquipment.reduce((acc, item) => {
-      if (!acc[item.equipmentType]) {
-        acc[item.equipmentType] = [];
-      }
-      acc[item.equipmentType].push(item);
-      return acc;
-    }, {} as Record<string, Equipment[]>);
-
     return (
       <View style={styles.tabContent}>
         <Text style={[styles.sectionTitle, { color: colors.text }]}>Equipment for this Profile</Text>
@@ -1098,23 +1082,28 @@ export default function GearProfileScreen() {
             <Text style={[styles.emptyHint, { color: colors.textSecondary }]}>Switch to edit mode to add equipment to this profile</Text>
           </View>
         ) : (
-          Object.entries(groupedEquipment).map(([type, items]) => (
-            <View key={type} style={{ marginBottom: 16 }}>
-              <Text style={[styles.equipmentTypeHeader, { color: colors.textSecondary }]}>
-                {getEquipmentTypeLabel(type)}
-              </Text>
-              {items.map(item => (
-                <View key={item.id} style={[styles.equipmentCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                  <View style={styles.equipmentInfo}>
-                    <Text style={[styles.equipmentName, { color: colors.text }]}>{item.name}</Text>
-                    {item.quantity > 1 && (
-                      <Text style={[styles.equipmentQty, { color: colors.textSecondary }]}>x{item.quantity}</Text>
-                    )}
-                  </View>
-                </View>
-              ))}
-            </View>
-          ))
+          <View style={[styles.equipmentListContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            {profileEquipment.map((item, index) => (
+              <View 
+                key={item.id} 
+                style={[
+                  styles.equipmentRow,
+                  { borderBottomColor: colors.border },
+                  index === profileEquipment.length - 1 && { borderBottomWidth: 0 }
+                ]}
+              >
+                <Text style={[styles.equipmentRowType, { color: colors.textSecondary }]}>
+                  {getEquipmentTypeLabel(item.equipmentType)}
+                </Text>
+                <Text style={[styles.equipmentRowName, { color: colors.text }]} numberOfLines={1}>
+                  {item.name}
+                </Text>
+                {item.quantity > 1 && (
+                  <Text style={[styles.equipmentRowQty, { color: colors.textSecondary }]}>x{item.quantity}</Text>
+                )}
+              </View>
+            ))}
+          </View>
         )}
 
         <View style={{ marginTop: 24 }}>
@@ -1130,23 +1119,28 @@ export default function GearProfileScreen() {
               <Text style={[styles.emptyHint, { color: colors.textSecondary }]}>Switch to edit mode to add equipment</Text>
             </View>
           ) : (
-            Object.entries(groupedInventory).map(([type, items]) => (
-              <View key={type} style={{ marginBottom: 16 }}>
-                <Text style={[styles.equipmentTypeHeader, { color: colors.textSecondary }]}>
-                  {getEquipmentTypeLabel(type)}
-                </Text>
-                {items.map(item => (
-                  <View key={item.id} style={[styles.equipmentCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                    <View style={styles.equipmentInfo}>
-                      <Text style={[styles.equipmentName, { color: colors.text }]}>{item.name}</Text>
-                      {item.quantity > 1 && (
-                        <Text style={[styles.equipmentQty, { color: colors.textSecondary }]}>x{item.quantity}</Text>
-                      )}
-                    </View>
-                  </View>
-                ))}
-              </View>
-            ))
+            <View style={[styles.equipmentListContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              {allEquipment.map((item, index) => (
+                <View 
+                  key={item.id} 
+                  style={[
+                    styles.equipmentRow,
+                    { borderBottomColor: colors.border },
+                    index === allEquipment.length - 1 && { borderBottomWidth: 0 }
+                  ]}
+                >
+                  <Text style={[styles.equipmentRowType, { color: colors.textSecondary }]}>
+                    {getEquipmentTypeLabel(item.equipmentType)}
+                  </Text>
+                  <Text style={[styles.equipmentRowName, { color: colors.text }]} numberOfLines={1}>
+                    {item.name}
+                  </Text>
+                  {item.quantity > 1 && (
+                    <Text style={[styles.equipmentRowQty, { color: colors.textSecondary }]}>x{item.quantity}</Text>
+                  )}
+                </View>
+              ))}
+            </View>
           )}
         </View>
       </View>
@@ -1190,28 +1184,30 @@ export default function GearProfileScreen() {
                 No equipment available. Add items to your inventory first.
               </Text>
             ) : (
-              Object.entries(groupedAvailable).map(([type, items]) => (
-                <View key={type} style={{ marginBottom: 12 }}>
-                  <Text style={[styles.equipmentTypeHeader, { color: colors.textSecondary }]}>
-                    {getEquipmentTypeLabel(type)}
-                  </Text>
-                  {items.map(item => (
-                    <Pressable
-                      key={item.id}
-                      style={[styles.equipmentCard, { backgroundColor: colors.background, borderColor: colors.border }]}
-                      onPress={() => handleAddToProfile(item.id)}
-                    >
-                      <View style={styles.equipmentInfo}>
-                        <Text style={[styles.equipmentName, { color: colors.text }]}>{item.name}</Text>
-                        {item.quantity > 1 && (
-                          <Text style={[styles.equipmentQty, { color: colors.textSecondary }]}>x{item.quantity}</Text>
-                        )}
-                      </View>
-                      <Feather name="plus-circle" size={20} color={colors.primary} />
-                    </Pressable>
-                  ))}
-                </View>
-              ))
+              <View style={[styles.equipmentListContainer, { backgroundColor: colors.background, borderColor: colors.border }]}>
+                {availableEquipment.map((item, index) => (
+                  <Pressable
+                    key={item.id}
+                    style={[
+                      styles.equipmentRow,
+                      { borderBottomColor: colors.border },
+                      index === availableEquipment.length - 1 && { borderBottomWidth: 0 }
+                    ]}
+                    onPress={() => handleAddToProfile(item.id)}
+                  >
+                    <Text style={[styles.equipmentRowType, { color: colors.textSecondary }]}>
+                      {getEquipmentTypeLabel(item.equipmentType)}
+                    </Text>
+                    <Text style={[styles.equipmentRowName, { color: colors.text }]} numberOfLines={1}>
+                      {item.name}
+                    </Text>
+                    {item.quantity > 1 && (
+                      <Text style={[styles.equipmentRowQty, { color: colors.textSecondary }]}>x{item.quantity}</Text>
+                    )}
+                    <Feather name="plus" size={16} color={colors.primary} style={{ marginLeft: 8 }} />
+                  </Pressable>
+                ))}
+              </View>
             )}
           </View>
         ) : showAddEquipment ? (
@@ -1342,29 +1338,36 @@ export default function GearProfileScreen() {
           </View>
         )}
 
-        {Object.entries(groupedProfileEquipment).map(([type, items]) => (
-          <View key={type} style={{ marginTop: 16 }}>
-            <Text style={[styles.equipmentTypeHeader, { color: colors.textSecondary }]}>
-              {getEquipmentTypeLabel(type)}
-            </Text>
-            {items.map(item => (
-              <View key={item.id} style={[styles.equipmentCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                <View style={styles.equipmentInfo}>
-                  <Text style={[styles.equipmentName, { color: colors.text }]}>{item.name}</Text>
-                  {item.quantity > 1 && (
-                    <Text style={[styles.equipmentQty, { color: colors.textSecondary }]}>x{item.quantity}</Text>
-                  )}
-                </View>
+        {profileEquipment.length > 0 && (
+          <View style={[styles.equipmentListContainer, { backgroundColor: colors.surface, borderColor: colors.border, marginTop: 16 }]}>
+            {profileEquipment.map((item, index) => (
+              <View 
+                key={item.id} 
+                style={[
+                  styles.equipmentRow,
+                  { borderBottomColor: colors.border },
+                  index === profileEquipment.length - 1 && { borderBottomWidth: 0 }
+                ]}
+              >
+                <Text style={[styles.equipmentRowType, { color: colors.textSecondary }]}>
+                  {getEquipmentTypeLabel(item.equipmentType)}
+                </Text>
+                <Text style={[styles.equipmentRowName, { color: colors.text }]} numberOfLines={1}>
+                  {item.name}
+                </Text>
+                {item.quantity > 1 && (
+                  <Text style={[styles.equipmentRowQty, { color: colors.textSecondary }]}>x{item.quantity}</Text>
+                )}
                 <Pressable
-                  style={styles.deleteEquipmentButton}
+                  style={{ marginLeft: 8, padding: 4 }}
                   onPress={() => handleRemoveFromProfile(item.id)}
                 >
-                  <Feather name="x-circle" size={18} color={colors.error || '#FF4444'} />
+                  <Feather name="x" size={16} color={colors.error || '#FF4444'} />
                 </Pressable>
               </View>
             ))}
           </View>
-        ))}
+        )}
       </View>
     );
   };
@@ -1795,6 +1798,32 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 8,
+  },
+  equipmentListContainer: {
+    borderRadius: 8,
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  equipmentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderBottomWidth: 1,
+  },
+  equipmentRowType: {
+    fontSize: 12,
+    width: 100,
+    marginRight: 8,
+  },
+  equipmentRowName: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  equipmentRowQty: {
+    fontSize: 12,
+    marginLeft: 8,
   },
   equipmentCard: {
     flexDirection: 'row',
