@@ -314,6 +314,9 @@ const styles = StyleSheet.create({
   },
   heroImage: {
     opacity: 0.9,
+    left: -50,
+    top: -20,
+    width: '120%',
   },
   heroOverlay: {
     position: 'absolute',
