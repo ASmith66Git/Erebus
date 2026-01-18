@@ -19,7 +19,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { getApiUrl } from '@/utils/apiConfig';
 
-const TABS = ['Dive', 'Profile', 'Computer', 'Notes', 'Team', 'Problems'] as const;
+const TABS = ['Dive', 'Computer', 'Notes', 'Team', 'Problems'] as const;
 type TabType = typeof TABS[number];
 
 const EQUIPMENT_OPTIONS = [
@@ -697,7 +697,7 @@ function DiveTab({ diveLog, colors, gearProfileName }: { diveLog: DiveLog; color
       <View style={styles.rowCards}>
         <View style={[styles.halfCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <View style={styles.fieldRow}>
-            <Feather name="play" size={16} color={colors.textSecondary} />
+            <Feather name="play" size={16} color={colors.primary} />
             <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Start Time</Text>
           </View>
           <Text style={[styles.cardValue, { color: colors.text }]}>
@@ -706,7 +706,7 @@ function DiveTab({ diveLog, colors, gearProfileName }: { diveLog: DiveLog; color
         </View>
         <View style={[styles.halfCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <View style={styles.fieldRow}>
-            <Feather name="square" size={16} color={colors.textSecondary} />
+            <Feather name="square" size={16} color={colors.primary} />
             <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>End Time</Text>
           </View>
           <Text style={[styles.cardValue, { color: colors.text }]}>
@@ -718,7 +718,7 @@ function DiveTab({ diveLog, colors, gearProfileName }: { diveLog: DiveLog; color
       <View style={styles.rowCards}>
         <View style={[styles.halfCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <View style={styles.fieldRow}>
-            <Feather name="clock" size={16} color={colors.textSecondary} />
+            <Feather name="clock" size={16} color={colors.primary} />
             <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Duration</Text>
           </View>
           <Text style={[styles.cardValue, { color: colors.text }]}>
@@ -727,7 +727,7 @@ function DiveTab({ diveLog, colors, gearProfileName }: { diveLog: DiveLog; color
         </View>
         <View style={[styles.halfCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <View style={styles.fieldRow}>
-            <Feather name="thermometer" size={16} color={colors.textSecondary} />
+            <Feather name="thermometer" size={16} color={colors.primary} />
             <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Min Temp</Text>
           </View>
           <Text style={[styles.cardValue, { color: colors.text }]}>
@@ -739,7 +739,7 @@ function DiveTab({ diveLog, colors, gearProfileName }: { diveLog: DiveLog; color
       <View style={styles.rowCards}>
         <View style={[styles.halfCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <View style={styles.fieldRow}>
-            <Feather name="wind" size={16} color={colors.textSecondary} />
+            <Feather name="wind" size={16} color={colors.primary} />
             <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Surface Conditions</Text>
           </View>
           <Text style={[styles.cardValue, { color: colors.text }]}>
@@ -748,7 +748,7 @@ function DiveTab({ diveLog, colors, gearProfileName }: { diveLog: DiveLog; color
         </View>
         <View style={[styles.halfCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <View style={styles.fieldRow}>
-            <Feather name="sun" size={16} color={colors.textSecondary} />
+            <Feather name="sun" size={16} color={colors.primary} />
             <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Weather</Text>
           </View>
           <Text style={[styles.cardValue, { color: colors.text }]}>
@@ -759,20 +759,20 @@ function DiveTab({ diveLog, colors, gearProfileName }: { diveLog: DiveLog; color
 
       <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
         <View style={styles.fieldRow}>
-          <Feather name="map-pin" size={16} color={colors.textSecondary} />
+          <Feather name="map-pin" size={16} color={colors.primary} />
           <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Dive Site</Text>
         </View>
         <View style={[styles.fieldValue, { backgroundColor: colors.background, borderColor: colors.border }]}>
           <Text style={[styles.fieldValueText, { color: colors.text }]}>
             {diveLog.diveSiteName || 'Not specified'}
           </Text>
-          {diveLog.diveSiteName && <Feather name="external-link" size={16} color={colors.textSecondary} />}
+          {diveLog.diveSiteName && <Feather name="external-link" size={16} color={colors.primary} />}
         </View>
       </View>
 
       <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
         <View style={styles.fieldRow}>
-          <Feather name="briefcase" size={16} color={colors.textSecondary} />
+          <Feather name="briefcase" size={16} color={colors.primary} />
           <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Gear Profile</Text>
         </View>
         <View style={[styles.fieldValue, { backgroundColor: colors.background, borderColor: colors.border }]}>
@@ -785,7 +785,7 @@ function DiveTab({ diveLog, colors, gearProfileName }: { diveLog: DiveLog; color
       {diveLog.gasPressures && diveLog.gasPressures.length > 0 && (
         <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <View style={styles.fieldRow}>
-            <Feather name="circle" size={16} color={colors.textSecondary} />
+            <Feather name="circle" size={16} color={colors.primary} />
             <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Gas Pressures (bar)</Text>
           </View>
           <View style={styles.gaugesRow}>
@@ -803,6 +803,45 @@ function DiveTab({ diveLog, colors, gearProfileName }: { diveLog: DiveLog; color
           </View>
         </View>
       )}
+
+      <View style={styles.rowCards}>
+        <View style={[styles.halfCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <View style={styles.fieldRow}>
+            <Feather name="arrow-down" size={16} color={colors.primary} />
+            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Max Depth</Text>
+          </View>
+          <Text style={[styles.cardValue, { color: colors.text }]}>
+            {diveLog.maxDepthMeters ? `${diveLog.maxDepthMeters.toFixed(1)} m` : '--'}
+          </Text>
+        </View>
+        <View style={[styles.halfCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <View style={styles.fieldRow}>
+            <Feather name="minus" size={16} color={colors.primary} />
+            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Avg Depth</Text>
+          </View>
+          <Text style={[styles.cardValue, { color: colors.text }]}>
+            {diveLog.avgDepthMeters ? `${diveLog.avgDepthMeters.toFixed(1)} m` : '--'}
+          </Text>
+        </View>
+      </View>
+
+      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <View style={styles.fieldRow}>
+          <Feather name="star" size={16} color={colors.primary} />
+          <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Rating</Text>
+        </View>
+        <View style={styles.ratingRow}>
+          {[1, 2, 3, 4, 5].map((star) => (
+            <Feather
+              key={star}
+              name="star"
+              size={24}
+              color={star <= (diveLog.rating || 0) ? '#FFD700' : colors.border}
+              style={{ marginHorizontal: 2 }}
+            />
+          ))}
+        </View>
+      </View>
 
       <View style={{ height: 40 }} />
     </ScrollView>
@@ -864,65 +903,6 @@ function ProblemsTab({ diveLog, colors }: { diveLog: DiveLog; colors: any }) {
           <Text style={[styles.textAreaText, { color: diveLog.problemNotes ? colors.text : colors.textSecondary }]}>
             {diveLog.problemNotes || 'Describe any problems encountered during the dive...'}
           </Text>
-        </View>
-      </View>
-
-      <View style={{ height: 40 }} />
-    </ScrollView>
-  );
-}
-
-function ProfileTab({ diveLog, colors }: { diveLog: DiveLog; colors: any }) {
-  return (
-    <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
-      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <Text style={[styles.cardTitle, { color: colors.text }]}>Depth Statistics</Text>
-        <View style={styles.metaGrid}>
-          <View style={styles.metaItem}>
-            <Text style={[styles.metaLabel, { color: colors.textSecondary }]}>Max Depth</Text>
-            <Text style={[styles.metaValue, { color: colors.text }]}>
-              {diveLog.maxDepthMeters ? `${diveLog.maxDepthMeters.toFixed(1)} m` : '--'}
-            </Text>
-          </View>
-          <View style={styles.metaItem}>
-            <Text style={[styles.metaLabel, { color: colors.textSecondary }]}>Avg Depth</Text>
-            <Text style={[styles.metaValue, { color: colors.text }]}>
-              {diveLog.avgDepthMeters ? `${diveLog.avgDepthMeters.toFixed(1)} m` : '--'}
-            </Text>
-          </View>
-        </View>
-      </View>
-
-      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <Text style={[styles.cardTitle, { color: colors.text }]}>Temperature</Text>
-        <View style={styles.metaGrid}>
-          <View style={styles.metaItem}>
-            <Text style={[styles.metaLabel, { color: colors.textSecondary }]}>Min Temp</Text>
-            <Text style={[styles.metaValue, { color: colors.text }]}>
-              {diveLog.minTemperatureCelsius ? `${diveLog.minTemperatureCelsius.toFixed(0)}°C` : '--'}
-            </Text>
-          </View>
-          <View style={styles.metaItem}>
-            <Text style={[styles.metaLabel, { color: colors.textSecondary }]}>Max Temp</Text>
-            <Text style={[styles.metaValue, { color: colors.text }]}>
-              {diveLog.maxTemperatureCelsius ? `${diveLog.maxTemperatureCelsius.toFixed(0)}°C` : '--'}
-            </Text>
-          </View>
-        </View>
-      </View>
-
-      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <Text style={[styles.cardTitle, { color: colors.text }]}>Dive Rating</Text>
-        <View style={styles.ratingRow}>
-          {[1, 2, 3, 4, 5].map((star) => (
-            <Feather
-              key={star}
-              name="star"
-              size={28}
-              color={star <= (diveLog.rating || 0) ? '#FFD700' : colors.border}
-              style={{ marginHorizontal: 4 }}
-            />
-          ))}
         </View>
       </View>
 
@@ -1389,8 +1369,6 @@ export default function DiveLogDetailScreen() {
     switch (activeTab) {
       case 'Dive':
         return <DiveTab diveLog={diveLog} colors={colors} gearProfileName={gearProfileName} />;
-      case 'Profile':
-        return <ProfileTab diveLog={diveLog} colors={colors} />;
       case 'Computer':
         return <ComputerTab diveLog={diveLog} colors={colors} />;
       case 'Notes':
