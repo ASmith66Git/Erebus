@@ -10,14 +10,14 @@ import {
   CYLINDER_CATALOG, Cylinder, getCylindersByMaterial, CylinderMaterial
 } from '@/services/cylinderCatalog';
 import {
-  calculateGasDensity, calculateFillCapacity, calculateTopUp,
-  calculateTrimixBlend, calculateBestMix, calculateMOD, calculateEND, getMixName
+  calculateGasDensity, calculateFillCapacity, calculateTrimixBlend,
+  calculateBestMix, calculateMOD, calculateEND, getMixName
 } from '@/services/gasMath';
 import { useSettings } from '@/contexts/SettingsContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import PageHeader from '@/components/PageHeader';
 
-type TabType = 'gases' | 'density' | 'fill' | 'topup' | 'trimix' | 'bestmix';
+type TabType = 'gases' | 'density' | 'fill' | 'mix' | 'bestmix';
 
 export default function GasCalculatorScreen() {
   const { isDark } = useTheme();
@@ -75,21 +75,15 @@ export default function GasCalculatorScreen() {
   const [fillReserve, setFillReserve] = useState('50');
   const [fillSac, setFillSac] = useState('20');
 
-  const [topupCurrentPressure, setTopupCurrentPressure] = useState('50');
-  const [topupCurrentO2, setTopupCurrentO2] = useState('21');
-  const [topupCurrentHe, setTopupCurrentHe] = useState('0');
-  const [topupFillPressure, setTopupFillPressure] = useState('200');
-  const [topupSourceO2, setTopupSourceO2] = useState('21');
-  const [topupSourceHe, setTopupSourceHe] = useState('0');
-
-  const [trimixTargetO2, setTrimixTargetO2] = useState('21');
-  const [trimixTargetHe, setTrimixTargetHe] = useState('35');
-  const [trimixFinalPressure, setTrimixFinalPressure] = useState('200');
-  const [trimixResidual, setTrimixResidual] = useState('0');
-  const [trimixResidualO2, setTrimixResidualO2] = useState('21');
-  const [trimixResidualHe, setTrimixResidualHe] = useState('0');
-  const [trimixUseAir, setTrimixUseAir] = useState(true);
-  const [trimixNitroxO2, setTrimixNitroxO2] = useState('32');
+  const [mixTargetO2, setMixTargetO2] = useState('21');
+  const [mixTargetHe, setMixTargetHe] = useState('35');
+  const [mixFinalPressure, setMixFinalPressure] = useState('200');
+  const [mixHasResidual, setMixHasResidual] = useState(false);
+  const [mixResidualPressure, setMixResidualPressure] = useState('50');
+  const [mixResidualO2, setMixResidualO2] = useState('21');
+  const [mixResidualHe, setMixResidualHe] = useState('0');
+  const [mixUseAir, setMixUseAir] = useState(true);
+  const [mixNitroxO2, setMixNitroxO2] = useState('32');
 
   const [bestmixDepth, setBestmixDepth] = useState('40');
   const [bestmixPpo2, setBestmixPpo2] = useState('1.4');
@@ -117,29 +111,18 @@ export default function GasCalculatorScreen() {
     );
   }, [selectedCylinder, fillPressure, fillReserve, fillSac]);
 
-  const topupResult = useMemo(() => {
-    return calculateTopUp(
-      parseFloat(topupCurrentPressure) || 0,
-      parseFloat(topupCurrentO2) || 21,
-      parseFloat(topupCurrentHe) || 0,
-      parseFloat(topupFillPressure) || 200,
-      parseFloat(topupSourceO2) || 21,
-      parseFloat(topupSourceHe) || 0
-    );
-  }, [topupCurrentPressure, topupCurrentO2, topupCurrentHe, topupFillPressure, topupSourceO2, topupSourceHe]);
-
-  const trimixResult = useMemo(() => {
+  const mixResult = useMemo(() => {
     return calculateTrimixBlend(
-      parseFloat(trimixTargetO2) || 21,
-      parseFloat(trimixTargetHe) || 0,
-      parseFloat(trimixFinalPressure) || 200,
-      parseFloat(trimixResidual) || 0,
-      parseFloat(trimixResidualO2) || 21,
-      parseFloat(trimixResidualHe) || 0,
-      trimixUseAir,
-      parseFloat(trimixNitroxO2) || 32
+      parseFloat(mixTargetO2) || 21,
+      parseFloat(mixTargetHe) || 0,
+      parseFloat(mixFinalPressure) || 200,
+      mixHasResidual ? parseFloat(mixResidualPressure) || 0 : 0,
+      mixHasResidual ? parseFloat(mixResidualO2) || 21 : 21,
+      mixHasResidual ? parseFloat(mixResidualHe) || 0 : 0,
+      mixUseAir,
+      parseFloat(mixNitroxO2) || 32
     );
-  }, [trimixTargetO2, trimixTargetHe, trimixFinalPressure, trimixResidual, trimixResidualO2, trimixResidualHe, trimixUseAir, trimixNitroxO2]);
+  }, [mixTargetO2, mixTargetHe, mixFinalPressure, mixHasResidual, mixResidualPressure, mixResidualO2, mixResidualHe, mixUseAir, mixNitroxO2]);
 
   const bestmixResult = useMemo(() => {
     const depth = parseFloat(bestmixDepth) || 40;
@@ -168,14 +151,14 @@ export default function GasCalculatorScreen() {
         ))}
       </View>
       <View style={[styles.tabRow, { borderTopWidth: 1, borderTopColor: colors.border }]}>
-        {(['topup', 'trimix', 'bestmix'] as TabType[]).map((tab) => (
+        {(['mix', 'bestmix'] as TabType[]).map((tab) => (
           <TouchableOpacity
             key={tab}
             style={[styles.tab, styles.tabFlex, activeTab === tab && { borderBottomColor: colors.primary, borderBottomWidth: 2 }]}
             onPress={() => setActiveTab(tab)}
           >
             <Text style={[styles.tabText, { color: activeTab === tab ? colors.primary : colors.textSecondary }]}>
-              {tab === 'topup' ? 'Top Up' : tab === 'trimix' ? 'Trimix' : 'Best Mix'}
+              {tab === 'mix' ? 'Mix' : 'Best Mix'}
             </Text>
           </TouchableOpacity>
         ))}
@@ -452,60 +435,43 @@ export default function GasCalculatorScreen() {
     </ScrollView>
   );
 
-  const renderTopUpTab = () => (
+  const renderMixTab = () => (
     <ScrollView style={styles.tabContent}>
-      <Text style={[styles.sectionTitle, { color: colors.text }]}>Top Up Calculator</Text>
-      <Text style={[styles.sectionSubtitle, { color: colors.textSecondary }]}>Calculate resulting mix after topping up</Text>
-
-      <View style={[styles.card, { backgroundColor: colors.card }]}>
-        <Text style={[styles.cardTitle, { color: colors.text }]}>Current Tank Contents</Text>
-        {renderInput('Current Pressure', topupCurrentPressure, setTopupCurrentPressure, getPressureUnit())}
-        {renderInput('Current O2 %', topupCurrentO2, setTopupCurrentO2, '%')}
-        {renderInput('Current He %', topupCurrentHe, setTopupCurrentHe, '%')}
-      </View>
-
-      <View style={[styles.card, { backgroundColor: colors.card }]}>
-        <Text style={[styles.cardTitle, { color: colors.text }]}>Fill Gas</Text>
-        {renderInput('Fill to Pressure', topupFillPressure, setTopupFillPressure, getPressureUnit())}
-        {renderInput('Source O2 %', topupSourceO2, setTopupSourceO2, '%')}
-        {renderInput('Source He %', topupSourceHe, setTopupSourceHe, '%')}
-      </View>
-
-      <View style={[styles.resultsCard, { backgroundColor: colors.card, borderColor: topupResult.isValidMix ? colors.success : colors.danger }]}>
-        <Text style={[styles.resultsTitle, { color: colors.text }]}>Resulting Mix</Text>
-        {renderResultRow('Final O2', `${topupResult.finalO2Percent.toFixed(1)}%`)}
-        {renderResultRow('Final He', `${topupResult.finalHePercent.toFixed(1)}%`)}
-        {renderResultRow('Final N2', `${topupResult.finalN2Percent.toFixed(1)}%`)}
-        {renderResultRow('Added Pressure', units === 'imperial' ? `${(topupResult.addedPressureBar * 14.5038).toFixed(0)} psi` : `${topupResult.addedPressureBar.toFixed(0)} bar`)}
-        {renderResultRow('Mix Name', getMixName(Math.round(topupResult.finalO2Percent), Math.round(topupResult.finalHePercent)))}
-        
-        {topupResult.warningMessage && (
-          <View style={[styles.warningBox, { backgroundColor: colors.danger + '20' }]}>
-            <Feather name="alert-triangle" size={16} color={colors.danger} />
-            <Text style={[styles.warningText, { color: colors.danger }]}>{topupResult.warningMessage}</Text>
-          </View>
-        )}
-      </View>
-    </ScrollView>
-  );
-
-  const renderTrimixTab = () => (
-    <ScrollView style={styles.tabContent}>
-      <Text style={[styles.sectionTitle, { color: colors.text }]}>Trimix Blending Calculator</Text>
-      <Text style={[styles.sectionSubtitle, { color: colors.textSecondary }]}>Calculate gas fills for trimix blending</Text>
+      <Text style={[styles.sectionTitle, { color: colors.text }]}>Gas Blending Calculator</Text>
+      <Text style={[styles.sectionSubtitle, { color: colors.textSecondary }]}>Calculate blending sequence for any gas mix</Text>
 
       <View style={[styles.card, { backgroundColor: colors.card }]}>
         <Text style={[styles.cardTitle, { color: colors.text }]}>Target Mix</Text>
-        {renderInput('Target O2 %', trimixTargetO2, setTrimixTargetO2, '%')}
-        {renderInput('Target He %', trimixTargetHe, setTrimixTargetHe, '%')}
-        {renderInput('Final Pressure', trimixFinalPressure, setTrimixFinalPressure, getPressureUnit())}
+        {renderInput('Target O2 %', mixTargetO2, setMixTargetO2, '%')}
+        {renderInput('Target He %', mixTargetHe, setMixTargetHe, '%')}
+        <View style={styles.inputRow}>
+          <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>N2 % (auto)</Text>
+          <View style={[styles.mixInputAuto, { backgroundColor: colors.border }]}>
+            <Text style={[styles.mixInputAutoText, { color: colors.text }]}>
+              {Math.max(0, 100 - (parseFloat(mixTargetO2) || 0) - (parseFloat(mixTargetHe) || 0))}%
+            </Text>
+          </View>
+        </View>
+        {renderInput('Final Pressure', mixFinalPressure, setMixFinalPressure, getPressureUnit())}
       </View>
 
       <View style={[styles.card, { backgroundColor: colors.card }]}>
-        <Text style={[styles.cardTitle, { color: colors.text }]}>Residual Gas (optional)</Text>
-        {renderInput('Residual Pressure', trimixResidual, setTrimixResidual, getPressureUnit())}
-        {renderInput('Residual O2 %', trimixResidualO2, setTrimixResidualO2, '%')}
-        {renderInput('Residual He %', trimixResidualHe, setTrimixResidualHe, '%')}
+        <View style={styles.switchRow}>
+          <Text style={[styles.cardTitle, { color: colors.text, marginBottom: 0 }]}>Residual Gas in Cylinder</Text>
+          <TouchableOpacity
+            style={[styles.toggle, mixHasResidual && { backgroundColor: colors.primary }]}
+            onPress={() => setMixHasResidual(!mixHasResidual)}
+          >
+            <Text style={{ color: '#FFF' }}>{mixHasResidual ? 'Yes' : 'No'}</Text>
+          </TouchableOpacity>
+        </View>
+        {mixHasResidual && (
+          <View style={{ marginTop: 12 }}>
+            {renderInput('Residual Pressure', mixResidualPressure, setMixResidualPressure, getPressureUnit())}
+            {renderInput('Residual O2 %', mixResidualO2, setMixResidualO2, '%')}
+            {renderInput('Residual He %', mixResidualHe, setMixResidualHe, '%')}
+          </View>
+        )}
       </View>
 
       <View style={[styles.card, { backgroundColor: colors.card }]}>
@@ -513,28 +479,78 @@ export default function GasCalculatorScreen() {
         <View style={styles.switchRow}>
           <Text style={[styles.inputLabel, { color: colors.text }]}>Use Air for top-up</Text>
           <TouchableOpacity
-            style={[styles.toggle, trimixUseAir && { backgroundColor: colors.primary }]}
-            onPress={() => setTrimixUseAir(!trimixUseAir)}
+            style={[styles.toggle, mixUseAir && { backgroundColor: colors.primary }]}
+            onPress={() => setMixUseAir(!mixUseAir)}
           >
-            <Text style={{ color: '#FFF' }}>{trimixUseAir ? 'Air' : 'Nitrox'}</Text>
+            <Text style={{ color: '#FFF' }}>{mixUseAir ? 'Air' : 'Nitrox'}</Text>
           </TouchableOpacity>
         </View>
-        {!trimixUseAir && renderInput('Nitrox O2 %', trimixNitroxO2, setTrimixNitroxO2, '%')}
+        {!mixUseAir && renderInput('Nitrox O2 %', mixNitroxO2, setMixNitroxO2, '%')}
       </View>
 
-      <View style={[styles.resultsCard, { backgroundColor: colors.card, borderColor: trimixResult.isValid ? colors.success : colors.danger }]}>
+      <View style={[styles.resultsCard, { backgroundColor: colors.card, borderColor: mixResult.isValid ? colors.success : colors.danger }]}>
         <Text style={[styles.resultsTitle, { color: colors.text }]}>Blending Sequence</Text>
-        {renderResultRow('1. Add Helium', units === 'imperial' ? `${(trimixResult.hePressureToAdd * 14.5038).toFixed(0)} psi` : `${trimixResult.hePressureToAdd} bar`)}
-        {renderResultRow('2. Add Pure O2', units === 'imperial' ? `${(trimixResult.o2PressureToAdd * 14.5038).toFixed(0)} psi` : `${trimixResult.o2PressureToAdd} bar`)}
-        {renderResultRow(`3. Top with ${trimixUseAir ? 'Air' : 'EAN' + trimixNitroxO2}`, units === 'imperial' ? `${(trimixResult.airOrNitroxPressureToAdd * 14.5038).toFixed(0)} psi` : `${trimixResult.airOrNitroxPressureToAdd} bar`)}
-        <View style={styles.divider} />
-        {renderResultRow('Final Mix', `Tx${trimixResult.actualO2Percent}/${trimixResult.actualHePercent}`)}
-        {renderResultRow('MOD (1.4 PPO2)', units === 'imperial' ? `${(calculateMOD(trimixResult.actualO2Percent, 1.4) * 3.28084).toFixed(0)} ft` : `${calculateMOD(trimixResult.actualO2Percent, 1.4)} m`)}
         
-        {trimixResult.warningMessage && (
+        {mixHasResidual && (
+          <View style={[styles.residualInfo, { backgroundColor: colors.background }]}>
+            <Feather name="info" size={14} color={colors.textSecondary} />
+            <Text style={[styles.residualInfoText, { color: colors.textSecondary }]}>
+              Starting with {mixResidualPressure} {getPressureUnit()} of {getMixName(parseFloat(mixResidualO2) || 21, parseFloat(mixResidualHe) || 0)}
+            </Text>
+          </View>
+        )}
+
+        {(() => {
+          const residualBar = mixHasResidual ? parseFloat(mixResidualPressure) || 0 : 0;
+          const afterHeBar = residualBar + mixResult.hePressureToAdd;
+          const afterO2Bar = afterHeBar + mixResult.o2PressureToAdd;
+          const finalBar = parseFloat(mixFinalPressure) || 200;
+          const hasHeliumStep = parseFloat(mixTargetHe) > 0 || (mixHasResidual && parseFloat(mixResidualHe) > 0);
+          const PSI_PER_BAR = 14.5038;
+          
+          return (
+            <>
+              {hasHeliumStep && renderResultRow('1. Add Helium to', 
+                units === 'imperial' 
+                  ? `${(afterHeBar * PSI_PER_BAR).toFixed(0)} psi` 
+                  : `${afterHeBar.toFixed(0)} bar`
+              )}
+              
+              {renderResultRow(hasHeliumStep ? '2. Add Pure O2 to' : '1. Add Pure O2 to', 
+                units === 'imperial' 
+                  ? `${(afterO2Bar * PSI_PER_BAR).toFixed(0)} psi` 
+                  : `${afterO2Bar.toFixed(0)} bar`
+              )}
+              
+              {renderResultRow(
+                `${hasHeliumStep ? '3' : '2'}. Top with ${mixUseAir ? 'Air' : 'EAN' + mixNitroxO2} to`, 
+                units === 'imperial' 
+                  ? `${(finalBar * PSI_PER_BAR).toFixed(0)} psi` 
+                  : `${finalBar.toFixed(0)} bar`
+              )}
+            </>
+          );
+        })()}
+        
+        <View style={styles.divider} />
+        
+        <View style={styles.bigResult}>
+          <Text style={[styles.bigResultText, { color: colors.primary }]}>
+            {getMixName(mixResult.actualO2Percent, mixResult.actualHePercent)}
+          </Text>
+        </View>
+        
+        {renderResultRow('Final O2', `${mixResult.actualO2Percent}%`)}
+        {renderResultRow('Final He', `${mixResult.actualHePercent}%`)}
+        {renderResultRow('Final N2', `${100 - mixResult.actualO2Percent - mixResult.actualHePercent}%`)}
+        {renderResultRow('MOD (1.4 PPO2)', units === 'imperial' 
+          ? `${(calculateMOD(mixResult.actualO2Percent, 1.4) * 3.28084).toFixed(0)} ft` 
+          : `${calculateMOD(mixResult.actualO2Percent, 1.4)} m`)}
+        
+        {mixResult.warningMessage && (
           <View style={[styles.warningBox, { backgroundColor: colors.danger + '20' }]}>
             <Feather name="alert-triangle" size={16} color={colors.danger} />
-            <Text style={[styles.warningText, { color: colors.danger }]}>{trimixResult.warningMessage}</Text>
+            <Text style={[styles.warningText, { color: colors.danger }]}>{mixResult.warningMessage}</Text>
           </View>
         )}
       </View>
@@ -593,8 +609,7 @@ export default function GasCalculatorScreen() {
       case 'gases': return renderGasesTab();
       case 'density': return renderDensityTab();
       case 'fill': return renderFillTab();
-      case 'topup': return renderTopUpTab();
-      case 'trimix': return renderTrimixTab();
+      case 'mix': return renderMixTab();
       case 'bestmix': return renderBestMixTab();
       default: return null;
     }
@@ -1099,5 +1114,28 @@ const styles = StyleSheet.create({
   cylinderOptionDetails: {
     fontSize: 12,
     marginTop: 2,
+  },
+  mixInputAuto: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+    minWidth: 60,
+  },
+  mixInputAutoText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  residualInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 12,
+    gap: 8,
+  },
+  residualInfoText: {
+    fontSize: 13,
+    flex: 1,
   },
 });
