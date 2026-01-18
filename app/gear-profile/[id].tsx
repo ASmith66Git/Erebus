@@ -133,7 +133,7 @@ const getDefaultCylinders = (configType: string): Cylinder[] => {
   }
 };
 
-export default function GearProfileEditScreen() {
+export default function GearProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const isNew = id === 'new';
   const { colors } = useTheme();
@@ -144,6 +144,7 @@ export default function GearProfileEditScreen() {
 
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
+  const [isEditing, setIsEditing] = useState(isNew);
   const [activeTab, setActiveTab] = useState<'config' | 'exposure' | 'gas' | 'weight'>('config');
   const [profile, setProfile] = useState<GearProfile>({
     name: '',
@@ -354,6 +355,128 @@ export default function GearProfileEditScreen() {
             </Pressable>
           ))}
         </View>
+      </View>
+    );
+  };
+
+  const DetailRow = ({ label, value, icon }: { label: string; value: string | null; icon?: string }) => (
+    value ? (
+      <View style={styles.detailRow}>
+        {icon && <Feather name={icon as any} size={14} color={colors.primary} />}
+        <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>{label}</Text>
+        <Text style={[styles.detailValue, { color: colors.text }]}>{value}</Text>
+      </View>
+    ) : null
+  );
+
+  const renderConfigViewTab = () => {
+    const configTypeLabel = CONFIG_TYPES.find(t => t.value === profile.configType)?.label || profile.configType;
+    return (
+      <View style={styles.tabContent}>
+        <View style={[styles.viewCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <View style={styles.viewCardHeader}>
+            <Feather name="settings" size={16} color={colors.primary} />
+            <Text style={[styles.viewCardTitle, { color: colors.text }]}>Configuration</Text>
+          </View>
+          <DetailRow label="Name" value={profile.name} />
+          <DetailRow label="Type" value={configTypeLabel} />
+          {profile.notes && <DetailRow label="Notes" value={profile.notes} />}
+        </View>
+      </View>
+    );
+  };
+
+  const renderExposureViewTab = () => (
+    <View style={styles.tabContent}>
+      <View style={[styles.viewCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <View style={styles.viewCardHeader}>
+          <Feather name="thermometer" size={16} color={colors.primary} />
+          <Text style={[styles.viewCardTitle, { color: colors.text }]}>Exposure Protection</Text>
+        </View>
+        <DetailRow label="Suit Type" value={profile.suitType} />
+        {profile.suitThickness && <DetailRow label="Thickness" value={profile.suitThickness} />}
+        {profile.undersuit && <DetailRow label="Undersuit" value={profile.undersuit} />}
+        {profile.suitNickname && <DetailRow label="Suit Name" value={profile.suitNickname} />}
+      </View>
+      
+      {(profile.glovesType || profile.bootsType || profile.hoodType) && (
+        <View style={[styles.viewCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <View style={styles.viewCardHeader}>
+            <Feather name="shield" size={16} color={colors.primary} />
+            <Text style={[styles.viewCardTitle, { color: colors.text }]}>Accessories</Text>
+          </View>
+          {profile.glovesType && <DetailRow label="Gloves" value={`${profile.glovesType}${profile.glovesThickness ? ` (${profile.glovesThickness})` : ''}`} />}
+          {profile.bootsType && <DetailRow label="Boots" value={`${profile.bootsType}${profile.bootsThickness ? ` (${profile.bootsThickness})` : ''}`} />}
+          {profile.hoodType && <DetailRow label="Hood" value={`${profile.hoodType}${profile.hoodThickness ? ` (${profile.hoodThickness})` : ''}`} />}
+        </View>
+      )}
+
+      {(profile.bcdType || profile.finsType || profile.maskNickname) && (
+        <View style={[styles.viewCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <View style={styles.viewCardHeader}>
+            <Feather name="box" size={16} color={colors.primary} />
+            <Text style={[styles.viewCardTitle, { color: colors.text }]}>Other Equipment</Text>
+          </View>
+          {profile.bcdType && <DetailRow label="BCD" value={`${profile.bcdType}${profile.bcdNickname ? ` - ${profile.bcdNickname}` : ''}`} />}
+          {profile.finsType && <DetailRow label="Fins" value={`${profile.finsType}${profile.finsNickname ? ` - ${profile.finsNickname}` : ''}`} />}
+          {profile.maskNickname && <DetailRow label="Mask" value={profile.maskNickname} />}
+        </View>
+      )}
+    </View>
+  );
+
+  const renderGasViewTab = () => (
+    <View style={styles.tabContent}>
+      {profile.cylinders.map((cyl, index) => {
+        const roleLabel = CYLINDER_ROLES.find(r => r.value === cyl.cylinderRole)?.label || cyl.cylinderRole;
+        return (
+          <View key={index} style={[styles.viewCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <View style={styles.viewCardHeader}>
+              <Feather name="database" size={16} color={colors.primary} />
+              <Text style={[styles.viewCardTitle, { color: colors.text }]}>
+                {cyl.nickname || `Cylinder ${index + 1}`}
+              </Text>
+            </View>
+            <DetailRow label="Size" value={cyl.cylinderSize} />
+            <DetailRow label="Material" value={cyl.cylinderMaterial} />
+            <DetailRow label="Role" value={roleLabel} />
+            <DetailRow label="Gas Mix" value={`${cyl.gasMix} (${cyl.o2Percent}% O2${cyl.hePercent > 0 ? `, ${cyl.hePercent}% He` : ''})`} />
+            <DetailRow label="Working Pressure" value={cyl.workingPressure ? `${cyl.workingPressure} bar` : null} />
+          </View>
+        );
+      })}
+    </View>
+  );
+
+  const renderWeightViewTab = () => {
+    const totalWeight = profile.weights.reduce((sum, w) => sum + (w.weightKg || 0), 0);
+    const weightsWithValues = profile.weights.filter(w => w.weightKg > 0);
+    
+    return (
+      <View style={styles.tabContent}>
+        <View style={[styles.totalWeightCard, { backgroundColor: colors.primary + '20', borderColor: colors.primary }]}>
+          <Feather name="anchor" size={24} color={colors.primary} />
+          <View>
+            <Text style={[styles.totalWeightLabel, { color: colors.primary }]}>Total Weight</Text>
+            <Text style={[styles.totalWeightValue, { color: colors.primary }]}>{convertWeightFromMetric(totalWeight).toFixed(1)} {getWeightUnit()}</Text>
+          </View>
+        </View>
+
+        {weightsWithValues.length > 0 && (
+          <View style={[styles.viewCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <View style={styles.viewCardHeader}>
+              <Feather name="anchor" size={16} color={colors.primary} />
+              <Text style={[styles.viewCardTitle, { color: colors.text }]}>Weight Distribution</Text>
+            </View>
+            {weightsWithValues.map((weight, index) => (
+              <DetailRow 
+                key={index} 
+                label={weight.placement} 
+                value={`${convertWeightFromMetric(weight.weightKg).toFixed(1)} ${getWeightUnit()}`} 
+              />
+            ))}
+          </View>
+        )}
       </View>
     );
   };
@@ -801,26 +924,44 @@ export default function GearProfileEditScreen() {
     { key: 'weight' as const, label: 'Weight', icon: 'anchor' },
   ];
 
+  const handleClose = () => {
+    if (isEditing && !isNew) {
+      setIsEditing(false);
+      fetchProfile();
+    } else {
+      router.back();
+    }
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.header, { paddingTop: insets.top + 8, backgroundColor: colors.headerBackground, borderBottomColor: colors.border }]}>
-        <Pressable style={styles.backButton} onPress={() => router.back()}>
-          <Feather name="arrow-left" size={24} color={colors.text} />
+        <Pressable style={styles.backButton} onPress={handleClose}>
+          <Feather name={isEditing ? "x" : "arrow-left"} size={24} color={colors.text} />
         </Pressable>
         <Text style={[styles.headerTitle, { color: colors.text }]}>
-          {isNew ? 'New Gear Profile' : 'Edit Profile'}
+          {isNew ? 'New Gear Profile' : isEditing ? 'Edit Profile' : profile.name || 'Gear Profile'}
         </Text>
-        <Pressable
-          style={[styles.saveButton, { backgroundColor: colors.primary }]}
-          onPress={handleSave}
-          disabled={saving}
-        >
-          {saving ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
-          ) : (
-            <Text style={styles.saveButtonText}>Save</Text>
-          )}
-        </Pressable>
+        {isEditing ? (
+          <Pressable
+            style={[styles.saveButton, { backgroundColor: colors.primary }]}
+            onPress={handleSave}
+            disabled={saving}
+          >
+            {saving ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <Text style={styles.saveButtonText}>Save</Text>
+            )}
+          </Pressable>
+        ) : (
+          <Pressable
+            style={styles.backButton}
+            onPress={() => setIsEditing(true)}
+          >
+            <Feather name="edit-2" size={20} color={colors.text} />
+          </Pressable>
+        )}
       </View>
 
       <View style={[styles.tabBar, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
@@ -851,10 +992,10 @@ export default function GearProfileEditScreen() {
       </View>
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-        {activeTab === 'config' && renderConfigTab()}
-        {activeTab === 'exposure' && renderExposureTab()}
-        {activeTab === 'gas' && renderGasTab()}
-        {activeTab === 'weight' && renderWeightTab()}
+        {activeTab === 'config' && (isEditing ? renderConfigTab() : renderConfigViewTab())}
+        {activeTab === 'exposure' && (isEditing ? renderExposureTab() : renderExposureViewTab())}
+        {activeTab === 'gas' && (isEditing ? renderGasTab() : renderGasViewTab())}
+        {activeTab === 'weight' && (isEditing ? renderWeightTab() : renderWeightViewTab())}
       </ScrollView>
     </View>
   );
@@ -1095,6 +1236,37 @@ const styles = StyleSheet.create({
   totalWeightValue: {
     fontSize: 24,
     fontWeight: '700',
+  },
+  viewCard: {
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 12,
+  },
+  viewCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  viewCardTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    gap: 8,
+  },
+  detailLabel: {
+    fontSize: 14,
+    minWidth: 100,
+  },
+  detailValue: {
+    fontSize: 14,
+    fontWeight: '500',
+    flex: 1,
   },
   weightRow: {
     flexDirection: 'row',
