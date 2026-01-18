@@ -20,7 +20,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 const CHART_HEIGHT = 280;
 const TISSUE_CHART_HEIGHT = 180;
 
-type TabType = 'plan' | 'gases' | 'settings';
+type TabType = 'plan' | 'gases' | 'settings' | 'saved';
 
 interface DiveEntry {
   id: string;
@@ -75,11 +75,56 @@ export default function DivePlanningScreen() {
   ]);
   const [showCylinderDropdown, setShowCylinderDropdown] = useState<string | null>(null);
 
-  const [settings, setSettings] = useState<DivePlanSettings>({
+  // Applied settings are what the dive plan uses - updates only when "Apply" is pressed
+  const [appliedSettings, setAppliedSettings] = useState<DivePlanSettings>({
     ...DEFAULT_SETTINGS,
     gfLow: 30,
     gfHigh: 70,
   });
+  
+  // Pending settings track changes in the Settings tab before applying
+  const [pendingSettings, setPendingSettings] = useState<DivePlanSettings>({
+    ...DEFAULT_SETTINGS,
+    gfLow: 30,
+    gfHigh: 70,
+  });
+  
+  // Track if settings have been modified but not applied
+  const settingsAreDirty = useMemo(() => {
+    return JSON.stringify(pendingSettings) !== JSON.stringify(appliedSettings);
+  }, [pendingSettings, appliedSettings]);
+  
+  // For backward compatibility, "settings" refers to appliedSettings for plan calculations
+  // but GF can be changed directly on the plan tab
+  const settings = appliedSettings;
+  
+  // Saved dive plans
+  interface SavedDivePlan {
+    id: string;
+    name: string;
+    createdAt: string;
+    dives: DiveEntry[];
+    gases: GasEntry[];
+    settings: DivePlanSettings;
+  }
+  const [savedPlans, setSavedPlans] = useState<SavedDivePlan[]>([]);
+  const [planName, setPlanName] = useState('');
+  
+  // Apply pending settings
+  const applySettings = () => {
+    setAppliedSettings({ ...pendingSettings });
+  };
+  
+  // Reset pending settings to applied
+  const resetSettings = () => {
+    setPendingSettings({ ...appliedSettings });
+  };
+  
+  // Update GF directly (real-time on plan tab)
+  const updateGF = (field: 'gfLow' | 'gfHigh', value: number) => {
+    setAppliedSettings(prev => ({ ...prev, [field]: value }));
+    setPendingSettings(prev => ({ ...prev, [field]: value }));
+  };
 
   const [selectedDiveIndex, setSelectedDiveIndex] = useState(0);
   const [chartWidth, setChartWidth] = useState(300);
@@ -154,9 +199,29 @@ export default function DivePlanningScreen() {
   const depthUnit = settings.units === 'imperial' ? 'ft' : 'm';
   const rateUnit = settings.units === 'imperial' ? 'ft/min' : 'm/min';
 
+  const getTabIcon = (tab: TabType): string => {
+    switch (tab) {
+      case 'plan': return 'activity';
+      case 'gases': return 'wind';
+      case 'settings': return 'sliders';
+      case 'saved': return 'folder';
+      default: return 'file';
+    }
+  };
+  
+  const getTabLabel = (tab: TabType): string => {
+    switch (tab) {
+      case 'plan': return 'Plan';
+      case 'gases': return 'Gases';
+      case 'settings': return 'Settings';
+      case 'saved': return 'Saved';
+      default: return tab;
+    }
+  };
+
   const renderTabBar = () => (
     <View style={[styles.tabBar, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
-      {(['plan', 'gases', 'settings'] as TabType[]).map((tab) => (
+      {(['plan', 'gases', 'settings', 'saved'] as TabType[]).map((tab) => (
         <TouchableOpacity
           key={tab}
           style={[
@@ -165,16 +230,21 @@ export default function DivePlanningScreen() {
           ]}
           onPress={() => setActiveTab(tab)}
         >
-          <Feather
-            name={tab === 'plan' ? 'activity' : tab === 'gases' ? 'wind' : 'settings'}
-            size={18}
-            color={activeTab === tab ? colors.primary : colors.textSecondary}
-          />
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Feather
+              name={getTabIcon(tab) as any}
+              size={16}
+              color={activeTab === tab ? colors.primary : colors.textSecondary}
+            />
+            {tab === 'settings' && settingsAreDirty && (
+              <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: colors.warning, marginLeft: 2 }} />
+            )}
+          </View>
           <Text style={[
             styles.tabText,
             { color: activeTab === tab ? colors.primary : colors.textSecondary }
           ]}>
-            {tab.charAt(0).toUpperCase() + tab.slice(1)}
+            {getTabLabel(tab)}
           </Text>
         </TouchableOpacity>
       ))}
@@ -891,8 +961,11 @@ export default function DivePlanningScreen() {
 
       <View style={[styles.section, { backgroundColor: colors.card }]}>
         <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 16 }]}>Gradient Factors</Text>
-        {renderSlider('GF Low', settings.gfLow, 10, 100, 5, (v) => setSettings({ ...settings, gfLow: v }), '%')}
-        {renderSlider('GF High', settings.gfHigh, 10, 100, 5, (v) => setSettings({ ...settings, gfHigh: v }), '%')}
+        {renderSlider('GF Low', settings.gfLow, 10, 100, 5, (v) => updateGF('gfLow', v), '%')}
+        {renderSlider('GF High', settings.gfHigh, 10, 100, 5, (v) => updateGF('gfHigh', v), '%')}
+        <Text style={[styles.settingHint, { color: colors.textSecondary, marginTop: 4 }]}>
+          Adjust gradient factors in real-time to see their effect on decompression
+        </Text>
       </View>
 
       {renderDiveProfileChart()}
@@ -1134,8 +1207,33 @@ export default function DivePlanningScreen() {
     </View>
   );
 
+  // Helper to render settings with pending state
+  const ps = pendingSettings;
+  const setPs = (updates: Partial<DivePlanSettings>) => setPendingSettings(prev => ({ ...prev, ...updates }));
+  
   const renderSettingsTab = () => (
     <>
+      {/* Apply/Reset Banner */}
+      {settingsAreDirty && (
+        <View style={[styles.section, { backgroundColor: colors.warning + '20', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }]}>
+          <Text style={[styles.sectionTitle, { color: colors.warning, flex: 1 }]}>Settings modified</Text>
+          <TouchableOpacity 
+            style={[styles.applyButton, { backgroundColor: colors.primary, marginRight: 8 }]}
+            onPress={applySettings}
+          >
+            <Feather name="check" size={16} color="#FFF" />
+            <Text style={styles.applyButtonText}>Apply</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.applyButton, { backgroundColor: colors.textSecondary }]}
+            onPress={resetSettings}
+          >
+            <Feather name="x" size={16} color="#FFF" />
+            <Text style={styles.applyButtonText}>Reset</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+    
       {/* Model Settings */}
       <View style={[styles.section, { backgroundColor: colors.card }]}>
         <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>Model Settings</Text>
@@ -1143,7 +1241,7 @@ export default function DivePlanningScreen() {
         {renderPicker('Circuit', [
           { value: 'open', label: 'OC' },
           { value: 'ccr', label: 'CCR' },
-        ], settings.circuit, (v) => setSettings({ ...settings, circuit: v as CircuitType }))}
+        ], ps.circuit, (v) => setPs({ circuit: v as CircuitType }))}
 
         <View style={styles.modelPicker}>
           <Text style={[styles.pickerLabel, { color: colors.text }]}>Model</Text>
@@ -1153,16 +1251,16 @@ export default function DivePlanningScreen() {
               style={[
                 styles.modelOption,
                 { borderColor: colors.border },
-                settings.decoModel === model.value && { backgroundColor: colors.primary + '20', borderColor: colors.primary }
+                ps.decoModel === model.value && { backgroundColor: colors.primary + '20', borderColor: colors.primary }
               ]}
-              onPress={() => setSettings({ ...settings, decoModel: model.value })}
+              onPress={() => setPs({ decoModel: model.value })}
             >
               <View style={styles.modelOptionHeader}>
                 <View style={[
                   styles.modelRadio,
-                  { borderColor: settings.decoModel === model.value ? colors.primary : colors.border }
+                  { borderColor: ps.decoModel === model.value ? colors.primary : colors.border }
                 ]}>
-                  {settings.decoModel === model.value && (
+                  {ps.decoModel === model.value && (
                     <View style={[styles.modelRadioInner, { backgroundColor: colors.primary }]} />
                   )}
                 </View>
@@ -1173,8 +1271,8 @@ export default function DivePlanningScreen() {
           ))}
         </View>
 
-        {renderToggle('O2 narcotic', settings.o2Narcotic, 
-          (v) => setSettings({ ...settings, o2Narcotic: v }),
+        {renderToggle('O2 narcotic', ps.o2Narcotic, 
+          (v) => setPs({ o2Narcotic: v }),
           'END calculation - Consider O2 as narcotic?'
         )}
       </View>
@@ -1186,19 +1284,19 @@ export default function DivePlanningScreen() {
         {renderPicker('Depth', [
           { value: 'imperial', label: 'Feet' },
           { value: 'metric', label: 'Meter' },
-        ], settings.units, (v) => setSettings({ ...settings, units: v as UnitSystem }))}
+        ], ps.units, (v) => setPs({ units: v as UnitSystem }))}
         <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Depth shown in feet or meters</Text>
 
         {renderPicker('Water', [
           { value: 'salt', label: 'Salt' },
           { value: 'fresh', label: 'Fresh' },
-        ], settings.waterType, (v) => setSettings({ ...settings, waterType: v as WaterType }))}
+        ], ps.waterType, (v) => setPs({ waterType: v as WaterType }))}
         <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Type of water - salt or fresh</Text>
 
         {renderPicker('Gas volume', [
           { value: 'cuft', label: 'CuFt.' },
           { value: 'ltr', label: 'Ltr.' },
-        ], settings.gasVolumeUnits, (v) => setSettings({ ...settings, gasVolumeUnits: v as 'cuft' | 'ltr' }))}
+        ], ps.gasVolumeUnits, (v) => setPs({ gasVolumeUnits: v as 'cuft' | 'ltr' }))}
         <Text style={[styles.settingHint, { color: colors.textSecondary }]}>RMV or SAC gas units - cubic ft or liter</Text>
       </View>
 
@@ -1206,30 +1304,30 @@ export default function DivePlanningScreen() {
       <View style={[styles.section, { backgroundColor: colors.card }]}>
         <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>Gas Consumption</Text>
         
-        {renderSlider('Bottom', settings.sacRateBottom, 5, 30, 1,
-          (v) => setSettings({ ...settings, sacRateBottom: v }), '')}
+        {renderSlider('Bottom', ps.sacRateBottom, 5, 30, 1,
+          (v) => setPs({ sacRateBottom: v }), '')}
         <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Bottom mix SAC/RMV rate</Text>
 
-        {renderSlider('Deco', settings.sacRateDeco, 5, 25, 1,
-          (v) => setSettings({ ...settings, sacRateDeco: v }), '')}
+        {renderSlider('Deco', ps.sacRateDeco, 5, 25, 1,
+          (v) => setPs({ sacRateDeco: v }), '')}
         <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Deco mix SAC/RMV rate</Text>
       </View>
 
       {/* CCR Settings */}
-      {settings.circuit === 'ccr' && (
+      {ps.circuit === 'ccr' && (
         <View style={[styles.section, { backgroundColor: colors.card }]}>
           <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>CCR Settings</Text>
           
           {renderPicker('CCR setpoint', [
             { value: 'bar', label: 'BAR' },
             { value: 'ata', label: 'ATA' },
-          ], settings.ccrSetpointUnits, (v) => setSettings({ ...settings, ccrSetpointUnits: v as 'bar' | 'ata' }))}
+          ], ps.ccrSetpointUnits, (v) => setPs({ ccrSetpointUnits: v as 'bar' | 'ata' }))}
           <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Set the CCR setpoint base units</Text>
 
-          {renderSlider('Setpoint', settings.ccrSetpoint, 0.7, 1.6, 0.1, 
-            (v) => setSettings({ ...settings, ccrSetpoint: Math.round(v * 10) / 10 }), settings.ccrSetpointUnits === 'bar' ? ' bar' : ' ATA')}
-          {renderSlider('Scrubber Duration', settings.scrubberDuration, 60, 300, 30,
-            (v) => setSettings({ ...settings, scrubberDuration: v }), ' min')}
+          {renderSlider('Setpoint', ps.ccrSetpoint, 0.7, 1.6, 0.1, 
+            (v) => setPs({ ccrSetpoint: Math.round(v * 10) / 10 }), ps.ccrSetpointUnits === 'bar' ? ' bar' : ' ATA')}
+          {renderSlider('Scrubber Duration', ps.scrubberDuration, 60, 300, 30,
+            (v) => setPs({ scrubberDuration: v }), ' min')}
         </View>
       )}
 
@@ -1237,35 +1335,35 @@ export default function DivePlanningScreen() {
       <View style={[styles.section, { backgroundColor: colors.card }]}>
         <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>Deco Stop, Deco Mix Settings</Text>
         
-        {renderSlider(`Stop size = ${settings.stopSize}${depthUnit}`, settings.stopSize, 3, 6, 3,
-          (v) => setSettings({ ...settings, stopSize: v }), '')}
-        {renderSlider(`Last OC = ${settings.lastOcStopDepth}${depthUnit}`, settings.lastOcStopDepth, 3, 6, 3,
-          (v) => setSettings({ ...settings, lastOcStopDepth: v }), '')}
-        {renderSlider(`Last CCR = ${settings.lastCcrStopDepth}${depthUnit}`, settings.lastCcrStopDepth, 3, 9, 3,
-          (v) => setSettings({ ...settings, lastCcrStopDepth: v }), '')}
+        {renderSlider(`Stop size = ${ps.stopSize}${depthUnit}`, ps.stopSize, 3, 6, 3,
+          (v) => setPs({ stopSize: v }), '')}
+        {renderSlider(`Last OC = ${ps.lastOcStopDepth}${depthUnit}`, ps.lastOcStopDepth, 3, 6, 3,
+          (v) => setPs({ lastOcStopDepth: v }), '')}
+        {renderSlider(`Last CCR = ${ps.lastCcrStopDepth}${depthUnit}`, ps.lastCcrStopDepth, 3, 9, 3,
+          (v) => setPs({ lastCcrStopDepth: v }), '')}
         <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Stop size dimensions, last stop depths</Text>
 
-        {renderSlider(`Stop = ${settings.minStopTime} min`, settings.minStopTime, 1, 3, 1,
-          (v) => setSettings({ ...settings, minStopTime: v }), '')}
+        {renderSlider(`Stop = ${ps.minStopTime} min`, ps.minStopTime, 1, 3, 1,
+          (v) => setPs({ minStopTime: v }), '')}
         <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Minimum stop time intervals</Text>
 
-        {renderSlider(`45..99% = ${settings.ppo2High}`, settings.ppo2High, 1.4, 1.6, 0.1,
-          (v) => setSettings({ ...settings, ppo2High: Math.round(v * 10) / 10 }), '')}
-        {renderSlider(`28..45% = ${settings.ppo2Medium}`, settings.ppo2Medium, 1.3, 1.6, 0.1,
-          (v) => setSettings({ ...settings, ppo2Medium: Math.round(v * 10) / 10 }), '')}
-        {renderSlider(`up to 28% = ${settings.ppo2Low}`, settings.ppo2Low, 1.2, 1.6, 0.1,
-          (v) => setSettings({ ...settings, ppo2Low: Math.round(v * 10) / 10 }), '')}
+        {renderSlider(`45..99% = ${ps.ppo2High}`, ps.ppo2High, 1.4, 1.6, 0.1,
+          (v) => setPs({ ppo2High: Math.round(v * 10) / 10 }), '')}
+        {renderSlider(`28..45% = ${ps.ppo2Medium}`, ps.ppo2Medium, 1.3, 1.6, 0.1,
+          (v) => setPs({ ppo2Medium: Math.round(v * 10) / 10 }), '')}
+        {renderSlider(`up to 28% = ${ps.ppo2Low}`, ps.ppo2Low, 1.2, 1.6, 0.1,
+          (v) => setPs({ ppo2Low: Math.round(v * 10) / 10 }), '')}
         <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Deco mix switch depth - ppO2 threshold</Text>
 
-        {renderSlider(`100% O2 = ${settings.maxO2Depth}${depthUnit}`, settings.maxO2Depth, 3, 9, 1,
-          (v) => setSettings({ ...settings, maxO2Depth: v }), '')}
+        {renderSlider(`100% O2 = ${ps.maxO2Depth}${depthUnit}`, ps.maxO2Depth, 3, 9, 1,
+          (v) => setPs({ maxO2Depth: v }), '')}
         <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Maximum depth for 100% O2 use</Text>
 
-        {renderToggle('30 sec stops', settings.use30SecStops, 
-          (v) => setSettings({ ...settings, use30SecStops: v })
+        {renderToggle('30 sec stops', ps.use30SecStops, 
+          (v) => setPs({ use30SecStops: v })
         )}
-        {renderToggle('6 m steps', settings.use6mSteps, 
-          (v) => setSettings({ ...settings, use6mSteps: v }),
+        {renderToggle('6 m steps', ps.use6mSteps, 
+          (v) => setPs({ use6mSteps: v }),
           'Controls initial (deepest) stop dimensions'
         )}
       </View>
@@ -1274,29 +1372,29 @@ export default function DivePlanningScreen() {
       <View style={[styles.section, { backgroundColor: colors.card }]}>
         <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>Extended Stops</Text>
         
-        {renderToggle('Extended stops', settings.extendedStops, 
-          (v) => setSettings({ ...settings, extendedStops: v }),
+        {renderToggle('Extended stops', ps.extendedStops, 
+          (v) => setPs({ extendedStops: v }),
           'Include extended stops with deco mix swaps'
         )}
 
-        {settings.extendedStops && (
+        {ps.extendedStops && (
           <>
-            {renderSlider(`7..30 m = ${settings.extendedStopShallow}min`, settings.extendedStopShallow, 1, 10, 1,
-              (v) => setSettings({ ...settings, extendedStopShallow: v }), '')}
-            {renderSlider(`30 + m = ${settings.extendedStopDeep}min`, settings.extendedStopDeep, 1, 5, 1,
-              (v) => setSettings({ ...settings, extendedStopDeep: v }), '')}
+            {renderSlider(`7..30 m = ${ps.extendedStopShallow}min`, ps.extendedStopShallow, 1, 10, 1,
+              (v) => setPs({ extendedStopShallow: v }), '')}
+            {renderSlider(`30 + m = ${ps.extendedStopDeep}min`, ps.extendedStopDeep, 1, 5, 1,
+              (v) => setPs({ extendedStopDeep: v }), '')}
             <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Extra stop time with deco mix changes</Text>
           </>
         )}
 
-        {renderToggle('Add time to stop', settings.addTimeToStop, 
-          (v) => setSettings({ ...settings, addTimeToStop: v })
+        {renderToggle('Add time to stop', ps.addTimeToStop, 
+          (v) => setPs({ addTimeToStop: v })
         )}
-        {renderToggle('All mix changes', settings.allMixChanges, 
-          (v) => setSettings({ ...settings, allMixChanges: v })
+        {renderToggle('All mix changes', ps.allMixChanges, 
+          (v) => setPs({ allMixChanges: v })
         )}
-        {renderToggle('O2 window effect', settings.o2WindowEffect, 
-          (v) => setSettings({ ...settings, o2WindowEffect: v }),
+        {renderToggle('O2 window effect', ps.o2WindowEffect, 
+          (v) => setPs({ o2WindowEffect: v }),
           'Controls extended stop time behavior'
         )}
       </View>
@@ -1305,16 +1403,16 @@ export default function DivePlanningScreen() {
       <View style={[styles.section, { backgroundColor: colors.card }]}>
         <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>Descent / Ascent Rates</Text>
         
-        {renderSlider(`Descent`, settings.descentRate, 5, 30, 1,
-          (v) => setSettings({ ...settings, descentRate: v }), ` ${rateUnit}`)}
+        {renderSlider(`Descent`, ps.descentRate, 5, 30, 1,
+          (v) => setPs({ descentRate: v }), ` ${rateUnit}`)}
         <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Descent rates throughout the plan</Text>
 
-        {renderSlider(`Surface`, settings.surfaceRate, 3, 18, 1,
-          (v) => setSettings({ ...settings, surfaceRate: v }), ` ${rateUnit}`)}
-        {renderSlider(`Deco`, settings.decoRate, 3, 15, 1,
-          (v) => setSettings({ ...settings, decoRate: v }), ` ${rateUnit}`)}
-        {renderSlider(`Ascent`, settings.ascentRate, 3, 18, 1,
-          (v) => setSettings({ ...settings, ascentRate: v }), ` ${rateUnit}`)}
+        {renderSlider(`Surface`, ps.surfaceRate, 3, 18, 1,
+          (v) => setPs({ surfaceRate: v }), ` ${rateUnit}`)}
+        {renderSlider(`Deco`, ps.decoRate, 3, 15, 1,
+          (v) => setPs({ decoRate: v }), ` ${rateUnit}`)}
+        {renderSlider(`Ascent`, ps.ascentRate, 3, 18, 1,
+          (v) => setPs({ ascentRate: v }), ` ${rateUnit}`)}
         <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Ascent rates throughout the plan</Text>
       </View>
 
@@ -1322,12 +1420,12 @@ export default function DivePlanningScreen() {
       <View style={[styles.section, { backgroundColor: colors.card }]}>
         <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>Dive Site Elevation</Text>
         
-        {renderSlider(`Elevation`, settings.elevation, 0, 3000, 100,
-          (v) => setSettings({ ...settings, elevation: v }), 'm')}
+        {renderSlider(`Elevation`, ps.elevation, 0, 3000, 100,
+          (v) => setPs({ elevation: v }), 'm')}
         <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Dive site elevation</Text>
 
-        {renderSlider(`Acclimatized`, settings.acclimatizedElevation, 0, 3000, 100,
-          (v) => setSettings({ ...settings, acclimatizedElevation: v }), 'm')}
+        {renderSlider(`Acclimatized`, ps.acclimatizedElevation, 0, 3000, 100,
+          (v) => setPs({ acclimatizedElevation: v }), 'm')}
       </View>
 
       {/* Gauge & Display */}
@@ -1337,11 +1435,11 @@ export default function DivePlanningScreen() {
         {renderPicker('Gauge', [
           { value: 'simple', label: 'Simple' },
           { value: 'digital', label: 'Digital' },
-        ], settings.gaugeType, (v) => setSettings({ ...settings, gaugeType: v as 'simple' | 'digital' }))}
+        ], ps.gaugeType, (v) => setPs({ gaugeType: v as 'simple' | 'digital' }))}
         <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Depth gauge calibration type</Text>
 
-        {renderSlider('Gas Switch Time', settings.gasSwitchTime, 0, 5, 1, 
-          (v) => setSettings({ ...settings, gasSwitchTime: v }), ' min')}
+        {renderSlider('Gas Switch Time', ps.gasSwitchTime, 0, 5, 1, 
+          (v) => setPs({ gasSwitchTime: v }), ' min')}
       </View>
 
       {/* Dive Monitor Controls */}
@@ -1349,90 +1447,210 @@ export default function DivePlanningScreen() {
         <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>Dive Monitor Controls</Text>
         
         <View style={styles.monitorRow}>
-          {renderToggle(`ppO2 above = ${settings.ppo2AboveThreshold.toFixed(2)}`, settings.ppo2AboveEnabled,
-            (v) => setSettings({ ...settings, ppo2AboveEnabled: v })
+          {renderToggle(`ppO2 above = ${ps.ppo2AboveThreshold.toFixed(2)}`, ps.ppo2AboveEnabled,
+            (v) => setPs({ ppo2AboveEnabled: v })
           )}
-          {settings.ppo2AboveEnabled && (
+          {ps.ppo2AboveEnabled && (
             <View style={styles.monitorSlider}>
-              {renderSlider('', settings.ppo2AboveThreshold, 1.0, 2.0, 0.1,
-                (v) => setSettings({ ...settings, ppo2AboveThreshold: Math.round(v * 100) / 100 }), '')}
+              {renderSlider('', ps.ppo2AboveThreshold, 1.0, 2.0, 0.1,
+                (v) => setPs({ ppo2AboveThreshold: Math.round(v * 100) / 100 }), '')}
             </View>
           )}
         </View>
         <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Monitor when ppO2 exceeds...</Text>
 
         <View style={styles.monitorRow}>
-          {renderToggle(`ppO2 below = ${settings.ppo2BelowThreshold.toFixed(2)}`, settings.ppo2BelowEnabled,
-            (v) => setSettings({ ...settings, ppo2BelowEnabled: v })
+          {renderToggle(`ppO2 below = ${ps.ppo2BelowThreshold.toFixed(2)}`, ps.ppo2BelowEnabled,
+            (v) => setPs({ ppo2BelowEnabled: v })
           )}
-          {settings.ppo2BelowEnabled && (
+          {ps.ppo2BelowEnabled && (
             <View style={styles.monitorSlider}>
-              {renderSlider('', settings.ppo2BelowThreshold, 0.10, 0.21, 0.01,
-                (v) => setSettings({ ...settings, ppo2BelowThreshold: Math.round(v * 100) / 100 }), '')}
+              {renderSlider('', ps.ppo2BelowThreshold, 0.10, 0.21, 0.01,
+                (v) => setPs({ ppo2BelowThreshold: Math.round(v * 100) / 100 }), '')}
             </View>
           )}
         </View>
         <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Monitor when ppO2 is lower than</Text>
 
         <View style={styles.monitorRow}>
-          {renderToggle(`OTU's above = ${settings.otuAboveThreshold}`, settings.otuAboveEnabled,
-            (v) => setSettings({ ...settings, otuAboveEnabled: v })
+          {renderToggle(`OTU's above = ${ps.otuAboveThreshold}`, ps.otuAboveEnabled,
+            (v) => setPs({ otuAboveEnabled: v })
           )}
-          {settings.otuAboveEnabled && (
+          {ps.otuAboveEnabled && (
             <View style={styles.monitorSlider}>
-              {renderSlider('', settings.otuAboveThreshold, 100, 600, 50,
-                (v) => setSettings({ ...settings, otuAboveThreshold: v }), '')}
+              {renderSlider('', ps.otuAboveThreshold, 100, 600, 50,
+                (v) => setPs({ otuAboveThreshold: v }), '')}
             </View>
           )}
         </View>
         <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Monitor when OTU's exceeds...</Text>
 
         <View style={styles.monitorRow}>
-          {renderToggle(`CNS % above = ${settings.cnsAboveThreshold}%`, settings.cnsAboveEnabled,
-            (v) => setSettings({ ...settings, cnsAboveEnabled: v })
+          {renderToggle(`CNS % above = ${ps.cnsAboveThreshold}%`, ps.cnsAboveEnabled,
+            (v) => setPs({ cnsAboveEnabled: v })
           )}
-          {settings.cnsAboveEnabled && (
+          {ps.cnsAboveEnabled && (
             <View style={styles.monitorSlider}>
-              {renderSlider('', settings.cnsAboveThreshold, 50, 100, 5,
-                (v) => setSettings({ ...settings, cnsAboveThreshold: v }), '')}
+              {renderSlider('', ps.cnsAboveThreshold, 50, 100, 5,
+                (v) => setPs({ cnsAboveThreshold: v }), '')}
             </View>
           )}
         </View>
         <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Monitor when CNS % exceeds...</Text>
 
         <View style={styles.monitorRow}>
-          {renderToggle(`IBCD N2 = ${settings.ibcdN2Threshold} ATA`, settings.ibcdN2Enabled,
-            (v) => setSettings({ ...settings, ibcdN2Enabled: v })
+          {renderToggle(`IBCD N2 = ${ps.ibcdN2Threshold} ATA`, ps.ibcdN2Enabled,
+            (v) => setPs({ ibcdN2Enabled: v })
           )}
-          {settings.ibcdN2Enabled && (
+          {ps.ibcdN2Enabled && (
             <View style={styles.monitorSlider}>
-              {renderSlider('', settings.ibcdN2Threshold, 0.1, 1.0, 0.1,
-                (v) => setSettings({ ...settings, ibcdN2Threshold: Math.round(v * 10) / 10 }), '')}
+              {renderSlider('', ps.ibcdN2Threshold, 0.1, 1.0, 0.1,
+                (v) => setPs({ ibcdN2Threshold: Math.round(v * 10) / 10 }), '')}
             </View>
           )}
         </View>
         <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Deco mix swap ppN2 exceeds...</Text>
 
         <View style={styles.monitorRow}>
-          {renderToggle(`IBCD He = ${settings.ibcdHeThreshold} ATA`, settings.ibcdHeEnabled,
-            (v) => setSettings({ ...settings, ibcdHeEnabled: v })
+          {renderToggle(`IBCD He = ${ps.ibcdHeThreshold} ATA`, ps.ibcdHeEnabled,
+            (v) => setPs({ ibcdHeEnabled: v })
           )}
-          {settings.ibcdHeEnabled && (
+          {ps.ibcdHeEnabled && (
             <View style={styles.monitorSlider}>
-              {renderSlider('', settings.ibcdHeThreshold, 0.1, 1.0, 0.1,
-                (v) => setSettings({ ...settings, ibcdHeThreshold: Math.round(v * 10) / 10 }), '')}
+              {renderSlider('', ps.ibcdHeThreshold, 0.1, 1.0, 0.1,
+                (v) => setPs({ ibcdHeThreshold: Math.round(v * 10) / 10 }), '')}
             </View>
           )}
         </View>
         <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Deco mix swap ppHe exceeds...</Text>
 
-        {settings.circuit === 'ccr' && (
+        {ps.circuit === 'ccr' && (
           <>
-            {renderToggle('CCR diluent check', settings.ccrDiluentCheck,
-              (v) => setSettings({ ...settings, ccrDiluentCheck: v }),
+            {renderToggle('CCR diluent check', ps.ccrDiluentCheck,
+              (v) => setPs({ ccrDiluentCheck: v }),
               'CCR diluent pp exceeds ATA'
             )}
           </>
+        )}
+      </View>
+    </>
+  );
+
+  // Save current dive plan
+  const savePlan = () => {
+    if (!planName.trim()) {
+      Alert.alert('Name Required', 'Please enter a name for this dive plan.');
+      return;
+    }
+    const newPlan: SavedDivePlan = {
+      id: String(Date.now()),
+      name: planName.trim(),
+      createdAt: new Date().toISOString(),
+      dives: [...dives],
+      gases: [...gases],
+      settings: { ...appliedSettings },
+    };
+    setSavedPlans(prev => [newPlan, ...prev]);
+    setPlanName('');
+    Alert.alert('Saved', `Dive plan "${newPlan.name}" has been saved.`);
+  };
+
+  // Load a saved dive plan
+  const loadPlan = (plan: SavedDivePlan) => {
+    setDives(plan.dives.map(d => ({ ...d })));
+    setGases(plan.gases.map(g => ({ ...g })));
+    setAppliedSettings({ ...plan.settings });
+    setPendingSettings({ ...plan.settings });
+    setSelectedDiveIndex(0);
+    setActiveTab('plan');
+    Alert.alert('Loaded', `Dive plan "${plan.name}" has been loaded.`);
+  };
+
+  // Delete a saved dive plan
+  const deletePlan = (id: string) => {
+    Alert.alert(
+      'Delete Plan',
+      'Are you sure you want to delete this dive plan?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Delete', 
+          style: 'destructive', 
+          onPress: () => setSavedPlans(prev => prev.filter(p => p.id !== id))
+        },
+      ]
+    );
+  };
+
+  const renderSavedPlansTab = () => (
+    <>
+      {/* Save Current Plan */}
+      <View style={[styles.section, { backgroundColor: colors.card }]}>
+        <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 12 }]}>Save Current Plan</Text>
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          <TextInput
+            style={[styles.input, { color: colors.text, borderColor: colors.border, flex: 1 }]}
+            value={planName}
+            onChangeText={setPlanName}
+            placeholder="Enter plan name..."
+            placeholderTextColor={colors.textSecondary}
+          />
+          <TouchableOpacity
+            style={[styles.addButton, { backgroundColor: colors.primary }]}
+            onPress={savePlan}
+          >
+            <Feather name="save" size={16} color="#FFF" />
+            <Text style={styles.addButtonText}>Save</Text>
+          </TouchableOpacity>
+        </View>
+        {currentResult && (
+          <Text style={[styles.settingHint, { color: colors.textSecondary, marginTop: 8 }]}>
+            Current: {dives.length} dive(s), {currentResult.maxDepth}{depthUnit} max, {currentResult.totalRunTime} min runtime
+          </Text>
+        )}
+      </View>
+
+      {/* Saved Plans List */}
+      <View style={[styles.section, { backgroundColor: colors.card }]}>
+        <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 12 }]}>
+          Saved Plans ({savedPlans.length})
+        </Text>
+        
+        {savedPlans.length === 0 ? (
+          <Text style={{ color: colors.textSecondary, textAlign: 'center', paddingVertical: 24 }}>
+            No saved dive plans yet. Create a plan and save it to see it here.
+          </Text>
+        ) : (
+          savedPlans.map(plan => (
+            <View 
+              key={plan.id} 
+              style={[styles.savedPlanCard, { borderColor: colors.border, backgroundColor: colors.background }]}
+            >
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.savedPlanName, { color: colors.text }]}>{plan.name}</Text>
+                <Text style={[styles.savedPlanMeta, { color: colors.textSecondary }]}>
+                  {plan.dives.length} dive(s) | {plan.gases.length} gas(es)
+                </Text>
+                <Text style={[styles.savedPlanMeta, { color: colors.textSecondary }]}>
+                  Saved: {new Date(plan.createdAt).toLocaleDateString()}
+                </Text>
+              </View>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                <TouchableOpacity
+                  style={[styles.savedPlanBtn, { backgroundColor: colors.primary }]}
+                  onPress={() => loadPlan(plan)}
+                >
+                  <Feather name="upload" size={14} color="#FFF" />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.savedPlanBtn, { backgroundColor: colors.danger }]}
+                  onPress={() => deletePlan(plan.id)}
+                >
+                  <Feather name="trash-2" size={14} color="#FFF" />
+                </TouchableOpacity>
+              </View>
+            </View>
+          ))
         )}
       </View>
     </>
@@ -1512,6 +1730,7 @@ export default function DivePlanningScreen() {
         {activeTab === 'plan' && renderPlanTab()}
         {activeTab === 'gases' && renderGasesTab()}
         {activeTab === 'settings' && renderSettingsTab()}
+        {activeTab === 'saved' && renderSavedPlansTab()}
         <View style={{ height: 40 }} />
       </ScrollView>
 
@@ -1905,5 +2124,41 @@ const styles = StyleSheet.create({
   monitorSlider: {
     marginTop: -12,
     marginBottom: 0,
+  },
+  applyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    gap: 4,
+  },
+  applyButtonText: {
+    color: '#FFF',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  savedPlanCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderWidth: 1,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  savedPlanName: {
+    fontSize: 15,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  savedPlanMeta: {
+    fontSize: 12,
+  },
+  savedPlanBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
