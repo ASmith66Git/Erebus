@@ -1308,7 +1308,7 @@ export default function DivePlanningScreen() {
           <>
             {/* CCR Loop Gases */}
             <View style={[styles.section, { backgroundColor: colors.card }]}>
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>Loop Gases</Text>
+              <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 4 }]}>Loop Gases</Text>
               <Text style={[styles.settingHint, { color: colors.textSecondary, marginBottom: 12 }]}>
                 Onboard O2 and Diluent cylinders
               </Text>
@@ -1332,7 +1332,7 @@ export default function DivePlanningScreen() {
 
             {/* CCR Bailout Gases */}
             <View style={[styles.section, { backgroundColor: colors.card }]}>
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>Bailout Gases</Text>
+              <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 4 }]}>Bailout Gases</Text>
               <Text style={[styles.settingHint, { color: colors.textSecondary, marginBottom: 12 }]}>
                 Open circuit bailout in case of loop failure
               </Text>
@@ -1347,7 +1347,7 @@ export default function DivePlanningScreen() {
 
             {/* CCR Extension Gases */}
             <View style={[styles.section, { backgroundColor: colors.card }]}>
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>Extension Gases</Text>
+              <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 4 }]}>Extension Gases</Text>
               <Text style={[styles.settingHint, { color: colors.textSecondary, marginBottom: 12 }]}>
                 Extra O2 or Diluent to extend dive duration
               </Text>
@@ -1364,7 +1364,7 @@ export default function DivePlanningScreen() {
           <>
             {/* OC Bottom Gas */}
             <View style={[styles.section, { backgroundColor: colors.card }]}>
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>Bottom Gas</Text>
+              <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 4 }]}>Bottom Gas</Text>
               <Text style={[styles.settingHint, { color: colors.textSecondary, marginBottom: 12 }]}>
                 Primary gas for the bottom phase of the dive
               </Text>
@@ -1381,7 +1381,7 @@ export default function DivePlanningScreen() {
 
             {/* OC Travel Gases */}
             <View style={[styles.section, { backgroundColor: colors.card }]}>
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>Travel Gases</Text>
+              <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 4 }]}>Travel Gases</Text>
               <Text style={[styles.settingHint, { color: colors.textSecondary, marginBottom: 12 }]}>
                 Gases used during descent (optional)
               </Text>
@@ -1396,7 +1396,7 @@ export default function DivePlanningScreen() {
 
             {/* OC Deco Gases */}
             <View style={[styles.section, { backgroundColor: colors.card }]}>
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>Deco Gases</Text>
+              <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 4 }]}>Deco Gases</Text>
               <Text style={[styles.settingHint, { color: colors.textSecondary, marginBottom: 12 }]}>
                 Gases used during ascent and decompression stops
               </Text>
