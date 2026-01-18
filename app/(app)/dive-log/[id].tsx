@@ -652,31 +652,31 @@ function DiveTab({ diveLog, colors, gearProfileName, gearProfileId }: { diveLog:
           
           <View style={styles.toggleRow}>
             <Pressable
-              style={[styles.toggleButton, showTemp && { backgroundColor: colors.primary + '20', borderColor: colors.primary }]}
+              style={[styles.toggleButton, showTemp && { backgroundColor: colors.primary + '20' }]}
               onPress={() => setShowTemp(!showTemp)}
             >
               <Text style={[styles.toggleText, { color: showTemp ? colors.primary : colors.textSecondary }]}>Temp</Text>
             </Pressable>
             <Pressable
-              style={[styles.toggleButton, showNdl && { backgroundColor: colors.primary + '20', borderColor: colors.primary }]}
+              style={[styles.toggleButton, showNdl && { backgroundColor: colors.primary + '20' }]}
               onPress={() => setShowNdl(!showNdl)}
             >
               <Text style={[styles.toggleText, { color: showNdl ? colors.primary : colors.textSecondary }]}>NDL</Text>
             </Pressable>
             <Pressable
-              style={[styles.toggleButton, showGf99 && { backgroundColor: colors.primary + '20', borderColor: colors.primary }]}
+              style={[styles.toggleButton, showGf99 && { backgroundColor: colors.primary + '20' }]}
               onPress={() => setShowGf99(!showGf99)}
             >
               <Text style={[styles.toggleText, { color: showGf99 ? colors.primary : colors.textSecondary }]}>GF99</Text>
             </Pressable>
             <Pressable
-              style={[styles.toggleButton, showPpo2 && { backgroundColor: colors.primary + '20', borderColor: colors.primary }]}
+              style={[styles.toggleButton, showPpo2 && { backgroundColor: colors.primary + '20' }]}
               onPress={() => setShowPpo2(!showPpo2)}
             >
               <Text style={[styles.toggleText, { color: showPpo2 ? colors.primary : colors.textSecondary }]}>PPO2</Text>
             </Pressable>
             <Pressable
-              style={[styles.toggleButton, showCns && { backgroundColor: colors.primary + '20', borderColor: colors.primary }]}
+              style={[styles.toggleButton, showCns && { backgroundColor: colors.primary + '20' }]}
               onPress={() => setShowCns(!showCns)}
             >
               <Text style={[styles.toggleText, { color: showCns ? colors.primary : colors.textSecondary }]}>CNS</Text>
