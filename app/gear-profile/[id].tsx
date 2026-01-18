@@ -1067,6 +1067,14 @@ export default function GearProfileScreen() {
       return acc;
     }, {} as Record<string, Equipment[]>);
 
+    const groupedInventory = allEquipment.reduce((acc, item) => {
+      if (!acc[item.equipmentType]) {
+        acc[item.equipmentType] = [];
+      }
+      acc[item.equipmentType].push(item);
+      return acc;
+    }, {} as Record<string, Equipment[]>);
+
     return (
       <View style={styles.tabContent}>
         <Text style={[styles.sectionTitle, { color: colors.text }]}>Equipment for this Profile</Text>
@@ -1096,6 +1104,39 @@ export default function GearProfileScreen() {
             </View>
           ))
         )}
+
+        <View style={{ marginTop: 24 }}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>My Equipment Inventory</Text>
+          <Text style={[{ color: colors.textSecondary, fontSize: 13, marginBottom: 12 }]}>
+            All your saved equipment. Switch to edit mode to link items to this profile.
+          </Text>
+          
+          {allEquipment.length === 0 ? (
+            <View style={[styles.emptyCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <Feather name="package" size={32} color={colors.textSecondary} />
+              <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No equipment in inventory</Text>
+              <Text style={[styles.emptyHint, { color: colors.textSecondary }]}>Switch to edit mode to add equipment</Text>
+            </View>
+          ) : (
+            Object.entries(groupedInventory).map(([type, items]) => (
+              <View key={type} style={{ marginBottom: 16 }}>
+                <Text style={[styles.equipmentTypeHeader, { color: colors.textSecondary }]}>
+                  {getEquipmentTypeLabel(type)}
+                </Text>
+                {items.map(item => (
+                  <View key={item.id} style={[styles.equipmentCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                    <View style={styles.equipmentInfo}>
+                      <Text style={[styles.equipmentName, { color: colors.text }]}>{item.name}</Text>
+                      {item.quantity > 1 && (
+                        <Text style={[styles.equipmentQty, { color: colors.textSecondary }]}>x{item.quantity}</Text>
+                      )}
+                    </View>
+                  </View>
+                ))}
+              </View>
+            ))
+          )}
+        </View>
       </View>
     );
   };
