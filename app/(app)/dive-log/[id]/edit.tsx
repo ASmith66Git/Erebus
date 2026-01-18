@@ -70,6 +70,7 @@ interface DiveLog {
   problemNotes: string | null;
   gearProfileId: number | null;
   samples: any[] | null;
+  gasMixes: { name?: string; o2: number; he: number }[] | null;
 }
 
 interface DiveBuddy {
@@ -128,6 +129,8 @@ export default function EditDiveLogScreen() {
   const [diveSites, setDiveSites] = useState<{ id: number; name: string }[]>([]);
   const [diveSiteId, setDiveSiteId] = useState<number | null>(null);
   const [isFromComputer, setIsFromComputer] = useState(false);
+  const [gasMixes, setGasMixes] = useState<{ name?: string; o2: number; he: number }[]>([]);
+  const [gearCylinders, setGearCylinders] = useState<any[]>([]);
 
   const fetchDiveLog = useCallback(async () => {
     if (!id || !token) return;
@@ -176,6 +179,7 @@ export default function EditDiveLogScreen() {
       setDecompressionSymptoms(data.decompressionSymptoms || false);
       setProblemNotes(data.problemNotes || '');
       setGearProfileId(data.gearProfileId);
+      setGasMixes(data.gasMixes || []);
       
       // Check if data is from computer (has samples or device info)
       const fromComputer = !!(data.samples && data.samples.length > 0) || !!data.deviceManufacturer;
@@ -246,6 +250,26 @@ export default function EditDiveLogScreen() {
     }
   }, [token]);
 
+  const fetchGearCylinders = useCallback(async (profileId: number) => {
+    if (!token || !profileId) {
+      setGearCylinders([]);
+      return;
+    }
+    
+    try {
+      const response = await fetch(`${getApiUrl()}/api/gear-profiles/${profileId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      
+      if (response.ok) {
+        const profile = await response.json();
+        setGearCylinders(profile.cylinders || []);
+      }
+    } catch (err) {
+      console.error('Error fetching gear cylinders:', err);
+    }
+  }, [token]);
+
   useEffect(() => {
     if (token && id) {
       fetchDiveLog();
@@ -254,6 +278,14 @@ export default function EditDiveLogScreen() {
       fetchDiveSites();
     }
   }, [token, id, fetchDiveLog, fetchBuddies, fetchGearProfiles, fetchDiveSites]);
+
+  useEffect(() => {
+    if (gearProfileId) {
+      fetchGearCylinders(gearProfileId);
+    } else {
+      setGearCylinders([]);
+    }
+  }, [gearProfileId, fetchGearCylinders]);
 
   const handleSave = async () => {
     if (!id || !token) return;
@@ -294,6 +326,7 @@ export default function EditDiveLogScreen() {
           decompressionSymptoms,
           problemNotes: problemNotes || null,
           gearProfileId,
+          gasMixes: gasMixes.length > 0 ? gasMixes : null,
         }),
       });
       
@@ -608,6 +641,18 @@ export default function EditDiveLogScreen() {
     </ScrollView>
   );
 
+  const updateGasMix = (index: number, field: 'o2' | 'he', value: string) => {
+    const numValue = parseFloat(value) || 0;
+    setGasMixes(prev => {
+      const updated = [...prev];
+      while (updated.length <= index) {
+        updated.push({ o2: 21, he: 0 });
+      }
+      updated[index] = { ...updated[index], [field]: numValue };
+      return updated;
+    });
+  };
+
   const renderGasTab = () => (
     <ScrollView style={styles.tabContent} contentContainerStyle={styles.tabContentContainer}>
       <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -632,10 +677,49 @@ export default function EditDiveLogScreen() {
       </View>
 
       <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <Text style={[styles.cardTitle, { color: colors.text }]}>Cylinders</Text>
-        <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-          Gas configuration is managed through the linked gear profile.
-        </Text>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>Gas Mixes</Text>
+        {gearCylinders.length > 0 ? (
+          <View>
+            {gearCylinders.map((cyl, index) => {
+              const gasMix = gasMixes[index] || { o2: 21, he: 0 };
+              return (
+                <View key={index} style={styles.gasMixRow}>
+                  <Text style={[styles.gasMixLabel, { color: colors.text }]}>
+                    {cyl.nickname || `Cylinder ${index + 1}`}
+                  </Text>
+                  <View style={styles.gasMixInputs}>
+                    <View style={styles.gasMixInputGroup}>
+                      <Text style={[styles.gasMixInputLabel, { color: colors.textSecondary }]}>O2 %</Text>
+                      <TextInput
+                        style={[styles.gasMixInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
+                        value={gasMix.o2?.toString() || '21'}
+                        onChangeText={(v) => updateGasMix(index, 'o2', v)}
+                        keyboardType="numeric"
+                        placeholder="21"
+                        placeholderTextColor={colors.textSecondary}
+                      />
+                    </View>
+                    <View style={styles.gasMixInputGroup}>
+                      <Text style={[styles.gasMixInputLabel, { color: colors.textSecondary }]}>He %</Text>
+                      <TextInput
+                        style={[styles.gasMixInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
+                        value={gasMix.he?.toString() || '0'}
+                        onChangeText={(v) => updateGasMix(index, 'he', v)}
+                        keyboardType="numeric"
+                        placeholder="0"
+                        placeholderTextColor={colors.textSecondary}
+                      />
+                    </View>
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        ) : (
+          <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+            Link a gear profile to configure gas mixes for each cylinder.
+          </Text>
+        )}
       </View>
     </ScrollView>
   );
@@ -1142,6 +1226,32 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: 'center',
     paddingVertical: 16,
+  },
+  gasMixRow: {
+    marginBottom: 16,
+  },
+  gasMixLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  gasMixInputs: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  gasMixInputGroup: {
+    flex: 1,
+  },
+  gasMixInputLabel: {
+    fontSize: 12,
+    marginBottom: 4,
+  },
+  gasMixInput: {
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 10,
+    fontSize: 14,
+    textAlign: 'center',
   },
   cardHeaderRow: {
     flexDirection: 'row',

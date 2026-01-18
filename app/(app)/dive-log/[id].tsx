@@ -988,6 +988,7 @@ function EquipmentTab({ colors, gearProfile }: { colors: any; gearProfile: any |
 
 function GasTab({ diveLog, colors, gearCylinders }: { diveLog: DiveLog; colors: any; gearCylinders: any[] }) {
   const hasCylinders = gearCylinders && gearCylinders.length > 0;
+  const gasMixes = diveLog.gasMixes || [];
   
   return (
     <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
@@ -998,17 +999,22 @@ function GasTab({ diveLog, colors, gearCylinders }: { diveLog: DiveLog; colors: 
         </View>
         {hasCylinders ? (
           <View style={styles.gaugesRow}>
-            {gearCylinders.map((cyl, index) => (
-              <CircularGauge
-                key={index}
-                label={cyl.nickname || `Cylinder ${index + 1}`}
-                startBar={cyl.startPressure || cyl.start_pressure || 200}
-                endBar={cyl.endPressure || cyl.end_pressure || 50}
-                o2Percent={cyl.o2Percent || cyl.o2_percent || 21}
-                hePercent={cyl.hePercent || cyl.he_percent || 0}
-                colors={colors}
-              />
-            ))}
+            {gearCylinders.map((cyl, index) => {
+              const gasMix = gasMixes[index];
+              const o2 = gasMix?.o2 ?? 21;
+              const he = gasMix?.he ?? 0;
+              return (
+                <CircularGauge
+                  key={index}
+                  label={cyl.nickname || `Cylinder ${index + 1}`}
+                  startBar={cyl.startPressure || cyl.start_pressure || 200}
+                  endBar={cyl.endPressure || cyl.end_pressure || 50}
+                  o2Percent={o2}
+                  hePercent={he}
+                  colors={colors}
+                />
+              );
+            })}
           </View>
         ) : (
           <Text style={[styles.noDataText, { color: colors.textSecondary }]}>No cylinder data available. Link a gear profile to see cylinders.</Text>

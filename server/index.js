@@ -3768,7 +3768,7 @@ app.put('/api/dive-logs/:id', authenticateToken, async (req, res) => {
     const { id } = req.params;
     const {
       diveSiteId, diveDateTime, durationSeconds, maxDepthMeters, avgDepthMeters,
-      minTemperatureCelsius, maxTemperatureCelsius, notes, rating, gearProfileId
+      minTemperatureCelsius, maxTemperatureCelsius, notes, rating, gearProfileId, gasMixes
     } = req.body;
 
     const existingResult = await pool.query(
@@ -3790,50 +3790,29 @@ app.put('/api/dive-logs/:id', authenticateToken, async (req, res) => {
       }
     }
 
-    let updateQuery;
-    let updateParams;
-    
-    if (gearProfileId !== undefined) {
-      updateQuery = `
-        UPDATE dive_logs SET
-          dive_site_id = COALESCE($1, dive_site_id),
-          dive_datetime = COALESCE($2, dive_datetime),
-          duration_seconds = COALESCE($3, duration_seconds),
-          max_depth_meters = COALESCE($4, max_depth_meters),
-          avg_depth_meters = COALESCE($5, avg_depth_meters),
-          min_temperature_celsius = COALESCE($6, min_temperature_celsius),
-          max_temperature_celsius = COALESCE($7, max_temperature_celsius),
-          notes = COALESCE($8, notes),
-          rating = COALESCE($9, rating),
-          gear_profile_id = $10
-        WHERE id = $11 AND user_id = $12
-        RETURNING *
-      `;
-      updateParams = [
-        diveSiteId, diveDateTime, durationSeconds, maxDepthMeters, avgDepthMeters,
-        minTemperatureCelsius, maxTemperatureCelsius, notes, rating,
-        gearProfileId, id, req.user.id
-      ];
-    } else {
-      updateQuery = `
-        UPDATE dive_logs SET
-          dive_site_id = COALESCE($1, dive_site_id),
-          dive_datetime = COALESCE($2, dive_datetime),
-          duration_seconds = COALESCE($3, duration_seconds),
-          max_depth_meters = COALESCE($4, max_depth_meters),
-          avg_depth_meters = COALESCE($5, avg_depth_meters),
-          min_temperature_celsius = COALESCE($6, min_temperature_celsius),
-          max_temperature_celsius = COALESCE($7, max_temperature_celsius),
-          notes = COALESCE($8, notes),
-          rating = COALESCE($9, rating)
-        WHERE id = $10 AND user_id = $11
-        RETURNING *
-      `;
-      updateParams = [
-        diveSiteId, diveDateTime, durationSeconds, maxDepthMeters, avgDepthMeters,
-        minTemperatureCelsius, maxTemperatureCelsius, notes, rating, id, req.user.id
-      ];
-    }
+    const updateQuery = `
+      UPDATE dive_logs SET
+        dive_site_id = COALESCE($1, dive_site_id),
+        dive_datetime = COALESCE($2, dive_datetime),
+        duration_seconds = COALESCE($3, duration_seconds),
+        max_depth_meters = COALESCE($4, max_depth_meters),
+        avg_depth_meters = COALESCE($5, avg_depth_meters),
+        min_temperature_celsius = COALESCE($6, min_temperature_celsius),
+        max_temperature_celsius = COALESCE($7, max_temperature_celsius),
+        notes = COALESCE($8, notes),
+        rating = COALESCE($9, rating),
+        gear_profile_id = $10,
+        gas_mixes = COALESCE($11, gas_mixes)
+      WHERE id = $12 AND user_id = $13
+      RETURNING *
+    `;
+    const updateParams = [
+      diveSiteId, diveDateTime, durationSeconds, maxDepthMeters, avgDepthMeters,
+      minTemperatureCelsius, maxTemperatureCelsius, notes, rating,
+      gearProfileId !== undefined ? gearProfileId : null,
+      gasMixes ? JSON.stringify(gasMixes) : null,
+      id, req.user.id
+    ];
     
     const result = await pool.query(updateQuery, updateParams);
 
@@ -3848,6 +3827,7 @@ app.put('/api/dive-logs/:id', authenticateToken, async (req, res) => {
       maxDepthMeters: row.max_depth_meters ? parseFloat(row.max_depth_meters) : null,
       notes: row.notes,
       rating: row.rating,
+      gasMixes: row.gas_mixes,
       updatedAt: row.updated_at
     });
   } catch (error) {
