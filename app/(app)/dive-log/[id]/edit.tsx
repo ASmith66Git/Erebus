@@ -256,12 +256,19 @@ export default function EditDiveLogScreen() {
   }, [token, id, fetchDiveLog, fetchBuddies, fetchGearProfiles, fetchDiveSites]);
 
   const handleSave = async () => {
-    if (!id || !token) return;
+    console.log('handleSave called, id:', id, 'token exists:', !!token);
+    if (!id || !token) {
+      console.log('handleSave early return - missing id or token');
+      return;
+    }
     
     setSaving(true);
+    console.log('Starting save...');
     
     try {
-      const response = await fetch(`${getApiUrl()}/api/dive-logs/${id}`, {
+      const apiUrl = `${getApiUrl()}/api/dive-logs/${id}`;
+      console.log('Saving to:', apiUrl);
+      const response = await fetch(apiUrl, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -297,14 +304,19 @@ export default function EditDiveLogScreen() {
         }),
       });
       
+      console.log('Response status:', response.status);
       if (!response.ok) {
+        const errorText = await response.text();
+        console.log('Error response:', errorText);
         throw new Error('Failed to save dive log');
       }
       
+      console.log('Save successful!');
       Alert.alert('Success', 'Dive log updated successfully', [
         { text: 'OK', onPress: () => router.back() }
       ]);
     } catch (err) {
+      console.error('Save error:', err);
       Alert.alert('Error', err instanceof Error ? err.message : 'Failed to save');
     } finally {
       setSaving(false);
