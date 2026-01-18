@@ -894,12 +894,10 @@ export default function DivePlanningScreen() {
         <View style={styles.sectionHeader}>
           <View style={styles.sectionTitleRow}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>Dive Parameters</Text>
-            {settings.circuit === 'ccr' && (
-              <View style={[styles.modeBadge, { backgroundColor: colors.primary }]}>
-                <Feather name="refresh-cw" size={12} color="#FFF" />
-                <Text style={styles.modeBadgeText}>CCR</Text>
-              </View>
-            )}
+            <View style={[styles.modeBadge, { backgroundColor: settings.circuit === 'ccr' ? colors.primary : colors.accent }]}>
+              <Feather name={settings.circuit === 'ccr' ? 'refresh-cw' : 'wind'} size={12} color="#FFF" />
+              <Text style={styles.modeBadgeText}>{settings.circuit === 'ccr' ? 'CCR' : 'OC'}</Text>
+            </View>
           </View>
           <TouchableOpacity onPress={addDive} style={[styles.addButton, { backgroundColor: colors.primary }]}>
             <Feather name="plus" size={16} color="#FFF" />
