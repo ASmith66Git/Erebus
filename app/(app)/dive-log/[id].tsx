@@ -525,14 +525,14 @@ function DiveProfileChart({ samples, colors, showTemp, showNdl, showGf99, showPp
           <Path
             d={depthPath}
             stroke="#2196F3"
-            strokeWidth={2}
+            strokeWidth={1}
             fill="none"
           />
           {tempPath && (
             <Path
               d={tempPath}
               stroke="#4CAF50"
-              strokeWidth={2}
+              strokeWidth={1}
               fill="none"
             />
           )}
@@ -540,7 +540,7 @@ function DiveProfileChart({ samples, colors, showTemp, showNdl, showGf99, showPp
             <Path
               d={ndlPath}
               stroke="#FFC107"
-              strokeWidth={2}
+              strokeWidth={1}
               fill="none"
             />
           )}
@@ -548,7 +548,7 @@ function DiveProfileChart({ samples, colors, showTemp, showNdl, showGf99, showPp
             <Path
               d={gf99Path}
               stroke="#9C27B0"
-              strokeWidth={2}
+              strokeWidth={1}
               fill="none"
             />
           )}
@@ -556,7 +556,7 @@ function DiveProfileChart({ samples, colors, showTemp, showNdl, showGf99, showPp
             <Path
               d={ppo2Path}
               stroke="#FF5722"
-              strokeWidth={2}
+              strokeWidth={1}
               fill="none"
             />
           )}
@@ -564,7 +564,7 @@ function DiveProfileChart({ samples, colors, showTemp, showNdl, showGf99, showPp
             <Path
               d={cnsPath}
               stroke="#795548"
-              strokeWidth={2}
+              strokeWidth={1}
               fill="none"
             />
           )}
@@ -693,18 +693,6 @@ function DiveTab({ diveLog, colors, gearProfileName }: { diveLog: DiveLog; color
           />
         </View>
       )}
-
-      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <View style={styles.fieldRow}>
-          <Feather name="calendar" size={16} color={colors.textSecondary} />
-          <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Date</Text>
-        </View>
-        <View style={[styles.fieldValue, { backgroundColor: colors.background, borderColor: colors.border }]}>
-          <Text style={[styles.fieldValueText, { color: colors.text }]}>
-            {formatDate(diveLog.diveDateTime)}
-          </Text>
-        </View>
-      </View>
 
       <View style={styles.rowCards}>
         <View style={[styles.halfCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
