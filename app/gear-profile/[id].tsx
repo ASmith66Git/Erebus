@@ -167,7 +167,8 @@ export default function GearProfileScreen() {
   const [equipmentTypes, setEquipmentTypes] = useState<EquipmentType[]>([]);
   const [showAddEquipment, setShowAddEquipment] = useState(false);
   const [showSelectEquipment, setShowSelectEquipment] = useState(false);
-  const [newEquipment, setNewEquipment] = useState({ type: '', name: '', quantity: 1 });
+  const [newEquipment, setNewEquipment] = useState({ type: '', name: '', quantity: 1, customType: '' });
+  const [showTypePicker, setShowTypePicker] = useState(false);
   const [profile, setProfile] = useState<GearProfile>({
     name: '',
     configType: 'single_tank',
@@ -278,6 +279,14 @@ export default function GearProfileScreen() {
       Alert.alert('Error', 'Please select a type and enter a name');
       return;
     }
+    if (newEquipment.type === 'other' && !newEquipment.customType.trim()) {
+      Alert.alert('Error', 'Please enter a custom type name');
+      return;
+    }
+
+    const equipmentType = newEquipment.type === 'other' && newEquipment.customType.trim()
+      ? newEquipment.customType.trim().toLowerCase().replace(/\s+/g, '_')
+      : newEquipment.type;
 
     try {
       const response = await fetch(`${getApiUrl()}/api/equipment`, {
@@ -287,7 +296,7 @@ export default function GearProfileScreen() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          equipmentType: newEquipment.type,
+          equipmentType,
           name: newEquipment.name.trim(),
           quantity: newEquipment.quantity,
         }),
@@ -295,8 +304,9 @@ export default function GearProfileScreen() {
 
       if (response.ok) {
         await fetchAllEquipment();
-        setNewEquipment({ type: '', name: '', quantity: 1 });
+        setNewEquipment({ type: '', name: '', quantity: 1, customType: '' });
         setShowAddEquipment(false);
+        setShowTypePicker(false);
       } else {
         const error = await response.json();
         Alert.alert('Error', error.error || 'Failed to add equipment');
@@ -378,7 +388,9 @@ export default function GearProfileScreen() {
   };
 
   const getEquipmentTypeLabel = (value: string) => {
-    return equipmentTypes.find(t => t.value === value)?.label || value;
+    const found = equipmentTypes.find(t => t.value === value);
+    if (found) return found.label;
+    return value.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
   };
 
   const handleConfigTypeChange = (newType: string) => {
@@ -1205,27 +1217,68 @@ export default function GearProfileScreen() {
         ) : showAddEquipment ? (
           <View style={[styles.addEquipmentForm, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <Text style={[styles.formLabel, { color: colors.text }]}>Type</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }}>
-              <View style={{ flexDirection: 'row', gap: 8 }}>
-                {equipmentTypes.map(type => (
-                  <Pressable
-                    key={type.value}
-                    style={[
-                      styles.typeChip,
-                      { borderColor: newEquipment.type === type.value ? colors.primary : colors.border },
-                      newEquipment.type === type.value && { backgroundColor: colors.primary + '20' },
-                    ]}
-                    onPress={() => setNewEquipment(prev => ({ ...prev, type: type.value }))}
-                  >
-                    <Text style={{ color: newEquipment.type === type.value ? colors.primary : colors.text }}>
-                      {type.label}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
-            </ScrollView>
+            <Pressable
+              style={[styles.dropdownButton, { backgroundColor: colors.background, borderColor: colors.border }]}
+              onPress={() => setShowTypePicker(true)}
+            >
+              <Text style={{ color: newEquipment.type ? colors.text : colors.textSecondary, flex: 1 }}>
+                {newEquipment.type 
+                  ? (newEquipment.type === 'other' && newEquipment.customType 
+                      ? newEquipment.customType 
+                      : equipmentTypes.find(t => t.value === newEquipment.type)?.label || newEquipment.type)
+                  : 'Select equipment type...'}
+              </Text>
+              <Feather name="chevron-down" size={18} color={colors.textSecondary} />
+            </Pressable>
 
-            <Text style={[styles.formLabel, { color: colors.text }]}>Name</Text>
+            {showTypePicker && (
+              <View style={[styles.pickerDropdown, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                <ScrollView style={{ maxHeight: 250 }} nestedScrollEnabled>
+                  {equipmentTypes.map(type => (
+                    <Pressable
+                      key={type.value}
+                      style={[
+                        styles.pickerItem,
+                        { borderBottomColor: colors.border },
+                        newEquipment.type === type.value && { backgroundColor: colors.primary + '15' },
+                      ]}
+                      onPress={() => {
+                        setNewEquipment(prev => ({ ...prev, type: type.value, customType: '' }));
+                        if (type.value !== 'other') setShowTypePicker(false);
+                      }}
+                    >
+                      <Text style={{ color: newEquipment.type === type.value ? colors.primary : colors.text }}>
+                        {type.label}
+                      </Text>
+                      {newEquipment.type === type.value && (
+                        <Feather name="check" size={16} color={colors.primary} />
+                      )}
+                    </Pressable>
+                  ))}
+                </ScrollView>
+                <Pressable
+                  style={[styles.pickerDoneButton, { backgroundColor: colors.primary }]}
+                  onPress={() => setShowTypePicker(false)}
+                >
+                  <Text style={{ color: '#FFFFFF', fontWeight: '500' }}>Done</Text>
+                </Pressable>
+              </View>
+            )}
+
+            {newEquipment.type === 'other' && (
+              <>
+                <Text style={[styles.formLabel, { color: colors.text, marginTop: 12 }]}>Custom Type Name</Text>
+                <TextInput
+                  style={[styles.textInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
+                  placeholder="Enter custom equipment type..."
+                  placeholderTextColor={colors.textSecondary}
+                  value={newEquipment.customType}
+                  onChangeText={text => setNewEquipment(prev => ({ ...prev, customType: text }))}
+                />
+              </>
+            )}
+
+            <Text style={[styles.formLabel, { color: colors.text, marginTop: 12 }]}>Name</Text>
             <TextInput
               style={[styles.textInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
               placeholder="e.g., My Main Regulator"
@@ -1256,7 +1309,8 @@ export default function GearProfileScreen() {
                 style={[styles.cancelButton, { borderColor: colors.border }]}
                 onPress={() => {
                   setShowAddEquipment(false);
-                  setNewEquipment({ type: '', name: '', quantity: 1 });
+                  setShowTypePicker(false);
+                  setNewEquipment({ type: '', name: '', quantity: 1, customType: '' });
                 }}
               >
                 <Text style={{ color: colors.text }}>Cancel</Text>
@@ -1782,6 +1836,31 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 1,
+  },
+  dropdownButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    marginBottom: 4,
+  },
+  pickerDropdown: {
+    borderRadius: 8,
+    borderWidth: 1,
+    marginBottom: 8,
+    overflow: 'hidden',
+  },
+  pickerItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 12,
+    borderBottomWidth: 1,
+  },
+  pickerDoneButton: {
+    alignItems: 'center',
+    padding: 12,
   },
   textInput: {
     padding: 12,
