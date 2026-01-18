@@ -920,70 +920,21 @@ function GasTab({ diveLog, colors }: { diveLog: DiveLog; colors: any }) {
           <Text style={[styles.cardTitle, { color: colors.text }]}>Cylinders</Text>
         </View>
         {diveLog.gasPressures && diveLog.gasPressures.length > 0 ? (
-          <View style={styles.cylinderList}>
+          <View style={styles.gaugesRow}>
             {diveLog.gasPressures.map((gas, index) => (
-              <View key={index} style={[styles.cylinderCard, { backgroundColor: colors.background, borderColor: colors.border }]}>
-                <View style={styles.cylinderHeader}>
-                  <Text style={[styles.cylinderName, { color: colors.text }]}>{gas.label}</Text>
-                  <Text style={[styles.cylinderMix, { color: colors.primary }]}>
-                    {gas.o2Percent === 21 && !gas.hePercent ? 'Air' : 
-                     gas.hePercent ? `${gas.o2Percent}/${gas.hePercent}` : `EAN${gas.o2Percent}`}
-                  </Text>
-                </View>
-                <View style={styles.pressureRow}>
-                  <View style={styles.pressureItem}>
-                    <Text style={[styles.pressureLabel, { color: colors.textSecondary }]}>Start</Text>
-                    <Text style={[styles.pressureValue, { color: colors.text }]}>{gas.startBar} bar</Text>
-                  </View>
-                  <View style={styles.pressureArrow}>
-                    <Feather name="arrow-right" size={16} color={colors.textSecondary} />
-                  </View>
-                  <View style={styles.pressureItem}>
-                    <Text style={[styles.pressureLabel, { color: colors.textSecondary }]}>End</Text>
-                    <Text style={[styles.pressureValue, { color: colors.text }]}>{gas.endBar} bar</Text>
-                  </View>
-                  <View style={styles.pressureItem}>
-                    <Text style={[styles.pressureLabel, { color: colors.textSecondary }]}>Used</Text>
-                    <Text style={[styles.pressureValue, { color: colors.primary }]}>{gas.startBar - gas.endBar} bar</Text>
-                  </View>
-                </View>
-                <View style={[styles.pressureBar, { backgroundColor: colors.border }]}>
-                  <View 
-                    style={[
-                      styles.pressureFill, 
-                      { 
-                        backgroundColor: colors.primary,
-                        width: `${gas.startBar > 0 ? (gas.endBar / gas.startBar) * 100 : 0}%`
-                      }
-                    ]} 
-                  />
-                </View>
-              </View>
+              <CircularGauge
+                key={index}
+                label={gas.label}
+                startBar={gas.startBar}
+                endBar={gas.endBar}
+                o2Percent={gas.o2Percent}
+                hePercent={gas.hePercent}
+                colors={colors}
+              />
             ))}
           </View>
         ) : (
           <Text style={[styles.noDataText, { color: colors.textSecondary }]}>No cylinder data available</Text>
-        )}
-      </View>
-
-      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <View style={styles.fieldRow}>
-          <Feather name="wind" size={16} color={colors.primary} />
-          <Text style={[styles.cardTitle, { color: colors.text }]}>Gas Mixes</Text>
-        </View>
-        {diveLog.gasMixes && diveLog.gasMixes.length > 0 ? (
-          <View style={styles.gasMixGrid}>
-            {diveLog.gasMixes.map((mix, index) => (
-              <View key={index} style={[styles.gasMixCard, { backgroundColor: colors.background, borderColor: colors.border }]}>
-                <Text style={[styles.gasMixName, { color: colors.text }]}>{mix.name || `Mix ${index + 1}`}</Text>
-                <Text style={[styles.gasMixInfo, { color: colors.textSecondary }]}>
-                  O₂: {mix.o2?.toFixed(0) || 21}%{mix.he ? ` He: ${mix.he.toFixed(0)}%` : ''}
-                </Text>
-              </View>
-            ))}
-          </View>
-        ) : (
-          <Text style={[styles.noDataText, { color: colors.textSecondary }]}>No gas mix data available</Text>
         )}
       </View>
 
