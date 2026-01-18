@@ -3272,9 +3272,11 @@ app.get('/api/dive-logs', authenticateToken, async (req, res) => {
     const { search, dive_site_id, limit = 50, offset = 0 } = req.query;
     
     let query = `
-      SELECT dl.*, ds.name as dive_site_name, ds.image_url as dive_site_image_url
+      SELECT dl.*, ds.name as dive_site_name, 
+        COALESCE(dsi.image_url, ds.image_url) as dive_site_image_url
       FROM dive_logs dl
       LEFT JOIN dive_sites ds ON dl.dive_site_id = ds.id
+      LEFT JOIN dive_site_images dsi ON ds.id = dsi.dive_site_id AND dsi.is_primary = TRUE
       WHERE dl.user_id = $1 AND dl.deleted_at IS NULL
     `;
     const params = [req.user.id];
