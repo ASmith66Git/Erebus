@@ -386,6 +386,36 @@ async function initDatabase() {
         FOR EACH ROW
         EXECUTE FUNCTION update_updated_at_column();
     `).catch(() => {});
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS equipment_inventory (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        equipment_type VARCHAR(100) NOT NULL,
+        name VARCHAR(255) NOT NULL,
+        brand VARCHAR(255),
+        model VARCHAR(255),
+        serial_number VARCHAR(255),
+        quantity INTEGER DEFAULT 1,
+        purchase_date DATE,
+        last_service_date DATE,
+        notes TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `).catch(() => {});
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_equipment_inventory_user_id ON equipment_inventory(user_id);
+    `).catch(() => {});
+
+    await client.query(`
+      DROP TRIGGER IF EXISTS update_equipment_inventory_updated_at ON equipment_inventory;
+      CREATE TRIGGER update_equipment_inventory_updated_at
+        BEFORE UPDATE ON equipment_inventory
+        FOR EACH ROW
+        EXECUTE FUNCTION update_updated_at_column();
+    `).catch(() => {});
     
     await client.query(`
       CREATE TABLE IF NOT EXISTS dive_plans (
@@ -3854,6 +3884,168 @@ app.delete('/api/dive-logs/:id', authenticateToken, async (req, res) => {
     res.json({ message: 'Dive log deleted successfully' });
   } catch (error) {
     console.error('Delete dive log error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// ============ EQUIPMENT INVENTORY API ============
+
+const EQUIPMENT_TYPES = [
+  { value: 'regulator', label: 'Regulator' },
+  { value: 'bcd', label: 'BCD / Wing' },
+  { value: 'wetsuit', label: 'Wetsuit' },
+  { value: 'drysuit', label: 'Drysuit' },
+  { value: 'mask', label: 'Mask' },
+  { value: 'fins', label: 'Fins' },
+  { value: 'gloves', label: 'Gloves' },
+  { value: 'boots', label: 'Boots' },
+  { value: 'hood', label: 'Hood' },
+  { value: 'cylinder', label: 'Cylinder' },
+  { value: 'torch', label: 'Torch / Light' },
+  { value: 'computer', label: 'Dive Computer' },
+  { value: 'smb', label: 'SMB / DSMB' },
+  { value: 'reel', label: 'Reel / Spool' },
+  { value: 'knife', label: 'Knife / Shears' },
+  { value: 'camera', label: 'Camera / Housing' },
+  { value: 'weights', label: 'Weights' },
+  { value: 'harness', label: 'Harness / Backplate' },
+  { value: 'other', label: 'Other' },
+];
+
+app.get('/api/equipment-types', authenticateToken, (req, res) => {
+  res.json(EQUIPMENT_TYPES);
+});
+
+app.get('/api/equipment', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT * FROM equipment_inventory 
+       WHERE user_id = $1 
+       ORDER BY equipment_type, name`,
+      [req.user.id]
+    );
+    
+    res.json({
+      equipment: result.rows.map(row => ({
+        id: row.id,
+        equipmentType: row.equipment_type,
+        name: row.name,
+        brand: row.brand,
+        model: row.model,
+        serialNumber: row.serial_number,
+        quantity: row.quantity,
+        purchaseDate: row.purchase_date,
+        lastServiceDate: row.last_service_date,
+        notes: row.notes,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+      }))
+    });
+  } catch (error) {
+    console.error('Get equipment error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.post('/api/equipment', authenticateToken, async (req, res) => {
+  try {
+    const { equipmentType, name, brand, model, serialNumber, quantity, purchaseDate, lastServiceDate, notes } = req.body;
+
+    if (!equipmentType || !name) {
+      return res.status(400).json({ error: 'Equipment type and name are required' });
+    }
+
+    const result = await pool.query(
+      `INSERT INTO equipment_inventory 
+       (user_id, equipment_type, name, brand, model, serial_number, quantity, purchase_date, last_service_date, notes)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+       RETURNING *`,
+      [req.user.id, equipmentType, name, brand || null, model || null, serialNumber || null, 
+       quantity || 1, purchaseDate || null, lastServiceDate || null, notes || null]
+    );
+
+    const row = result.rows[0];
+    res.status(201).json({
+      id: row.id,
+      equipmentType: row.equipment_type,
+      name: row.name,
+      brand: row.brand,
+      model: row.model,
+      serialNumber: row.serial_number,
+      quantity: row.quantity,
+      purchaseDate: row.purchase_date,
+      lastServiceDate: row.last_service_date,
+      notes: row.notes,
+      createdAt: row.created_at,
+    });
+  } catch (error) {
+    console.error('Create equipment error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.put('/api/equipment/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { equipmentType, name, brand, model, serialNumber, quantity, purchaseDate, lastServiceDate, notes } = req.body;
+
+    const result = await pool.query(
+      `UPDATE equipment_inventory SET
+        equipment_type = COALESCE($1, equipment_type),
+        name = COALESCE($2, name),
+        brand = $3,
+        model = $4,
+        serial_number = $5,
+        quantity = COALESCE($6, quantity),
+        purchase_date = $7,
+        last_service_date = $8,
+        notes = $9
+       WHERE id = $10 AND user_id = $11
+       RETURNING *`,
+      [equipmentType, name, brand || null, model || null, serialNumber || null,
+       quantity, purchaseDate || null, lastServiceDate || null, notes || null, id, req.user.id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Equipment not found' });
+    }
+
+    const row = result.rows[0];
+    res.json({
+      id: row.id,
+      equipmentType: row.equipment_type,
+      name: row.name,
+      brand: row.brand,
+      model: row.model,
+      serialNumber: row.serial_number,
+      quantity: row.quantity,
+      purchaseDate: row.purchase_date,
+      lastServiceDate: row.last_service_date,
+      notes: row.notes,
+      updatedAt: row.updated_at,
+    });
+  } catch (error) {
+    console.error('Update equipment error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.delete('/api/equipment/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const result = await pool.query(
+      'DELETE FROM equipment_inventory WHERE id = $1 AND user_id = $2 RETURNING id',
+      [id, req.user.id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Equipment not found' });
+    }
+
+    res.json({ message: 'Equipment deleted successfully' });
+  } catch (error) {
+    console.error('Delete equipment error:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });
