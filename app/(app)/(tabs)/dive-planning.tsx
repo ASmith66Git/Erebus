@@ -1241,33 +1241,11 @@ export default function DivePlanningScreen() {
           { value: 'ccr', label: 'CCR' },
         ], ps.circuit, (v) => setPs({ circuit: v as CircuitType }))}
 
-        <View style={styles.modelPicker}>
-          <Text style={[styles.pickerLabel, { color: colors.text }]}>Model</Text>
-          {DECO_MODELS.map(model => (
-            <TouchableOpacity
-              key={model.value}
-              style={[
-                styles.modelOption,
-                { borderColor: colors.border },
-                ps.decoModel === model.value && { backgroundColor: colors.primary + '20', borderColor: colors.primary }
-              ]}
-              onPress={() => setPs({ decoModel: model.value })}
-            >
-              <View style={styles.modelOptionHeader}>
-                <View style={[
-                  styles.modelRadio,
-                  { borderColor: ps.decoModel === model.value ? colors.primary : colors.border }
-                ]}>
-                  {ps.decoModel === model.value && (
-                    <View style={[styles.modelRadioInner, { backgroundColor: colors.primary }]} />
-                  )}
-                </View>
-                <Text style={[styles.modelLabel, { color: colors.text }]}>{model.label}</Text>
-              </View>
-              <Text style={[styles.modelDesc, { color: colors.textSecondary }]}>{model.description}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+        {renderPicker('Deco Model', DECO_MODELS.map(m => ({ value: m.value, label: m.label })), 
+          ps.decoModel, (v) => setPs({ decoModel: v as DecoModel }))}
+        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>
+          {DECO_MODELS.find(m => m.value === ps.decoModel)?.description || ''}
+        </Text>
 
         {renderToggle('O2 narcotic', ps.o2Narcotic, 
           (v) => setPs({ o2Narcotic: v }),
@@ -1300,15 +1278,27 @@ export default function DivePlanningScreen() {
 
       {/* Gas Consumption */}
       <View style={[styles.section, { backgroundColor: colors.card }]}>
-        <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>Gas Consumption</Text>
+        <View style={styles.sectionHeader}>
+          <View style={styles.sectionTitleRow}>
+            <Text style={[styles.settingsSectionTitle, { color: colors.text, marginBottom: 0 }]}>Gas Consumption</Text>
+            <View style={[styles.modeBadge, { backgroundColor: ps.circuit === 'ccr' ? colors.warning : colors.accent }]}>
+              <Feather name={ps.circuit === 'ccr' ? 'alert-triangle' : 'wind'} size={12} color="#FFF" />
+              <Text style={styles.modeBadgeText}>{ps.circuit === 'ccr' ? 'Bailout' : 'OC'}</Text>
+            </View>
+          </View>
+        </View>
         
-        {renderSlider('Bottom', ps.sacRateBottom, 5, 30, 1,
-          (v) => setPs({ sacRateBottom: v }), '')}
-        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Bottom mix SAC/RMV rate</Text>
+        {renderSlider('Bottom', ps.circuit === 'ccr' ? ps.bailoutSacRateBottom : ps.sacRateBottom, 5, 40, 1,
+          (v) => ps.circuit === 'ccr' ? setPs({ bailoutSacRateBottom: v }) : setPs({ sacRateBottom: v }), '')}
+        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>
+          {ps.circuit === 'ccr' ? 'Bailout SAC rate (stress factor included)' : 'Bottom mix SAC/RMV rate'}
+        </Text>
 
-        {renderSlider('Deco', ps.sacRateDeco, 5, 25, 1,
-          (v) => setPs({ sacRateDeco: v }), '')}
-        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Deco mix SAC/RMV rate</Text>
+        {renderSlider('Deco', ps.circuit === 'ccr' ? ps.bailoutSacRateDeco : ps.sacRateDeco, 5, 30, 1,
+          (v) => ps.circuit === 'ccr' ? setPs({ bailoutSacRateDeco: v }) : setPs({ sacRateDeco: v }), '')}
+        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>
+          {ps.circuit === 'ccr' ? 'Bailout deco SAC rate (stress factor)' : 'Deco mix SAC/RMV rate'}
+        </Text>
       </View>
 
       {/* CCR Settings */}
@@ -1316,14 +1306,20 @@ export default function DivePlanningScreen() {
         <View style={[styles.section, { backgroundColor: colors.card }]}>
           <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>CCR Settings</Text>
           
-          {renderPicker('CCR setpoint', [
+          {renderPicker('Setpoint Units', [
             { value: 'bar', label: 'BAR' },
             { value: 'ata', label: 'ATA' },
           ], ps.ccrSetpointUnits, (v) => setPs({ ccrSetpointUnits: v as 'bar' | 'ata' }))}
-          <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Set the CCR setpoint base units</Text>
+          <Text style={[styles.settingHint, { color: colors.textSecondary }]}>CCR setpoint base units</Text>
 
-          {renderSlider('Setpoint', ps.ccrSetpoint, 0.7, 1.6, 0.1, 
+          {renderSlider('Bottom Setpoint', ps.ccrSetpoint, 0.7, 1.6, 0.1, 
             (v) => setPs({ ccrSetpoint: Math.round(v * 10) / 10 }), ps.ccrSetpointUnits === 'bar' ? ' bar' : ' ATA')}
+          <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Setpoint during bottom phase</Text>
+
+          {renderSlider('Deco Setpoint', ps.decoSetpoint, 0.7, 1.6, 0.1, 
+            (v) => setPs({ decoSetpoint: Math.round(v * 10) / 10 }), ps.ccrSetpointUnits === 'bar' ? ' bar' : ' ATA')}
+          <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Higher setpoint during ascent to reduce deco</Text>
+
           {renderSlider('Scrubber Duration', ps.scrubberDuration, 60, 300, 30,
             (v) => setPs({ scrubberDuration: v }), ' min')}
         </View>
@@ -1426,18 +1422,13 @@ export default function DivePlanningScreen() {
           (v) => setPs({ acclimatizedElevation: v }), 'm')}
       </View>
 
-      {/* Gauge & Display */}
+      {/* Gas Switch Time - moved from removed Display section */}
       <View style={[styles.section, { backgroundColor: colors.card }]}>
-        <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>Display</Text>
+        <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>Gas Switch</Text>
         
-        {renderPicker('Gauge', [
-          { value: 'simple', label: 'Simple' },
-          { value: 'digital', label: 'Digital' },
-        ], ps.gaugeType, (v) => setPs({ gaugeType: v as 'simple' | 'digital' }))}
-        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Depth gauge calibration type</Text>
-
         {renderSlider('Gas Switch Time', ps.gasSwitchTime, 0, 5, 1, 
           (v) => setPs({ gasSwitchTime: v }), ' min')}
+        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Time added for gas switches during deco</Text>
       </View>
 
       {/* Dive Monitor Controls */}

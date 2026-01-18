@@ -69,6 +69,9 @@ export interface DivePlanSettings {
   decoStopInterval: number;
   sacRateBottom: number;
   sacRateDeco: number;
+  // Bailout SAC rates (for CCR bailout scenarios - higher due to stress)
+  bailoutSacRateBottom: number;
+  bailoutSacRateDeco: number;
   // Circuit & Model
   circuit: CircuitType;
   decoModel: DecoModel;
@@ -77,6 +80,7 @@ export interface DivePlanSettings {
   gasSwitchTime: number;
   waterType: WaterType;
   ccrSetpoint: number;
+  decoSetpoint: number; // Deco setpoint (often higher on ascent)
   scrubberDuration: number;
   // Deco stop settings
   stopSize: number; // 3m or 10ft interval
@@ -1103,6 +1107,9 @@ export const DEFAULT_SETTINGS: DivePlanSettings = {
   decoStopInterval: 3,
   sacRateBottom: 15,
   sacRateDeco: 10,
+  // Bailout SAC rates (higher due to stress)
+  bailoutSacRateBottom: 25,
+  bailoutSacRateDeco: 18,
   // Circuit & Model
   circuit: 'open',
   decoModel: 'zhl16c',
@@ -1111,6 +1118,7 @@ export const DEFAULT_SETTINGS: DivePlanSettings = {
   gasSwitchTime: 1,
   waterType: 'salt',
   ccrSetpoint: 1.3,
+  decoSetpoint: 1.4,
   scrubberDuration: 180,
   // Deco stop settings
   stopSize: 3,
