@@ -207,11 +207,18 @@ export default function EditDiveLogScreen() {
   }, [token]);
 
   const fetchGearProfiles = useCallback(async () => {
-    if (!token) return;
+    if (!token) {
+      return;
+    }
     
     try {
-      const response = await fetch(`${getApiUrl()}/api/gear-profiles`, {
-        headers: { Authorization: `Bearer ${token}` },
+      const url = `${getApiUrl()}/api/gear-profiles`;
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
       });
       
       if (response.ok) {
@@ -219,16 +226,23 @@ export default function EditDiveLogScreen() {
         setGearProfiles(data.map((p: any) => ({ id: p.id, name: p.name })));
       }
     } catch (err) {
-      console.error('Error fetching gear profiles:', err);
+      // Silently handle - may fail on initial load
     }
   }, [token]);
 
   const fetchDiveSites = useCallback(async () => {
-    if (!token) return;
+    if (!token) {
+      return;
+    }
     
     try {
-      const response = await fetch(`${getApiUrl()}/api/dive-sites`, {
-        headers: { Authorization: `Bearer ${token}` },
+      const url = `${getApiUrl()}/api/dive-sites`;
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
       });
       
       if (response.ok) {
@@ -236,16 +250,18 @@ export default function EditDiveLogScreen() {
         setDiveSites(data.map((s: any) => ({ id: s.id, name: s.name })));
       }
     } catch (err) {
-      console.error('Error fetching dive sites:', err);
+      // Silently handle - may fail on initial load
     }
   }, [token]);
 
   useEffect(() => {
-    fetchDiveLog();
-    fetchBuddies();
-    fetchGearProfiles();
-    fetchDiveSites();
-  }, [fetchDiveLog, fetchBuddies, fetchGearProfiles, fetchDiveSites]);
+    if (token && id) {
+      fetchDiveLog();
+      fetchBuddies();
+      fetchGearProfiles();
+      fetchDiveSites();
+    }
+  }, [token, id, fetchDiveLog, fetchBuddies, fetchGearProfiles, fetchDiveSites]);
 
   const handleSave = async () => {
     if (!id || !token) return;
@@ -268,23 +284,23 @@ export default function EditDiveLogScreen() {
           maxDepthMeters: maxDepth ? parseFloat(maxDepth) : null,
           avgDepthMeters: avgDepth ? parseFloat(avgDepth) : null,
           minTemperatureCelsius: waterTemp ? parseFloat(waterTemp) : null,
-          diveMode,
-          deviceManufacturer,
-          deviceModel,
-          deviceSerial,
-          deviceFirmware,
-          notes,
-          rating,
-          visibility,
-          buddy,
-          surfaceConditions,
-          weatherConditions,
-          workload,
-          thermalComfort,
-          equipmentIssues,
-          skillsPracticed,
+          diveMode: diveMode || null,
+          deviceManufacturer: deviceManufacturer || null,
+          deviceModel: deviceModel || null,
+          deviceSerial: deviceSerial || null,
+          deviceFirmware: deviceFirmware || null,
+          notes: notes || null,
+          rating: rating > 0 ? rating : null,
+          visibility: visibility || null,
+          buddy: buddy || null,
+          surfaceConditions: surfaceConditions || null,
+          weatherConditions: weatherConditions || null,
+          workload: workload || null,
+          thermalComfort: thermalComfort || null,
+          equipmentIssues: equipmentIssues.length > 0 ? equipmentIssues : null,
+          skillsPracticed: skillsPracticed.length > 0 ? skillsPracticed : null,
           decompressionSymptoms,
-          problemNotes,
+          problemNotes: problemNotes || null,
           gearProfileId,
         }),
       });
