@@ -737,40 +737,51 @@ export default function DivePlanningScreen() {
       return null;
     }
 
-    const finalTissues = currentResult.tissueHistory[currentResult.tissueHistory.length - 1];
-    const padding = { top: 30, right: 16, bottom: 40, left: 40 };
+    // Get tissue loading at current scrubber position
+    const scrubberValues = getValuesAtTime(chartScrubberTime);
+    const tissues = scrubberValues?.tissues || currentResult.tissueHistory[currentResult.tissueHistory.length - 1];
+    
+    const padding = { top: 24, right: 40, bottom: 16, left: 24 };
     const chartW = Math.max(tissueChartWidth - padding.left - padding.right, 100);
-    const chartH = TISSUE_CHART_HEIGHT - padding.top - padding.bottom;
-    const barWidth = (chartW / 16) - 2;
-    const barGap = 2;
+    const barHeight = 12;
+    const barGap = 4;
+    const chartH = 16 * (barHeight + barGap);
 
-    const maxInert = Math.max(...finalTissues.map(t => t.ppInert), 1);
-
-    const bars = finalTissues.map((tissue, i) => {
-      const height = Math.max((tissue.ppInert / maxInert) * chartH, 2);
-      const x = padding.left + i * (barWidth + barGap);
-      const y = padding.top + chartH - height;
-      const percent = tissue.percentMValue;
+    // Horizontal bars showing % of M-value
+    const bars = tissues.map((tissue, i) => {
+      const percent = Math.min(tissue.percentMValue, 150); // Cap at 150% for display
+      const width = Math.max((percent / 100) * chartW * 0.8, 2); // 80% width at 100%
+      const y = padding.top + i * (barHeight + barGap);
+      const x = padding.left;
+      
+      // Color based on saturation level
       let fillColor = tissueColors[i];
+      if (percent > 100) fillColor = colors.error;
+      else if (percent > 80) fillColor = colors.warning;
 
       return (
         <G key={i}>
-          <Rect x={x} y={y} width={barWidth} height={height} fill={fillColor} rx={1} />
+          {/* Background track */}
+          <Rect x={x} y={y} width={chartW * 0.8} height={barHeight} fill={colors.border + '30'} rx={2} />
+          {/* Filled bar */}
+          <Rect x={x} y={y} width={width} height={barHeight} fill={fillColor} rx={2} />
+          {/* Compartment number */}
           <SvgText
-            x={x + barWidth / 2}
-            y={padding.top + chartH + 12}
-            fontSize={7}
+            x={x - 6}
+            y={y + barHeight / 2 + 4}
+            fontSize={9}
             fill={colors.textSecondary}
-            textAnchor="middle"
+            textAnchor="end"
           >
             {i + 1}
           </SvgText>
+          {/* Percentage value */}
           <SvgText
-            x={x + barWidth / 2}
-            y={y - 4}
-            fontSize={6}
-            fill={colors.textSecondary}
-            textAnchor="middle"
+            x={x + chartW * 0.8 + 6}
+            y={y + barHeight / 2 + 4}
+            fontSize={9}
+            fill={percent > 100 ? colors.error : percent > 80 ? colors.warning : colors.text}
+            textAnchor="start"
           >
             {Math.round(percent)}%
           </SvgText>
@@ -778,25 +789,26 @@ export default function DivePlanningScreen() {
       );
     });
 
-    const loadingLabels = [0, 25, 50, 75, 100].map((pct, i) => {
-      const y = padding.top + chartH - (pct / 100) * chartH;
+    // Vertical grid lines at 25%, 50%, 75%, 100%
+    const gridLines = [25, 50, 75, 100].map((pct, i) => {
+      const x = padding.left + (pct / 100) * chartW * 0.8;
       return (
         <G key={i}>
           <Line
-            x1={padding.left}
-            y1={y}
-            x2={padding.left + chartW}
-            y2={y}
-            stroke={colors.border}
-            strokeWidth={0.5}
-            strokeOpacity={0.3}
+            x1={x}
+            y1={padding.top - 8}
+            x2={x}
+            y2={padding.top + chartH}
+            stroke={pct === 100 ? colors.warning : colors.border}
+            strokeWidth={pct === 100 ? 1 : 0.5}
+            strokeOpacity={pct === 100 ? 0.8 : 0.3}
           />
           <SvgText
-            x={padding.left - 6}
-            y={y + 3}
+            x={x}
+            y={padding.top - 12}
             fontSize={8}
-            fill={colors.textSecondary}
-            textAnchor="end"
+            fill={pct === 100 ? colors.warning : colors.textSecondary}
+            textAnchor="middle"
           >
             {pct}%
           </SvgText>
@@ -804,23 +816,29 @@ export default function DivePlanningScreen() {
       );
     });
 
+    const formatTime = (mins: number) => {
+      const m = Math.floor(mins);
+      const s = Math.round((mins - m) * 60);
+      return `${m}:${s.toString().padStart(2, '0')}`;
+    };
+
     return (
       <View 
         style={[styles.chartContainer, { backgroundColor: colors.card }]}
         onLayout={(e) => setTissueChartWidth(e.nativeEvent.layout.width - 32)}
       >
-        <Text style={[styles.chartTitle, { color: colors.text }]}>Final Tissue Saturation (16 Compartments)</Text>
-        <Svg width={tissueChartWidth} height={TISSUE_CHART_HEIGHT}>
-          {loadingLabels}
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+          <Text style={[styles.chartTitle, { color: colors.text, marginBottom: 0 }]}>Tissue Saturation</Text>
+          <Text style={[styles.chartSubtitle, { color: colors.accent, marginTop: 0 }]}>
+            @ {formatTime(chartScrubberTime)}
+          </Text>
+        </View>
+        <Svg width={tissueChartWidth} height={chartH + padding.top + padding.bottom}>
+          {gridLines}
           {bars}
-          <SvgText x={padding.left + chartW / 2} y={TISSUE_CHART_HEIGHT - 4} fontSize={9} fill={colors.textSecondary} textAnchor="middle">
-            Compartment (1=fast, 16=slow)
-          </SvgText>
-          <Line x1={padding.left} y1={padding.top} x2={padding.left} y2={padding.top + chartH} stroke={colors.border} strokeWidth={1} />
-          <Line x1={padding.left} y1={padding.top + chartH} x2={padding.left + chartW} y2={padding.top + chartH} stroke={colors.border} strokeWidth={1} />
         </Svg>
         <Text style={[styles.chartSubtitle, { color: colors.textSecondary }]}>
-          Percentage shown = tissue loading relative to M-value limit
+          Drag scrubber on dive profile to see tissue loading at any point
         </Text>
       </View>
     );
