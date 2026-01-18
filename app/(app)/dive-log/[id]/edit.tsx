@@ -17,7 +17,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { getApiUrl } from '@/utils/apiConfig';
 
-const TABS = ['Dive', 'Profile', 'Computer', 'Notes', 'Team'] as const;
+const TABS = ['Dive', 'Profile', 'Computer', 'Notes', 'Team', 'Problems'] as const;
 type TabType = typeof TABS[number];
 
 const EQUIPMENT_OPTIONS = [
@@ -44,6 +44,8 @@ interface DiveLog {
   diveSiteId: number | null;
   diveSiteName: string | null;
   diveDateTime: string;
+  startTime: string | null;
+  endTime: string | null;
   durationSeconds: number | null;
   maxDepthMeters: number | null;
   avgDepthMeters: number | null;
@@ -66,6 +68,8 @@ interface DiveLog {
   skillsPracticed: string[] | null;
   decompressionSymptoms: boolean | null;
   problemNotes: string | null;
+  gearProfileId: number | null;
+  samples: any[] | null;
 }
 
 interface DiveBuddy {
@@ -116,6 +120,14 @@ export default function EditDiveLogScreen() {
   const [buddies, setBuddies] = useState<DiveBuddy[]>([]);
   const [selectedBuddyIds, setSelectedBuddyIds] = useState<number[]>([]);
   const [loadingBuddies, setLoadingBuddies] = useState(true);
+  
+  const [startTime, setStartTime] = useState('');
+  const [endTime, setEndTime] = useState('');
+  const [gearProfileId, setGearProfileId] = useState<number | null>(null);
+  const [gearProfiles, setGearProfiles] = useState<{ id: number; name: string }[]>([]);
+  const [diveSites, setDiveSites] = useState<{ id: number; name: string }[]>([]);
+  const [diveSiteId, setDiveSiteId] = useState<number | null>(null);
+  const [isFromComputer, setIsFromComputer] = useState(false);
 
   const fetchDiveLog = useCallback(async () => {
     if (!id || !token) return;
@@ -138,7 +150,10 @@ export default function EditDiveLogScreen() {
       
       setDiveNumber(data.diveNumber?.toString() || '');
       setDiveSiteName(data.diveSiteName || '');
+      setDiveSiteId(data.diveSiteId);
       setDiveDateTime(data.diveDateTime || '');
+      setStartTime(data.startTime || '');
+      setEndTime(data.endTime || '');
       setDurationMinutes(data.durationSeconds ? Math.round(data.durationSeconds / 60).toString() : '');
       setMaxDepth(data.maxDepthMeters?.toString() || '');
       setAvgDepth(data.avgDepthMeters?.toString() || '');
@@ -160,6 +175,11 @@ export default function EditDiveLogScreen() {
       setSkillsPracticed(data.skillsPracticed || []);
       setDecompressionSymptoms(data.decompressionSymptoms || false);
       setProblemNotes(data.problemNotes || '');
+      setGearProfileId(data.gearProfileId);
+      
+      // Check if data is from computer (has samples or device info)
+      const fromComputer = !!(data.samples && data.samples.length > 0) || !!data.deviceManufacturer;
+      setIsFromComputer(fromComputer);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
@@ -186,10 +206,46 @@ export default function EditDiveLogScreen() {
     }
   }, [token]);
 
+  const fetchGearProfiles = useCallback(async () => {
+    if (!token) return;
+    
+    try {
+      const response = await fetch(`${getApiUrl()}/api/gear-profiles`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setGearProfiles(data.map((p: any) => ({ id: p.id, name: p.name })));
+      }
+    } catch (err) {
+      console.error('Error fetching gear profiles:', err);
+    }
+  }, [token]);
+
+  const fetchDiveSites = useCallback(async () => {
+    if (!token) return;
+    
+    try {
+      const response = await fetch(`${getApiUrl()}/api/dive-sites`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setDiveSites(data.map((s: any) => ({ id: s.id, name: s.name })));
+      }
+    } catch (err) {
+      console.error('Error fetching dive sites:', err);
+    }
+  }, [token]);
+
   useEffect(() => {
     fetchDiveLog();
     fetchBuddies();
-  }, [fetchDiveLog, fetchBuddies]);
+    fetchGearProfiles();
+    fetchDiveSites();
+  }, [fetchDiveLog, fetchBuddies, fetchGearProfiles, fetchDiveSites]);
 
   const handleSave = async () => {
     if (!id || !token) return;
@@ -205,6 +261,9 @@ export default function EditDiveLogScreen() {
         },
         body: JSON.stringify({
           diveNumber: diveNumber ? parseInt(diveNumber) : null,
+          diveSiteId,
+          startTime: startTime || null,
+          endTime: endTime || null,
           durationSeconds: durationMinutes ? parseInt(durationMinutes) * 60 : null,
           maxDepthMeters: maxDepth ? parseFloat(maxDepth) : null,
           avgDepthMeters: avgDepth ? parseFloat(avgDepth) : null,
@@ -226,6 +285,7 @@ export default function EditDiveLogScreen() {
           skillsPracticed,
           decompressionSymptoms,
           problemNotes,
+          gearProfileId,
         }),
       });
       
@@ -322,12 +382,12 @@ export default function EditDiveLogScreen() {
             />
           </View>
           <View style={[styles.inputGroup, { flex: 2 }]}>
-            <Text style={[styles.label, { color: colors.textSecondary }]}>Dive Site</Text>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>Date</Text>
             <TextInput
               style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
-              value={diveSiteName}
+              value={diveDateTime ? new Date(diveDateTime).toLocaleDateString() : ''}
               editable={false}
-              placeholder="Site name"
+              placeholder="Select date"
               placeholderTextColor={colors.textSecondary}
             />
           </View>
@@ -335,53 +395,204 @@ export default function EditDiveLogScreen() {
 
         <View style={styles.row}>
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: colors.textSecondary }]}>Duration (min)</Text>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>Start Time</Text>
             <TextInput
               style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
-              value={durationMinutes}
-              onChangeText={setDurationMinutes}
-              keyboardType="numeric"
-              placeholder="45"
+              value={startTime}
+              onChangeText={setStartTime}
+              placeholder="09:30"
               placeholderTextColor={colors.textSecondary}
             />
           </View>
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: colors.textSecondary }]}>Max Depth (m)</Text>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>End Time</Text>
             <TextInput
               style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
-              value={maxDepth}
-              onChangeText={setMaxDepth}
-              keyboardType="decimal-pad"
-              placeholder="18.5"
+              value={endTime}
+              onChangeText={setEndTime}
+              placeholder="10:15"
               placeholderTextColor={colors.textSecondary}
             />
           </View>
         </View>
+      </View>
 
-        <View style={styles.row}>
-          <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: colors.textSecondary }]}>Avg Depth (m)</Text>
-            <TextInput
-              style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
-              value={avgDepth}
-              onChangeText={setAvgDepth}
-              keyboardType="decimal-pad"
-              placeholder="12.0"
-              placeholderTextColor={colors.textSecondary}
-            />
+      {isFromComputer && (
+        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <View style={styles.cardHeaderRow}>
+            <Text style={[styles.cardTitle, { color: colors.text }]}>Computer Data</Text>
+            <View style={[styles.readOnlyBadge, { backgroundColor: colors.textSecondary + '30' }]}>
+              <Feather name="lock" size={12} color={colors.textSecondary} />
+              <Text style={[styles.readOnlyText, { color: colors.textSecondary }]}>Read-only</Text>
+            </View>
           </View>
-          <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: colors.textSecondary }]}>Water Temp (°C)</Text>
-            <TextInput
-              style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
-              value={waterTemp}
-              onChangeText={setWaterTemp}
-              keyboardType="decimal-pad"
-              placeholder="22"
-              placeholderTextColor={colors.textSecondary}
-            />
+          
+          <View style={styles.row}>
+            <View style={styles.inputGroup}>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>Duration (min)</Text>
+              <TextInput
+                style={[styles.input, styles.readOnlyInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.textSecondary }]}
+                value={durationMinutes}
+                editable={false}
+              />
+            </View>
+            <View style={styles.inputGroup}>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>Max Depth (m)</Text>
+              <TextInput
+                style={[styles.input, styles.readOnlyInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.textSecondary }]}
+                value={maxDepth}
+                editable={false}
+              />
+            </View>
+          </View>
+
+          <View style={styles.row}>
+            <View style={styles.inputGroup}>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>Avg Depth (m)</Text>
+              <TextInput
+                style={[styles.input, styles.readOnlyInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.textSecondary }]}
+                value={avgDepth}
+                editable={false}
+              />
+            </View>
+            <View style={styles.inputGroup}>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>Water Temp (°C)</Text>
+              <TextInput
+                style={[styles.input, styles.readOnlyInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.textSecondary }]}
+                value={waterTemp}
+                editable={false}
+              />
+            </View>
           </View>
         </View>
+      )}
+
+      {!isFromComputer && (
+        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Text style={[styles.cardTitle, { color: colors.text }]}>Dive Data</Text>
+          
+          <View style={styles.row}>
+            <View style={styles.inputGroup}>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>Duration (min)</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
+                value={durationMinutes}
+                onChangeText={setDurationMinutes}
+                keyboardType="numeric"
+                placeholder="45"
+                placeholderTextColor={colors.textSecondary}
+              />
+            </View>
+            <View style={styles.inputGroup}>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>Max Depth (m)</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
+                value={maxDepth}
+                onChangeText={setMaxDepth}
+                keyboardType="decimal-pad"
+                placeholder="18.5"
+                placeholderTextColor={colors.textSecondary}
+              />
+            </View>
+          </View>
+
+          <View style={styles.row}>
+            <View style={styles.inputGroup}>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>Avg Depth (m)</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
+                value={avgDepth}
+                onChangeText={setAvgDepth}
+                keyboardType="decimal-pad"
+                placeholder="12.0"
+                placeholderTextColor={colors.textSecondary}
+              />
+            </View>
+            <View style={styles.inputGroup}>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>Water Temp (°C)</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
+                value={waterTemp}
+                onChangeText={setWaterTemp}
+                keyboardType="decimal-pad"
+                placeholder="22"
+                placeholderTextColor={colors.textSecondary}
+              />
+            </View>
+          </View>
+        </View>
+      )}
+
+      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>Conditions</Text>
+        {renderChipSelector('Surface Conditions', SURFACE_CONDITIONS_OPTIONS, surfaceConditions, setSurfaceConditions)}
+        {renderChipSelector('Weather', WEATHER_OPTIONS, weatherConditions, setWeatherConditions)}
+        
+        <View style={styles.inputGroup}>
+          <Text style={[styles.label, { color: colors.textSecondary }]}>Visibility</Text>
+          <TextInput
+            style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
+            value={visibility}
+            onChangeText={setVisibility}
+            placeholder="e.g., 15m, Good, Poor"
+            placeholderTextColor={colors.textSecondary}
+          />
+        </View>
+      </View>
+
+      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>Dive Site</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <View style={styles.chipsRow}>
+            {diveSites.map((site) => (
+              <Pressable
+                key={site.id}
+                style={[
+                  styles.chip,
+                  { borderColor: colors.border },
+                  diveSiteId === site.id && { backgroundColor: colors.primary + '20', borderColor: colors.primary }
+                ]}
+                onPress={() => {
+                  setDiveSiteId(diveSiteId === site.id ? null : site.id);
+                  setDiveSiteName(diveSiteId === site.id ? '' : site.name);
+                }}
+              >
+                <Text style={[styles.chipText, { color: diveSiteId === site.id ? colors.primary : colors.text }]}>
+                  {site.name}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        </ScrollView>
+        {diveSites.length === 0 && (
+          <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No dive sites available</Text>
+        )}
+      </View>
+
+      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>Gear Profile</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <View style={styles.chipsRow}>
+            {gearProfiles.map((profile) => (
+              <Pressable
+                key={profile.id}
+                style={[
+                  styles.chip,
+                  { borderColor: colors.border },
+                  gearProfileId === profile.id && { backgroundColor: colors.primary + '20', borderColor: colors.primary }
+                ]}
+                onPress={() => setGearProfileId(gearProfileId === profile.id ? null : profile.id)}
+              >
+                <Text style={[styles.chipText, { color: gearProfileId === profile.id ? colors.primary : colors.text }]}>
+                  {profile.name}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        </ScrollView>
+        {gearProfiles.length === 0 && (
+          <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No gear profiles available</Text>
+        )}
       </View>
 
       <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -436,14 +647,23 @@ export default function EditDiveLogScreen() {
   const renderComputerTab = () => (
     <ScrollView style={styles.tabContent} contentContainerStyle={styles.tabContentContainer}>
       <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <Text style={[styles.cardTitle, { color: colors.text }]}>Dive Computer</Text>
+        <View style={styles.cardHeaderRow}>
+          <Text style={[styles.cardTitle, { color: colors.text }]}>Dive Computer</Text>
+          {isFromComputer && (
+            <View style={[styles.readOnlyBadge, { backgroundColor: colors.textSecondary + '30' }]}>
+              <Feather name="lock" size={12} color={colors.textSecondary} />
+              <Text style={[styles.readOnlyText, { color: colors.textSecondary }]}>Read-only</Text>
+            </View>
+          )}
+        </View>
         
         <View style={styles.inputGroup}>
           <Text style={[styles.label, { color: colors.textSecondary }]}>Brand</Text>
           <TextInput
-            style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
+            style={[styles.input, isFromComputer && styles.readOnlyInput, { backgroundColor: colors.background, borderColor: colors.border, color: isFromComputer ? colors.textSecondary : colors.text }]}
             value={deviceManufacturer}
             onChangeText={setDeviceManufacturer}
+            editable={!isFromComputer}
             placeholder="Shearwater, Suunto, etc."
             placeholderTextColor={colors.textSecondary}
           />
@@ -452,9 +672,10 @@ export default function EditDiveLogScreen() {
         <View style={styles.inputGroup}>
           <Text style={[styles.label, { color: colors.textSecondary }]}>Model</Text>
           <TextInput
-            style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
+            style={[styles.input, isFromComputer && styles.readOnlyInput, { backgroundColor: colors.background, borderColor: colors.border, color: isFromComputer ? colors.textSecondary : colors.text }]}
             value={deviceModel}
             onChangeText={setDeviceModel}
+            editable={!isFromComputer}
             placeholder="Perdix, D5, etc."
             placeholderTextColor={colors.textSecondary}
           />
@@ -464,9 +685,10 @@ export default function EditDiveLogScreen() {
           <View style={styles.inputGroup}>
             <Text style={[styles.label, { color: colors.textSecondary }]}>Serial #</Text>
             <TextInput
-              style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
+              style={[styles.input, isFromComputer && styles.readOnlyInput, { backgroundColor: colors.background, borderColor: colors.border, color: isFromComputer ? colors.textSecondary : colors.text }]}
               value={deviceSerial}
               onChangeText={setDeviceSerial}
+              editable={!isFromComputer}
               placeholder="ABC123"
               placeholderTextColor={colors.textSecondary}
             />
@@ -474,14 +696,43 @@ export default function EditDiveLogScreen() {
           <View style={styles.inputGroup}>
             <Text style={[styles.label, { color: colors.textSecondary }]}>Firmware</Text>
             <TextInput
-              style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
+              style={[styles.input, isFromComputer && styles.readOnlyInput, { backgroundColor: colors.background, borderColor: colors.border, color: isFromComputer ? colors.textSecondary : colors.text }]}
               value={deviceFirmware}
               onChangeText={setDeviceFirmware}
+              editable={!isFromComputer}
               placeholder="v2.0"
               placeholderTextColor={colors.textSecondary}
             />
           </View>
         </View>
+      </View>
+    </ScrollView>
+  );
+
+  const renderNotesTab = () => (
+    <ScrollView style={styles.tabContent} contentContainerStyle={styles.tabContentContainer}>
+      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>Dive Notes</Text>
+        <TextInput
+          style={[styles.textArea, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
+          value={notes}
+          onChangeText={setNotes}
+          placeholder="Add dive notes..."
+          placeholderTextColor={colors.textSecondary}
+          multiline
+          numberOfLines={6}
+          textAlignVertical="top"
+        />
+      </View>
+    </ScrollView>
+  );
+
+  const renderProblemsTab = () => (
+    <ScrollView style={styles.tabContent} contentContainerStyle={styles.tabContentContainer}>
+      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>Physical State</Text>
+        {renderChipSelector('Workload', WORKLOAD_OPTIONS, workload, setWorkload)}
+        {renderChipSelector('Thermal Comfort', THERMAL_OPTIONS, thermalComfort, setThermalComfort)}
       </View>
 
       <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -500,43 +751,6 @@ export default function EditDiveLogScreen() {
           })}
         </View>
       </View>
-    </ScrollView>
-  );
-
-  const renderNotesTab = () => (
-    <ScrollView style={styles.tabContent} contentContainerStyle={styles.tabContentContainer}>
-      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <Text style={[styles.cardTitle, { color: colors.text }]}>Conditions</Text>
-        {renderChipSelector('Surface Conditions', SURFACE_CONDITIONS_OPTIONS, surfaceConditions, setSurfaceConditions)}
-        {renderChipSelector('Weather', WEATHER_OPTIONS, weatherConditions, setWeatherConditions)}
-        {renderChipSelector('Workload', WORKLOAD_OPTIONS, workload, setWorkload)}
-        {renderChipSelector('Thermal Comfort', THERMAL_OPTIONS, thermalComfort, setThermalComfort)}
-        
-        <View style={styles.inputGroup}>
-          <Text style={[styles.label, { color: colors.textSecondary }]}>Visibility</Text>
-          <TextInput
-            style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
-            value={visibility}
-            onChangeText={setVisibility}
-            placeholder="e.g., 15m, Good, Poor"
-            placeholderTextColor={colors.textSecondary}
-          />
-        </View>
-      </View>
-
-      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <Text style={[styles.cardTitle, { color: colors.text }]}>Notes</Text>
-        <TextInput
-          style={[styles.textArea, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
-          value={notes}
-          onChangeText={setNotes}
-          placeholder="Add dive notes..."
-          placeholderTextColor={colors.textSecondary}
-          multiline
-          numberOfLines={4}
-          textAlignVertical="top"
-        />
-      </View>
 
       <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
         <Text style={[styles.cardTitle, { color: colors.text }]}>Decompression Symptoms</Text>
@@ -550,16 +764,18 @@ export default function EditDiveLogScreen() {
             <Text style={[styles.radioLabel, { color: colors.text }]}>Yes</Text>
           </Pressable>
         </View>
-        
-        <Text style={[styles.label, { color: colors.textSecondary, marginTop: 16 }]}>Problem Notes</Text>
+      </View>
+
+      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>Problem Notes</Text>
         <TextInput
           style={[styles.textArea, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
           value={problemNotes}
           onChangeText={setProblemNotes}
-          placeholder="Describe any problems encountered..."
+          placeholder="Describe any problems encountered during the dive..."
           placeholderTextColor={colors.textSecondary}
           multiline
-          numberOfLines={3}
+          numberOfLines={4}
           textAlignVertical="top"
         />
       </View>
@@ -631,6 +847,8 @@ export default function EditDiveLogScreen() {
         return renderNotesTab();
       case 'Team':
         return renderTeamTab();
+      case 'Problems':
+        return renderProblemsTab();
       default:
         return null;
     }
@@ -907,5 +1125,26 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: 'center',
     paddingVertical: 16,
+  },
+  cardHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  readOnlyBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4,
+  },
+  readOnlyText: {
+    fontSize: 11,
+    fontWeight: '500',
+  },
+  readOnlyInput: {
+    opacity: 0.7,
   },
 });
