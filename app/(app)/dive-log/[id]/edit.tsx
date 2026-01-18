@@ -207,17 +207,12 @@ export default function EditDiveLogScreen() {
   }, [token]);
 
   const fetchGearProfiles = useCallback(async () => {
-    if (!token) {
-      return;
-    }
+    if (!token) return;
     
     try {
-      const url = `${getApiUrl()}/api/gear-profiles`;
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
+      const response = await fetch(`${getApiUrl()}/api/gear-profiles`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
         },
       });
       
@@ -226,22 +221,17 @@ export default function EditDiveLogScreen() {
         setGearProfiles(data.map((p: any) => ({ id: p.id, name: p.name })));
       }
     } catch (err) {
-      // Silently handle - may fail on initial load
+      console.error('Error fetching gear profiles:', err);
     }
   }, [token]);
 
   const fetchDiveSites = useCallback(async () => {
-    if (!token) {
-      return;
-    }
+    if (!token) return;
     
     try {
-      const url = `${getApiUrl()}/api/dive-sites`;
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
+      const response = await fetch(`${getApiUrl()}/api/dive-sites`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
         },
       });
       
@@ -250,7 +240,7 @@ export default function EditDiveLogScreen() {
         setDiveSites(data.map((s: any) => ({ id: s.id, name: s.name })));
       }
     } catch (err) {
-      // Silently handle - may fail on initial load
+      console.error('Error fetching dive sites:', err);
     }
   }, [token]);
 
