@@ -11,7 +11,7 @@ import {
 } from '@/services/cylinderCatalog';
 import {
   calculateGasDensity, calculateFillCapacity, calculateTrimixBlend,
-  calculateBestMix, calculateMOD, calculateEND, getMixName
+  calculateTrimixBlendRealGas, calculateBestMix, calculateMOD, calculateEND, getMixName
 } from '@/services/gasMath';
 import { useSettings } from '@/contexts/SettingsContext';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -84,6 +84,8 @@ export default function GasCalculatorScreen() {
   const [mixResidualHe, setMixResidualHe] = useState('0');
   const [mixUseAir, setMixUseAir] = useState(true);
   const [mixNitroxO2, setMixNitroxO2] = useState('32');
+  const [mixUseRealGas, setMixUseRealGas] = useState(true);
+  const [mixTempCelsius, setMixTempCelsius] = useState('20');
 
   const [bestmixDepth, setBestmixDepth] = useState('40');
   const [bestmixPpo2, setBestmixPpo2] = useState('1.4');
@@ -112,17 +114,34 @@ export default function GasCalculatorScreen() {
   }, [selectedCylinder, fillPressure, fillReserve, fillSac]);
 
   const mixResult = useMemo(() => {
-    return calculateTrimixBlend(
-      parseFloat(mixTargetO2) || 21,
-      parseFloat(mixTargetHe) || 0,
-      parseFloat(mixFinalPressure) || 200,
-      mixHasResidual ? parseFloat(mixResidualPressure) || 0 : 0,
-      mixHasResidual ? parseFloat(mixResidualO2) || 21 : 21,
-      mixHasResidual ? parseFloat(mixResidualHe) || 0 : 0,
-      mixUseAir,
-      parseFloat(mixNitroxO2) || 32
-    );
-  }, [mixTargetO2, mixTargetHe, mixFinalPressure, mixHasResidual, mixResidualPressure, mixResidualO2, mixResidualHe, mixUseAir, mixNitroxO2]);
+    if (mixUseRealGas) {
+      return calculateTrimixBlendRealGas(
+        parseFloat(mixTargetO2) || 21,
+        parseFloat(mixTargetHe) || 0,
+        parseFloat(mixFinalPressure) || 200,
+        mixHasResidual ? parseFloat(mixResidualPressure) || 0 : 0,
+        mixHasResidual ? parseFloat(mixResidualO2) || 21 : 21,
+        mixHasResidual ? parseFloat(mixResidualHe) || 0 : 0,
+        mixUseAir,
+        parseFloat(mixNitroxO2) || 32,
+        parseFloat(mixTempCelsius) || 20
+      );
+    }
+    return {
+      ...calculateTrimixBlend(
+        parseFloat(mixTargetO2) || 21,
+        parseFloat(mixTargetHe) || 0,
+        parseFloat(mixFinalPressure) || 200,
+        mixHasResidual ? parseFloat(mixResidualPressure) || 0 : 0,
+        mixHasResidual ? parseFloat(mixResidualO2) || 21 : 21,
+        mixHasResidual ? parseFloat(mixResidualHe) || 0 : 0,
+        mixUseAir,
+        parseFloat(mixNitroxO2) || 32
+      ),
+      zFactorFinal: 1,
+      tempCelsius: parseFloat(mixTempCelsius) || 20,
+    };
+  }, [mixTargetO2, mixTargetHe, mixFinalPressure, mixHasResidual, mixResidualPressure, mixResidualO2, mixResidualHe, mixUseAir, mixNitroxO2, mixUseRealGas, mixTempCelsius]);
 
   const bestmixResult = useMemo(() => {
     const depth = parseFloat(bestmixDepth) || 40;
@@ -488,6 +507,25 @@ export default function GasCalculatorScreen() {
         {!mixUseAir && renderInput('Nitrox O2 %', mixNitroxO2, setMixNitroxO2, '%')}
       </View>
 
+      <View style={[styles.card, { backgroundColor: colors.card }]}>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>Real Gas Correction</Text>
+        <View style={styles.switchRow}>
+          <Text style={[styles.inputLabel, { color: colors.text }]}>Van der Waals (Z-factor)</Text>
+          <TouchableOpacity
+            style={[styles.toggle, mixUseRealGas && { backgroundColor: colors.primary }]}
+            onPress={() => setMixUseRealGas(!mixUseRealGas)}
+          >
+            <Text style={{ color: '#FFF' }}>{mixUseRealGas ? 'Real' : 'Ideal'}</Text>
+          </TouchableOpacity>
+        </View>
+        {mixUseRealGas && renderInput('Fill Temperature', mixTempCelsius, setMixTempCelsius, '°C')}
+        {mixUseRealGas && (
+          <Text style={[styles.realGasNote, { color: colors.textSecondary }]}>
+            Accounts for gas compressibility at high pressure
+          </Text>
+        )}
+      </View>
+
       <View style={[styles.resultsCard, { backgroundColor: colors.card, borderColor: mixResult.isValid ? colors.success : colors.danger }]}>
         <Text style={[styles.resultsTitle, { color: colors.text }]}>Blending Sequence</Text>
         
@@ -546,6 +584,13 @@ export default function GasCalculatorScreen() {
         {renderResultRow('MOD (1.4 PPO2)', units === 'imperial' 
           ? `${(calculateMOD(mixResult.actualO2Percent, 1.4) * 3.28084).toFixed(0)} ft` 
           : `${calculateMOD(mixResult.actualO2Percent, 1.4)} m`)}
+        
+        {mixUseRealGas && (
+          <View style={[styles.zFactorInfo, { backgroundColor: colors.background }]}>
+            <Text style={[styles.zFactorLabel, { color: colors.textSecondary }]}>Z-Factor (Van der Waals)</Text>
+            <Text style={[styles.zFactorValue, { color: colors.accent }]}>{mixResult.zFactorFinal.toFixed(4)}</Text>
+          </View>
+        )}
         
         {mixResult.warningMessage && (
           <View style={[styles.warningBox, { backgroundColor: colors.danger + '20' }]}>
@@ -1137,5 +1182,26 @@ const styles = StyleSheet.create({
   residualInfoText: {
     fontSize: 13,
     flex: 1,
+  },
+  realGasNote: {
+    fontSize: 12,
+    marginTop: 8,
+    fontStyle: 'italic',
+  },
+  zFactorInfo: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 12,
+  },
+  zFactorLabel: {
+    fontSize: 13,
+  },
+  zFactorValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    fontFamily: 'monospace',
   },
 });
