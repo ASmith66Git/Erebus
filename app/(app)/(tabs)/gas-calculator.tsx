@@ -3,6 +3,7 @@ import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput,
   Modal, FlatList
 } from 'react-native';
+import Slider from '@react-native-community/slider';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { DrawerActions, useNavigation } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
@@ -97,12 +98,15 @@ export default function GasCalculatorScreen() {
     return getCylindersByMaterial(materialFilter).filter(c => c.id !== 'custom');
   }, [materialFilter]);
 
+  const toMeters = (val: number) => units === 'imperial' ? val / 3.28084 : val;
+
   const densityResult = useMemo(() => {
+    const depthM = toMeters(parseFloat(densityDepth) || 0);
     return calculateGasDensity(
-      { o2Percent: parseFloat(densityO2) || 21, hePercent: parseFloat(densityHe) || 0 },
-      parseFloat(densityDepth) || 0
+      { o2Percent: Math.min(100, Math.max(0, parseFloat(densityO2) || 21)), hePercent: Math.min(100, Math.max(0, parseFloat(densityHe) || 0)) },
+      depthM
     );
-  }, [densityO2, densityHe, densityDepth]);
+  }, [densityO2, densityHe, densityDepth, units]);
 
   const fillResult = useMemo(() => {
     return calculateFillCapacity(
@@ -113,30 +117,38 @@ export default function GasCalculatorScreen() {
     );
   }, [selectedCylinder, fillPressure, fillReserve, fillSac]);
 
+  const clampPercent = (val: number, min = 0, max = 100) => Math.min(max, Math.max(min, val));
+
   const mixResult = useMemo(() => {
+    const targetO2 = clampPercent(parseFloat(mixTargetO2) || 21, 5, 100);
+    const targetHe = clampPercent(parseFloat(mixTargetHe) || 0, 0, 85);
+    const residualO2 = clampPercent(parseFloat(mixResidualO2) || 21, 5, 100);
+    const residualHe = clampPercent(parseFloat(mixResidualHe) || 0, 0, 85);
+    const nitroxO2 = clampPercent(parseFloat(mixNitroxO2) || 32, 21, 100);
+    
     if (mixUseRealGas) {
       return calculateTrimixBlendRealGas(
-        parseFloat(mixTargetO2) || 21,
-        parseFloat(mixTargetHe) || 0,
+        targetO2,
+        targetHe,
         parseFloat(mixFinalPressure) || 200,
         mixHasResidual ? parseFloat(mixResidualPressure) || 0 : 0,
-        mixHasResidual ? parseFloat(mixResidualO2) || 21 : 21,
-        mixHasResidual ? parseFloat(mixResidualHe) || 0 : 0,
+        mixHasResidual ? residualO2 : 21,
+        mixHasResidual ? residualHe : 0,
         mixUseAir,
-        parseFloat(mixNitroxO2) || 32,
+        nitroxO2,
         parseFloat(mixTempCelsius) || 20
       );
     }
     return {
       ...calculateTrimixBlend(
-        parseFloat(mixTargetO2) || 21,
-        parseFloat(mixTargetHe) || 0,
+        targetO2,
+        targetHe,
         parseFloat(mixFinalPressure) || 200,
         mixHasResidual ? parseFloat(mixResidualPressure) || 0 : 0,
-        mixHasResidual ? parseFloat(mixResidualO2) || 21 : 21,
-        mixHasResidual ? parseFloat(mixResidualHe) || 0 : 0,
+        mixHasResidual ? residualO2 : 21,
+        mixHasResidual ? residualHe : 0,
         mixUseAir,
-        parseFloat(mixNitroxO2) || 32
+        nitroxO2
       ),
       zFactorFinal: 1,
       tempCelsius: parseFloat(mixTempCelsius) || 20,
@@ -144,15 +156,19 @@ export default function GasCalculatorScreen() {
   }, [mixTargetO2, mixTargetHe, mixFinalPressure, mixHasResidual, mixResidualPressure, mixResidualO2, mixResidualHe, mixUseAir, mixNitroxO2, mixUseRealGas, mixTempCelsius]);
 
   const bestmixResult = useMemo(() => {
-    const depth = parseFloat(bestmixDepth) || 40;
-    const targetEnd = parseFloat(bestmixTargetEnd);
+    const depthRaw = parseFloat(bestmixDepth) || 40;
+    const depthClamped = units === 'imperial' ? Math.min(500, Math.max(10, depthRaw)) : Math.min(150, Math.max(10, depthRaw));
+    const depthM = toMeters(depthClamped);
+    const targetEndRaw = parseFloat(bestmixTargetEnd);
+    const targetEndClamped = isNaN(targetEndRaw) ? null : (units === 'imperial' ? Math.min(130, Math.max(0, targetEndRaw)) : Math.min(40, Math.max(0, targetEndRaw)));
+    const targetEndM = targetEndClamped !== null ? toMeters(targetEndClamped) : null;
     return calculateBestMix(
-      depth,
+      depthM,
       parseFloat(bestmixPpo2) || 1.4,
-      isNaN(targetEnd) ? null : targetEnd,
+      targetEndM,
       bestmixO2Narcotic
     );
-  }, [bestmixDepth, bestmixPpo2, bestmixTargetEnd, bestmixO2Narcotic]);
+  }, [bestmixDepth, bestmixPpo2, bestmixTargetEnd, bestmixO2Narcotic, units]);
 
   const renderTabBar = () => (
     <View style={[styles.tabBarContainer, { backgroundColor: colors.card }]}>
@@ -201,6 +217,66 @@ export default function GasCalculatorScreen() {
     </View>
   );
 
+  const renderSliderInput = (
+    label: string, 
+    value: string, 
+    onChangeText: (text: string) => void, 
+    unit: string = '', 
+    min: number = 0, 
+    max: number = 100,
+    step: number = 1
+  ) => {
+    const numValue = parseFloat(value) || 0;
+    const clampedValue = Math.min(Math.max(numValue, min), max);
+    
+    const handleTextChange = (text: string) => {
+      if (text === '' || text === '.' || text === '-') {
+        onChangeText(text);
+        return;
+      }
+      const num = parseFloat(text);
+      if (isNaN(num)) {
+        onChangeText(String(min));
+        return;
+      }
+      const clamped = Math.min(Math.max(num, min), max);
+      onChangeText(String(clamped));
+    };
+    
+    return (
+      <View style={styles.sliderInputContainer}>
+        <View style={styles.sliderLabelRow}>
+          <Text style={[styles.inputLabel, { color: colors.text }]}>{label}</Text>
+          <View style={styles.sliderValueWrapper}>
+            <TextInput
+              style={[styles.sliderValueInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
+              value={value}
+              onChangeText={handleTextChange}
+              keyboardType="numeric"
+              maxLength={5}
+            />
+            <Text style={[styles.unitText, { color: colors.textSecondary }]}>{unit}</Text>
+          </View>
+        </View>
+        <Slider
+          style={styles.slider}
+          minimumValue={min}
+          maximumValue={max}
+          step={step}
+          value={clampedValue}
+          onValueChange={(val) => onChangeText(String(Math.round(val * 10) / 10))}
+          minimumTrackTintColor={colors.primary}
+          maximumTrackTintColor={colors.border}
+          thumbTintColor={colors.primary}
+        />
+        <View style={styles.sliderLabels}>
+          <Text style={[styles.sliderMinMax, { color: colors.textSecondary }]}>{min}</Text>
+          <Text style={[styles.sliderMinMax, { color: colors.textSecondary }]}>{max}</Text>
+        </View>
+      </View>
+    );
+  };
+
   const renderResultRow = (label: string, value: string, warning?: boolean) => (
     <View style={styles.resultRow}>
       <Text style={[styles.resultLabel, { color: colors.textSecondary }]}>{label}</Text>
@@ -240,38 +316,20 @@ export default function GasCalculatorScreen() {
           </View>
         </TouchableOpacity>
 
-        <View style={styles.configMixRow}>
-          <View style={styles.configMixInput}>
-            <Text style={[styles.configLabel, { color: colors.textSecondary }]}>O2 %</Text>
-            <TextInput
-              style={[styles.mixInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
-              value={selectedO2}
-              onChangeText={(val) => {
-                setSelectedO2(val);
-                setDensityO2(val);
-              }}
-              keyboardType="numeric"
-              maxLength={3}
-            />
-          </View>
-          <View style={styles.configMixInput}>
-            <Text style={[styles.configLabel, { color: colors.textSecondary }]}>He %</Text>
-            <TextInput
-              style={[styles.mixInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
-              value={selectedHe}
-              onChangeText={(val) => {
-                setSelectedHe(val);
-                setDensityHe(val);
-              }}
-              keyboardType="numeric"
-              maxLength={3}
-            />
-          </View>
-          <View style={styles.configMixInput}>
-            <Text style={[styles.configLabel, { color: colors.textSecondary }]}>N2 %</Text>
-            <View style={[styles.mixInput, styles.mixInputDisabled, { backgroundColor: colors.border }]}>
-              <Text style={[styles.mixInputText, { color: colors.textSecondary }]}>
-                {Math.max(0, 100 - (parseFloat(selectedO2) || 0) - (parseFloat(selectedHe) || 0))}
+        <View style={styles.configMixSliders}>
+          {renderSliderInput('O2 %', selectedO2, (val) => {
+            setSelectedO2(val);
+            setDensityO2(val);
+          }, '%', 5, 100, 1)}
+          {renderSliderInput('He %', selectedHe, (val) => {
+            setSelectedHe(val);
+            setDensityHe(val);
+          }, '%', 0, 85, 1)}
+          <View style={styles.inputRow}>
+            <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>N2 % (auto)</Text>
+            <View style={[styles.mixInputAuto, { backgroundColor: colors.border }]}>
+              <Text style={[styles.mixInputAutoText, { color: colors.text }]}>
+                {Math.max(0, 100 - (parseFloat(selectedO2) || 0) - (parseFloat(selectedHe) || 0))}%
               </Text>
             </View>
           </View>
@@ -373,9 +431,9 @@ export default function GasCalculatorScreen() {
       <Text style={[styles.sectionSubtitle, { color: colors.textSecondary }]}>Calculate breathing gas density at depth</Text>
 
       <View style={[styles.card, { backgroundColor: colors.card }]}>
-        {renderInput('O2 %', densityO2, setDensityO2, '%')}
-        {renderInput('He %', densityHe, setDensityHe, '%')}
-        {renderInput('Depth', densityDepth, setDensityDepth, getDepthUnit())}
+        {renderSliderInput('O2 %', densityO2, setDensityO2, '%', 5, 100, 1)}
+        {renderSliderInput('He %', densityHe, setDensityHe, '%', 0, 85, 1)}
+        {renderSliderInput('Depth', densityDepth, setDensityDepth, units === 'imperial' ? 'ft' : 'm', 0, units === 'imperial' ? 330 : 100, 1)}
       </View>
 
       <View style={[styles.resultsCard, { backgroundColor: colors.card, borderColor: densityResult.isHighDensity ? colors.danger : colors.success }]}>
@@ -471,8 +529,8 @@ export default function GasCalculatorScreen() {
 
       <View style={[styles.card, { backgroundColor: colors.card }]}>
         <Text style={[styles.cardTitle, { color: colors.text }]}>Target Mix</Text>
-        {renderInput('Target O2 %', mixTargetO2, setMixTargetO2, '%')}
-        {renderInput('Target He %', mixTargetHe, setMixTargetHe, '%')}
+        {renderSliderInput('Target O2 %', mixTargetO2, setMixTargetO2, '%', 5, 100, 1)}
+        {renderSliderInput('Target He %', mixTargetHe, setMixTargetHe, '%', 0, 85, 1)}
         <View style={styles.inputRow}>
           <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>N2 % (auto)</Text>
           <View style={[styles.mixInputAuto, { backgroundColor: colors.border }]}>
@@ -497,8 +555,8 @@ export default function GasCalculatorScreen() {
         {mixHasResidual && (
           <View style={{ marginTop: 12 }}>
             {renderInput('Residual Pressure', mixResidualPressure, setMixResidualPressure, getPressureUnit())}
-            {renderInput('Residual O2 %', mixResidualO2, setMixResidualO2, '%')}
-            {renderInput('Residual He %', mixResidualHe, setMixResidualHe, '%')}
+            {renderSliderInput('Residual O2 %', mixResidualO2, setMixResidualO2, '%', 5, 100, 1)}
+            {renderSliderInput('Residual He %', mixResidualHe, setMixResidualHe, '%', 0, 85, 1)}
           </View>
         )}
       </View>
@@ -514,7 +572,7 @@ export default function GasCalculatorScreen() {
             <Text style={{ color: '#FFF' }}>{mixUseAir ? 'Air' : 'Nitrox'}</Text>
           </TouchableOpacity>
         </View>
-        {!mixUseAir && renderInput('Nitrox O2 %', mixNitroxO2, setMixNitroxO2, '%')}
+        {!mixUseAir && renderSliderInput('Nitrox O2 %', mixNitroxO2, setMixNitroxO2, '%', 21, 100, 1)}
       </View>
 
       <View style={[styles.card, { backgroundColor: colors.card }]}>
@@ -618,9 +676,9 @@ export default function GasCalculatorScreen() {
       <Text style={[styles.sectionSubtitle, { color: colors.textSecondary }]}>Calculate optimal gas mix for a target depth</Text>
 
       <View style={[styles.card, { backgroundColor: colors.card }]}>
-        {renderInput('Target Depth', bestmixDepth, setBestmixDepth, 'm')}
+        {renderSliderInput('Target Depth', bestmixDepth, setBestmixDepth, units === 'imperial' ? 'ft' : 'm', 10, units === 'imperial' ? 500 : 150, 1)}
         {renderInput('Max PPO2', bestmixPpo2, setBestmixPpo2, 'bar')}
-        {renderInput('Target END (optional)', bestmixTargetEnd, setBestmixTargetEnd, 'm')}
+        {renderSliderInput('Target END (optional)', bestmixTargetEnd, setBestmixTargetEnd, units === 'imperial' ? 'ft' : 'm', 0, units === 'imperial' ? 130 : 40, 1)}
         
         <View style={styles.switchRow}>
           <Text style={[styles.inputLabel, { color: colors.text }]}>O2 is Narcotic</Text>
@@ -644,15 +702,15 @@ export default function GasCalculatorScreen() {
         {renderResultRow('He', `${bestmixResult.hePercent}%`)}
         {renderResultRow('N2', `${bestmixResult.n2Percent}%`)}
         <View style={styles.divider} />
-        {renderResultRow('MOD', `${bestmixResult.mod} m`)}
-        {renderResultRow('END at depth', `${bestmixResult.end} m`)}
+        {renderResultRow('MOD', units === 'imperial' ? `${Math.round(bestmixResult.mod * 3.28084)} ft` : `${bestmixResult.mod} m`)}
+        {renderResultRow('END at depth', units === 'imperial' ? `${Math.round(bestmixResult.end * 3.28084)} ft` : `${bestmixResult.end} m`)}
         
         <View style={[styles.densityInfo, { backgroundColor: colors.background }]}>
-          <Text style={[styles.densityInfoLabel, { color: colors.textSecondary }]}>Density at {bestmixDepth}m:</Text>
+          <Text style={[styles.densityInfoLabel, { color: colors.textSecondary }]}>Density at {bestmixDepth}{units === 'imperial' ? 'ft' : 'm'}:</Text>
           <Text style={[styles.densityInfoValue, { 
-            color: calculateGasDensity({ o2Percent: bestmixResult.o2Percent, hePercent: bestmixResult.hePercent }, parseFloat(bestmixDepth) || 0).isHighDensity ? colors.danger : colors.success 
+            color: calculateGasDensity({ o2Percent: bestmixResult.o2Percent, hePercent: bestmixResult.hePercent }, toMeters(parseFloat(bestmixDepth) || 0)).isHighDensity ? colors.danger : colors.success 
           }]}>
-            {calculateGasDensity({ o2Percent: bestmixResult.o2Percent, hePercent: bestmixResult.hePercent }, parseFloat(bestmixDepth) || 0).depthDensity.toFixed(2)} g/L
+            {calculateGasDensity({ o2Percent: bestmixResult.o2Percent, hePercent: bestmixResult.hePercent }, toMeters(parseFloat(bestmixDepth) || 0)).depthDensity.toFixed(2)} g/L
           </Text>
         </View>
       </View>
@@ -854,8 +912,49 @@ const styles = StyleSheet.create({
     gap: 12,
     marginTop: 12,
   },
+  configMixSliders: {
+    marginTop: 12,
+    gap: 8,
+  },
   configMixInput: {
     flex: 1,
+  },
+  sliderInputContainer: {
+    marginBottom: 16,
+  },
+  sliderLabelRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  sliderValueWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  sliderValueInput: {
+    borderWidth: 1,
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
+    minWidth: 60,
+  },
+  slider: {
+    width: '100%',
+    height: 40,
+  },
+  sliderLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: -8,
+    paddingHorizontal: 4,
+  },
+  sliderMinMax: {
+    fontSize: 11,
   },
   mixInput: {
     borderWidth: 1,
