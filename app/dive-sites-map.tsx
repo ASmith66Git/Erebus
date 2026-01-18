@@ -1,59 +1,46 @@
+import { Platform } from 'react-native';
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  Pressable,
   ActivityIndicator,
+  Pressable,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Feather, Ionicons } from '@expo/vector-icons';
-import { useTheme } from '@/contexts/ThemeContext';
+import { Ionicons, Feather } from '@expo/vector-icons';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { getApiUrl } from '@/utils/apiConfig';
 import Constants from 'expo-constants';
 
 interface DiveSite {
   id: number;
   name: string;
-  siteType: string;
-  latitude: number | null;
-  longitude: number | null;
-  country: string | null;
-  region: string | null;
-  difficulty: string;
+  location?: string;
+  region?: string;
+  country?: string;
+  latitude?: number;
+  longitude?: number;
+  site_type?: string;
+  max_depth?: number;
+  difficulty?: string;
 }
 
-const siteTypeIcons: { [key: string]: string } = {
-  reef: 'sunrise',
-  wreck: 'anchor',
-  cave: 'moon',
-  wall: 'sidebar',
-  drift: 'wind',
-  shore: 'sun',
-  quarry: 'square',
-  lake: 'droplet',
-  river: 'navigation',
-  cenote: 'circle',
-  artificial: 'box',
-  other: 'map-pin',
-};
-
-export default function DiveSitesMapScreen() {
-  const { colors } = useTheme();
-  const { token } = useAuth();
+export default function DiveSitesMap() {
   const router = useRouter();
-  
+  const { token } = useAuth();
+  const { colors } = useTheme();
   const [sites, setSites] = useState<DiveSite[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [mapLoaded, setMapLoaded] = useState(false);
   const [selectedSite, setSelectedSite] = useState<DiveSite | null>(null);
-  
+  const [mapLoaded, setMapLoaded] = useState(false);
+
   const webMapRef = useRef<HTMLDivElement | null>(null);
   const googleMapRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
-  
+
   const apiKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || Constants.expoConfig?.extra?.googleMapsApiKey || '';
 
   useEffect(() => {
@@ -79,7 +66,7 @@ export default function DiveSitesMapScreen() {
   };
 
   useEffect(() => {
-    if (loading || sites.length === 0) return;
+    if (Platform.OS !== 'web' || loading || sites.length === 0) return;
     if (googleMapRef.current) return;
 
     const initWebMap = async () => {
@@ -112,41 +99,41 @@ export default function DiveSitesMapScreen() {
 
         const bounds = new google.maps.LatLngBounds();
         sites.forEach(site => {
-          if (site.latitude && site.longitude) {
+          if (site.latitude != null && site.longitude != null) {
             bounds.extend({ lat: site.latitude, lng: site.longitude });
           }
         });
 
         const map = new google.maps.Map(mapElement, {
           center: bounds.getCenter(),
-          zoom: 3,
-          mapTypeControl: true,
-          streetViewControl: false,
-          fullscreenControl: true,
-          zoomControl: true,
+          zoom: 4,
+          mapTypeId: 'terrain',
           styles: [
-            { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#1a3c5e' }] },
-            { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#4e6d8e' }] },
+            { elementType: 'geometry', stylers: [{ color: '#1d2c4d' }] },
+            { elementType: 'labels.text.stroke', stylers: [{ color: '#1a3646' }] },
+            { elementType: 'labels.text.fill', stylers: [{ color: '#8ec3b9' }] },
+            { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#0e1626' }] },
+            { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#4e6d70' }] },
           ],
         });
 
-        map.fitBounds(bounds);
         googleMapRef.current = map;
+        map.fitBounds(bounds, 50);
 
         const infoWindow = new google.maps.InfoWindow();
 
         sites.forEach(site => {
-          if (!site.latitude || !site.longitude) return;
+          if (site.latitude == null || site.longitude == null) return;
 
           const marker = new google.maps.Marker({
             position: { lat: site.latitude, lng: site.longitude },
-            map: map,
+            map,
             title: site.name,
             icon: {
               path: google.maps.SymbolPath.CIRCLE,
               scale: 10,
               fillColor: colors.primary,
-              fillOpacity: 1,
+              fillOpacity: 0.9,
               strokeColor: '#FFFFFF',
               strokeWeight: 2,
             },
@@ -155,13 +142,17 @@ export default function DiveSitesMapScreen() {
           marker.addListener('click', () => {
             setSelectedSite(site);
             const content = `
-              <div style="padding: 8px; max-width: 200px;">
-                <strong style="font-size: 14px;">${site.name}</strong>
-                <div style="font-size: 12px; color: #666; margin-top: 4px;">
-                  ${site.siteType.charAt(0).toUpperCase() + site.siteType.slice(1)}
+              <div style="padding: 8px; min-width: 200px;">
+                <div style="font-weight: 600; font-size: 14px; color: #1a1a1a; margin-bottom: 4px;">
+                  ${site.name}
                 </div>
-                ${site.country || site.region ? `
-                  <div style="font-size: 12px; color: #888; margin-top: 2px;">
+                ${site.site_type ? `
+                  <div style="font-size: 12px; color: #666; margin-bottom: 2px;">
+                    ${site.site_type}
+                  </div>
+                ` : ''}
+                ${site.location || site.region || site.country ? `
+                  <div style="font-size: 12px; color: #888;">
                     ${[site.region, site.country].filter(Boolean).join(', ')}
                   </div>
                 ` : ''}
@@ -194,6 +185,32 @@ export default function DiveSitesMapScreen() {
       router.push(`/dive-site/${selectedSite.id}`);
     }
   };
+
+  if (Platform.OS !== 'web') {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={[styles.header, { backgroundColor: colors.headerBackground, borderBottomColor: colors.border }]}>
+          <Pressable onPress={handleBack} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color={colors.text} />
+          </Pressable>
+          <View style={styles.headerCenter}>
+            <Ionicons name="map" size={20} color={colors.primary} />
+            <Text style={[styles.headerTitle, { color: colors.text }]}>Dive Sites Map</Text>
+          </View>
+          <View style={{ width: 40 }} />
+        </View>
+        <View style={styles.nativeMapPlaceholder}>
+          <Feather name="map" size={48} color={colors.textSecondary} />
+          <Text style={[styles.placeholderText, { color: colors.text }]}>
+            Map view requires EAS Build
+          </Text>
+          <Text style={[styles.placeholderSubtext, { color: colors.textSecondary }]}>
+            Use Expo Go on a device or build with EAS for native map support
+          </Text>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -250,41 +267,36 @@ export default function DiveSitesMapScreen() {
               </Text>
             </View>
           )}
-          <div
-            ref={webMapRef as any}
-            style={{
-              width: '100%',
+          <div 
+            ref={webMapRef as any} 
+            style={{ 
+              width: '100%', 
               height: '100%',
-              display: mapLoaded ? 'block' : 'none',
-            }}
+              opacity: mapLoaded ? 1 : 0,
+            }} 
           />
+          {selectedSite && (
+            <Pressable 
+              style={[styles.selectedCard, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}
+              onPress={handleSitePress}
+            >
+              <View style={styles.selectedCardContent}>
+                <View style={[styles.siteIcon, { backgroundColor: colors.primary + '20' }]}>
+                  <Feather name="anchor" size={20} color={colors.primary} />
+                </View>
+                <View style={styles.selectedCardText}>
+                  <Text style={[styles.selectedCardTitle, { color: colors.text }]} numberOfLines={1}>
+                    {selectedSite.name}
+                  </Text>
+                  <Text style={[styles.selectedCardSubtitle, { color: colors.textSecondary }]} numberOfLines={1}>
+                    {[selectedSite.site_type, selectedSite.region, selectedSite.country].filter(Boolean).join(' • ')}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+              </View>
+            </Pressable>
+          )}
         </View>
-      )}
-
-      {selectedSite && (
-        <Pressable 
-          style={[styles.selectedCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
-          onPress={handleSitePress}
-        >
-          <View style={styles.selectedCardContent}>
-            <View style={[styles.siteIcon, { backgroundColor: colors.primary + '20' }]}>
-              <Feather 
-                name={siteTypeIcons[selectedSite.siteType] as any || 'map-pin'} 
-                size={20} 
-                color={colors.primary} 
-              />
-            </View>
-            <View style={styles.selectedCardText}>
-              <Text style={[styles.selectedCardTitle, { color: colors.text }]} numberOfLines={1}>
-                {selectedSite.name}
-              </Text>
-              <Text style={[styles.selectedCardSubtitle, { color: colors.textSecondary }]} numberOfLines={1}>
-                {[selectedSite.region, selectedSite.country].filter(Boolean).join(', ') || selectedSite.siteType}
-              </Text>
-            </View>
-            <Feather name="chevron-right" size={20} color={colors.textSecondary} />
-          </View>
-        </Pressable>
       )}
     </View>
   );
@@ -298,19 +310,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingTop: 50,
+    paddingTop: 48,
     paddingBottom: 12,
+    paddingHorizontal: 16,
     borderBottomWidth: 1,
   },
   backButton: {
-    padding: 8,
-  },
-  headerCenter: {
-    flex: 1,
-    flexDirection: 'row',
+    width: 40,
+    height: 40,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  headerCenter: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
   },
   headerTitle: {
@@ -318,7 +331,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   siteCount: {
-    paddingHorizontal: 8,
+    width: 60,
+    alignItems: 'flex-end',
   },
   siteCountText: {
     fontSize: 13,
@@ -378,6 +392,23 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 16,
     zIndex: 10,
+  },
+  nativeMapPlaceholder: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 32,
+    gap: 16,
+  },
+  placeholderText: {
+    fontSize: 16,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  placeholderSubtext: {
+    fontSize: 14,
+    textAlign: 'center',
+    maxWidth: 280,
   },
   selectedCard: {
     position: 'absolute',
