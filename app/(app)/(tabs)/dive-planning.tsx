@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput,
   Dimensions, Platform, Modal, Switch, Pressable
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -18,6 +18,7 @@ import { CYLINDER_PRESETS_LEGACY as CYLINDER_PRESETS } from '@/services/cylinder
 import { downloadDivePlanPdf } from '@/services/divePlanPdf';
 import PageHeader from '@/components/PageHeader';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 const CHART_HEIGHT = 280;
 const TISSUE_CHART_HEIGHT = 180;
@@ -58,6 +59,7 @@ const DECO_MODELS: { value: DecoModel; label: string; description: string }[] = 
 
 export default function DivePlanningScreen() {
   const { colors: themeColors, isDark } = useTheme();
+  const { user } = useAuth();
   const navigation = useNavigation();
 
   const colors = {
@@ -917,42 +919,6 @@ export default function DivePlanningScreen() {
             <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>OTU (Pulmonary)</Text>
           </View>
         </View>
-
-        {/* Export PDF Button - Web only for now */}
-        {Platform.OS === 'web' && currentResult && (
-          <TouchableOpacity
-            style={[styles.exportButton, { backgroundColor: colors.primary }]}
-            onPress={() => {
-              try {
-                if (!currentResult || currentResult.segments.length === 0) {
-                  console.warn('No dive plan to export');
-                  return;
-                }
-                const selectedDive = dives[selectedDiveIndex];
-                if (!selectedDive) {
-                  console.warn('No dive selected');
-                  return;
-                }
-                const gasesForPdf = gases.map(g => ({
-                  ...createGasMix(g.o2Percent, g.hePercent, g.switchDepth, g.cylinderVolume, g.fillPressure, g.reservePressure),
-                  name: g.name,
-                }));
-                downloadDivePlanPdf({
-                  result: currentResult,
-                  settings: appliedSettings,
-                  depth: selectedDive.depth,
-                  bottomTime: selectedDive.bottomTime,
-                  gases: gasesForPdf,
-                });
-              } catch (error) {
-                console.error('PDF generation error:', error);
-              }
-            }}
-          >
-            <Feather name="download" size={16} color="#FFF" />
-            <Text style={styles.exportButtonText}>Export PDF</Text>
-          </TouchableOpacity>
-        )}
 
         {settings.circuit === 'ccr' && (
           <TouchableOpacity
@@ -2045,9 +2011,48 @@ export default function DivePlanningScreen() {
     </Modal>
   );
 
+  const handleExportPdf = () => {
+    if (Platform.OS !== 'web') return;
+    try {
+      if (!currentResult || currentResult.segments.length === 0) {
+        console.warn('No dive plan to export');
+        return;
+      }
+      const selectedDive = dives[selectedDiveIndex];
+      if (!selectedDive) {
+        console.warn('No dive selected');
+        return;
+      }
+      const gasesForPdf = gases.map(g => ({
+        ...createGasMix(g.o2Percent, g.hePercent, g.switchDepth, g.cylinderVolume, g.fillPressure, g.reservePressure),
+        name: g.name,
+      }));
+      downloadDivePlanPdf({
+        result: currentResult,
+        settings: appliedSettings,
+        depth: selectedDive.depth,
+        bottomTime: selectedDive.bottomTime,
+        gases: gasesForPdf,
+        userName: user?.name || user?.email?.split('@')[0] || 'Diver',
+        themeColor: colors.primary,
+      });
+    } catch (error) {
+      console.error('PDF generation error:', error);
+    }
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <PageHeader title="Dive Planning" />
+      <PageHeader 
+        title="Dive Planning" 
+        rightAction={
+          Platform.OS === 'web' && currentResult ? (
+            <Pressable onPress={handleExportPdf} style={{ padding: 8 }}>
+              <Feather name="download" size={22} color={colors.text} />
+            </Pressable>
+          ) : null
+        }
+      />
 
       {renderTabBar()}
 

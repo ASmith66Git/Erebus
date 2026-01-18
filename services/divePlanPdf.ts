@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { DivePlanResult, DivePlanSettings, GasMix, DiveSegment, DecoStop, GasConsumption } from './divePlanner';
+import { DivePlanResult, DivePlanSettings, GasMix, TissueState, calculateMValueAtPressure, depthToPressure } from './divePlanner';
 
 interface DivePlanPdfInput {
   result: DivePlanResult;
@@ -8,6 +8,24 @@ interface DivePlanPdfInput {
   depth: number;
   bottomTime: number;
   gases: GasMix[];
+  userName?: string;
+  themeColor?: string;
+}
+
+function colorToRgb(color: string): [number, number, number] {
+  if (!color) return [210, 47, 0];
+  
+  const hexMatch = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(color);
+  if (hexMatch) {
+    return [parseInt(hexMatch[1], 16), parseInt(hexMatch[2], 16), parseInt(hexMatch[3], 16)];
+  }
+  
+  const rgbaMatch = /rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*[\d.]+)?\)/.exec(color);
+  if (rgbaMatch) {
+    return [parseInt(rgbaMatch[1]), parseInt(rgbaMatch[2]), parseInt(rgbaMatch[3])];
+  }
+  
+  return [210, 47, 0];
 }
 
 function formatDuration(minutes: number): string {
@@ -26,16 +44,36 @@ function formatGas(gas: GasMix): string {
   }
 }
 
-function drawDiveProfile(doc: jsPDF, result: DivePlanResult, x: number, y: number, width: number, height: number) {
+const TISSUE_COLORS = [
+  '#F44336', '#FF5722', '#FF9800', '#FFC107', 
+  '#CDDC39', '#8BC34A', '#4CAF50', '#009688',
+  '#00BCD4', '#03A9F4', '#2196F3', '#3F51B5',
+  '#673AB7', '#9C27B0', '#E91E63', '#F44336'
+];
+
+function drawDiveProfileWithTissues(
+  doc: jsPDF, 
+  result: DivePlanResult, 
+  settings: DivePlanSettings,
+  x: number, 
+  y: number, 
+  width: number, 
+  height: number,
+  themeRgb: [number, number, number]
+) {
   const segments = result.segments;
   if (segments.length === 0) return;
   
   const maxDepth = Math.max(...segments.map(s => Math.max(s.startDepth, s.endDepth)));
   const totalTime = segments[segments.length - 1].runTime;
   
-  const padding = { top: 15, right: 10, bottom: 20, left: 25 };
+  const profileHeight = height * 0.6;
+  const tissueHeight = height * 0.35;
+  const gap = height * 0.05;
+  
+  const padding = { top: 15, right: 10, bottom: 15, left: 30 };
   const chartW = width - padding.left - padding.right;
-  const chartH = height - padding.top - padding.bottom;
+  const chartH = profileHeight - padding.top - padding.bottom;
   
   doc.setDrawColor(180);
   doc.setLineWidth(0.3);
@@ -44,17 +82,18 @@ function drawDiveProfile(doc: jsPDF, result: DivePlanResult, x: number, y: numbe
   doc.setFontSize(7);
   doc.setTextColor(100);
   
-  doc.text('0m', x + padding.left - 3, y + padding.top + 3, { align: 'right' });
-  doc.text(`${Math.round(maxDepth)}m`, x + padding.left - 3, y + padding.top + chartH, { align: 'right' });
+  const depthUnit = settings.units === 'metric' ? 'm' : 'ft';
+  doc.text(`0${depthUnit}`, x + padding.left - 3, y + padding.top + 3, { align: 'right' });
+  doc.text(`${Math.round(maxDepth)}${depthUnit}`, x + padding.left - 3, y + padding.top + chartH, { align: 'right' });
   
   doc.text('0', x + padding.left, y + padding.top + chartH + 8, { align: 'center' });
   doc.text(`${Math.round(totalTime)}min`, x + padding.left + chartW, y + padding.top + chartH + 8, { align: 'center' });
   
   doc.setFontSize(6);
-  doc.text('Depth', x + 5, y + padding.top + chartH / 2, { angle: 90 });
-  doc.text('Time', x + padding.left + chartW / 2, y + height - 3, { align: 'center' });
+  doc.text('Depth', x + 8, y + padding.top + chartH / 2, { angle: 90 });
+  doc.text('Time', x + padding.left + chartW / 2, y + profileHeight - 3, { align: 'center' });
   
-  doc.setDrawColor(0, 100, 180);
+  doc.setDrawColor(themeRgb[0], themeRgb[1], themeRgb[2]);
   doc.setLineWidth(0.8);
   
   let prevX = x + padding.left;
@@ -83,51 +122,106 @@ function drawDiveProfile(doc: jsPDF, result: DivePlanResult, x: number, y: numbe
     prevY = y2;
   });
   
-  doc.setDrawColor(0, 150, 0);
-  doc.setLineWidth(0.3);
-  const surfaceLine = y + padding.top;
-  doc.setLineDashPattern([2, 2], 0);
-  doc.line(x + padding.left, surfaceLine, x + padding.left + chartW, surfaceLine);
-  doc.setLineDashPattern([], 0);
+  const tissueY = y + profileHeight + gap;
+  const finalTissues = result.tissueHistory[result.tissueHistory.length - 1];
+  
+  if (finalTissues && finalTissues.length > 0) {
+    doc.setFontSize(8);
+    doc.setTextColor(60);
+    doc.text('Tissue Compartment Saturation (End of Dive)', x + padding.left, tissueY);
+    
+    const barStartY = tissueY + 8;
+    const barHeight = 4;
+    const barGap = 2;
+    const maxBarWidth = chartW * 0.7;
+    const baselinePpInert = 0.74;
+    
+    finalTissues.forEach((tissue, i) => {
+      const barY = barStartY + i * (barHeight + barGap);
+      
+      const Pamb = 1.0;
+      const mValue = calculateMValueAtPressure(tissue, i, Pamb);
+      const Plimit = mValue;
+      
+      const current = tissue.ppInert;
+      const numerator = current - baselinePpInert;
+      const denominator = Plimit - baselinePpInert;
+      const percent = denominator > 0 ? (numerator / denominator) * 100 : 0;
+      const clampedPercent = Math.max(0, Math.min(percent, 100));
+      
+      const barWidth = (clampedPercent / 100) * maxBarWidth;
+      
+      doc.setFillColor(230, 230, 230);
+      doc.rect(x + padding.left, barY, maxBarWidth, barHeight, 'F');
+      
+      const color = colorToRgb(TISSUE_COLORS[i]);
+      doc.setFillColor(color[0], color[1], color[2]);
+      doc.rect(x + padding.left, barY, Math.max(barWidth, 1), barHeight, 'F');
+      
+      doc.setFontSize(5);
+      doc.setTextColor(100);
+      doc.text(`${i + 1}`, x + padding.left - 3, barY + barHeight - 0.5, { align: 'right' });
+      
+      doc.setTextColor(60);
+      doc.text(`${Math.round(percent)}%`, x + padding.left + maxBarWidth + 3, barY + barHeight - 0.5);
+    });
+    
+    doc.setDrawColor(200);
+    doc.setLineWidth(0.2);
+    const gridX100 = x + padding.left + maxBarWidth;
+    doc.line(gridX100, barStartY - 2, gridX100, barStartY + 16 * (barHeight + barGap));
+    doc.setFontSize(5);
+    doc.setTextColor(150);
+    doc.text('100%', gridX100, barStartY - 3, { align: 'center' });
+  }
 }
 
 export function generateDivePlanPdf(input: DivePlanPdfInput): void {
-  const { result, settings, depth, bottomTime, gases } = input;
+  const { result, settings, depth, bottomTime, gases, userName, themeColor } = input;
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  
+  const themeRgb = themeColor ? colorToRgb(themeColor) : [0, 80, 130] as [number, number, number];
   
   const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 15;
   const contentWidth = pageWidth - margin * 2;
   
-  doc.setFillColor(0, 80, 130);
-  doc.rect(0, 0, pageWidth, 35, 'F');
+  doc.setFillColor(themeRgb[0], themeRgb[1], themeRgb[2]);
+  doc.rect(0, 0, pageWidth, 40, 'F');
   
   doc.setTextColor(255);
   doc.setFontSize(22);
   doc.setFont('helvetica', 'bold');
   doc.text('DIVE PLAN', margin, 18);
   
+  if (userName) {
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Diver: ${userName}`, margin, 28);
+  }
+  
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
   const date = new Date().toLocaleDateString('en-US', { 
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
   });
-  doc.text(date, margin, 28);
+  doc.text(date, margin, userName ? 36 : 28);
   
-  doc.setTextColor(200);
+  doc.setTextColor(220);
   doc.setFontSize(8);
-  doc.text('Generated by Erebus Dive Planner', pageWidth - margin, 28, { align: 'right' });
+  doc.text('Generated by Erebus Dive Planner', pageWidth - margin, 36, { align: 'right' });
   
-  let yPos = 45;
+  let yPos = 50;
   
-  doc.setTextColor(0, 80, 130);
+  doc.setTextColor(themeRgb[0], themeRgb[1], themeRgb[2]);
   doc.setFontSize(12);
   doc.setFont('helvetica', 'bold');
   doc.text('DIVE SUMMARY', margin, yPos);
   yPos += 8;
   
+  const depthUnit = settings.units === 'metric' ? 'm' : 'ft';
   const summaryData = [
-    ['Maximum Depth', `${depth} ${settings.units === 'metric' ? 'm' : 'ft'}`],
+    ['Maximum Depth', `${depth} ${depthUnit}`],
     ['Bottom Time', `${bottomTime} min`],
     ['Total Runtime', `${formatDuration(result.totalRunTime)} min`],
     ['Deco Stops', result.decoStops.length > 0 ? `${result.decoStops.length} stops` : 'None (NDL dive)'],
@@ -151,33 +245,29 @@ export function generateDivePlanPdf(input: DivePlanPdfInput): void {
   
   yPos = (doc as any).lastAutoTable.finalY + 10;
   
-  doc.setTextColor(0, 80, 130);
+  doc.setTextColor(themeRgb[0], themeRgb[1], themeRgb[2]);
   doc.setFontSize(12);
   doc.setFont('helvetica', 'bold');
-  doc.text('DIVE PROFILE', margin, yPos);
+  doc.text('DIVE PROFILE & TISSUE LOADING', margin, yPos);
   yPos += 5;
   
-  drawDiveProfile(doc, result, margin, yPos, contentWidth, 60);
-  yPos += 70;
+  drawDiveProfileWithTissues(doc, result, settings, margin, yPos, contentWidth, 100, themeRgb);
+  yPos += 110;
   
   if (result.decoStops.length > 0) {
-    doc.setTextColor(0, 80, 130);
+    doc.setTextColor(themeRgb[0], themeRgb[1], themeRgb[2]);
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
     doc.text('DECOMPRESSION SCHEDULE', margin, yPos);
     yPos += 5;
     
-    let cumulativeRuntime = 0;
-    const decoData = result.decoStops.map((stop, i) => {
-      cumulativeRuntime += stop.duration;
-      return [
-        `${i + 1}`,
-        `${stop.depth} ${settings.units === 'metric' ? 'm' : 'ft'}`,
-        `${formatDuration(stop.duration)} min`,
-        formatGas(stop.gasMix),
-        `${Math.round(stop.ceiling)} ${settings.units === 'metric' ? 'm' : 'ft'}`
-      ];
-    });
+    const decoData = result.decoStops.map((stop, i) => [
+      `${i + 1}`,
+      `${stop.depth} ${depthUnit}`,
+      `${formatDuration(stop.duration)} min`,
+      formatGas(stop.gasMix),
+      `${Math.round(stop.ceiling)} ${depthUnit}`
+    ]);
     
     autoTable(doc, {
       startY: yPos,
@@ -185,7 +275,7 @@ export function generateDivePlanPdf(input: DivePlanPdfInput): void {
       body: decoData,
       theme: 'striped',
       margin: { left: margin, right: margin },
-      headStyles: { fillColor: [0, 80, 130], fontSize: 9 },
+      headStyles: { fillColor: themeRgb, fontSize: 9 },
       styles: { fontSize: 9, cellPadding: 3 },
       columnStyles: {
         0: { cellWidth: 10 },
@@ -199,7 +289,7 @@ export function generateDivePlanPdf(input: DivePlanPdfInput): void {
     yPos = (doc as any).lastAutoTable.finalY + 10;
   }
   
-  doc.setTextColor(0, 80, 130);
+  doc.setTextColor(themeRgb[0], themeRgb[1], themeRgb[2]);
   doc.setFontSize(12);
   doc.setFont('helvetica', 'bold');
   doc.text('GAS CONFIGURATION', margin, yPos);
@@ -208,8 +298,8 @@ export function generateDivePlanPdf(input: DivePlanPdfInput): void {
   const gasData = gases.map(gas => [
     gas.name,
     formatGas(gas),
-    `${gas.switchDepth !== null ? gas.switchDepth + (settings.units === 'metric' ? 'm' : 'ft') : '-'}`,
-    `MOD: ${gas.modPpo2_14} ${settings.units === 'metric' ? 'm' : 'ft'}`,
+    `${gas.switchDepth !== null ? gas.switchDepth + depthUnit : '-'}`,
+    `MOD: ${gas.modPpo2_14} ${depthUnit}`,
     `${gas.cylinderVolume}L @ ${gas.fillPressure}bar`
   ]);
   
@@ -219,14 +309,14 @@ export function generateDivePlanPdf(input: DivePlanPdfInput): void {
     body: gasData,
     theme: 'striped',
     margin: { left: margin, right: margin },
-    headStyles: { fillColor: [0, 80, 130], fontSize: 9 },
+    headStyles: { fillColor: themeRgb, fontSize: 9 },
     styles: { fontSize: 9, cellPadding: 3 },
   });
   
   yPos = (doc as any).lastAutoTable.finalY + 10;
   
-  if (result.gasConsumption && result.gasConsumption.length > 0) {
-    doc.setTextColor(0, 80, 130);
+  if (result.gasConsumption && result.gasConsumption.length > 0 && yPos < 240) {
+    doc.setTextColor(themeRgb[0], themeRgb[1], themeRgb[2]);
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
     doc.text('GAS CONSUMPTION', margin, yPos);
@@ -238,7 +328,7 @@ export function generateDivePlanPdf(input: DivePlanPdfInput): void {
       `${Math.round(gc.gasRequired)} L`,
       `${Math.round(gc.gasRemaining)} L`,
       `${Math.round(gc.percentUsed)}%`,
-      gc.isSufficient ? 'OK' : 'INSUFFICIENT'
+      gc.isSufficient ? 'OK' : 'LOW'
     ]);
     
     autoTable(doc, {
@@ -247,12 +337,12 @@ export function generateDivePlanPdf(input: DivePlanPdfInput): void {
       body: consumptionData,
       theme: 'striped',
       margin: { left: margin, right: margin },
-      headStyles: { fillColor: [0, 80, 130], fontSize: 9 },
+      headStyles: { fillColor: themeRgb, fontSize: 9 },
       styles: { fontSize: 8, cellPadding: 2 },
       didParseCell: function(data) {
         if (data.column.index === 5 && data.section === 'body') {
           const value = data.cell.raw as string;
-          if (value === 'INSUFFICIENT') {
+          if (value === 'LOW') {
             data.cell.styles.textColor = [200, 0, 0];
             data.cell.styles.fontStyle = 'bold';
           } else {
@@ -265,22 +355,23 @@ export function generateDivePlanPdf(input: DivePlanPdfInput): void {
     yPos = (doc as any).lastAutoTable.finalY + 10;
   }
   
-  if (yPos < 240) {
-    doc.setTextColor(0, 80, 130);
+  if (yPos < 250) {
+    doc.setTextColor(themeRgb[0], themeRgb[1], themeRgb[2]);
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
     doc.text('SETTINGS', margin, yPos);
     yPos += 5;
     
+    const rateUnit = settings.units === 'metric' ? 'm' : 'ft';
     const settingsData = [
       ['Circuit', settings.circuit === 'open' ? 'Open Circuit' : 'CCR'],
       ['Gradient Factors', `${settings.gfLow}/${settings.gfHigh}`],
-      ['Descent Rate', `${settings.descentRate} ${settings.units === 'metric' ? 'm' : 'ft'}/min`],
-      ['Ascent Rate', `${settings.ascentRate} ${settings.units === 'metric' ? 'm' : 'ft'}/min`],
+      ['Descent Rate', `${settings.descentRate} ${rateUnit}/min`],
+      ['Ascent Rate', `${settings.ascentRate} ${rateUnit}/min`],
       ['SAC Bottom', `${settings.sacRateBottom} L/min`],
       ['SAC Deco', `${settings.sacRateDeco} L/min`],
       ['Water Type', settings.waterType === 'salt' ? 'Salt Water' : 'Fresh Water'],
-      ['Last Stop', `${settings.lastStopDepth} ${settings.units === 'metric' ? 'm' : 'ft'}`],
+      ['Last Stop', `${settings.lastStopDepth} ${depthUnit}`],
     ];
     
     autoTable(doc, {
@@ -308,7 +399,7 @@ export function generateDivePlanPdf(input: DivePlanPdfInput): void {
   doc.text('This dive plan is for reference only. Always verify calculations and follow safe diving practices.', margin, pageHeight - 10);
   doc.text('Erebus Dive Planner', pageWidth - margin, pageHeight - 10, { align: 'right' });
   
-  const filename = `dive-plan-${depth}m-${bottomTime}min-${new Date().toISOString().split('T')[0]}.pdf`;
+  const filename = `dive-plan-${depth}${depthUnit}-${bottomTime}min-${new Date().toISOString().split('T')[0]}.pdf`;
   doc.save(filename);
 }
 
