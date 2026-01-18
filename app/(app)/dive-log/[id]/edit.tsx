@@ -128,6 +128,8 @@ export default function EditDiveLogScreen() {
   const [gearProfiles, setGearProfiles] = useState<{ id: number; name: string }[]>([]);
   const [diveSites, setDiveSites] = useState<{ id: number; name: string }[]>([]);
   const [diveSiteId, setDiveSiteId] = useState<number | null>(null);
+  const [siteSearchQuery, setSiteSearchQuery] = useState('');
+  const [showGearProfilePicker, setShowGearProfilePicker] = useState(false);
   const [isFromComputer, setIsFromComputer] = useState(false);
   const [gasMixes, setGasMixes] = useState<{ name?: string; o2: number; he: number }[]>([]);
   const [gearCylinders, setGearCylinders] = useState<any[]>([]);
@@ -581,28 +583,52 @@ export default function EditDiveLogScreen() {
 
       <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
         <Text style={[styles.cardTitle, { color: colors.text }]}>Dive Site</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          <View style={styles.chipsRow}>
-            {diveSites.map((site) => (
-              <Pressable
-                key={site.id}
-                style={[
-                  styles.chip,
-                  { borderColor: colors.border },
-                  diveSiteId === site.id && { backgroundColor: colors.primary + '20', borderColor: colors.primary }
-                ]}
-                onPress={() => {
-                  setDiveSiteId(diveSiteId === site.id ? null : site.id);
-                  setDiveSiteName(diveSiteId === site.id ? '' : site.name);
-                }}
-              >
-                <Text style={[styles.chipText, { color: diveSiteId === site.id ? colors.primary : colors.text }]}>
-                  {site.name}
-                </Text>
-              </Pressable>
-            ))}
+        <TextInput
+          style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
+          value={siteSearchQuery || (diveSiteId ? diveSites.find(s => s.id === diveSiteId)?.name || '' : '')}
+          onChangeText={(text) => {
+            setSiteSearchQuery(text);
+            if (!text) {
+              setDiveSiteId(null);
+              setDiveSiteName('');
+            }
+          }}
+          placeholder="Search dive sites..."
+          placeholderTextColor={colors.textSecondary}
+        />
+        {siteSearchQuery.length > 0 && (
+          <View style={[styles.autocompleteDropdown, { backgroundColor: colors.background, borderColor: colors.border }]}>
+            <ScrollView style={{ maxHeight: 200 }} nestedScrollEnabled keyboardShouldPersistTaps="handled">
+              {diveSites
+                .filter(site => site.name.toLowerCase().includes(siteSearchQuery.toLowerCase()))
+                .slice(0, 10)
+                .map((site) => (
+                  <Pressable
+                    key={site.id}
+                    style={[styles.autocompleteItem, { borderBottomColor: colors.border }]}
+                    onPress={() => {
+                      setDiveSiteId(site.id);
+                      setDiveSiteName(site.name);
+                      setSiteSearchQuery('');
+                    }}
+                  >
+                    <Text style={{ color: colors.text }}>{site.name}</Text>
+                  </Pressable>
+                ))}
+              {diveSites.filter(site => site.name.toLowerCase().includes(siteSearchQuery.toLowerCase())).length === 0 && (
+                <Text style={{ color: colors.textSecondary, padding: 12, textAlign: 'center' }}>No sites found</Text>
+              )}
+            </ScrollView>
           </View>
-        </ScrollView>
+        )}
+        {diveSiteId && !siteSearchQuery && (
+          <View style={[styles.selectedSiteRow, { backgroundColor: colors.primary + '15', borderColor: colors.primary }]}>
+            <Text style={{ color: colors.primary, flex: 1 }}>{diveSites.find(s => s.id === diveSiteId)?.name}</Text>
+            <Pressable onPress={() => { setDiveSiteId(null); setDiveSiteName(''); }}>
+              <Feather name="x" size={18} color={colors.primary} />
+            </Pressable>
+          </View>
+        )}
         {diveSites.length === 0 && (
           <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No dive sites available</Text>
         )}
@@ -610,25 +636,35 @@ export default function EditDiveLogScreen() {
 
       <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
         <Text style={[styles.cardTitle, { color: colors.text }]}>Gear Profile</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          <View style={styles.chipsRow}>
+        <Pressable
+          style={[styles.dropdownButton, { backgroundColor: colors.background, borderColor: colors.border }]}
+          onPress={() => setShowGearProfilePicker(!showGearProfilePicker)}
+        >
+          <Text style={{ color: gearProfileId ? colors.text : colors.textSecondary, flex: 1 }}>
+            {gearProfileId ? gearProfiles.find(p => p.id === gearProfileId)?.name : 'Select gear profile...'}
+          </Text>
+          <Feather name={showGearProfilePicker ? "chevron-up" : "chevron-down"} size={18} color={colors.textSecondary} />
+        </Pressable>
+        {showGearProfilePicker && (
+          <View style={[styles.pickerDropdown, { backgroundColor: colors.background, borderColor: colors.border }]}>
+            <Pressable
+              style={[styles.pickerItem, { borderBottomColor: colors.border }, !gearProfileId && { backgroundColor: colors.primary + '15' }]}
+              onPress={() => { setGearProfileId(null); setShowGearProfilePicker(false); }}
+            >
+              <Text style={{ color: !gearProfileId ? colors.primary : colors.textSecondary, fontStyle: 'italic' }}>None</Text>
+            </Pressable>
             {gearProfiles.map((profile) => (
               <Pressable
                 key={profile.id}
-                style={[
-                  styles.chip,
-                  { borderColor: colors.border },
-                  gearProfileId === profile.id && { backgroundColor: colors.primary + '20', borderColor: colors.primary }
-                ]}
-                onPress={() => setGearProfileId(gearProfileId === profile.id ? null : profile.id)}
+                style={[styles.pickerItem, { borderBottomColor: colors.border }, gearProfileId === profile.id && { backgroundColor: colors.primary + '15' }]}
+                onPress={() => { setGearProfileId(profile.id); setShowGearProfilePicker(false); }}
               >
-                <Text style={[styles.chipText, { color: gearProfileId === profile.id ? colors.primary : colors.text }]}>
-                  {profile.name}
-                </Text>
+                <Text style={{ color: gearProfileId === profile.id ? colors.primary : colors.text }}>{profile.name}</Text>
+                {gearProfileId === profile.id && <Feather name="check" size={16} color={colors.primary} />}
               </Pressable>
             ))}
           </View>
-        </ScrollView>
+        )}
         {gearProfiles.length === 0 && (
           <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No gear profiles available</Text>
         )}
@@ -1229,6 +1265,44 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: 'center',
     paddingVertical: 16,
+  },
+  autocompleteDropdown: {
+    borderRadius: 8,
+    borderWidth: 1,
+    marginTop: 4,
+    overflow: 'hidden',
+  },
+  autocompleteItem: {
+    padding: 12,
+    borderBottomWidth: 1,
+  },
+  selectedSiteRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    marginTop: 8,
+  },
+  dropdownButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  pickerDropdown: {
+    borderRadius: 8,
+    borderWidth: 1,
+    marginTop: 4,
+    overflow: 'hidden',
+  },
+  pickerItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 12,
+    borderBottomWidth: 1,
   },
   gasMixRow: {
     marginBottom: 16,
