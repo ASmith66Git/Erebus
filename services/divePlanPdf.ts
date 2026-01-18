@@ -93,15 +93,31 @@ function drawDiveProfileWithTissues(
   
   if (result.tissueHistory && result.tissueHistory.length > 1) {
     const baselinePpInert = 0.74;
-    const sampleInterval = Math.max(1, Math.floor(result.tissueHistory.length / 50));
+    const numSamples = Math.min(result.tissueHistory.length, 100);
+    const sampleInterval = Math.max(1, Math.floor(result.tissueHistory.length / numSamples));
+    
+    let maxLoading = 0;
+    for (let h = 0; h < result.tissueHistory.length; h += sampleInterval) {
+      const tissues = result.tissueHistory[h];
+      if (!tissues) continue;
+      for (let t = 0; t < 16; t++) {
+        if (tissues[t]) {
+          const Pamb = 1.0;
+          const mValue = calculateMValueAtPressure(tissues[t], t, Pamb);
+          const loading = (tissues[t].ppInert - baselinePpInert) / (mValue - baselinePpInert);
+          if (loading > maxLoading) maxLoading = loading;
+        }
+      }
+    }
+    maxLoading = Math.max(maxLoading, 1);
     
     for (let tissueIdx = 0; tissueIdx < 16; tissueIdx++) {
       const color = colorToRgb(TISSUE_COLORS[tissueIdx]);
       doc.setDrawColor(color[0], color[1], color[2]);
-      doc.setLineWidth(0.3);
+      doc.setLineWidth(0.4);
       
       let prevTissueX = x + padding.left;
-      let prevTissueY = y + padding.top;
+      let prevTissueY = y + padding.top + chartH;
       let firstPoint = true;
       
       for (let h = 0; h < result.tissueHistory.length; h += sampleInterval) {
@@ -114,8 +130,9 @@ function drawDiveProfileWithTissues(
         
         const Pamb = 1.0;
         const mValue = calculateMValueAtPressure(tissue, tissueIdx, Pamb);
-        const loading = Math.max(0, Math.min((tissue.ppInert - baselinePpInert) / (mValue - baselinePpInert), 1));
-        const tissueY = y + padding.top + chartH - loading * chartH;
+        const loading = Math.max(0, (tissue.ppInert - baselinePpInert) / (mValue - baselinePpInert));
+        const normalizedLoading = Math.min(loading / maxLoading, 1);
+        const tissueY = y + padding.top + chartH - normalizedLoading * chartH;
         
         if (!firstPoint) {
           doc.line(prevTissueX, prevTissueY, tissueX, tissueY);
