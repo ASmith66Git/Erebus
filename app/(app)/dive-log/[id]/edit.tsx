@@ -218,7 +218,8 @@ export default function EditDiveLogScreen() {
       
       if (response.ok) {
         const data = await response.json();
-        setGearProfiles(data.map((p: any) => ({ id: p.id, name: p.name })));
+        const profiles = data.profiles || [];
+        setGearProfiles(profiles.map((p: any) => ({ id: p.id, name: p.name })));
       }
     } catch (err) {
       console.error('Error fetching gear profiles:', err);
@@ -237,7 +238,8 @@ export default function EditDiveLogScreen() {
       
       if (response.ok) {
         const data = await response.json();
-        setDiveSites(data.map((s: any) => ({ id: s.id, name: s.name })));
+        const sites = data.sites || [];
+        setDiveSites(sites.map((s: any) => ({ id: s.id, name: s.name })));
       }
     } catch (err) {
       console.error('Error fetching dive sites:', err);
