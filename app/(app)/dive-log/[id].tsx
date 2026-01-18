@@ -19,7 +19,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { getApiUrl } from '@/utils/apiConfig';
 
-const TABS = ['Dive', 'Computer', 'Notes', 'Team', 'Problems'] as const;
+const TABS = ['Dive', 'Gas', 'Notes', 'Team', 'Problems'] as const;
 type TabType = typeof TABS[number];
 
 const EQUIPMENT_OPTIONS = [
@@ -911,51 +911,66 @@ function ProblemsTab({ diveLog, colors }: { diveLog: DiveLog; colors: any }) {
   );
 }
 
-function ComputerTab({ diveLog, colors }: { diveLog: DiveLog; colors: any }) {
+function GasTab({ diveLog, colors }: { diveLog: DiveLog; colors: any }) {
   return (
     <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
       <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
         <View style={styles.fieldRow}>
-          <Feather name="cpu" size={16} color={colors.textSecondary} />
-          <Text style={[styles.cardTitle, { color: colors.text }]}>Dive Computer</Text>
+          <Feather name="disc" size={16} color={colors.primary} />
+          <Text style={[styles.cardTitle, { color: colors.text }]}>Cylinders</Text>
         </View>
-        <Text style={[styles.metaLabel, { color: colors.textSecondary }]}>Model: <Text style={{ color: colors.text }}>{diveLog.deviceModel || 'Unknown'}</Text></Text>
-        <Text style={[styles.metaLabel, { color: colors.textSecondary }]}>Serial: <Text style={{ color: colors.text }}>{diveLog.deviceSerial || 'Unknown'}</Text></Text>
-        <Text style={[styles.metaLabel, { color: colors.textSecondary }]}>Manufacturer: <Text style={{ color: colors.text }}>{diveLog.deviceManufacturer || 'Unknown'}</Text></Text>
+        {diveLog.gasPressures && diveLog.gasPressures.length > 0 ? (
+          <View style={styles.cylinderList}>
+            {diveLog.gasPressures.map((gas, index) => (
+              <View key={index} style={[styles.cylinderCard, { backgroundColor: colors.background, borderColor: colors.border }]}>
+                <View style={styles.cylinderHeader}>
+                  <Text style={[styles.cylinderName, { color: colors.text }]}>{gas.label}</Text>
+                  <Text style={[styles.cylinderMix, { color: colors.primary }]}>
+                    {gas.o2Percent === 21 && !gas.hePercent ? 'Air' : 
+                     gas.hePercent ? `${gas.o2Percent}/${gas.hePercent}` : `EAN${gas.o2Percent}`}
+                  </Text>
+                </View>
+                <View style={styles.pressureRow}>
+                  <View style={styles.pressureItem}>
+                    <Text style={[styles.pressureLabel, { color: colors.textSecondary }]}>Start</Text>
+                    <Text style={[styles.pressureValue, { color: colors.text }]}>{gas.startBar} bar</Text>
+                  </View>
+                  <View style={styles.pressureArrow}>
+                    <Feather name="arrow-right" size={16} color={colors.textSecondary} />
+                  </View>
+                  <View style={styles.pressureItem}>
+                    <Text style={[styles.pressureLabel, { color: colors.textSecondary }]}>End</Text>
+                    <Text style={[styles.pressureValue, { color: colors.text }]}>{gas.endBar} bar</Text>
+                  </View>
+                  <View style={styles.pressureItem}>
+                    <Text style={[styles.pressureLabel, { color: colors.textSecondary }]}>Used</Text>
+                    <Text style={[styles.pressureValue, { color: colors.primary }]}>{gas.startBar - gas.endBar} bar</Text>
+                  </View>
+                </View>
+                <View style={[styles.pressureBar, { backgroundColor: colors.border }]}>
+                  <View 
+                    style={[
+                      styles.pressureFill, 
+                      { 
+                        backgroundColor: colors.primary,
+                        width: `${gas.startBar > 0 ? (gas.endBar / gas.startBar) * 100 : 0}%`
+                      }
+                    ]} 
+                  />
+                </View>
+              </View>
+            ))}
+          </View>
+        ) : (
+          <Text style={[styles.noDataText, { color: colors.textSecondary }]}>No cylinder data available</Text>
+        )}
       </View>
 
       <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <Text style={[styles.cardTitle, { color: colors.text }]}>Dive Metadata</Text>
-        <View style={styles.metaGrid}>
-          <View style={styles.metaItem}>
-            <Text style={[styles.metaLabel, { color: colors.textSecondary }]}># Dive Number</Text>
-            <Text style={[styles.metaValue, { color: colors.text }]}>#{diveLog.diveNumber || '--'}</Text>
-          </View>
-          <View style={styles.metaItem}>
-            <Text style={[styles.metaLabel, { color: colors.textSecondary }]}>Surface Interval</Text>
-            <Text style={[styles.metaValue, { color: colors.text }]}>{formatSurfaceInterval(diveLog.surfaceIntervalSeconds)}</Text>
-          </View>
-          <View style={styles.metaItem}>
-            <Text style={[styles.metaLabel, { color: colors.textSecondary }]}>Surface Pressure</Text>
-            <Text style={[styles.metaValue, { color: colors.text }]}>{diveLog.surfacePressureMbar ? `${diveLog.surfacePressureMbar} mbar` : '--'}</Text>
-          </View>
-          <View style={styles.metaItem}>
-            <Text style={[styles.metaLabel, { color: colors.textSecondary }]}>Dive Mode</Text>
-            <Text style={[styles.metaValue, { color: colors.text }]}>{diveLog.diveMode || 'Open Circuit'}</Text>
-          </View>
-          <View style={styles.metaItem}>
-            <Text style={[styles.metaLabel, { color: colors.textSecondary }]}>Start Time</Text>
-            <Text style={[styles.metaValue, { color: colors.text }]}>{formatTime(diveLog.diveDateTime)}</Text>
-          </View>
-          <View style={styles.metaItem}>
-            <Text style={[styles.metaLabel, { color: colors.textSecondary }]}>End Time</Text>
-            <Text style={[styles.metaValue, { color: colors.text }]}>{formatEndTime(diveLog.diveDateTime, diveLog.durationSeconds)}</Text>
-          </View>
+        <View style={styles.fieldRow}>
+          <Feather name="wind" size={16} color={colors.primary} />
+          <Text style={[styles.cardTitle, { color: colors.text }]}>Gas Mixes</Text>
         </View>
-      </View>
-
-      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <Text style={[styles.cardTitle, { color: colors.text }]}>Gas Mixes</Text>
         {diveLog.gasMixes && diveLog.gasMixes.length > 0 ? (
           <View style={styles.gasMixGrid}>
             {diveLog.gasMixes.map((mix, index) => (
@@ -1369,8 +1384,8 @@ export default function DiveLogDetailScreen() {
     switch (activeTab) {
       case 'Dive':
         return <DiveTab diveLog={diveLog} colors={colors} gearProfileName={gearProfileName} />;
-      case 'Computer':
-        return <ComputerTab diveLog={diveLog} colors={colors} />;
+      case 'Gas':
+        return <GasTab diveLog={diveLog} colors={colors} />;
       case 'Notes':
         return <NotesTab diveLog={diveLog} colors={colors} />;
       case 'Team':
@@ -1761,6 +1776,57 @@ const styles = StyleSheet.create({
   },
   gasMixInfo: {
     fontSize: 12,
+  },
+  cylinderList: {
+    gap: 12,
+  },
+  cylinderCard: {
+    borderRadius: 8,
+    borderWidth: 1,
+    padding: 12,
+  },
+  cylinderHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  cylinderName: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  cylinderMix: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  pressureRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  pressureItem: {
+    flex: 1,
+  },
+  pressureArrow: {
+    paddingHorizontal: 4,
+  },
+  pressureLabel: {
+    fontSize: 11,
+    marginBottom: 2,
+  },
+  pressureValue: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  pressureBar: {
+    height: 6,
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  pressureFill: {
+    height: '100%',
+    borderRadius: 3,
   },
   errorText: {
     fontSize: 16,
