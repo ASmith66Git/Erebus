@@ -741,10 +741,11 @@ export default function DivePlanningScreen() {
     // Get tissue loading at current scrubber position
     const scrubberValues = getValuesAtTime(chartScrubberTime);
     const tissues = scrubberValues?.tissues || currentResult.tissueHistory[currentResult.tissueHistory.length - 1];
-    const currentDepth = scrubberValues?.depth || 0;
     
-    // Calculate ambient pressure at current depth for M-value calculation
-    const ambientPressure = depthToPressure(currentDepth, appliedSettings.waterType);
+    // Get baseline tissues (surface before dive starts)
+    const baselineTissues = currentResult.tissueHistory[0];
+    // Get final tissues for max reference
+    const finalTissues = currentResult.tissueHistory[currentResult.tissueHistory.length - 1];
     
     const padding = { top: 24, right: 40, bottom: 12, left: 24 };
     const chartW = Math.max(tissueChartWidth - padding.left - padding.right, 100);
@@ -752,13 +753,21 @@ export default function DivePlanningScreen() {
     const barGap = 2;
     const chartH = 16 * (barHeight + barGap);
 
-    // Horizontal bars showing % of M-value (calculated dynamically)
+    // Calculate max ppInert across all tissues in final state for scaling
+    const maxPpInert = Math.max(...finalTissues.map(t => t.ppInert), 1);
+
+    // Horizontal bars showing tissue loading (ppInert) normalized to max
     const bars = tissues.map((tissue, i) => {
-      // Calculate M-value at current ambient pressure
-      const mValue = calculateMValueAtPressure(tissue, i, ambientPressure);
-      // Calculate percentage of M-value
-      const percent = mValue > 0 ? Math.min((tissue.ppInert / mValue) * 100, 150) : 0;
-      const width = Math.max((percent / 100) * chartW * 0.8, 2); // 80% width at 100%
+      const baseline = baselineTissues[i]?.ppInert || 0.74;
+      const current = tissue.ppInert;
+      const maxVal = Math.max(finalTissues[i]?.ppInert || 1, baseline * 1.5);
+      
+      // Show loading as percentage: 0% = baseline, 100% = max loading reached
+      const loadingIncrease = current - baseline;
+      const maxIncrease = maxVal - baseline;
+      const percent = maxIncrease > 0 ? Math.min((loadingIncrease / maxIncrease) * 100, 150) : 0;
+      
+      const width = Math.max((percent / 100) * chartW * 0.8, 1);
       const y = padding.top + i * (barHeight + barGap);
       const x = padding.left;
       
@@ -846,7 +855,7 @@ export default function DivePlanningScreen() {
           {bars}
         </Svg>
         <Text style={[styles.chartSubtitle, { color: colors.textSecondary }]}>
-          Drag scrubber on dive profile to see tissue loading at any point
+          0% = surface baseline, 100% = max loading during dive
         </Text>
       </View>
     );
