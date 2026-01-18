@@ -321,11 +321,12 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   heroImageBackground: {
-    paddingTop: 20,
-    paddingBottom: 40,
+    height: 180,
+    justifyContent: 'flex-end',
+    paddingBottom: 16,
   },
   heroImage: {
-    opacity: 0.85,
+    opacity: 0.9,
   },
   heroOverlay: {
     position: 'absolute',
@@ -364,6 +365,7 @@ const styles = StyleSheet.create({
   welcomeContent: {
     paddingHorizontal: 20,
     zIndex: 1,
+    paddingTop: 8,
   },
   timeGreeting: {
     fontSize: 16,
@@ -383,7 +385,7 @@ const styles = StyleSheet.create({
   },
   statsSection: {
     paddingHorizontal: 16,
-    marginTop: -20,
+    marginTop: 16,
   },
   sectionLabel: {
     fontSize: 12,
