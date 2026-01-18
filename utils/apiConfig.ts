@@ -7,14 +7,24 @@ const PRODUCTION_API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://expo-ereb
 export function getApiUrl(): string {
   // Web: Always use current origin (works in both dev and production)
   if (Platform.OS === 'web' && typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    
     // Development: API runs on port 3001
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
       return 'http://localhost:3001';
     }
-    // Replit dev environment: API on port 3001
-    if (window.location.host.includes('.replit.dev')) {
-      return `${window.location.protocol}//${window.location.hostname}:3001`;
+    
+    // Replit dev environment: Port is embedded in subdomain
+    // e.g., xxx-00-yyy.spock.replit.dev -> xxx-00-yyy-3001.spock.replit.dev
+    if (hostname.includes('.replit.dev')) {
+      const parts = hostname.split('.');
+      if (parts.length >= 3) {
+        // Insert port 3001 before the domain suffix
+        parts[0] = parts[0] + '-3001';
+        return `${window.location.protocol}//${parts.join('.')}`;
+      }
     }
+    
     // Production (.replit.app): API and frontend on same origin
     return window.location.origin;
   }
