@@ -758,7 +758,11 @@ function DiveTab({ diveLog, colors, gearProfileName, gearProfileId }: { diveLog:
         </View>
       </View>
 
-      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+      <Pressable 
+        style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}
+        onPress={() => diveLog.diveSiteId && router.push(`/dive-site/${diveLog.diveSiteId}`)}
+        disabled={!diveLog.diveSiteId}
+      >
         <View style={styles.fieldRow}>
           <Feather name="map-pin" size={16} color={colors.primary} />
           <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Dive Site</Text>
@@ -767,9 +771,9 @@ function DiveTab({ diveLog, colors, gearProfileName, gearProfileId }: { diveLog:
           <Text style={[styles.fieldValueText, { color: colors.text }]}>
             {diveLog.diveSiteName || 'Not specified'}
           </Text>
-          {diveLog.diveSiteName && <Feather name="external-link" size={16} color={colors.primary} />}
+          {diveLog.diveSiteId && <Feather name="external-link" size={16} color={colors.primary} />}
         </View>
-      </View>
+      </Pressable>
 
       <Pressable 
         style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}
@@ -784,7 +788,7 @@ function DiveTab({ diveLog, colors, gearProfileName, gearProfileId }: { diveLog:
           <Text style={[styles.fieldValueText, { color: colors.text }]}>
             {gearProfileName || 'Not specified'}
           </Text>
-          {gearProfileId && <Feather name="chevron-right" size={16} color={colors.textSecondary} />}
+          {gearProfileId && <Feather name="external-link" size={16} color={colors.primary} />}
         </View>
       </Pressable>
 
