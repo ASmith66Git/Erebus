@@ -29,13 +29,19 @@ interface DiveEntry {
   surfaceInterval: number;
 }
 
+// Gas roles for OC and CCR circuits
+type OCGasRole = 'bottom' | 'travel' | 'deco';
+type CCRGasRole = 'o2' | 'diluent' | 'bailout' | 'extension';
+type GasRole = OCGasRole | CCRGasRole;
+
 interface GasEntry {
   id: string;
   name: string;
   o2Percent: number;
   hePercent: number;
   switchDepth: number | null;
-  isBottomGas: boolean;
+  isBottomGas: boolean; // legacy
+  role: GasRole; // circuit-specific role
   cylinderVolume: number;
   fillPressure: number;
   reservePressure: number;
@@ -71,7 +77,7 @@ export default function DivePlanningScreen() {
   ]);
 
   const [gases, setGases] = useState<GasEntry[]>([
-    { id: '1', name: 'Air', o2Percent: 21, hePercent: 0, switchDepth: null, isBottomGas: true, cylinderVolume: 11.1, fillPressure: 220, reservePressure: 50 },
+    { id: '1', name: 'Air', o2Percent: 21, hePercent: 0, switchDepth: null, isBottomGas: true, role: 'bottom', cylinderVolume: 11.1, fillPressure: 220, reservePressure: 50 },
   ]);
   const [showCylinderDropdown, setShowCylinderDropdown] = useState<string | null>(null);
 
@@ -176,9 +182,39 @@ export default function DivePlanningScreen() {
     setDives(dives.map(d => d.id === id ? { ...d, [field]: value } : d));
   };
 
-  const addGas = () => {
+  const addGas = (role: GasRole = 'deco') => {
     const newId = String(Date.now());
-    setGases([...gases, { id: newId, name: '', o2Percent: 50, hePercent: 0, switchDepth: 21, isBottomGas: false, cylinderVolume: 7, fillPressure: 207, reservePressure: 35 }]);
+    // Set defaults based on role
+    let defaults: Partial<GasEntry> = { cylinderVolume: 7, fillPressure: 207, reservePressure: 35 };
+    
+    if (role === 'o2') {
+      defaults = { ...defaults, o2Percent: 100, hePercent: 0, name: 'O2', cylinderVolume: 3, fillPressure: 207 };
+    } else if (role === 'diluent') {
+      defaults = { ...defaults, o2Percent: 21, hePercent: 35, name: 'Trimix 21/35', cylinderVolume: 3, fillPressure: 207 };
+    } else if (role === 'bailout') {
+      defaults = { ...defaults, o2Percent: 21, hePercent: 0, name: 'Bailout', cylinderVolume: 11.1, fillPressure: 220 };
+    } else if (role === 'extension') {
+      defaults = { ...defaults, o2Percent: 100, hePercent: 0, name: 'Extension O2', cylinderVolume: 3, fillPressure: 207 };
+    } else if (role === 'deco') {
+      defaults = { ...defaults, o2Percent: 50, hePercent: 0, name: 'EAN50', switchDepth: 21 };
+    } else if (role === 'travel') {
+      defaults = { ...defaults, o2Percent: 32, hePercent: 0, name: 'EAN32', switchDepth: null };
+    } else if (role === 'bottom') {
+      defaults = { ...defaults, o2Percent: 21, hePercent: 0, name: 'Air', switchDepth: null, cylinderVolume: 11.1, fillPressure: 220 };
+    }
+    
+    setGases([...gases, { 
+      id: newId, 
+      name: defaults.name || '', 
+      o2Percent: defaults.o2Percent || 21, 
+      hePercent: defaults.hePercent || 0, 
+      switchDepth: defaults.switchDepth ?? null, 
+      isBottomGas: role === 'bottom',
+      role,
+      cylinderVolume: defaults.cylinderVolume || 7, 
+      fillPressure: defaults.fillPressure || 207, 
+      reservePressure: defaults.reservePressure || 35 
+    }]);
   };
 
   const removeGas = (id: string) => {
@@ -972,238 +1008,411 @@ export default function DivePlanningScreen() {
     </>
   );
 
-  const renderGasesTab = () => (
-    <View style={[styles.section, { backgroundColor: colors.card }]}>
-      <View style={styles.sectionHeader}>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>Gas Mixes & Cylinders</Text>
-      </View>
-      
-      {gases.map((gas, i) => {
-        const gasConsumption = currentResult?.gasConsumption?.find(gc => gc.cylinderId === gas.id);
-        const totalGas = gas.cylinderVolume * gas.fillPressure;
+  const getRoleLabel = (role: GasRole): string => {
+    const labels: Record<GasRole, string> = {
+      bottom: 'Bottom Gas',
+      travel: 'Travel Gas',
+      deco: 'Deco Gas',
+      o2: 'O2 Cylinder',
+      diluent: 'Diluent',
+      bailout: 'Bailout',
+      extension: 'Extension'
+    };
+    return labels[role] || role;
+  };
+
+  const getRoleColor = (role: GasRole): string => {
+    const roleColors: Record<GasRole, string> = {
+      bottom: colors.primary,
+      travel: colors.accent,
+      deco: colors.success,
+      o2: '#FF6B6B',
+      diluent: '#4ECDC4',
+      bailout: colors.warning,
+      extension: colors.textSecondary
+    };
+    return roleColors[role] || colors.primary;
+  };
+
+  const getRoleIcon = (role: GasRole): string => {
+    const icons: Record<GasRole, string> = {
+      bottom: 'arrow-down-circle',
+      travel: 'navigation',
+      deco: 'trending-up',
+      o2: 'target',
+      diluent: 'layers',
+      bailout: 'alert-triangle',
+      extension: 'plus-circle'
+    };
+    return icons[role] || 'circle';
+  };
+
+  const renderGasCard = (gas: GasEntry, canRemove: boolean, isO2Fixed: boolean = false) => {
+    const gasConsumption = currentResult?.gasConsumption?.find(gc => gc.cylinderId === gas.id);
+    const totalGas = gas.cylinderVolume * gas.fillPressure;
+    const roleColor = getRoleColor(gas.role);
+    const showSwitchDepth = ['deco', 'travel', 'bailout'].includes(gas.role);
+    
+    return (
+      <View key={gas.id} style={[styles.gasCard, { borderColor: roleColor, borderLeftWidth: 4, zIndex: showCylinderDropdown === gas.id ? 1000 : 1 }]}>
+        <View style={styles.gasHeader}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Feather name={getRoleIcon(gas.role) as any} size={16} color={roleColor} />
+            <Text style={[styles.gasIndex, { color: roleColor }]}>
+              {getRoleLabel(gas.role)}
+            </Text>
+          </View>
+          {canRemove && (
+            <TouchableOpacity onPress={() => removeGas(gas.id)}>
+              <Feather name="x" size={18} color={colors.textSecondary} />
+            </TouchableOpacity>
+          )}
+        </View>
         
-        return (
-          <View key={gas.id} style={[styles.gasCard, { borderColor: colors.border, zIndex: showCylinderDropdown === gas.id ? 1000 : 1 }]}>
-            <View style={styles.gasHeader}>
-              <Text style={[styles.gasIndex, { color: colors.primary }]}>
-                {gas.isBottomGas ? 'Bottom Gas' : `Deco Gas ${i}`}
+        {/* Gas Mix Row */}
+        <View style={styles.gasInputRow}>
+          <View style={styles.gasInputGroup}>
+            <Text style={[styles.gasInputLabel, { color: colors.textSecondary }]}>O2%</Text>
+            <TextInput
+              style={[styles.gasInput, { color: colors.text, borderColor: colors.border, backgroundColor: isO2Fixed ? colors.background : undefined }]}
+              value={String(gas.o2Percent)}
+              onChangeText={(v) => updateGas(gas.id, 'o2Percent', parseFloat(v) || 21)}
+              keyboardType="numeric"
+              editable={!isO2Fixed}
+            />
+          </View>
+          <View style={styles.gasInputGroup}>
+            <Text style={[styles.gasInputLabel, { color: colors.textSecondary }]}>He%</Text>
+            <TextInput
+              style={[styles.gasInput, { color: colors.text, borderColor: colors.border, backgroundColor: isO2Fixed ? colors.background : undefined }]}
+              value={String(gas.hePercent)}
+              onChangeText={(v) => updateGas(gas.id, 'hePercent', parseFloat(v) || 0)}
+              keyboardType="numeric"
+              editable={!isO2Fixed}
+            />
+          </View>
+          {showSwitchDepth && (
+            <View style={styles.gasInputGroup}>
+              <Text style={[styles.gasInputLabel, { color: colors.textSecondary }]}>Switch@</Text>
+              <TextInput
+                style={[styles.gasInput, { color: colors.text, borderColor: colors.border }]}
+                value={gas.switchDepth !== null ? String(gas.switchDepth) : ''}
+                onChangeText={(v) => updateGas(gas.id, 'switchDepth', v ? parseFloat(v) : null)}
+                keyboardType="numeric"
+                placeholder={depthUnit}
+                placeholderTextColor={colors.textSecondary}
+              />
+            </View>
+          )}
+        </View>
+        
+        {/* Cylinder Type Dropdown */}
+        <View style={styles.cylinderDropdownContainer}>
+          <Text style={[styles.gasInputLabel, { color: colors.textSecondary }]}>Cylinder Type</Text>
+          <TouchableOpacity
+            style={[styles.cylinderDropdownButton, { borderColor: colors.border, backgroundColor: colors.background }]}
+            onPress={() => setShowCylinderDropdown(showCylinderDropdown === gas.id ? null : gas.id)}
+          >
+            <Text style={[styles.cylinderDropdownText, { color: colors.text }]}>
+              {CYLINDER_PRESETS.find(p => 
+                Math.abs(p.volumeL - gas.cylinderVolume) < 0.5 && Math.abs(p.fillBar - gas.fillPressure) < 10
+              )?.label || 'Custom'}
+            </Text>
+            <Feather name={showCylinderDropdown === gas.id ? "chevron-up" : "chevron-down"} size={18} color={colors.textSecondary} />
+          </TouchableOpacity>
+          
+          {showCylinderDropdown === gas.id && (
+            <View style={[styles.cylinderDropdownList, { backgroundColor: isDark ? '#2C2C2E' : '#FFFFFF', borderColor: colors.border }]}>
+              <ScrollView 
+                style={{ maxHeight: 200 }} 
+                nestedScrollEnabled
+                keyboardShouldPersistTaps="handled"
+              >
+                {CYLINDER_PRESETS.map(preset => (
+                  <Pressable
+                    key={preset.label}
+                    style={({ pressed }) => [
+                      styles.cylinderDropdownItem,
+                      { borderBottomColor: colors.border },
+                      Math.abs(preset.volumeL - gas.cylinderVolume) < 0.5 && Math.abs(preset.fillBar - gas.fillPressure) < 10 &&
+                        { backgroundColor: colors.primary + '15' },
+                      pressed && { backgroundColor: colors.primary + '25' }
+                    ]}
+                    onPress={() => {
+                      updateGas(gas.id, 'cylinderVolume', preset.volumeL);
+                      updateGas(gas.id, 'fillPressure', preset.fillBar);
+                      setShowCylinderDropdown(null);
+                    }}
+                  >
+                    <Text style={[styles.cylinderDropdownItemText, { color: colors.text }]}>{preset.label}</Text>
+                    <Text style={[styles.cylinderDropdownItemSub, { color: colors.textSecondary }]}>
+                      {settings.units === 'imperial' 
+                        ? `${preset.volumeCuft} cu ft @ ${Math.round(preset.fillBar * 14.5)} PSI`
+                        : `${preset.volumeL}L @ ${preset.fillBar} bar`
+                      }
+                    </Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+        </View>
+        
+        {/* Cylinder Details Row */}
+        <View style={styles.gasInputRow}>
+          <View style={styles.gasInputGroup}>
+            <Text style={[styles.gasInputLabel, { color: colors.textSecondary }]}>
+              {settings.units === 'imperial' ? 'Volume (cu ft)' : 'Volume (L)'}
+            </Text>
+            <TextInput
+              style={[styles.gasInput, { color: colors.text, borderColor: colors.border }]}
+              value={String(settings.units === 'imperial' 
+                ? Math.round(gas.cylinderVolume * gas.fillPressure / 28.3)
+                : Math.round(gas.cylinderVolume * 10) / 10
+              )}
+              onChangeText={(v) => {
+                const val = parseFloat(v) || 12;
+                if (settings.units === 'imperial') {
+                  updateGas(gas.id, 'cylinderVolume', Math.round((val * 28.3 / gas.fillPressure) * 10) / 10);
+                } else {
+                  updateGas(gas.id, 'cylinderVolume', val);
+                }
+              }}
+              keyboardType="numeric"
+            />
+          </View>
+          <View style={styles.gasInputGroup}>
+            <Text style={[styles.gasInputLabel, { color: colors.textSecondary }]}>
+              {settings.units === 'imperial' ? 'Fill (PSI)' : 'Fill (bar)'}
+            </Text>
+            <TextInput
+              style={[styles.gasInput, { color: colors.text, borderColor: colors.border }]}
+              value={String(settings.units === 'imperial'
+                ? Math.round(gas.fillPressure * 14.5)
+                : gas.fillPressure
+              )}
+              onChangeText={(v) => {
+                const val = parseFloat(v) || 220;
+                if (settings.units === 'imperial') {
+                  updateGas(gas.id, 'fillPressure', Math.round(val / 14.5));
+                } else {
+                  updateGas(gas.id, 'fillPressure', val);
+                }
+              }}
+              keyboardType="numeric"
+            />
+          </View>
+          <View style={styles.gasInputGroup}>
+            <Text style={[styles.gasInputLabel, { color: colors.textSecondary }]}>
+              {settings.units === 'imperial' ? 'Reserve (PSI)' : 'Reserve (bar)'}
+            </Text>
+            <TextInput
+              style={[styles.gasInput, { color: colors.text, borderColor: colors.border }]}
+              value={String(settings.units === 'imperial'
+                ? Math.round(gas.reservePressure * 14.5)
+                : gas.reservePressure
+              )}
+              onChangeText={(v) => {
+                const val = parseFloat(v) || 50;
+                if (settings.units === 'imperial') {
+                  updateGas(gas.id, 'reservePressure', Math.round(val / 14.5));
+                } else {
+                  updateGas(gas.id, 'reservePressure', val);
+                }
+              }}
+              keyboardType="numeric"
+            />
+          </View>
+        </View>
+        
+        {/* Gas Stats */}
+        <View style={styles.gasStatsRow}>
+          <Text style={[styles.gasMod, { color: colors.textSecondary }]}>
+            MOD: {Math.floor(((1.4 / (gas.o2Percent / 100)) - 1) * 10)}{depthUnit} (1.4) / {Math.floor(((1.6 / (gas.o2Percent / 100)) - 1) * 10)}{depthUnit} (1.6)
+          </Text>
+          <Text style={[styles.gasMod, { color: colors.textSecondary }]}>
+            Total: {totalGas}L
+          </Text>
+        </View>
+        
+        {/* Gas Consumption Display */}
+        {gasConsumption && (
+          <View style={[styles.gasConsumptionBar, { backgroundColor: colors.background }]}>
+            <View style={styles.gasConsumptionLabels}>
+              <Text style={[styles.gasConsumptionText, { color: colors.text }]}>
+                Required: {gasConsumption.gasRequired}L
               </Text>
-              {!gas.isBottomGas && gases.length > 1 && (
-                <TouchableOpacity onPress={() => removeGas(gas.id)}>
-                  <Feather name="x" size={18} color={colors.textSecondary} />
+              <Text style={[
+                styles.gasConsumptionText, 
+                { color: gasConsumption.isSufficient ? colors.success : colors.danger }
+              ]}>
+                {gasConsumption.isSufficient ? `Remaining: ${gasConsumption.gasRemaining}L` : 'INSUFFICIENT'}
+              </Text>
+            </View>
+            <View style={[styles.consumptionTrack, { backgroundColor: colors.border }]}>
+              <View 
+                style={[
+                  styles.consumptionFill, 
+                  { 
+                    width: `${Math.min(gasConsumption.percentUsed, 100)}%`,
+                    backgroundColor: gasConsumption.percentUsed > 80 
+                      ? (gasConsumption.isSufficient ? colors.warning : colors.danger) 
+                      : colors.success 
+                  }
+                ]} 
+              />
+              <View 
+                style={[
+                  styles.reserveMarker,
+                  { left: `${100 - (gas.reservePressure / gas.fillPressure * 100)}%`, backgroundColor: colors.warning }
+                ]}
+              />
+            </View>
+          </View>
+        )}
+      </View>
+    );
+  };
+
+  const renderGasesTab = () => {
+    const isCCR = settings.circuit === 'ccr';
+    
+    // Filter gases by role for organized display
+    const o2Cylinder = gases.find(g => g.role === 'o2');
+    const diluentCylinder = gases.find(g => g.role === 'diluent');
+    const bailoutGases = gases.filter(g => g.role === 'bailout');
+    const extensionGases = gases.filter(g => g.role === 'extension');
+    
+    const bottomGas = gases.find(g => g.role === 'bottom');
+    const travelGases = gases.filter(g => g.role === 'travel');
+    const decoGases = gases.filter(g => g.role === 'deco');
+    
+    return (
+      <>
+        {/* Circuit Mode Badge */}
+        <View style={[styles.section, { backgroundColor: colors.card, flexDirection: 'row', alignItems: 'center', gap: 12 }]}>
+          <View style={[styles.circuitBadge, { backgroundColor: isCCR ? colors.primary + '20' : colors.accent + '20' }]}>
+            <Feather name={isCCR ? 'refresh-cw' : 'wind'} size={14} color={isCCR ? colors.primary : colors.accent} />
+            <Text style={[styles.circuitBadgeText, { color: isCCR ? colors.primary : colors.accent }]}>
+              {isCCR ? 'CCR Mode' : 'Open Circuit'}
+            </Text>
+          </View>
+          <Text style={[styles.settingHint, { color: colors.textSecondary, flex: 1 }]}>
+            {isCCR 
+              ? 'Configure O2, Diluent, and backup gases' 
+              : 'Configure bottom, travel, and deco gases'}
+          </Text>
+        </View>
+
+        {isCCR ? (
+          <>
+            {/* CCR Loop Gases */}
+            <View style={[styles.section, { backgroundColor: colors.card }]}>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>Loop Gases</Text>
+              <Text style={[styles.settingHint, { color: colors.textSecondary, marginBottom: 12 }]}>
+                Onboard O2 and Diluent cylinders
+              </Text>
+              
+              {o2Cylinder && renderGasCard(o2Cylinder, false, true)}
+              {diluentCylinder && renderGasCard(diluentCylinder, false, false)}
+              
+              {!o2Cylinder && (
+                <TouchableOpacity onPress={() => addGas('o2')} style={[styles.addGasButton, { borderColor: '#FF6B6B' }]}>
+                  <Feather name="plus" size={16} color="#FF6B6B" />
+                  <Text style={[styles.addGasText, { color: '#FF6B6B' }]}>Add O2 Cylinder</Text>
+                </TouchableOpacity>
+              )}
+              {!diluentCylinder && (
+                <TouchableOpacity onPress={() => addGas('diluent')} style={[styles.addGasButton, { borderColor: '#4ECDC4' }]}>
+                  <Feather name="plus" size={16} color="#4ECDC4" />
+                  <Text style={[styles.addGasText, { color: '#4ECDC4' }]}>Add Diluent Cylinder</Text>
                 </TouchableOpacity>
               )}
             </View>
-            
-            {/* Gas Mix Row */}
-            <View style={styles.gasInputRow}>
-              <View style={styles.gasInputGroup}>
-                <Text style={[styles.gasInputLabel, { color: colors.textSecondary }]}>O2%</Text>
-                <TextInput
-                  style={[styles.gasInput, { color: colors.text, borderColor: colors.border }]}
-                  value={String(gas.o2Percent)}
-                  onChangeText={(v) => updateGas(gas.id, 'o2Percent', parseFloat(v) || 21)}
-                  keyboardType="numeric"
-                />
-              </View>
-              <View style={styles.gasInputGroup}>
-                <Text style={[styles.gasInputLabel, { color: colors.textSecondary }]}>He%</Text>
-                <TextInput
-                  style={[styles.gasInput, { color: colors.text, borderColor: colors.border }]}
-                  value={String(gas.hePercent)}
-                  onChangeText={(v) => updateGas(gas.id, 'hePercent', parseFloat(v) || 0)}
-                  keyboardType="numeric"
-                />
-              </View>
-              {!gas.isBottomGas && (
-                <View style={styles.gasInputGroup}>
-                  <Text style={[styles.gasInputLabel, { color: colors.textSecondary }]}>Switch@</Text>
-                  <TextInput
-                    style={[styles.gasInput, { color: colors.text, borderColor: colors.border }]}
-                    value={gas.switchDepth !== null ? String(gas.switchDepth) : ''}
-                    onChangeText={(v) => updateGas(gas.id, 'switchDepth', v ? parseFloat(v) : null)}
-                    keyboardType="numeric"
-                    placeholder={depthUnit}
-                    placeholderTextColor={colors.textSecondary}
-                  />
-                </View>
-              )}
-            </View>
-            
-            {/* Cylinder Type Dropdown */}
-            <View style={styles.cylinderDropdownContainer}>
-              <Text style={[styles.gasInputLabel, { color: colors.textSecondary }]}>Cylinder Type</Text>
-              <TouchableOpacity
-                style={[styles.cylinderDropdownButton, { borderColor: colors.border, backgroundColor: colors.background }]}
-                onPress={() => setShowCylinderDropdown(showCylinderDropdown === gas.id ? null : gas.id)}
-              >
-                <Text style={[styles.cylinderDropdownText, { color: colors.text }]}>
-                  {CYLINDER_PRESETS.find(p => 
-                    Math.abs(p.volumeL - gas.cylinderVolume) < 0.5 && Math.abs(p.fillBar - gas.fillPressure) < 10
-                  )?.label || 'Custom'}
-                </Text>
-                <Feather name={showCylinderDropdown === gas.id ? "chevron-up" : "chevron-down"} size={18} color={colors.textSecondary} />
-              </TouchableOpacity>
+
+            {/* CCR Bailout Gases */}
+            <View style={[styles.section, { backgroundColor: colors.card }]}>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>Bailout Gases</Text>
+              <Text style={[styles.settingHint, { color: colors.textSecondary, marginBottom: 12 }]}>
+                Open circuit bailout in case of loop failure
+              </Text>
               
-              {showCylinderDropdown === gas.id && (
-                <View style={[styles.cylinderDropdownList, { backgroundColor: isDark ? '#2C2C2E' : '#FFFFFF', borderColor: colors.border }]}>
-                  <ScrollView 
-                    style={{ maxHeight: 200 }} 
-                    nestedScrollEnabled
-                    keyboardShouldPersistTaps="handled"
-                  >
-                    {CYLINDER_PRESETS.map(preset => (
-                      <Pressable
-                        key={preset.label}
-                        style={({ pressed }) => [
-                          styles.cylinderDropdownItem,
-                          { borderBottomColor: colors.border },
-                          Math.abs(preset.volumeL - gas.cylinderVolume) < 0.5 && Math.abs(preset.fillBar - gas.fillPressure) < 10 &&
-                            { backgroundColor: colors.primary + '15' },
-                          pressed && { backgroundColor: colors.primary + '25' }
-                        ]}
-                        onPress={() => {
-                          updateGas(gas.id, 'cylinderVolume', preset.volumeL);
-                          updateGas(gas.id, 'fillPressure', preset.fillBar);
-                          setShowCylinderDropdown(null);
-                        }}
-                      >
-                        <Text style={[styles.cylinderDropdownItemText, { color: colors.text }]}>{preset.label}</Text>
-                        <Text style={[styles.cylinderDropdownItemSub, { color: colors.textSecondary }]}>
-                          {settings.units === 'imperial' 
-                            ? `${preset.volumeCuft} cu ft @ ${Math.round(preset.fillBar * 14.5)} PSI`
-                            : `${preset.volumeL}L @ ${preset.fillBar} bar`
-                          }
-                        </Text>
-                      </Pressable>
-                    ))}
-                  </ScrollView>
-                </View>
+              {bailoutGases.map(gas => renderGasCard(gas, bailoutGases.length > 0, false))}
+              
+              <TouchableOpacity onPress={() => addGas('bailout')} style={[styles.addGasButton, { borderColor: colors.warning }]}>
+                <Feather name="plus" size={16} color={colors.warning} />
+                <Text style={[styles.addGasText, { color: colors.warning }]}>Add Bailout Gas</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* CCR Extension Gases */}
+            <View style={[styles.section, { backgroundColor: colors.card }]}>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>Extension Gases</Text>
+              <Text style={[styles.settingHint, { color: colors.textSecondary, marginBottom: 12 }]}>
+                Extra O2 or Diluent to extend dive duration
+              </Text>
+              
+              {extensionGases.map(gas => renderGasCard(gas, true, false))}
+              
+              <TouchableOpacity onPress={() => addGas('extension')} style={[styles.addGasButton, { borderColor: colors.textSecondary }]}>
+                <Feather name="plus" size={16} color={colors.textSecondary} />
+                <Text style={[styles.addGasText, { color: colors.textSecondary }]}>Add Extension Gas</Text>
+              </TouchableOpacity>
+            </View>
+          </>
+        ) : (
+          <>
+            {/* OC Bottom Gas */}
+            <View style={[styles.section, { backgroundColor: colors.card }]}>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>Bottom Gas</Text>
+              <Text style={[styles.settingHint, { color: colors.textSecondary, marginBottom: 12 }]}>
+                Primary gas for the bottom phase of the dive
+              </Text>
+              
+              {bottomGas && renderGasCard(bottomGas, false, false)}
+              
+              {!bottomGas && (
+                <TouchableOpacity onPress={() => addGas('bottom')} style={[styles.addGasButton, { borderColor: colors.primary }]}>
+                  <Feather name="plus" size={16} color={colors.primary} />
+                  <Text style={[styles.addGasText, { color: colors.primary }]}>Add Bottom Gas</Text>
+                </TouchableOpacity>
               )}
             </View>
-            
-            {/* Cylinder Details Row */}
-            <View style={styles.gasInputRow}>
-              <View style={styles.gasInputGroup}>
-                <Text style={[styles.gasInputLabel, { color: colors.textSecondary }]}>
-                  {settings.units === 'imperial' ? 'Volume (cu ft)' : 'Volume (L)'}
-                </Text>
-                <TextInput
-                  style={[styles.gasInput, { color: colors.text, borderColor: colors.border }]}
-                  value={String(settings.units === 'imperial' 
-                    ? Math.round(gas.cylinderVolume * gas.fillPressure / 28.3)
-                    : Math.round(gas.cylinderVolume * 10) / 10
-                  )}
-                  onChangeText={(v) => {
-                    const val = parseFloat(v) || 12;
-                    if (settings.units === 'imperial') {
-                      // Convert cu ft to liters (cu ft = L * bar / 28.3)
-                      updateGas(gas.id, 'cylinderVolume', Math.round((val * 28.3 / gas.fillPressure) * 10) / 10);
-                    } else {
-                      updateGas(gas.id, 'cylinderVolume', val);
-                    }
-                  }}
-                  keyboardType="numeric"
-                />
-              </View>
-              <View style={styles.gasInputGroup}>
-                <Text style={[styles.gasInputLabel, { color: colors.textSecondary }]}>
-                  {settings.units === 'imperial' ? 'Fill (PSI)' : 'Fill (bar)'}
-                </Text>
-                <TextInput
-                  style={[styles.gasInput, { color: colors.text, borderColor: colors.border }]}
-                  value={String(settings.units === 'imperial'
-                    ? Math.round(gas.fillPressure * 14.5)
-                    : gas.fillPressure
-                  )}
-                  onChangeText={(v) => {
-                    const val = parseFloat(v) || 220;
-                    if (settings.units === 'imperial') {
-                      updateGas(gas.id, 'fillPressure', Math.round(val / 14.5));
-                    } else {
-                      updateGas(gas.id, 'fillPressure', val);
-                    }
-                  }}
-                  keyboardType="numeric"
-                />
-              </View>
-              <View style={styles.gasInputGroup}>
-                <Text style={[styles.gasInputLabel, { color: colors.textSecondary }]}>
-                  {settings.units === 'imperial' ? 'Reserve (PSI)' : 'Reserve (bar)'}
-                </Text>
-                <TextInput
-                  style={[styles.gasInput, { color: colors.text, borderColor: colors.border }]}
-                  value={String(settings.units === 'imperial'
-                    ? Math.round(gas.reservePressure * 14.5)
-                    : gas.reservePressure
-                  )}
-                  onChangeText={(v) => {
-                    const val = parseFloat(v) || 50;
-                    if (settings.units === 'imperial') {
-                      updateGas(gas.id, 'reservePressure', Math.round(val / 14.5));
-                    } else {
-                      updateGas(gas.id, 'reservePressure', val);
-                    }
-                  }}
-                  keyboardType="numeric"
-                />
-              </View>
-            </View>
-            
-            {/* Gas Stats */}
-            <View style={styles.gasStatsRow}>
-              <Text style={[styles.gasMod, { color: colors.textSecondary }]}>
-                MOD: {Math.floor(((1.4 / (gas.o2Percent / 100)) - 1) * 10)}{depthUnit} (1.4) / {Math.floor(((1.6 / (gas.o2Percent / 100)) - 1) * 10)}{depthUnit} (1.6)
+
+            {/* OC Travel Gases */}
+            <View style={[styles.section, { backgroundColor: colors.card }]}>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>Travel Gases</Text>
+              <Text style={[styles.settingHint, { color: colors.textSecondary, marginBottom: 12 }]}>
+                Gases used during descent (optional)
               </Text>
-              <Text style={[styles.gasMod, { color: colors.textSecondary }]}>
-                Total: {totalGas}L
-              </Text>
+              
+              {travelGases.map(gas => renderGasCard(gas, true, false))}
+              
+              <TouchableOpacity onPress={() => addGas('travel')} style={[styles.addGasButton, { borderColor: colors.accent }]}>
+                <Feather name="plus" size={16} color={colors.accent} />
+                <Text style={[styles.addGasText, { color: colors.accent }]}>Add Travel Gas</Text>
+              </TouchableOpacity>
             </View>
-            
-            {/* Gas Consumption Display */}
-            {gasConsumption && (
-              <View style={[styles.gasConsumptionBar, { backgroundColor: colors.background }]}>
-                <View style={styles.gasConsumptionLabels}>
-                  <Text style={[styles.gasConsumptionText, { color: colors.text }]}>
-                    Required: {gasConsumption.gasRequired}L
-                  </Text>
-                  <Text style={[
-                    styles.gasConsumptionText, 
-                    { color: gasConsumption.isSufficient ? colors.success : colors.danger }
-                  ]}>
-                    {gasConsumption.isSufficient ? `Remaining: ${gasConsumption.gasRemaining}L` : 'INSUFFICIENT'}
-                  </Text>
-                </View>
-                <View style={[styles.consumptionTrack, { backgroundColor: colors.border }]}>
-                  <View 
-                    style={[
-                      styles.consumptionFill, 
-                      { 
-                        width: `${Math.min(gasConsumption.percentUsed, 100)}%`,
-                        backgroundColor: gasConsumption.percentUsed > 80 
-                          ? (gasConsumption.isSufficient ? colors.warning : colors.danger) 
-                          : colors.success 
-                      }
-                    ]} 
-                  />
-                  <View 
-                    style={[
-                      styles.reserveMarker,
-                      { left: `${100 - (gas.reservePressure / gas.fillPressure * 100)}%`, backgroundColor: colors.warning }
-                    ]}
-                  />
-                </View>
-              </View>
-            )}
-          </View>
-        );
-      })}
-      <TouchableOpacity onPress={addGas} style={[styles.addGasButton, { borderColor: colors.primary }]}>
-        <Feather name="plus" size={16} color={colors.primary} />
-        <Text style={[styles.addGasText, { color: colors.primary }]}>Add Deco Gas</Text>
-      </TouchableOpacity>
-    </View>
-  );
+
+            {/* OC Deco Gases */}
+            <View style={[styles.section, { backgroundColor: colors.card }]}>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>Deco Gases</Text>
+              <Text style={[styles.settingHint, { color: colors.textSecondary, marginBottom: 12 }]}>
+                Gases used during ascent and decompression stops
+              </Text>
+              
+              {decoGases.map(gas => renderGasCard(gas, true, false))}
+              
+              <TouchableOpacity onPress={() => addGas('deco')} style={[styles.addGasButton, { borderColor: colors.success }]}>
+                <Feather name="plus" size={16} color={colors.success} />
+                <Text style={[styles.addGasText, { color: colors.success }]}>Add Deco Gas</Text>
+              </TouchableOpacity>
+            </View>
+          </>
+        )}
+      </>
+    );
+  };
 
   // Helper to render settings with pending state
   const ps = pendingSettings;
@@ -1780,6 +1989,15 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   modeBadgeText: { color: '#FFF', fontSize: 11, fontWeight: '600' },
+  circuitBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 16,
+    gap: 6,
+  },
+  circuitBadgeText: { fontSize: 13, fontWeight: '600' },
   settingsSectionTitle: { fontSize: 16, fontWeight: '600', marginBottom: 16 },
   addButton: {
     flexDirection: 'row',

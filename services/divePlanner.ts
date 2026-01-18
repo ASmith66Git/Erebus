@@ -1,3 +1,8 @@
+// Gas roles vary by circuit type
+export type OCGasRole = 'bottom' | 'travel' | 'deco';
+export type CCRGasRole = 'o2' | 'diluent' | 'bailout' | 'extension';
+export type GasRole = OCGasRole | CCRGasRole;
+
 export interface GasMix {
   id: string;
   name: string;
@@ -12,6 +17,9 @@ export interface GasMix {
   fillPressure: number; // bar
   reservePressure: number; // bar - minimum reserve
   cylinderId?: string; // unique identifier for this specific cylinder (for tracking consumption)
+  // Gas role (circuit-dependent)
+  role?: GasRole; // OC: bottom/travel/deco, CCR: o2/diluent/bailout/extension
+  isBottomGas?: boolean; // legacy - use role instead
 }
 
 export interface GasConsumption {
