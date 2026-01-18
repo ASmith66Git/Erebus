@@ -228,9 +228,9 @@ export default function DivePlanningScreen() {
   };
 
   const tissueColors = [
-    '#FF6B6B', '#FF8E53', '#FFA94D', '#FFD93D', '#C0EB75', '#6BCB77',
-    '#4ECDC4', '#45B7D1', '#5C7CFA', '#7950F2', '#BE4BDB', '#E64980',
-    '#F06595', '#CC5DE8', '#845EF7', '#5C7CFA'
+    '#E53935', '#FF5722', '#FF9800', '#FFC107', '#CDDC39', '#8BC34A',
+    '#4CAF50', '#009688', '#00BCD4', '#03A9F4', '#2196F3', '#3F51B5',
+    '#673AB7', '#9C27B0', '#E91E63', '#F44336'
   ];
 
   const depthUnit = settings.units === 'imperial' ? 'ft' : 'm';
