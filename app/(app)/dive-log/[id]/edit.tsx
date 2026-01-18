@@ -70,7 +70,7 @@ interface DiveLog {
   problemNotes: string | null;
   gearProfileId: number | null;
   samples: any[] | null;
-  gasMixes: { name?: string; o2: number; he: number }[] | null;
+  gasMixes: { name?: string; o2: number; he: number; startBar?: number; endBar?: number }[] | null;
 }
 
 interface DiveBuddy {
@@ -641,12 +641,12 @@ export default function EditDiveLogScreen() {
     </ScrollView>
   );
 
-  const updateGasMix = (index: number, field: 'o2' | 'he', value: string) => {
+  const updateGasMix = (index: number, field: 'o2' | 'he' | 'startBar' | 'endBar', value: string) => {
     const numValue = parseFloat(value) || 0;
     setGasMixes(prev => {
       const updated = [...prev];
       while (updated.length <= index) {
-        updated.push({ o2: 21, he: 0 });
+        updated.push({ o2: 21, he: 0, startBar: 200, endBar: 50 });
       }
       updated[index] = { ...updated[index], [field]: numValue };
       return updated;
@@ -656,32 +656,11 @@ export default function EditDiveLogScreen() {
   const renderGasTab = () => (
     <ScrollView style={styles.tabContent} contentContainerStyle={styles.tabContentContainer}>
       <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <Text style={[styles.cardTitle, { color: colors.text }]}>Dive Mode</Text>
-        <View style={styles.chipsRow}>
-          {DIVE_MODES.map((mode) => (
-            <Pressable
-              key={mode}
-              style={[
-                styles.chip,
-                { borderColor: colors.border },
-                diveMode === mode && { backgroundColor: colors.primary + '20', borderColor: colors.primary }
-              ]}
-              onPress={() => setDiveMode(diveMode === mode ? '' : mode)}
-            >
-              <Text style={[styles.chipText, { color: diveMode === mode ? colors.primary : colors.text }]}>
-                {mode}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-      </View>
-
-      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <Text style={[styles.cardTitle, { color: colors.text }]}>Gas Mixes</Text>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>Cylinders</Text>
         {gearCylinders.length > 0 ? (
           <View>
             {gearCylinders.map((cyl, index) => {
-              const gasMix = gasMixes[index] || { o2: 21, he: 0 };
+              const gasMix = gasMixes[index] || { o2: 21, he: 0, startBar: 200, endBar: 50 };
               return (
                 <View key={index} style={styles.gasMixRow}>
                   <Text style={[styles.gasMixLabel, { color: colors.text }]}>
@@ -711,13 +690,37 @@ export default function EditDiveLogScreen() {
                       />
                     </View>
                   </View>
+                  <View style={[styles.gasMixInputs, { marginTop: 8 }]}>
+                    <View style={styles.gasMixInputGroup}>
+                      <Text style={[styles.gasMixInputLabel, { color: colors.textSecondary }]}>Start (bar)</Text>
+                      <TextInput
+                        style={[styles.gasMixInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
+                        value={gasMix.startBar?.toString() || '200'}
+                        onChangeText={(v) => updateGasMix(index, 'startBar', v)}
+                        keyboardType="numeric"
+                        placeholder="200"
+                        placeholderTextColor={colors.textSecondary}
+                      />
+                    </View>
+                    <View style={styles.gasMixInputGroup}>
+                      <Text style={[styles.gasMixInputLabel, { color: colors.textSecondary }]}>End (bar)</Text>
+                      <TextInput
+                        style={[styles.gasMixInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
+                        value={gasMix.endBar?.toString() || '50'}
+                        onChangeText={(v) => updateGasMix(index, 'endBar', v)}
+                        keyboardType="numeric"
+                        placeholder="50"
+                        placeholderTextColor={colors.textSecondary}
+                      />
+                    </View>
+                  </View>
                 </View>
               );
             })}
           </View>
         ) : (
           <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-            Link a gear profile to configure gas mixes for each cylinder.
+            Link a gear profile to configure gas for each cylinder.
           </Text>
         )}
       </View>

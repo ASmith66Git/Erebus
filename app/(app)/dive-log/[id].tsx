@@ -1003,12 +1003,14 @@ function GasTab({ diveLog, colors, gearCylinders }: { diveLog: DiveLog; colors: 
               const gasMix = gasMixes[index];
               const o2 = gasMix?.o2 ?? 21;
               const he = gasMix?.he ?? 0;
+              const startBar = gasMix?.startBar ?? 200;
+              const endBar = gasMix?.endBar ?? 50;
               return (
                 <CircularGauge
                   key={index}
                   label={cyl.nickname || `Cylinder ${index + 1}`}
-                  startBar={cyl.startPressure || cyl.start_pressure || 200}
-                  endBar={cyl.endPressure || cyl.end_pressure || 50}
+                  startBar={startBar}
+                  endBar={endBar}
                   o2Percent={o2}
                   hePercent={he}
                   colors={colors}
