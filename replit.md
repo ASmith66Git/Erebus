@@ -76,7 +76,8 @@ The application is built using Expo React Native, targeting both iOS and Android
   - Buhlmann ZHL-16C algorithm with 16 tissue compartments for N2 and He (ZHL-16A/B also available)
   - Gradient Factor (GF Low/High) dropdowns for conservative deco planning
   - Interactive dive profile SVG chart with always-visible scrubber line, drag handle, and popup showing depth/time/gas/CNS/OTU/phase
-  - Real-time 16-compartment tissue loading bar chart with color-coded saturation levels and percentage labels
+  - Real-time 16-compartment tissue saturation bar chart with GF-based M-value scaling (0% = surface equilibrium, 100% = at GF ceiling)
+  - **PDF Export**: Generate professional dive plan PDFs with dive summary, profile chart, deco schedule, gas configuration, and settings (web only)
   - Custom gas mix management with O2%, He%, MOD calculations (PPO2 1.4/1.6)
   - Per-cylinder gas tracking with cylinderId system for multiple cylinders with identical mixes
   - Comprehensive cylinder selection dropdown (AL80/63/100, Steel HP80/100/120, Steel 12L/15L, Twinsets, Stage tanks)
