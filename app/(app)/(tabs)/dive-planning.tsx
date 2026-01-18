@@ -882,12 +882,13 @@ export default function DivePlanningScreen() {
           
           {/* Table Header */}
           <View style={[styles.profileTableHeader, { borderBottomColor: colors.border }]}>
-            <Text style={[styles.profileHeaderCell, { width: 28, color: colors.textSecondary }]}></Text>
-            <Text style={[styles.profileHeaderCell, { width: 55, color: colors.textSecondary }]}>Depth</Text>
+            <Text style={[styles.profileHeaderCell, { width: 24, color: colors.textSecondary }]}></Text>
+            <Text style={[styles.profileHeaderCell, { width: 42, color: colors.textSecondary }]}>Depth</Text>
+            <Text style={[styles.profileHeaderCell, { width: 42, color: colors.textSecondary }]}>Stop</Text>
             <Text style={[styles.profileHeaderCell, { width: 50, color: colors.textSecondary }]}>Run</Text>
             <Text style={[styles.profileHeaderCell, { flex: 1, color: colors.textSecondary }]}>Gas</Text>
-            <Text style={[styles.profileHeaderCell, { width: 45, color: colors.textSecondary }]}>PO2</Text>
-            <Text style={[styles.profileHeaderCell, { width: 50, color: colors.textSecondary }]}>EAD</Text>
+            <Text style={[styles.profileHeaderCell, { width: 40, color: colors.textSecondary }]}>PO2</Text>
+            <Text style={[styles.profileHeaderCell, { width: 40, color: colors.textSecondary }]}>EAD</Text>
           </View>
           
           {/* Table Rows */}
@@ -907,14 +908,21 @@ export default function DivePlanningScreen() {
             
             const po2Color = po2 > 1.6 ? colors.error : po2 > 1.4 ? colors.warning : colors.text;
             
+            const formatTime = (mins: number) => {
+              const m = Math.floor(mins);
+              const s = Math.round((mins - m) * 60);
+              return `${m}:${s.toString().padStart(2, '0')}`;
+            };
+            
             return (
               <View key={i} style={[styles.profileTableRow, { backgroundColor: i % 2 === 0 ? 'transparent' : colors.background + '40' }]}>
-                <Text style={[styles.profileCell, { width: 28, fontSize: 16, color: arrowColor }]}>{arrow}</Text>
-                <Text style={[styles.profileCell, { width: 55, color: colors.text }]}>{depth}{depthUnit}</Text>
-                <Text style={[styles.profileCell, { width: 50, color: colors.textSecondary }]}>{seg.runTime}'</Text>
+                <Text style={[styles.profileCell, { width: 24, fontSize: 14, color: arrowColor }]}>{arrow}</Text>
+                <Text style={[styles.profileCell, { width: 42, color: colors.text }]}>{depth}{depthUnit}</Text>
+                <Text style={[styles.profileCell, { width: 42, color: colors.accent }]}>{formatTime(seg.duration)}</Text>
+                <Text style={[styles.profileCell, { width: 50, color: colors.textSecondary }]}>{formatTime(seg.runTime)}</Text>
                 <Text style={[styles.profileCell, { flex: 1, color: colors.text }]} numberOfLines={1}>{seg.gasMix.name}</Text>
-                <Text style={[styles.profileCell, { width: 45, color: po2Color }]}>{po2.toFixed(2)}</Text>
-                <Text style={[styles.profileCell, { width: 50, color: colors.textSecondary }]}>{ead > 0 ? `${ead}${depthUnit}` : '-'}</Text>
+                <Text style={[styles.profileCell, { width: 40, color: po2Color }]}>{po2.toFixed(2)}</Text>
+                <Text style={[styles.profileCell, { width: 40, color: colors.textSecondary }]}>{ead > 0 ? ead : '-'}</Text>
               </View>
             );
           })}
