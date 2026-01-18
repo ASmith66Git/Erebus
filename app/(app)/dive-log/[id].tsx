@@ -637,8 +637,63 @@ function DiveProfileChart({ samples, colors, showTemp, showNdl, showGf99, showPp
 }
 
 function DiveTab({ diveLog, colors, gearProfileName }: { diveLog: DiveLog; colors: any; gearProfileName: string | null }) {
+  const [showTemp, setShowTemp] = useState(true);
+  const [showNdl, setShowNdl] = useState(true);
+  const [showGf99, setShowGf99] = useState(true);
+  const [showPpo2, setShowPpo2] = useState(true);
+  const [showCns, setShowCns] = useState(true);
+
   return (
     <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
+      {diveLog.samples && diveLog.samples.length > 0 && (
+        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Text style={[styles.cardTitle, { color: colors.text }]}>Dive Profile</Text>
+          
+          <View style={styles.toggleRow}>
+            <Pressable
+              style={[styles.toggleButton, showTemp && { backgroundColor: colors.primary + '20', borderColor: colors.primary }]}
+              onPress={() => setShowTemp(!showTemp)}
+            >
+              <Text style={[styles.toggleText, { color: showTemp ? colors.primary : colors.textSecondary }]}>Temp</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.toggleButton, showNdl && { backgroundColor: colors.primary + '20', borderColor: colors.primary }]}
+              onPress={() => setShowNdl(!showNdl)}
+            >
+              <Text style={[styles.toggleText, { color: showNdl ? colors.primary : colors.textSecondary }]}>NDL</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.toggleButton, showGf99 && { backgroundColor: colors.primary + '20', borderColor: colors.primary }]}
+              onPress={() => setShowGf99(!showGf99)}
+            >
+              <Text style={[styles.toggleText, { color: showGf99 ? colors.primary : colors.textSecondary }]}>GF99</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.toggleButton, showPpo2 && { backgroundColor: colors.primary + '20', borderColor: colors.primary }]}
+              onPress={() => setShowPpo2(!showPpo2)}
+            >
+              <Text style={[styles.toggleText, { color: showPpo2 ? colors.primary : colors.textSecondary }]}>PPO2</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.toggleButton, showCns && { backgroundColor: colors.primary + '20', borderColor: colors.primary }]}
+              onPress={() => setShowCns(!showCns)}
+            >
+              <Text style={[styles.toggleText, { color: showCns ? colors.primary : colors.textSecondary }]}>CNS</Text>
+            </Pressable>
+          </View>
+
+          <DiveProfileChart 
+            samples={diveLog.samples} 
+            colors={colors} 
+            showTemp={showTemp}
+            showNdl={showNdl}
+            showGf99={showGf99}
+            showPpo2={showPpo2}
+            showCns={showCns}
+          />
+        </View>
+      )}
+
       <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
         <View style={styles.fieldRow}>
           <Feather name="calendar" size={16} color={colors.textSecondary} />
@@ -830,69 +885,59 @@ function ProblemsTab({ diveLog, colors }: { diveLog: DiveLog; colors: any }) {
 }
 
 function ProfileTab({ diveLog, colors }: { diveLog: DiveLog; colors: any }) {
-  const [showTemp, setShowTemp] = useState(true);
-  const [showNdl, setShowNdl] = useState(true);
-  const [showGf99, setShowGf99] = useState(true);
-  const [showPpo2, setShowPpo2] = useState(true);
-  const [showCns, setShowCns] = useState(true);
-
   return (
     <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
       <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <Text style={[styles.cardTitle, { color: colors.text }]}>Dive Profile</Text>
-        
-        <View style={styles.toggleRow}>
-          <Pressable
-            style={[styles.toggleButton, showTemp && { backgroundColor: colors.primary + '20', borderColor: colors.primary }]}
-            onPress={() => setShowTemp(!showTemp)}
-          >
-            <Text style={[styles.toggleText, { color: showTemp ? colors.primary : colors.textSecondary }]}>Temp</Text>
-          </Pressable>
-          <Pressable
-            style={[styles.toggleButton, showNdl && { backgroundColor: colors.primary + '20', borderColor: colors.primary }]}
-            onPress={() => setShowNdl(!showNdl)}
-          >
-            <Text style={[styles.toggleText, { color: showNdl ? colors.primary : colors.textSecondary }]}>NDL</Text>
-          </Pressable>
-          <Pressable
-            style={[styles.toggleButton, showGf99 && { backgroundColor: colors.primary + '20', borderColor: colors.primary }]}
-            onPress={() => setShowGf99(!showGf99)}
-          >
-            <Text style={[styles.toggleText, { color: showGf99 ? colors.primary : colors.textSecondary }]}>GF99</Text>
-          </Pressable>
-          <Pressable
-            style={[styles.toggleButton, showPpo2 && { backgroundColor: colors.primary + '20', borderColor: colors.primary }]}
-            onPress={() => setShowPpo2(!showPpo2)}
-          >
-            <Text style={[styles.toggleText, { color: showPpo2 ? colors.primary : colors.textSecondary }]}>PPO2</Text>
-          </Pressable>
-          <Pressable
-            style={[styles.toggleButton, showCns && { backgroundColor: colors.primary + '20', borderColor: colors.primary }]}
-            onPress={() => setShowCns(!showCns)}
-          >
-            <Text style={[styles.toggleText, { color: showCns ? colors.primary : colors.textSecondary }]}>CNS</Text>
-          </Pressable>
-        </View>
-
-        {diveLog.samples && diveLog.samples.length > 0 ? (
-          <DiveProfileChart 
-            samples={diveLog.samples} 
-            colors={colors} 
-            showTemp={showTemp}
-            showNdl={showNdl}
-            showGf99={showGf99}
-            showPpo2={showPpo2}
-            showCns={showCns}
-          />
-        ) : (
-          <View style={styles.noDataContainer}>
-            <Feather name="activity" size={48} color={colors.textSecondary} />
-            <Text style={[styles.noDataText, { color: colors.textSecondary }]}>
-              No dive profile data available
+        <Text style={[styles.cardTitle, { color: colors.text }]}>Depth Statistics</Text>
+        <View style={styles.metaGrid}>
+          <View style={styles.metaItem}>
+            <Text style={[styles.metaLabel, { color: colors.textSecondary }]}>Max Depth</Text>
+            <Text style={[styles.metaValue, { color: colors.text }]}>
+              {diveLog.maxDepthMeters ? `${diveLog.maxDepthMeters.toFixed(1)} m` : '--'}
             </Text>
           </View>
-        )}
+          <View style={styles.metaItem}>
+            <Text style={[styles.metaLabel, { color: colors.textSecondary }]}>Avg Depth</Text>
+            <Text style={[styles.metaValue, { color: colors.text }]}>
+              {diveLog.avgDepthMeters ? `${diveLog.avgDepthMeters.toFixed(1)} m` : '--'}
+            </Text>
+          </View>
+        </View>
       </View>
+
+      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>Temperature</Text>
+        <View style={styles.metaGrid}>
+          <View style={styles.metaItem}>
+            <Text style={[styles.metaLabel, { color: colors.textSecondary }]}>Min Temp</Text>
+            <Text style={[styles.metaValue, { color: colors.text }]}>
+              {diveLog.minTemperatureCelsius ? `${diveLog.minTemperatureCelsius.toFixed(0)}°C` : '--'}
+            </Text>
+          </View>
+          <View style={styles.metaItem}>
+            <Text style={[styles.metaLabel, { color: colors.textSecondary }]}>Max Temp</Text>
+            <Text style={[styles.metaValue, { color: colors.text }]}>
+              {diveLog.maxTemperatureCelsius ? `${diveLog.maxTemperatureCelsius.toFixed(0)}°C` : '--'}
+            </Text>
+          </View>
+        </View>
+      </View>
+
+      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>Dive Rating</Text>
+        <View style={styles.ratingRow}>
+          {[1, 2, 3, 4, 5].map((star) => (
+            <Feather
+              key={star}
+              name="star"
+              size={28}
+              color={star <= (diveLog.rating || 0) ? '#FFD700' : colors.border}
+              style={{ marginHorizontal: 4 }}
+            />
+          ))}
+        </View>
+      </View>
+
       <View style={{ height: 40 }} />
     </ScrollView>
   );
@@ -1690,6 +1735,12 @@ const styles = StyleSheet.create({
   metaItem: {
     width: '50%',
     paddingVertical: 8,
+  },
+  ratingRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 12,
   },
   metaLabel: {
     fontSize: 12,
