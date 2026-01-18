@@ -323,36 +323,78 @@ export function generateDivePlanPdf(input: DivePlanPdfInput): void {
   const chartHeight = drawDiveProfileWithTissues(doc, result, settings, margin, yPos, contentWidth, 100, themeRgb);
   yPos += chartHeight + 8;
   
-  if (result.decoStops.length > 0) {
+  const filteredSegments = result.segments.filter(s => s.type !== 'surface_interval');
+  if (filteredSegments.length > 0) {
     doc.setTextColor(themeRgb[0], themeRgb[1], themeRgb[2]);
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
-    doc.text('DECOMPRESSION SCHEDULE', margin, yPos);
+    doc.text('DIVE PROFILE', margin, yPos);
     yPos += 5;
     
-    const decoData = result.decoStops.map((stop, i) => [
-      `${i + 1}`,
-      `${stop.depth} ${depthUnit}`,
-      `${formatDuration(stop.duration)} min`,
-      formatGas(stop.gasMix),
-      `${Math.round(stop.ceiling)} ${depthUnit}`
-    ]);
+    const waterFactor = settings.waterType === 'salt' ? 10 : 10.3;
+    
+    const getPhaseSymbol = (type: string): string => {
+      switch (type) {
+        case 'descent': return '↓';
+        case 'ascent': return '↑';
+        case 'deco_stop': return '⏸';
+        case 'gas_switch': return '⟳';
+        default: return '→';
+      }
+    };
+    
+    const profileData = filteredSegments.map(seg => {
+      const segDepth = seg.type === 'descent' || seg.type === 'ascent' ? seg.endDepth : seg.startDepth;
+      const pressure = 1 + segDepth / waterFactor;
+      const po2 = (seg.gasMix.o2Percent / 100) * pressure;
+      const fN2 = (100 - seg.gasMix.o2Percent - (seg.gasMix.hePercent || 0)) / 100;
+      const ead = fN2 > 0 ? Math.round(((pressure * fN2) - 0.79) / 0.79 * waterFactor) : 0;
+      
+      return [
+        getPhaseSymbol(seg.type),
+        `${segDepth}${depthUnit}`,
+        formatDuration(seg.duration),
+        formatDuration(seg.runTime),
+        seg.gasMix.name || formatGas(seg.gasMix),
+        po2.toFixed(2),
+        ead > 0 ? `${ead}` : '-'
+      ];
+    });
     
     autoTable(doc, {
       startY: yPos,
-      head: [['#', 'Depth', 'Duration', 'Gas', 'Ceiling']],
-      body: decoData,
+      head: [['', 'Depth', 'Stop', 'Run', 'Gas', 'PO2', 'EAD']],
+      body: profileData,
       theme: 'striped',
       margin: { left: margin, right: margin },
-      headStyles: { fillColor: themeRgb, fontSize: 9 },
-      styles: { fontSize: 9, cellPadding: 3 },
+      headStyles: { fillColor: themeRgb, fontSize: 8 },
+      styles: { fontSize: 8, cellPadding: 2 },
       columnStyles: {
-        0: { cellWidth: 10 },
-        1: { cellWidth: 30 },
-        2: { cellWidth: 30 },
-        3: { cellWidth: 30 },
-        4: { cellWidth: 30 }
+        0: { cellWidth: 8, halign: 'center' },
+        1: { cellWidth: 22 },
+        2: { cellWidth: 22 },
+        3: { cellWidth: 22 },
+        4: { cellWidth: 35 },
+        5: { cellWidth: 18 },
+        6: { cellWidth: 18 }
       },
+      didParseCell: function(data) {
+        if (data.column.index === 5 && data.section === 'body') {
+          const po2Val = parseFloat(data.cell.raw as string);
+          if (po2Val > 1.6) {
+            data.cell.styles.textColor = [200, 0, 0];
+          } else if (po2Val > 1.4) {
+            data.cell.styles.textColor = [255, 152, 0];
+          }
+        }
+        if (data.column.index === 0 && data.section === 'body') {
+          const symbol = data.cell.raw as string;
+          if (symbol === '↓') data.cell.styles.textColor = themeRgb;
+          else if (symbol === '↑') data.cell.styles.textColor = [76, 175, 80];
+          else if (symbol === '⏸') data.cell.styles.textColor = [255, 152, 0];
+          else if (symbol === '⟳') data.cell.styles.textColor = [33, 150, 243];
+        }
+      }
     });
     
     yPos = (doc as any).lastAutoTable.finalY + 10;
