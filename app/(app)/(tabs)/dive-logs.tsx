@@ -85,6 +85,14 @@ function formatTime(dateStr: string): string {
   });
 }
 
+function getImageUrl(imageUrl: string | null): string | null {
+  if (!imageUrl) return null;
+  if (imageUrl.startsWith('/objects/')) {
+    return `${getApiUrl()}${imageUrl}`;
+  }
+  return imageUrl;
+}
+
 function DiveLogCard({ log, onPress, colors }: { log: DiveLog; onPress: () => void; colors: any }) {
   const sourceIcons: { [key: string]: string } = {
     uddf: 'download',
@@ -93,15 +101,16 @@ function DiveLogCard({ log, onPress, colors }: { log: DiveLog; onPress: () => vo
     manual: 'edit-3',
   };
   const sourceIcon = sourceIcons[log.importSource] || 'file';
+  const thumbnailUrl = getImageUrl(log.diveSiteImageUrl);
 
   return (
     <Pressable
       style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}
       onPress={onPress}
     >
-      {log.diveSiteImageUrl ? (
+      {thumbnailUrl ? (
         <Image 
-          source={{ uri: log.diveSiteImageUrl }} 
+          source={{ uri: thumbnailUrl }} 
           style={styles.cardThumbnail}
           resizeMode="cover"
         />
