@@ -19,7 +19,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { getApiUrl } from '@/utils/apiConfig';
 
-const TABS = ['Dive', 'Gas', 'Notes', 'Team', 'Problems'] as const;
+const TABS = ['Dive', 'Gas', 'Equipment', 'Notes', 'Team', 'Problems'] as const;
 type TabType = typeof TABS[number];
 
 const EQUIPMENT_OPTIONS = [
@@ -911,6 +911,71 @@ function ProblemsTab({ diveLog, colors }: { diveLog: DiveLog; colors: any }) {
   );
 }
 
+function EquipmentTab({ colors, gearProfile }: { colors: any; gearProfile: any | null }) {
+  if (!gearProfile) {
+    return (
+      <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
+        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Text style={[styles.noDataText, { color: colors.textSecondary }]}>
+            No gear profile linked. Edit the dive to add equipment.
+          </Text>
+        </View>
+      </ScrollView>
+    );
+  }
+
+  const equipmentItems = [
+    { icon: 'user', label: 'Suit', value: gearProfile.suitType ? `${gearProfile.suitType}${gearProfile.suitThickness ? ` (${gearProfile.suitThickness})` : ''}` : null },
+    { icon: 'layers', label: 'Undersuit', value: gearProfile.undersuit },
+    { icon: 'life-buoy', label: 'BCD/Wing', value: gearProfile.bcdType },
+    { icon: 'navigation', label: 'Fins', value: gearProfile.finsType },
+    { icon: 'eye', label: 'Mask', value: gearProfile.maskNickname },
+    { icon: 'shield', label: 'Gloves', value: gearProfile.glovesType ? `${gearProfile.glovesType}${gearProfile.glovesThickness ? ` (${gearProfile.glovesThickness})` : ''}` : null },
+    { icon: 'target', label: 'Boots', value: gearProfile.bootsType ? `${gearProfile.bootsType}${gearProfile.bootsThickness ? ` (${gearProfile.bootsThickness})` : ''}` : null },
+    { icon: 'headphones', label: 'Hood', value: gearProfile.hoodType ? `${gearProfile.hoodType}${gearProfile.hoodThickness ? ` (${gearProfile.hoodThickness})` : ''}` : null },
+  ].filter(item => item.value);
+
+  return (
+    <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
+      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <View style={styles.fieldRow}>
+          <Feather name="briefcase" size={16} color={colors.primary} />
+          <Text style={[styles.cardTitle, { color: colors.text }]}>{gearProfile.name}</Text>
+        </View>
+        <Text style={[styles.configType, { color: colors.textSecondary }]}>
+          {gearProfile.configType?.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()) || 'Single Tank'}
+        </Text>
+      </View>
+
+      {equipmentItems.length > 0 ? (
+        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <View style={styles.fieldRow}>
+            <Feather name="package" size={16} color={colors.primary} />
+            <Text style={[styles.cardTitle, { color: colors.text }]}>Equipment</Text>
+          </View>
+          {equipmentItems.map((item, index) => (
+            <View key={index} style={styles.equipmentRow}>
+              <View style={styles.equipmentLabelRow}>
+                <Feather name={item.icon as any} size={14} color={colors.primary} />
+                <Text style={[styles.equipmentLabel, { color: colors.textSecondary }]}>{item.label}</Text>
+              </View>
+              <Text style={[styles.equipmentValue, { color: colors.text }]}>{item.value}</Text>
+            </View>
+          ))}
+        </View>
+      ) : (
+        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Text style={[styles.noDataText, { color: colors.textSecondary }]}>
+            No equipment details configured in gear profile.
+          </Text>
+        </View>
+      )}
+
+      <View style={{ height: 40 }} />
+    </ScrollView>
+  );
+}
+
 function GasTab({ diveLog, colors, gearCylinders }: { diveLog: DiveLog; colors: any; gearCylinders: any[] }) {
   const hasCylinders = gearCylinders && gearCylinders.length > 0;
   
@@ -1202,6 +1267,7 @@ export default function DiveLogDetailScreen() {
   const [activeTab, setActiveTab] = useState<TabType>('Dive');
   const [gearProfileName, setGearProfileName] = useState<string | null>(null);
   const [gearCylinders, setGearCylinders] = useState<any[]>([]);
+  const [gearProfile, setGearProfile] = useState<any | null>(null);
 
   const fetchDiveLog = useCallback(async () => {
     if (!id || !token) return;
@@ -1248,6 +1314,7 @@ export default function DiveLogDetailScreen() {
           const data = await response.json();
           setGearProfileName(data.name || null);
           setGearCylinders(data.cylinders || []);
+          setGearProfile(data);
         }
       } catch (error) {
         console.error('Error fetching gear profile:', error);
@@ -1342,6 +1409,8 @@ export default function DiveLogDetailScreen() {
         return <DiveTab diveLog={diveLog} colors={colors} gearProfileName={gearProfileName} />;
       case 'Gas':
         return <GasTab diveLog={diveLog} colors={colors} gearCylinders={gearCylinders} />;
+      case 'Equipment':
+        return <EquipmentTab colors={colors} gearProfile={gearProfile} />;
       case 'Notes':
         return <NotesTab diveLog={diveLog} colors={colors} />;
       case 'Team':
@@ -1691,6 +1760,30 @@ const styles = StyleSheet.create({
   noDataText: {
     fontSize: 14,
     marginTop: 12,
+  },
+  configType: {
+    fontSize: 13,
+    marginTop: 4,
+  },
+  equipmentRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(128, 128, 128, 0.2)',
+  },
+  equipmentLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  equipmentLabel: {
+    fontSize: 13,
+  },
+  equipmentValue: {
+    fontSize: 14,
+    fontWeight: '500',
   },
   metaGrid: {
     flexDirection: 'row',
