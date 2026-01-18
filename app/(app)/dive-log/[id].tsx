@@ -19,7 +19,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { getApiUrl } from '@/utils/apiConfig';
 
-const TABS = ['Dive', 'Gas', 'Equipment', 'Notes', 'Team', 'Problems'] as const;
+const TABS = ['Dive', 'Gas', 'Notes', 'Team', 'Problems'] as const;
 type TabType = typeof TABS[number];
 
 const EQUIPMENT_OPTIONS = [
@@ -636,7 +636,8 @@ function DiveProfileChart({ samples, colors, showTemp, showNdl, showGf99, showPp
   );
 }
 
-function DiveTab({ diveLog, colors, gearProfileName }: { diveLog: DiveLog; colors: any; gearProfileName: string | null }) {
+function DiveTab({ diveLog, colors, gearProfileName, gearProfileId }: { diveLog: DiveLog; colors: any; gearProfileName: string | null; gearProfileId: number | null }) {
+  const router = useRouter();
   const [showTemp, setShowTemp] = useState(true);
   const [showNdl, setShowNdl] = useState(true);
   const [showGf99, setShowGf99] = useState(true);
@@ -770,7 +771,11 @@ function DiveTab({ diveLog, colors, gearProfileName }: { diveLog: DiveLog; color
         </View>
       </View>
 
-      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+      <Pressable 
+        style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}
+        onPress={() => gearProfileId && router.push(`/gear-profile/${gearProfileId}`)}
+        disabled={!gearProfileId}
+      >
         <View style={styles.fieldRow}>
           <Feather name="briefcase" size={16} color={colors.primary} />
           <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Gear Profile</Text>
@@ -779,8 +784,9 @@ function DiveTab({ diveLog, colors, gearProfileName }: { diveLog: DiveLog; color
           <Text style={[styles.fieldValueText, { color: colors.text }]}>
             {gearProfileName || 'Not specified'}
           </Text>
+          {gearProfileId && <Feather name="chevron-right" size={16} color={colors.textSecondary} />}
         </View>
-      </View>
+      </Pressable>
 
       {diveLog.gasPressures && diveLog.gasPressures.length > 0 && (
         <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -1406,11 +1412,9 @@ export default function DiveLogDetailScreen() {
   const renderTabContent = () => {
     switch (activeTab) {
       case 'Dive':
-        return <DiveTab diveLog={diveLog} colors={colors} gearProfileName={gearProfileName} />;
+        return <DiveTab diveLog={diveLog} colors={colors} gearProfileName={gearProfileName} gearProfileId={diveLog.gearProfileId} />;
       case 'Gas':
         return <GasTab diveLog={diveLog} colors={colors} gearCylinders={gearCylinders} />;
-      case 'Equipment':
-        return <EquipmentTab colors={colors} gearProfile={gearProfile} />;
       case 'Notes':
         return <NotesTab diveLog={diveLog} colors={colors} />;
       case 'Team':
