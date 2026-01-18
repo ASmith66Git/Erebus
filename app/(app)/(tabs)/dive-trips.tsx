@@ -27,6 +27,7 @@ import PageHeader from '@/components/PageHeader';
 import * as ImagePicker from 'expo-image-picker';
 
 const DEBUG_DISABLE_MAPS = false;
+const DEBUG_DISABLE_DATEPICKER = Platform.OS === 'android';
 
 interface LinkedDiveLog {
   id: number;
@@ -558,20 +559,46 @@ export default function DiveTripsScreen() {
 
               <View style={styles.formRow}>
                 <View style={{ flex: 1 }}>
-                  <DatePickerField
-                    label="Start Date"
-                    value={formData.startDate}
-                    onChange={(v) => setFormData(prev => ({ ...prev, startDate: v }))}
-                    placeholder="Select start date"
-                  />
+                  {DEBUG_DISABLE_DATEPICKER ? (
+                    <View style={styles.formGroup}>
+                      <Text style={[styles.formLabel, { color: colors.text }]}>Start Date</Text>
+                      <TextInput
+                        style={[styles.formInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
+                        value={formData.startDate}
+                        onChangeText={(v) => setFormData(prev => ({ ...prev, startDate: v }))}
+                        placeholder="YYYY-MM-DD"
+                        placeholderTextColor={colors.textSecondary}
+                      />
+                    </View>
+                  ) : (
+                    <DatePickerField
+                      label="Start Date"
+                      value={formData.startDate}
+                      onChange={(v) => setFormData(prev => ({ ...prev, startDate: v }))}
+                      placeholder="Select start date"
+                    />
+                  )}
                 </View>
                 <View style={{ flex: 1 }}>
-                  <DatePickerField
-                    label="End Date"
-                    value={formData.endDate}
-                    onChange={(v) => setFormData(prev => ({ ...prev, endDate: v }))}
-                    placeholder="Select end date"
-                  />
+                  {DEBUG_DISABLE_DATEPICKER ? (
+                    <View style={styles.formGroup}>
+                      <Text style={[styles.formLabel, { color: colors.text }]}>End Date</Text>
+                      <TextInput
+                        style={[styles.formInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
+                        value={formData.endDate}
+                        onChangeText={(v) => setFormData(prev => ({ ...prev, endDate: v }))}
+                        placeholder="YYYY-MM-DD"
+                        placeholderTextColor={colors.textSecondary}
+                      />
+                    </View>
+                  ) : (
+                    <DatePickerField
+                      label="End Date"
+                      value={formData.endDate}
+                      onChange={(v) => setFormData(prev => ({ ...prev, endDate: v }))}
+                      placeholder="Select end date"
+                    />
+                  )}
                 </View>
               </View>
 
