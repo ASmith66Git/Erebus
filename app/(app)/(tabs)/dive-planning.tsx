@@ -185,16 +185,16 @@ export default function DivePlanningScreen() {
   const addGas = (role: GasRole = 'deco') => {
     const newId = String(Date.now());
     // Set defaults based on role
-    let defaults: Partial<GasEntry> = { cylinderVolume: 7, fillPressure: 207, reservePressure: 35 };
+    let defaults: Partial<GasEntry> = { cylinderVolume: 7, fillPressure: 220, reservePressure: 35 };
     
     if (role === 'o2') {
-      defaults = { ...defaults, o2Percent: 100, hePercent: 0, name: 'O2', cylinderVolume: 3, fillPressure: 207 };
+      defaults = { ...defaults, o2Percent: 100, hePercent: 0, name: 'O2', cylinderVolume: 3, fillPressure: 220 };
     } else if (role === 'diluent') {
-      defaults = { ...defaults, o2Percent: 21, hePercent: 35, name: 'Trimix 21/35', cylinderVolume: 3, fillPressure: 207 };
+      defaults = { ...defaults, o2Percent: 21, hePercent: 35, name: 'Trimix 21/35', cylinderVolume: 3, fillPressure: 220 };
     } else if (role === 'bailout') {
       defaults = { ...defaults, o2Percent: 21, hePercent: 0, name: 'Bailout', cylinderVolume: 11.1, fillPressure: 220 };
     } else if (role === 'extension') {
-      defaults = { ...defaults, o2Percent: 100, hePercent: 0, name: 'Extension O2', cylinderVolume: 3, fillPressure: 207 };
+      defaults = { ...defaults, o2Percent: 100, hePercent: 0, name: 'Extension O2', cylinderVolume: 3, fillPressure: 220 };
     } else if (role === 'deco') {
       defaults = { ...defaults, o2Percent: 50, hePercent: 0, name: 'EAN50', switchDepth: 21 };
     } else if (role === 'travel') {
@@ -212,7 +212,7 @@ export default function DivePlanningScreen() {
       isBottomGas: role === 'bottom',
       role,
       cylinderVolume: defaults.cylinderVolume || 7, 
-      fillPressure: defaults.fillPressure || 207, 
+      fillPressure: defaults.fillPressure || 220, 
       reservePressure: defaults.reservePressure || 35 
     }]);
   };
