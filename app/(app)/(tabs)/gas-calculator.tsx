@@ -459,6 +459,16 @@ export default function GasCalculatorScreen() {
       <Text style={[styles.sectionTitle, { color: colors.text }]}>Gas Blending Calculator</Text>
       <Text style={[styles.sectionSubtitle, { color: colors.textSecondary }]}>Calculate blending sequence for any gas mix</Text>
 
+      <View style={[styles.warningCard, { backgroundColor: '#FFF3CD', borderColor: '#856404' }]}>
+        <View style={styles.warningHeader}>
+          <Feather name="alert-triangle" size={18} color="#856404" />
+          <Text style={[styles.warningTitle, { color: '#856404' }]}>Oxygen Safety Warning</Text>
+        </View>
+        <Text style={[styles.warningText, { color: '#664D03' }]}>
+          Gas blending with pure oxygen requires specialized training, oxygen-clean equipment, and proper safety procedures. High-pressure oxygen is extremely hazardous and can cause fires or explosions if handled improperly. Only qualified gas blenders should perform these operations.
+        </Text>
+      </View>
+
       <View style={[styles.card, { backgroundColor: colors.card }]}>
         <Text style={[styles.cardTitle, { color: colors.text }]}>Target Mix</Text>
         {renderInput('Target O2 %', mixTargetO2, setMixTargetO2, '%')}
@@ -1203,5 +1213,27 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     fontFamily: 'monospace',
+  },
+  warningCard: {
+    marginHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 16,
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  warningHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  warningTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  warningText: {
+    fontSize: 12,
+    lineHeight: 18,
   },
 });
