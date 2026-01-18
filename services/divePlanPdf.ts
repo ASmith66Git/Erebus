@@ -60,18 +60,15 @@ function drawDiveProfileWithTissues(
   width: number, 
   height: number,
   themeRgb: [number, number, number]
-) {
+): number {
   const segments = result.segments;
-  if (segments.length === 0) return;
+  if (segments.length === 0) return height;
   
   const maxDepth = Math.max(...segments.map(s => Math.max(s.startDepth, s.endDepth)));
   const totalTime = segments[segments.length - 1].runTime;
   
-  const profileHeight = height * 0.6;
-  const tissueHeight = height * 0.35;
-  const gap = height * 0.05;
-  
-  const padding = { top: 15, right: 10, bottom: 15, left: 30 };
+  const profileHeight = 50;
+  const padding = { top: 12, right: 10, bottom: 12, left: 25 };
   const chartW = width - padding.left - padding.right;
   const chartH = profileHeight - padding.top - padding.bottom;
   
@@ -79,19 +76,15 @@ function drawDiveProfileWithTissues(
   doc.setLineWidth(0.3);
   doc.rect(x + padding.left, y + padding.top, chartW, chartH);
   
-  doc.setFontSize(7);
+  doc.setFontSize(6);
   doc.setTextColor(100);
   
   const depthUnit = settings.units === 'metric' ? 'm' : 'ft';
-  doc.text(`0${depthUnit}`, x + padding.left - 3, y + padding.top + 3, { align: 'right' });
-  doc.text(`${Math.round(maxDepth)}${depthUnit}`, x + padding.left - 3, y + padding.top + chartH, { align: 'right' });
+  doc.text(`0${depthUnit}`, x + padding.left - 2, y + padding.top + 2, { align: 'right' });
+  doc.text(`${Math.round(maxDepth)}${depthUnit}`, x + padding.left - 2, y + padding.top + chartH, { align: 'right' });
   
-  doc.text('0', x + padding.left, y + padding.top + chartH + 8, { align: 'center' });
-  doc.text(`${Math.round(totalTime)}min`, x + padding.left + chartW, y + padding.top + chartH + 8, { align: 'center' });
-  
-  doc.setFontSize(6);
-  doc.text('Depth', x + 8, y + padding.top + chartH / 2, { angle: 90 });
-  doc.text('Time', x + padding.left + chartW / 2, y + profileHeight - 3, { align: 'center' });
+  doc.text('0', x + padding.left, y + padding.top + chartH + 6, { align: 'center' });
+  doc.text(`${Math.round(totalTime)}min`, x + padding.left + chartW, y + padding.top + chartH + 6, { align: 'center' });
   
   doc.setDrawColor(themeRgb[0], themeRgb[1], themeRgb[2]);
   doc.setLineWidth(0.8);
@@ -122,22 +115,28 @@ function drawDiveProfileWithTissues(
     prevY = y2;
   });
   
-  const tissueY = y + profileHeight + gap;
+  let currentY = y + profileHeight + 5;
   const finalTissues = result.tissueHistory[result.tissueHistory.length - 1];
   
   if (finalTissues && finalTissues.length > 0) {
-    doc.setFontSize(8);
+    doc.setFontSize(7);
     doc.setTextColor(60);
-    doc.text('Tissue Compartment Saturation (End of Dive)', x + padding.left, tissueY);
+    doc.text('Tissue Compartment Saturation (End of Dive)', x + padding.left, currentY);
+    currentY += 5;
     
-    const barStartY = tissueY + 8;
-    const barHeight = 4;
-    const barGap = 2;
-    const maxBarWidth = chartW * 0.7;
+    const numCols = 2;
+    const compartmentsPerCol = 8;
+    const colWidth = (chartW - 10) / numCols;
+    const barHeight = 2.5;
+    const barGap = 1.5;
+    const maxBarWidth = colWidth * 0.55;
     const baselinePpInert = 0.74;
     
     finalTissues.forEach((tissue, i) => {
-      const barY = barStartY + i * (barHeight + barGap);
+      const col = Math.floor(i / compartmentsPerCol);
+      const row = i % compartmentsPerCol;
+      const colX = x + padding.left + col * colWidth;
+      const barY = currentY + row * (barHeight + barGap);
       
       const Pamb = 1.0;
       const mValue = calculateMValueAtPressure(tissue, i, Pamb);
@@ -151,29 +150,25 @@ function drawDiveProfileWithTissues(
       
       const barWidth = (clampedPercent / 100) * maxBarWidth;
       
+      doc.setFontSize(5);
+      doc.setTextColor(100);
+      doc.text(`${i + 1}`, colX + 6, barY + barHeight - 0.3, { align: 'right' });
+      
       doc.setFillColor(230, 230, 230);
-      doc.rect(x + padding.left, barY, maxBarWidth, barHeight, 'F');
+      doc.rect(colX + 8, barY, maxBarWidth, barHeight, 'F');
       
       const color = colorToRgb(TISSUE_COLORS[i]);
       doc.setFillColor(color[0], color[1], color[2]);
-      doc.rect(x + padding.left, barY, Math.max(barWidth, 1), barHeight, 'F');
-      
-      doc.setFontSize(5);
-      doc.setTextColor(100);
-      doc.text(`${i + 1}`, x + padding.left - 3, barY + barHeight - 0.5, { align: 'right' });
+      doc.rect(colX + 8, barY, Math.max(barWidth, 0.5), barHeight, 'F');
       
       doc.setTextColor(60);
-      doc.text(`${Math.round(percent)}%`, x + padding.left + maxBarWidth + 3, barY + barHeight - 0.5);
+      doc.text(`${Math.round(percent)}%`, colX + 8 + maxBarWidth + 2, barY + barHeight - 0.3);
     });
     
-    doc.setDrawColor(200);
-    doc.setLineWidth(0.2);
-    const gridX100 = x + padding.left + maxBarWidth;
-    doc.line(gridX100, barStartY - 2, gridX100, barStartY + 16 * (barHeight + barGap));
-    doc.setFontSize(5);
-    doc.setTextColor(150);
-    doc.text('100%', gridX100, barStartY - 3, { align: 'center' });
+    currentY += compartmentsPerCol * (barHeight + barGap) + 3;
   }
+  
+  return currentY - y;
 }
 
 export function generateDivePlanPdf(input: DivePlanPdfInput): void {
@@ -251,8 +246,8 @@ export function generateDivePlanPdf(input: DivePlanPdfInput): void {
   doc.text('DIVE PROFILE & TISSUE LOADING', margin, yPos);
   yPos += 5;
   
-  drawDiveProfileWithTissues(doc, result, settings, margin, yPos, contentWidth, 100, themeRgb);
-  yPos += 110;
+  const chartHeight = drawDiveProfileWithTissues(doc, result, settings, margin, yPos, contentWidth, 100, themeRgb);
+  yPos += chartHeight + 8;
   
   if (result.decoStops.length > 0) {
     doc.setTextColor(themeRgb[0], themeRgb[1], themeRgb[2]);
