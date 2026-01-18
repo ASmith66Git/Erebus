@@ -19,7 +19,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { getApiUrl } from '@/utils/apiConfig';
 
-const TABS = ['Dive', 'Gas', 'Notes', 'Team', 'Problems'] as const;
+const TABS = ['Dive', 'Gas', 'Problems', 'Skills', 'Notes'] as const;
 type TabType = typeof TABS[number];
 
 const EQUIPMENT_OPTIONS = [
@@ -1020,24 +1020,12 @@ function GasTab({ diveLog, colors, gearCylinders }: { diveLog: DiveLog; colors: 
   );
 }
 
-function NotesTab({ diveLog, colors }: { diveLog: DiveLog; colors: any }) {
+function SkillsTab({ diveLog, colors }: { diveLog: DiveLog; colors: any }) {
   return (
     <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
       <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
         <View style={styles.fieldRow}>
-          <Feather name="file-text" size={16} color={colors.textSecondary} />
-          <Text style={[styles.cardTitle, { color: colors.text }]}>Dive Notes</Text>
-        </View>
-        <View style={[styles.textArea, { backgroundColor: colors.background, borderColor: colors.border, minHeight: 120 }]}>
-          <Text style={[styles.textAreaText, { color: diveLog.notes ? colors.text : colors.textSecondary }]}>
-            {diveLog.notes || 'Add your dive notes here...'}
-          </Text>
-        </View>
-      </View>
-
-      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <View style={styles.fieldRow}>
-          <Feather name="award" size={16} color={colors.textSecondary} />
+          <Feather name="award" size={16} color={colors.primary} />
           <Text style={[styles.cardTitle, { color: colors.text }]}>Skills Practised</Text>
         </View>
         <View style={styles.checkboxGrid}>
@@ -1052,6 +1040,26 @@ function NotesTab({ diveLog, colors }: { diveLog: DiveLog; colors: any }) {
               </View>
             );
           })}
+        </View>
+      </View>
+
+      <View style={{ height: 40 }} />
+    </ScrollView>
+  );
+}
+
+function NotesTab({ diveLog, colors }: { diveLog: DiveLog; colors: any }) {
+  return (
+    <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
+      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <View style={styles.fieldRow}>
+          <Feather name="file-text" size={16} color={colors.primary} />
+          <Text style={[styles.cardTitle, { color: colors.text }]}>Dive Notes</Text>
+        </View>
+        <View style={[styles.textArea, { backgroundColor: colors.background, borderColor: colors.border, minHeight: 120 }]}>
+          <Text style={[styles.textAreaText, { color: diveLog.notes ? colors.text : colors.textSecondary }]}>
+            {diveLog.notes || 'Add your dive notes here...'}
+          </Text>
         </View>
       </View>
 
@@ -1419,12 +1427,12 @@ export default function DiveLogDetailScreen() {
         return <DiveTab diveLog={diveLog} colors={colors} gearProfileName={gearProfileName} gearProfileId={diveLog.gearProfileId} />;
       case 'Gas':
         return <GasTab diveLog={diveLog} colors={colors} gearCylinders={gearCylinders} />;
-      case 'Notes':
-        return <NotesTab diveLog={diveLog} colors={colors} />;
-      case 'Team':
-        return <TeamTab diveLog={diveLog} colors={colors} token={token} onRefresh={fetchDiveLog} />;
       case 'Problems':
         return <ProblemsTab diveLog={diveLog} colors={colors} />;
+      case 'Skills':
+        return <SkillsTab diveLog={diveLog} colors={colors} />;
+      case 'Notes':
+        return <NotesTab diveLog={diveLog} colors={colors} />;
       default:
         return null;
     }
