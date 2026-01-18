@@ -67,27 +67,68 @@ function drawDiveProfileWithTissues(
   const maxDepth = Math.max(...segments.map(s => Math.max(s.startDepth, s.endDepth)));
   const totalTime = segments[segments.length - 1].runTime;
   
-  const profileHeight = 50;
-  const padding = { top: 12, right: 10, bottom: 12, left: 25 };
+  const profileHeight = 55;
+  const padding = { top: 12, right: 10, bottom: 15, left: 25 };
   const chartW = width - padding.left - padding.right;
   const chartH = profileHeight - padding.top - padding.bottom;
-  
-  doc.setDrawColor(180);
-  doc.setLineWidth(0.3);
-  doc.rect(x + padding.left, y + padding.top, chartW, chartH);
-  
-  doc.setFontSize(6);
-  doc.setTextColor(100);
-  
   const depthUnit = settings.units === 'metric' ? 'm' : 'ft';
-  doc.text(`0${depthUnit}`, x + padding.left - 2, y + padding.top + 2, { align: 'right' });
-  doc.text(`${Math.round(maxDepth)}${depthUnit}`, x + padding.left - 2, y + padding.top + chartH, { align: 'right' });
   
-  doc.text('0', x + padding.left, y + padding.top + chartH + 6, { align: 'center' });
-  doc.text(`${Math.round(totalTime)}min`, x + padding.left + chartW, y + padding.top + chartH + 6, { align: 'center' });
+  doc.setFillColor(245, 245, 247);
+  doc.rect(x + padding.left, y + padding.top, chartW, chartH, 'F');
+  
+  doc.setDrawColor(220);
+  doc.setLineWidth(0.15);
+  const depthSteps = [0, 0.25, 0.5, 0.75, 1];
+  depthSteps.forEach(ratio => {
+    const lineY = y + padding.top + ratio * chartH;
+    doc.line(x + padding.left, lineY, x + padding.left + chartW, lineY);
+  });
+  
+  const timeSteps = 5;
+  for (let i = 0; i <= timeSteps; i++) {
+    const ratio = i / timeSteps;
+    const lineX = x + padding.left + ratio * chartW;
+    doc.line(lineX, y + padding.top, lineX, y + padding.top + chartH);
+  }
+  
+  if (result.tissueHistory && result.tissueHistory.length > 1) {
+    const baselinePpInert = 0.74;
+    const sampleInterval = Math.max(1, Math.floor(result.tissueHistory.length / 50));
+    
+    for (let tissueIdx = 0; tissueIdx < 16; tissueIdx++) {
+      const color = colorToRgb(TISSUE_COLORS[tissueIdx]);
+      doc.setDrawColor(color[0], color[1], color[2]);
+      doc.setLineWidth(0.3);
+      
+      let prevTissueX = x + padding.left;
+      let prevTissueY = y + padding.top;
+      let firstPoint = true;
+      
+      for (let h = 0; h < result.tissueHistory.length; h += sampleInterval) {
+        const tissues = result.tissueHistory[h];
+        if (!tissues || !tissues[tissueIdx]) continue;
+        
+        const tissue = tissues[tissueIdx];
+        const timeRatio = h / (result.tissueHistory.length - 1);
+        const tissueX = x + padding.left + timeRatio * chartW;
+        
+        const Pamb = 1.0;
+        const mValue = calculateMValueAtPressure(tissue, tissueIdx, Pamb);
+        const loading = Math.max(0, Math.min((tissue.ppInert - baselinePpInert) / (mValue - baselinePpInert), 1));
+        const tissueY = y + padding.top + chartH - loading * chartH;
+        
+        if (!firstPoint) {
+          doc.line(prevTissueX, prevTissueY, tissueX, tissueY);
+        }
+        prevTissueX = tissueX;
+        prevTissueY = tissueY;
+        firstPoint = false;
+      }
+    }
+  }
   
   doc.setDrawColor(themeRgb[0], themeRgb[1], themeRgb[2]);
-  doc.setLineWidth(0.8);
+  doc.setLineWidth(1);
   
   let prevX = x + padding.left;
   let prevY = y + padding.top;
@@ -114,6 +155,39 @@ function drawDiveProfileWithTissues(
     prevX = x2;
     prevY = y2;
   });
+  
+  if (result.decoStops && result.decoStops.length > 0) {
+    result.decoStops.forEach(stop => {
+      const stopDepthRatio = stop.depth / maxDepth;
+      const stopY = y + padding.top + stopDepthRatio * chartH;
+      doc.setFillColor(255, 152, 0);
+      doc.circle(x + padding.left + chartW - 3, stopY, 1.5, 'F');
+    });
+  }
+  
+  doc.setDrawColor(150);
+  doc.setLineWidth(0.5);
+  doc.line(x + padding.left, y + padding.top, x + padding.left, y + padding.top + chartH);
+  doc.line(x + padding.left, y + padding.top + chartH, x + padding.left + chartW, y + padding.top + chartH);
+  
+  doc.setFontSize(6);
+  doc.setTextColor(100);
+  
+  depthSteps.forEach((ratio, i) => {
+    const depthVal = Math.round(maxDepth * ratio);
+    const labelY = y + padding.top + ratio * chartH + 2;
+    doc.text(`${depthVal}${depthUnit}`, x + padding.left - 2, labelY, { align: 'right' });
+  });
+  
+  for (let i = 0; i <= timeSteps; i++) {
+    const ratio = i / timeSteps;
+    const timeVal = Math.round(totalTime * ratio);
+    const labelX = x + padding.left + ratio * chartW;
+    doc.text(`${timeVal}`, labelX, y + padding.top + chartH + 6, { align: 'center' });
+  }
+  
+  doc.setFontSize(7);
+  doc.text('Time (min)', x + padding.left + chartW / 2, y + profileHeight - 2, { align: 'center' });
   
   let currentY = y + profileHeight + 5;
   const finalTissues = result.tissueHistory[result.tissueHistory.length - 1];
