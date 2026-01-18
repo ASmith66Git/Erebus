@@ -11,7 +11,8 @@ import Svg, { Path, Line, Text as SvgText, Rect, G, Circle } from 'react-native-
 import {
   calculateDivePlan, calculateMultiDivePlan, createGasMix, initializeTissues,
   DEFAULT_SETTINGS, GasMix, DivePlanResult, TissueState, DivePlanInput, DivePlanSettings,
-  CircuitType, DecoModel, WaterType, UnitSystem, calculateCNS, calculateOTU, GasConsumption
+  CircuitType, DecoModel, WaterType, UnitSystem, calculateCNS, calculateOTU, GasConsumption,
+  calculateMValueAtPressure, depthToPressure
 } from '@/services/divePlanner';
 import { CYLINDER_PRESETS_LEGACY as CYLINDER_PRESETS } from '@/services/cylinderCatalog';
 import PageHeader from '@/components/PageHeader';
@@ -740,16 +741,23 @@ export default function DivePlanningScreen() {
     // Get tissue loading at current scrubber position
     const scrubberValues = getValuesAtTime(chartScrubberTime);
     const tissues = scrubberValues?.tissues || currentResult.tissueHistory[currentResult.tissueHistory.length - 1];
+    const currentDepth = scrubberValues?.depth || 0;
     
-    const padding = { top: 24, right: 40, bottom: 16, left: 24 };
+    // Calculate ambient pressure at current depth for M-value calculation
+    const ambientPressure = depthToPressure(currentDepth, appliedSettings.waterType);
+    
+    const padding = { top: 24, right: 40, bottom: 12, left: 24 };
     const chartW = Math.max(tissueChartWidth - padding.left - padding.right, 100);
-    const barHeight = 12;
-    const barGap = 4;
+    const barHeight = 6;
+    const barGap = 2;
     const chartH = 16 * (barHeight + barGap);
 
-    // Horizontal bars showing % of M-value
+    // Horizontal bars showing % of M-value (calculated dynamically)
     const bars = tissues.map((tissue, i) => {
-      const percent = Math.min(tissue.percentMValue, 150); // Cap at 150% for display
+      // Calculate M-value at current ambient pressure
+      const mValue = calculateMValueAtPressure(tissue, i, ambientPressure);
+      // Calculate percentage of M-value
+      const percent = mValue > 0 ? Math.min((tissue.ppInert / mValue) * 100, 150) : 0;
       const width = Math.max((percent / 100) * chartW * 0.8, 2); // 80% width at 100%
       const y = padding.top + i * (barHeight + barGap);
       const x = padding.left;
@@ -762,14 +770,14 @@ export default function DivePlanningScreen() {
       return (
         <G key={i}>
           {/* Background track */}
-          <Rect x={x} y={y} width={chartW * 0.8} height={barHeight} fill={colors.border + '30'} rx={2} />
+          <Rect x={x} y={y} width={chartW * 0.8} height={barHeight} fill={colors.border + '30'} rx={1} />
           {/* Filled bar */}
-          <Rect x={x} y={y} width={width} height={barHeight} fill={fillColor} rx={2} />
+          <Rect x={x} y={y} width={width} height={barHeight} fill={fillColor} rx={1} />
           {/* Compartment number */}
           <SvgText
-            x={x - 6}
-            y={y + barHeight / 2 + 4}
-            fontSize={9}
+            x={x - 4}
+            y={y + barHeight / 2 + 3}
+            fontSize={7}
             fill={colors.textSecondary}
             textAnchor="end"
           >
@@ -777,9 +785,9 @@ export default function DivePlanningScreen() {
           </SvgText>
           {/* Percentage value */}
           <SvgText
-            x={x + chartW * 0.8 + 6}
-            y={y + barHeight / 2 + 4}
-            fontSize={9}
+            x={x + chartW * 0.8 + 4}
+            y={y + barHeight / 2 + 3}
+            fontSize={7}
             fill={percent > 100 ? colors.error : percent > 80 ? colors.warning : colors.text}
             textAnchor="start"
           >
@@ -796,7 +804,7 @@ export default function DivePlanningScreen() {
         <G key={i}>
           <Line
             x1={x}
-            y1={padding.top - 8}
+            y1={padding.top - 4}
             x2={x}
             y2={padding.top + chartH}
             stroke={pct === 100 ? colors.warning : colors.border}
@@ -805,8 +813,8 @@ export default function DivePlanningScreen() {
           />
           <SvgText
             x={x}
-            y={padding.top - 12}
-            fontSize={8}
+            y={padding.top - 6}
+            fontSize={7}
             fill={pct === 100 ? colors.warning : colors.textSecondary}
             textAnchor="middle"
           >
