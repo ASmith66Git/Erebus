@@ -3272,7 +3272,7 @@ app.get('/api/dive-logs', authenticateToken, async (req, res) => {
     const { search, dive_site_id, limit = 50, offset = 0 } = req.query;
     
     let query = `
-      SELECT dl.*, ds.name as dive_site_name
+      SELECT dl.*, ds.name as dive_site_name, ds.image_url as dive_site_image_url
       FROM dive_logs dl
       LEFT JOIN dive_sites ds ON dl.dive_site_id = ds.id
       WHERE dl.user_id = $1 AND dl.deleted_at IS NULL
@@ -3316,6 +3316,7 @@ app.get('/api/dive-logs', authenticateToken, async (req, res) => {
         userId: row.user_id,
         diveSiteId: row.dive_site_id,
         diveSiteName: row.dive_site_name,
+        diveSiteImageUrl: row.dive_site_image_url,
         gearProfileId: row.gear_profile_id,
         diveDateTime: row.dive_datetime,
         durationSeconds: row.duration_seconds,

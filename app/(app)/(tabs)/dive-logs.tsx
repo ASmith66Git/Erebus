@@ -10,7 +10,9 @@ import {
   RefreshControl,
   Platform,
   Alert,
+  Image,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
@@ -24,6 +26,7 @@ interface DiveLog {
   id: number;
   diveSiteId: number | null;
   diveSiteName: string | null;
+  diveSiteImageUrl: string | null;
   diveDateTime: string;
   durationSeconds: number | null;
   maxDepthMeters: number | null;
@@ -96,9 +99,17 @@ function DiveLogCard({ log, onPress, colors }: { log: DiveLog; onPress: () => vo
       style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}
       onPress={onPress}
     >
-      <View style={[styles.cardIcon, { backgroundColor: colors.primary + '20' }]}>
-        <Feather name="activity" size={24} color={colors.primary} />
-      </View>
+      {log.diveSiteImageUrl ? (
+        <Image 
+          source={{ uri: log.diveSiteImageUrl }} 
+          style={styles.cardThumbnail}
+          resizeMode="cover"
+        />
+      ) : (
+        <View style={[styles.cardIcon, { backgroundColor: colors.primary + '20' }]}>
+          <Ionicons name="journal-outline" size={24} color={colors.primary} />
+        </View>
+      )}
       <View style={styles.cardContent}>
         <View style={styles.cardHeader}>
           <Text style={[styles.cardDate, { color: colors.text }]}>
@@ -587,6 +598,11 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  cardThumbnail: {
+    width: 48,
+    height: 48,
+    borderRadius: 8,
   },
   cardContent: {
     flex: 1,

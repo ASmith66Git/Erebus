@@ -29,6 +29,7 @@ interface DiveLog {
   userId: number;
   diveSiteId: number | null;
   diveSiteName: string | null;
+  gearProfileId: number | null;
   diveDateTime: string;
   durationSeconds: number | null;
   maxDepthMeters: number | null;
@@ -44,8 +45,15 @@ interface DiveLog {
   rating: number | null;
   importSource: string;
   importFilename: string | null;
+  surfaceConditions: string | null;
+  weatherConditions: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+interface GearProfile {
+  id: number;
+  name: string;
 }
 
 function formatDuration(seconds: number | null): string {
@@ -66,6 +74,34 @@ function formatDateTime(dateStr: string): string {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function formatDate(dateStr: string): string {
+  const date = new Date(dateStr);
+  return date.toLocaleDateString(undefined, {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+}
+
+function formatTime(dateStr: string): string {
+  const date = new Date(dateStr);
+  return date.toLocaleTimeString(undefined, {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function calculateEndTime(startDateStr: string, durationSeconds: number | null): string {
+  if (!durationSeconds) return '--';
+  const startDate = new Date(startDateStr);
+  const endDate = new Date(startDate.getTime() + durationSeconds * 1000);
+  return endDate.toLocaleTimeString(undefined, {
     hour: '2-digit',
     minute: '2-digit',
   });
@@ -197,6 +233,7 @@ export default function DiveLogDetailScreen() {
   const [editedRating, setEditedRating] = useState<number>(0);
   const [saving, setSaving] = useState(false);
   const [photos, setPhotos] = useState<{id: number; imageUrl: string; caption: string | null}[]>([]);
+  const [gearProfileName, setGearProfileName] = useState<string | null>(null);
 
   const isNew = id === 'new';
 
@@ -252,6 +289,27 @@ export default function DiveLogDetailScreen() {
     };
     fetchPhotos();
   }, [token, id, isNew]);
+
+  useEffect(() => {
+    const fetchGearProfile = async () => {
+      if (!token || !log?.gearProfileId) {
+        setGearProfileName(null);
+        return;
+      }
+      try {
+        const response = await fetch(`${getApiUrl()}/api/gear-profiles/${log.gearProfileId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setGearProfileName(data.name || null);
+        }
+      } catch (error) {
+        console.error('Error fetching gear profile:', error);
+      }
+    };
+    fetchGearProfile();
+  }, [token, log?.gearProfileId]);
 
   const handleSave = async () => {
     if (!token || !log) return;
@@ -393,35 +451,31 @@ export default function DiveLogDetailScreen() {
 
       <ScrollView contentContainerStyle={styles.content}>
         <View style={[styles.header, { borderColor: colors.border }]}>
-          <Text style={[styles.dateTime, { color: colors.text }]}>
-            {formatDateTime(log.diveDateTime)}
-          </Text>
-          {log.diveSiteName && (
-            <View style={styles.locationRow}>
-              <Feather name="map-pin" size={16} color={colors.primary} />
-              <Text style={[styles.siteName, { color: colors.primary }]}>{log.diveSiteName}</Text>
-            </View>
-          )}
           {renderRatingStars()}
         </View>
 
         <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Dive Statistics</Text>
-          <StatRow icon="arrow-down" label="Max Depth" value={log.maxDepthMeters ? `${log.maxDepthMeters.toFixed(1)} m` : '--'} colors={colors} />
-          <StatRow icon="trending-up" label="Avg Depth" value={log.avgDepthMeters ? `${log.avgDepthMeters.toFixed(1)} m` : '--'} colors={colors} />
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Dive Information</Text>
+          <StatRow icon="calendar" label="Date" value={formatDate(log.diveDateTime)} colors={colors} />
+          <StatRow icon="play" label="Start Time" value={formatTime(log.diveDateTime)} colors={colors} />
+          <StatRow icon="stop-circle" label="End Time" value={calculateEndTime(log.diveDateTime, log.durationSeconds)} colors={colors} />
           <StatRow icon="clock" label="Duration" value={formatDuration(log.durationSeconds)} colors={colors} />
-          <StatRow icon="thermometer" label="Temperature" value={
-            log.minTemperatureCelsius && log.maxTemperatureCelsius
-              ? `${log.minTemperatureCelsius.toFixed(0)}°C - ${log.maxTemperatureCelsius.toFixed(0)}°C`
-              : log.minTemperatureCelsius
-                ? `${log.minTemperatureCelsius.toFixed(0)}°C`
-                : '--'
-          } colors={colors} />
+          <StatRow icon="thermometer" label="Min Temp" value={log.minTemperatureCelsius ? `${log.minTemperatureCelsius.toFixed(0)}°C` : '--'} colors={colors} />
+          <StatRow icon="wind" label="Surface Conditions" value={log.surfaceConditions || '--'} colors={colors} />
+          <StatRow icon="cloud" label="Weather" value={log.weatherConditions || '--'} colors={colors} />
+          <StatRow icon="map-pin" label="Dive Site" value={log.diveSiteName || '--'} colors={colors} />
+          <StatRow icon="briefcase" label="Gear Profile" value={gearProfileName || '--'} colors={colors} />
         </View>
 
         {log.samples && log.samples.length > 0 && (
           <DepthProfile samples={log.samples} colors={colors} />
         )}
+
+        <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Dive Statistics</Text>
+          <StatRow icon="arrow-down" label="Max Depth" value={log.maxDepthMeters ? `${log.maxDepthMeters.toFixed(1)} m` : '--'} colors={colors} />
+          <StatRow icon="trending-up" label="Avg Depth" value={log.avgDepthMeters ? `${log.avgDepthMeters.toFixed(1)} m` : '--'} colors={colors} />
+        </View>
 
         {(log.deviceManufacturer || log.deviceModel) && (
           <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
