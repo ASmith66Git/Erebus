@@ -3,7 +3,7 @@ module.exports = {
     name: "Erebus",
     slug: "erebus-dive-app",
     version: "1.1.12",
-    orientation: "portrait",
+    orientation: "default",
     icon: "./assets/images/icon.png",
     scheme: "myapp",
     userInterfaceStyle: "automatic",
