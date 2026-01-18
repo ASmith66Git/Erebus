@@ -61,8 +61,6 @@ interface GearProfile {
   maskNickname: string | null;
   notes: string | null;
   isTemplate: boolean;
-  plannedDepth: number | null;
-  plannedBottomTime: number | null;
   cylinders: Cylinder[];
   weights: Weight[];
 }
@@ -169,8 +167,6 @@ export default function GearProfileScreen() {
     maskNickname: null,
     notes: null,
     isTemplate: true,
-    plannedDepth: null,
-    plannedBottomTime: null,
     cylinders: getDefaultCylinders('single_tank'),
     weights: [],
   });
@@ -524,34 +520,6 @@ export default function GearProfileScreen() {
               </Text>
             </Pressable>
           ))}
-        </View>
-      </View>
-
-      <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>Planning</Text>
-        <View style={styles.planningRow}>
-          <View style={styles.planningField}>
-            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Planned Depth (m)</Text>
-            <TextInput
-              style={[styles.numberInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
-              value={profile.plannedDepth?.toString() || ''}
-              onChangeText={v => setProfile(prev => ({ ...prev, plannedDepth: v ? parseFloat(v) : null }))}
-              keyboardType="numeric"
-              placeholder="30"
-              placeholderTextColor={colors.textSecondary}
-            />
-          </View>
-          <View style={styles.planningField}>
-            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Bottom Time (min)</Text>
-            <TextInput
-              style={[styles.numberInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
-              value={profile.plannedBottomTime?.toString() || ''}
-              onChangeText={v => setProfile(prev => ({ ...prev, plannedBottomTime: v ? parseInt(v) : null }))}
-              keyboardType="numeric"
-              placeholder="45"
-              placeholderTextColor={colors.textSecondary}
-            />
-          </View>
         </View>
       </View>
 
