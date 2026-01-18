@@ -416,6 +416,20 @@ async function initDatabase() {
         FOR EACH ROW
         EXECUTE FUNCTION update_updated_at_column();
     `).catch(() => {});
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS gear_profile_equipment (
+        id SERIAL PRIMARY KEY,
+        gear_profile_id INTEGER REFERENCES gear_profiles(id) ON DELETE CASCADE,
+        equipment_id INTEGER REFERENCES equipment_inventory(id) ON DELETE CASCADE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(gear_profile_id, equipment_id)
+      );
+    `).catch(() => {});
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_gear_profile_equipment_profile_id ON gear_profile_equipment(gear_profile_id);
+    `).catch(() => {});
     
     await client.query(`
       CREATE TABLE IF NOT EXISTS dive_plans (
@@ -4046,6 +4060,108 @@ app.delete('/api/equipment/:id', authenticateToken, async (req, res) => {
     res.json({ message: 'Equipment deleted successfully' });
   } catch (error) {
     console.error('Delete equipment error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.get('/api/gear-profiles/:profileId/equipment', authenticateToken, async (req, res) => {
+  try {
+    const { profileId } = req.params;
+
+    const profileCheck = await pool.query(
+      'SELECT id FROM gear_profiles WHERE id = $1 AND user_id = $2',
+      [profileId, req.user.id]
+    );
+    if (profileCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Gear profile not found' });
+    }
+
+    const result = await pool.query(
+      `SELECT e.*, gpe.id as link_id
+       FROM equipment_inventory e
+       JOIN gear_profile_equipment gpe ON e.id = gpe.equipment_id
+       WHERE gpe.gear_profile_id = $1 AND e.user_id = $2
+       ORDER BY e.equipment_type, e.name`,
+      [profileId, req.user.id]
+    );
+
+    res.json({
+      equipment: result.rows.map(row => ({
+        id: row.id,
+        linkId: row.link_id,
+        equipmentType: row.equipment_type,
+        name: row.name,
+        brand: row.brand,
+        model: row.model,
+        quantity: row.quantity,
+      }))
+    });
+  } catch (error) {
+    console.error('Get profile equipment error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.post('/api/gear-profiles/:profileId/equipment', authenticateToken, async (req, res) => {
+  try {
+    const { profileId } = req.params;
+    const { equipmentId } = req.body;
+
+    const profileCheck = await pool.query(
+      'SELECT id FROM gear_profiles WHERE id = $1 AND user_id = $2',
+      [profileId, req.user.id]
+    );
+    if (profileCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Gear profile not found' });
+    }
+
+    const equipmentCheck = await pool.query(
+      'SELECT id FROM equipment_inventory WHERE id = $1 AND user_id = $2',
+      [equipmentId, req.user.id]
+    );
+    if (equipmentCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Equipment not found' });
+    }
+
+    const result = await pool.query(
+      `INSERT INTO gear_profile_equipment (gear_profile_id, equipment_id)
+       VALUES ($1, $2)
+       ON CONFLICT (gear_profile_id, equipment_id) DO NOTHING
+       RETURNING id`,
+      [profileId, equipmentId]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(409).json({ error: 'Equipment already linked to this profile' });
+    }
+
+    res.status(201).json({ success: true, linkId: result.rows[0]?.id });
+  } catch (error) {
+    console.error('Add profile equipment error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.delete('/api/gear-profiles/:profileId/equipment/:equipmentId', authenticateToken, async (req, res) => {
+  try {
+    const { profileId, equipmentId } = req.params;
+
+    const profileCheck = await pool.query(
+      'SELECT id FROM gear_profiles WHERE id = $1 AND user_id = $2',
+      [profileId, req.user.id]
+    );
+    if (profileCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Gear profile not found' });
+    }
+
+    await pool.query(
+      'DELETE FROM gear_profile_equipment WHERE gear_profile_id = $1 AND equipment_id = $2',
+      [profileId, equipmentId]
+    );
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Remove profile equipment error:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });

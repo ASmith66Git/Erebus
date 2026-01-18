@@ -37,6 +37,24 @@ interface Weight {
   weightKg: number;
 }
 
+interface Equipment {
+  id: number;
+  equipmentType: string;
+  name: string;
+  brand?: string;
+  model?: string;
+  serialNumber?: string;
+  quantity: number;
+  purchaseDate?: string;
+  lastServiceDate?: string;
+  notes?: string;
+}
+
+interface EquipmentType {
+  value: string;
+  label: string;
+}
+
 interface GearProfile {
   id?: number;
   name: string;
@@ -143,7 +161,13 @@ export default function GearProfileScreen() {
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
   const [isEditing, setIsEditing] = useState(isNew);
-  const [activeTab, setActiveTab] = useState<'config' | 'exposure' | 'gas' | 'weight'>('config');
+  const [activeTab, setActiveTab] = useState<'config' | 'exposure' | 'gas' | 'weight' | 'equipment'>('config');
+  const [allEquipment, setAllEquipment] = useState<Equipment[]>([]);
+  const [profileEquipment, setProfileEquipment] = useState<Equipment[]>([]);
+  const [equipmentTypes, setEquipmentTypes] = useState<EquipmentType[]>([]);
+  const [showAddEquipment, setShowAddEquipment] = useState(false);
+  const [showSelectEquipment, setShowSelectEquipment] = useState(false);
+  const [newEquipment, setNewEquipment] = useState({ type: '', name: '', quantity: 1 });
   const [profile, setProfile] = useState<GearProfile>({
     name: '',
     configType: 'single_tank',
@@ -196,7 +220,166 @@ export default function GearProfileScreen() {
 
   useEffect(() => {
     fetchProfile();
+    fetchAllEquipment();
+    fetchEquipmentTypes();
   }, [fetchProfile]);
+
+  useEffect(() => {
+    if (profile.id && !isNew) {
+      fetchProfileEquipment();
+    }
+  }, [profile.id, isNew]);
+
+  const fetchAllEquipment = async () => {
+    try {
+      const response = await fetch(`${getApiUrl()}/api/equipment`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setAllEquipment(data.equipment || []);
+      }
+    } catch (error) {
+      console.error('Error fetching equipment:', error);
+    }
+  };
+
+  const fetchProfileEquipment = async () => {
+    if (!profile.id) return;
+    try {
+      const response = await fetch(`${getApiUrl()}/api/gear-profiles/${profile.id}/equipment`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setProfileEquipment(data.equipment || []);
+      }
+    } catch (error) {
+      console.error('Error fetching profile equipment:', error);
+    }
+  };
+
+  const fetchEquipmentTypes = async () => {
+    try {
+      const response = await fetch(`${getApiUrl()}/api/equipment-types`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setEquipmentTypes(data);
+      }
+    } catch (error) {
+      console.error('Error fetching equipment types:', error);
+    }
+  };
+
+  const handleAddEquipment = async () => {
+    if (!newEquipment.type || !newEquipment.name.trim()) {
+      Alert.alert('Error', 'Please select a type and enter a name');
+      return;
+    }
+
+    try {
+      const response = await fetch(`${getApiUrl()}/api/equipment`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          equipmentType: newEquipment.type,
+          name: newEquipment.name.trim(),
+          quantity: newEquipment.quantity,
+        }),
+      });
+
+      if (response.ok) {
+        await fetchAllEquipment();
+        setNewEquipment({ type: '', name: '', quantity: 1 });
+        setShowAddEquipment(false);
+      } else {
+        const error = await response.json();
+        Alert.alert('Error', error.error || 'Failed to add equipment');
+      }
+    } catch (error) {
+      console.error('Error adding equipment:', error);
+      Alert.alert('Error', 'Failed to add equipment');
+    }
+  };
+
+  const handleDeleteEquipment = async (equipmentId: number) => {
+    Alert.alert('Delete Equipment', 'This will permanently delete this item from your inventory. Are you sure?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            const response = await fetch(`${getApiUrl()}/api/equipment/${equipmentId}`, {
+              method: 'DELETE',
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            if (response.ok) {
+              await fetchAllEquipment();
+              if (profile.id) await fetchProfileEquipment();
+            } else {
+              Alert.alert('Error', 'Failed to delete equipment');
+            }
+          } catch (error) {
+            console.error('Error deleting equipment:', error);
+            Alert.alert('Error', 'Failed to delete equipment');
+          }
+        },
+      },
+    ]);
+  };
+
+  const handleAddToProfile = async (equipmentId: number) => {
+    if (!profile.id) return;
+    try {
+      const response = await fetch(`${getApiUrl()}/api/gear-profiles/${profile.id}/equipment`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ equipmentId }),
+      });
+      if (response.ok) {
+        await fetchProfileEquipment();
+        setShowSelectEquipment(false);
+      } else {
+        const error = await response.json();
+        Alert.alert('Error', error.error || 'Failed to add equipment to profile');
+      }
+    } catch (error) {
+      console.error('Error adding to profile:', error);
+      Alert.alert('Error', 'Failed to add equipment to profile');
+    }
+  };
+
+  const handleRemoveFromProfile = async (equipmentId: number) => {
+    if (!profile.id) return;
+    try {
+      const response = await fetch(`${getApiUrl()}/api/gear-profiles/${profile.id}/equipment/${equipmentId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.ok) {
+        await fetchProfileEquipment();
+      } else {
+        const error = await response.json();
+        Alert.alert('Error', error.error || 'Failed to remove equipment from profile');
+      }
+    } catch (error) {
+      console.error('Error removing from profile:', error);
+      Alert.alert('Error', 'Failed to remove equipment from profile');
+    }
+  };
+
+  const getEquipmentTypeLabel = (value: string) => {
+    return equipmentTypes.find(t => t.value === value)?.label || value;
+  };
 
   const handleConfigTypeChange = (newType: string) => {
     setProfile(prev => ({
@@ -875,6 +1058,222 @@ export default function GearProfileScreen() {
     );
   };
 
+  const renderEquipmentViewTab = () => {
+    const groupedEquipment = profileEquipment.reduce((acc, item) => {
+      if (!acc[item.equipmentType]) {
+        acc[item.equipmentType] = [];
+      }
+      acc[item.equipmentType].push(item);
+      return acc;
+    }, {} as Record<string, Equipment[]>);
+
+    return (
+      <View style={styles.tabContent}>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>Equipment for this Profile</Text>
+        
+        {profileEquipment.length === 0 ? (
+          <View style={[styles.emptyCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Feather name="briefcase" size={32} color={colors.textSecondary} />
+            <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No equipment linked</Text>
+            <Text style={[styles.emptyHint, { color: colors.textSecondary }]}>Switch to edit mode to add equipment to this profile</Text>
+          </View>
+        ) : (
+          Object.entries(groupedEquipment).map(([type, items]) => (
+            <View key={type} style={{ marginBottom: 16 }}>
+              <Text style={[styles.equipmentTypeHeader, { color: colors.textSecondary }]}>
+                {getEquipmentTypeLabel(type)}
+              </Text>
+              {items.map(item => (
+                <View key={item.id} style={[styles.equipmentCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                  <View style={styles.equipmentInfo}>
+                    <Text style={[styles.equipmentName, { color: colors.text }]}>{item.name}</Text>
+                    {item.quantity > 1 && (
+                      <Text style={[styles.equipmentQty, { color: colors.textSecondary }]}>x{item.quantity}</Text>
+                    )}
+                  </View>
+                </View>
+              ))}
+            </View>
+          ))
+        )}
+      </View>
+    );
+  };
+
+  const renderEquipmentTab = () => {
+    const groupedProfileEquipment = profileEquipment.reduce((acc, item) => {
+      if (!acc[item.equipmentType]) {
+        acc[item.equipmentType] = [];
+      }
+      acc[item.equipmentType].push(item);
+      return acc;
+    }, {} as Record<string, Equipment[]>);
+
+    const profileEquipmentIds = new Set(profileEquipment.map(e => e.id));
+    const availableEquipment = allEquipment.filter(e => !profileEquipmentIds.has(e.id));
+    const groupedAvailable = availableEquipment.reduce((acc, item) => {
+      if (!acc[item.equipmentType]) {
+        acc[item.equipmentType] = [];
+      }
+      acc[item.equipmentType].push(item);
+      return acc;
+    }, {} as Record<string, Equipment[]>);
+
+    return (
+      <View style={styles.tabContent}>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>Profile Equipment</Text>
+
+        {showSelectEquipment ? (
+          <View style={[styles.addEquipmentForm, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <Text style={[styles.formLabel, { color: colors.text, marginBottom: 0 }]}>Select from Inventory</Text>
+              <Pressable onPress={() => setShowSelectEquipment(false)}>
+                <Feather name="x" size={20} color={colors.textSecondary} />
+              </Pressable>
+            </View>
+            
+            {availableEquipment.length === 0 ? (
+              <Text style={{ color: colors.textSecondary, textAlign: 'center', paddingVertical: 16 }}>
+                No equipment available. Add items to your inventory first.
+              </Text>
+            ) : (
+              Object.entries(groupedAvailable).map(([type, items]) => (
+                <View key={type} style={{ marginBottom: 12 }}>
+                  <Text style={[styles.equipmentTypeHeader, { color: colors.textSecondary }]}>
+                    {getEquipmentTypeLabel(type)}
+                  </Text>
+                  {items.map(item => (
+                    <Pressable
+                      key={item.id}
+                      style={[styles.equipmentCard, { backgroundColor: colors.background, borderColor: colors.border }]}
+                      onPress={() => handleAddToProfile(item.id)}
+                    >
+                      <View style={styles.equipmentInfo}>
+                        <Text style={[styles.equipmentName, { color: colors.text }]}>{item.name}</Text>
+                        {item.quantity > 1 && (
+                          <Text style={[styles.equipmentQty, { color: colors.textSecondary }]}>x{item.quantity}</Text>
+                        )}
+                      </View>
+                      <Feather name="plus-circle" size={20} color={colors.primary} />
+                    </Pressable>
+                  ))}
+                </View>
+              ))
+            )}
+          </View>
+        ) : showAddEquipment ? (
+          <View style={[styles.addEquipmentForm, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Text style={[styles.formLabel, { color: colors.text }]}>Type</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }}>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                {equipmentTypes.map(type => (
+                  <Pressable
+                    key={type.value}
+                    style={[
+                      styles.typeChip,
+                      { borderColor: newEquipment.type === type.value ? colors.primary : colors.border },
+                      newEquipment.type === type.value && { backgroundColor: colors.primary + '20' },
+                    ]}
+                    onPress={() => setNewEquipment(prev => ({ ...prev, type: type.value }))}
+                  >
+                    <Text style={{ color: newEquipment.type === type.value ? colors.primary : colors.text }}>
+                      {type.label}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </ScrollView>
+
+            <Text style={[styles.formLabel, { color: colors.text }]}>Name</Text>
+            <TextInput
+              style={[styles.textInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
+              placeholder="e.g., My Main Regulator"
+              placeholderTextColor={colors.textSecondary}
+              value={newEquipment.name}
+              onChangeText={text => setNewEquipment(prev => ({ ...prev, name: text }))}
+            />
+
+            <Text style={[styles.formLabel, { color: colors.text }]}>Quantity</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+              <Pressable
+                style={[styles.qtyButton, { borderColor: colors.border }]}
+                onPress={() => setNewEquipment(prev => ({ ...prev, quantity: Math.max(1, prev.quantity - 1) }))}
+              >
+                <Feather name="minus" size={18} color={colors.text} />
+              </Pressable>
+              <Text style={[styles.qtyValue, { color: colors.text }]}>{newEquipment.quantity}</Text>
+              <Pressable
+                style={[styles.qtyButton, { borderColor: colors.border }]}
+                onPress={() => setNewEquipment(prev => ({ ...prev, quantity: prev.quantity + 1 }))}
+              >
+                <Feather name="plus" size={18} color={colors.text} />
+              </Pressable>
+            </View>
+
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              <Pressable
+                style={[styles.cancelButton, { borderColor: colors.border }]}
+                onPress={() => {
+                  setShowAddEquipment(false);
+                  setNewEquipment({ type: '', name: '', quantity: 1 });
+                }}
+              >
+                <Text style={{ color: colors.text }}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.addButton, { backgroundColor: colors.primary }]}
+                onPress={handleAddEquipment}
+              >
+                <Text style={{ color: '#FFFFFF', fontWeight: '600' }}>Add to Inventory</Text>
+              </Pressable>
+            </View>
+          </View>
+        ) : (
+          <View style={{ flexDirection: 'row', gap: 12 }}>
+            <Pressable
+              style={[styles.addEquipmentButton, { borderColor: colors.primary, flex: 1 }]}
+              onPress={() => setShowSelectEquipment(true)}
+            >
+              <Feather name="check-circle" size={18} color={colors.primary} />
+              <Text style={{ color: colors.primary, fontWeight: '500' }}>Select from Inventory</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.addEquipmentButton, { borderColor: colors.border, flex: 1 }]}
+              onPress={() => setShowAddEquipment(true)}
+            >
+              <Feather name="plus" size={18} color={colors.text} />
+              <Text style={{ color: colors.text, fontWeight: '500' }}>Add New</Text>
+            </Pressable>
+          </View>
+        )}
+
+        {Object.entries(groupedProfileEquipment).map(([type, items]) => (
+          <View key={type} style={{ marginTop: 16 }}>
+            <Text style={[styles.equipmentTypeHeader, { color: colors.textSecondary }]}>
+              {getEquipmentTypeLabel(type)}
+            </Text>
+            {items.map(item => (
+              <View key={item.id} style={[styles.equipmentCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                <View style={styles.equipmentInfo}>
+                  <Text style={[styles.equipmentName, { color: colors.text }]}>{item.name}</Text>
+                  {item.quantity > 1 && (
+                    <Text style={[styles.equipmentQty, { color: colors.textSecondary }]}>x{item.quantity}</Text>
+                  )}
+                </View>
+                <Pressable
+                  style={styles.deleteEquipmentButton}
+                  onPress={() => handleRemoveFromProfile(item.id)}
+                >
+                  <Feather name="x-circle" size={18} color={colors.error || '#FF4444'} />
+                </Pressable>
+              </View>
+            ))}
+          </View>
+        ))}
+      </View>
+    );
+  };
+
   if (loading) {
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -890,6 +1289,7 @@ export default function GearProfileScreen() {
     { key: 'exposure' as const, label: 'Exposure', icon: 'thermometer' },
     { key: 'gas' as const, label: 'Gas', icon: 'database' },
     { key: 'weight' as const, label: 'Weight', icon: 'anchor' },
+    { key: 'equipment' as const, label: 'Gear', icon: 'briefcase' },
   ];
 
   const handleClose = () => {
@@ -964,6 +1364,7 @@ export default function GearProfileScreen() {
         {activeTab === 'exposure' && (isEditing ? renderExposureTab() : renderExposureViewTab())}
         {activeTab === 'gas' && (isEditing ? renderGasTab() : renderGasViewTab())}
         {activeTab === 'weight' && (isEditing ? renderWeightTab() : renderWeightViewTab())}
+        {activeTab === 'equipment' && (isEditing ? renderEquipmentTab() : renderEquipmentViewTab())}
       </ScrollView>
     </View>
   );
@@ -1276,5 +1677,114 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  emptyCard: {
+    padding: 32,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+  },
+  emptyText: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  emptyHint: {
+    fontSize: 13,
+    textAlign: 'center',
+  },
+  equipmentTypeHeader: {
+    fontSize: 12,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 8,
+  },
+  equipmentCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    marginBottom: 8,
+  },
+  equipmentInfo: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  equipmentName: {
+    fontSize: 15,
+    fontWeight: '500',
+  },
+  equipmentQty: {
+    fontSize: 13,
+  },
+  deleteEquipmentButton: {
+    padding: 8,
+  },
+  addEquipmentForm: {
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 16,
+  },
+  formLabel: {
+    fontSize: 13,
+    fontWeight: '500',
+    marginBottom: 8,
+  },
+  typeChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  textInput: {
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    fontSize: 15,
+    marginBottom: 16,
+  },
+  qtyButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  qtyValue: {
+    fontSize: 18,
+    fontWeight: '600',
+    minWidth: 30,
+    textAlign: 'center',
+  },
+  cancelButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: 'center',
+  },
+  addButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  addEquipmentButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    gap: 8,
+    marginBottom: 8,
   },
 });
