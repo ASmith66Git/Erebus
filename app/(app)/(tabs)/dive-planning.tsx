@@ -881,14 +881,14 @@ export default function DivePlanningScreen() {
           <Text style={[styles.decoStopsTitle, { color: colors.text }]}>Dive Profile</Text>
           
           {/* Table Header */}
-          <View style={[styles.profileTableHeader, { borderBottomColor: colors.border, gap: 8 }]}>
-            <Text style={[styles.profileHeaderCell, { width: 20, color: colors.textSecondary }]}></Text>
-            <Text style={[styles.profileHeaderCell, { width: 36, color: colors.textSecondary }]}>Depth</Text>
-            <Text style={[styles.profileHeaderCell, { width: 40, color: colors.textSecondary }]}>Stop</Text>
-            <Text style={[styles.profileHeaderCell, { width: 40, color: colors.textSecondary }]}>Run</Text>
-            <Text style={[styles.profileHeaderCell, { flex: 1, color: colors.textSecondary }]}>Gas</Text>
-            <Text style={[styles.profileHeaderCell, { width: 36, color: colors.textSecondary }]}>PO2</Text>
-            <Text style={[styles.profileHeaderCell, { width: 32, color: colors.textSecondary }]}>EAD</Text>
+          <View style={[styles.profileTableHeader, { borderBottomColor: colors.border, gap: 6 }]}>
+            <Text style={[styles.profileHeaderCell, { width: 18, color: colors.textSecondary }]}></Text>
+            <Text style={[styles.profileHeaderCell, { width: 34, color: colors.textSecondary }]}>Depth</Text>
+            <Text style={[styles.profileHeaderCell, { width: 38, color: colors.textSecondary }]}>Stop</Text>
+            <Text style={[styles.profileHeaderCell, { width: 38, color: colors.textSecondary }]}>Run</Text>
+            <Text style={[styles.profileHeaderCell, { width: 60, color: colors.textSecondary }]}>Gas</Text>
+            <Text style={[styles.profileHeaderCell, { width: 34, color: colors.textSecondary }]}>PO2</Text>
+            <Text style={[styles.profileHeaderCell, { width: 28, color: colors.textSecondary }]}>EAD</Text>
           </View>
           
           {/* Table Rows */}
@@ -915,14 +915,14 @@ export default function DivePlanningScreen() {
             };
             
             return (
-              <View key={i} style={[styles.profileTableRow, { backgroundColor: i % 2 === 0 ? 'transparent' : colors.background + '40', gap: 8 }]}>
-                <Text style={[styles.profileCell, { width: 20, fontSize: 14, color: arrowColor }]}>{arrow}</Text>
-                <Text style={[styles.profileCell, { width: 36, color: colors.text }]}>{depth}{depthUnit}</Text>
-                <Text style={[styles.profileCell, { width: 40, color: colors.accent }]}>{formatTime(seg.duration)}</Text>
-                <Text style={[styles.profileCell, { width: 40, color: colors.textSecondary }]}>{formatTime(seg.runTime)}</Text>
-                <Text style={[styles.profileCell, { flex: 1, color: colors.text }]} numberOfLines={1}>{seg.gasMix.name}</Text>
-                <Text style={[styles.profileCell, { width: 36, color: po2Color }]}>{po2.toFixed(2)}</Text>
-                <Text style={[styles.profileCell, { width: 32, color: colors.textSecondary }]}>{ead > 0 ? ead : '-'}</Text>
+              <View key={i} style={[styles.profileTableRow, { backgroundColor: i % 2 === 0 ? 'transparent' : colors.background + '40', gap: 6 }]}>
+                <Text style={[styles.profileCell, { width: 18, fontSize: 14, color: arrowColor }]}>{arrow}</Text>
+                <Text style={[styles.profileCell, { width: 34, color: colors.text }]}>{depth}{depthUnit}</Text>
+                <Text style={[styles.profileCell, { width: 38, color: colors.accent }]}>{formatTime(seg.duration)}</Text>
+                <Text style={[styles.profileCell, { width: 38, color: colors.textSecondary }]}>{formatTime(seg.runTime)}</Text>
+                <Text style={[styles.profileCell, { width: 60, color: colors.text }]} numberOfLines={1}>{seg.gasMix.name}</Text>
+                <Text style={[styles.profileCell, { width: 34, color: po2Color }]}>{po2.toFixed(2)}</Text>
+                <Text style={[styles.profileCell, { width: 28, color: colors.textSecondary }]}>{ead > 0 ? ead : '-'}</Text>
               </View>
             );
           })}
