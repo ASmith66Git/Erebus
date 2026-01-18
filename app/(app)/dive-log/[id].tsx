@@ -19,7 +19,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { getApiUrl } from '@/utils/apiConfig';
 
-const TABS = ['Dive', 'Gas', 'Problems', 'Skills', 'Notes'] as const;
+const TABS = ['Dive', 'Gas', 'Problems', 'Skills', 'Team', 'Notes'] as const;
 type TabType = typeof TABS[number];
 
 const EQUIPMENT_OPTIONS = [
@@ -1431,6 +1431,8 @@ export default function DiveLogDetailScreen() {
         return <ProblemsTab diveLog={diveLog} colors={colors} />;
       case 'Skills':
         return <SkillsTab diveLog={diveLog} colors={colors} />;
+      case 'Team':
+        return <TeamTab diveLog={diveLog} colors={colors} token={token} onRefresh={fetchDiveLog} />;
       case 'Notes':
         return <NotesTab diveLog={diveLog} colors={colors} />;
       default:
