@@ -212,9 +212,20 @@ export default function DiveSitesScreen() {
     </View>
   );
 
+  const handleMapPress = () => {
+    router.push('/dive-sites-map' as any);
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <PageHeader title="Dive Sites" />
+      <PageHeader 
+        title="Dive Sites" 
+        rightAction={
+          <Pressable onPress={handleMapPress} style={styles.mapButton}>
+            <Feather name="map" size={22} color={colors.text} />
+          </Pressable>
+        }
+      />
       <View style={styles.searchContainer}>
         <View style={[styles.searchBar, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <Feather name="search" size={20} color={colors.textSecondary} />
@@ -419,5 +430,8 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
+  },
+  mapButton: {
+    padding: 8,
   },
 });
