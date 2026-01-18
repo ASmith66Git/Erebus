@@ -434,7 +434,7 @@ function DiveProfileChart({ samples, colors, showTemp, showNdl, showGf99, showPp
             backgroundColor: colors.surface,
             borderRadius: 8,
             borderWidth: 1,
-            borderColor: colors.primary,
+            borderColor: colors.border,
           }}>
             <Text style={{ fontSize: 12, color: colors.primary, fontWeight: '600' }}>
               {Math.floor(t / 60)}:{String(Math.floor(t % 60)).padStart(2, '0')}
@@ -1763,9 +1763,9 @@ const styles = StyleSheet.create({
   toggleButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 20,
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: 'transparent',
+    borderColor: '#333',
   },
   toggleText: {
     fontSize: 13,
