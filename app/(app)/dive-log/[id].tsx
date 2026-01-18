@@ -853,7 +853,7 @@ function DiveTab({ diveLog, colors, gearProfileName, gearProfileId }: { diveLog:
         </View>
       </View>
 
-      <View style={{ height: 40 }} />
+      <View style={{ height: 100 }} />
     </ScrollView>
   );
 }
@@ -916,7 +916,7 @@ function ProblemsTab({ diveLog, colors }: { diveLog: DiveLog; colors: any }) {
         </View>
       </View>
 
-      <View style={{ height: 40 }} />
+      <View style={{ height: 100 }} />
     </ScrollView>
   );
 }
@@ -981,7 +981,7 @@ function EquipmentTab({ colors, gearProfile }: { colors: any; gearProfile: any |
         </View>
       )}
 
-      <View style={{ height: 40 }} />
+      <View style={{ height: 100 }} />
     </ScrollView>
   );
 }
@@ -1023,7 +1023,7 @@ function GasTab({ diveLog, colors, gearCylinders }: { diveLog: DiveLog; colors: 
         )}
       </View>
 
-      <View style={{ height: 40 }} />
+      <View style={{ height: 100 }} />
     </ScrollView>
   );
 }
@@ -1051,7 +1051,7 @@ function SkillsTab({ diveLog, colors }: { diveLog: DiveLog; colors: any }) {
         </View>
       </View>
 
-      <View style={{ height: 40 }} />
+      <View style={{ height: 100 }} />
     </ScrollView>
   );
 }
@@ -1071,7 +1071,7 @@ function NotesTab({ diveLog, colors }: { diveLog: DiveLog; colors: any }) {
         </View>
       </View>
 
-      <View style={{ height: 40 }} />
+      <View style={{ height: 100 }} />
     </ScrollView>
   );
 }
@@ -1240,7 +1240,7 @@ function TeamTab({ diveLog, colors, token, onRefresh }: { diveLog: DiveLog; colo
         </View>
       )}
 
-      <View style={{ height: 40 }} />
+      <View style={{ height: 100 }} />
 
       {showAddModal && (
         <View style={styles.buddyModalOverlay}>

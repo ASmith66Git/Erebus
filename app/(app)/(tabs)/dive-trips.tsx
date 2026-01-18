@@ -22,8 +22,11 @@ import { useNavigation, DrawerActions } from '@react-navigation/native';
 import { getApiUrl } from '@/utils/apiConfig';
 import EmbeddedMapPicker from '@/components/EmbeddedMapPicker';
 import StaticMapView from '@/components/StaticMapView';
-import DatePickerField from '@/components/DatePickerField';
 import PageHeader from '@/components/PageHeader';
+
+// Dynamic import to prevent DatePickerField from loading on Android (causes latin1 encoding crash)
+// iOS and web can use the date picker; only Android has the TextDecoder latin1 issue
+const DatePickerField = Platform.OS === 'android' ? null : require('@/components/DatePickerField').default;
 import * as ImagePicker from 'expo-image-picker';
 
 const DEBUG_DISABLE_MAPS = false;

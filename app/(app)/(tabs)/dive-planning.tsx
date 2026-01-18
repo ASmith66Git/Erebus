@@ -15,7 +15,6 @@ import {
   calculateMValueAtPressure, depthToPressure, calculateGFAtDepth, findFirstStop
 } from '@/services/divePlanner';
 import { CYLINDER_PRESETS_LEGACY as CYLINDER_PRESETS } from '@/services/cylinderCatalog';
-import { downloadDivePlanPdf } from '@/services/divePlanPdf';
 import PageHeader from '@/components/PageHeader';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -2011,7 +2010,7 @@ export default function DivePlanningScreen() {
     </Modal>
   );
 
-  const handleExportPdf = () => {
+  const handleExportPdf = async () => {
     if (Platform.OS !== 'web') return;
     try {
       if (!currentResult || currentResult.segments.length === 0) {
@@ -2027,6 +2026,8 @@ export default function DivePlanningScreen() {
         ...createGasMix(g.o2Percent, g.hePercent, g.switchDepth, g.cylinderVolume, g.fillPressure, g.reservePressure),
         name: g.name,
       }));
+      // Dynamic import to prevent jsPDF from loading on Android (causes latin1 encoding crash)
+      const { downloadDivePlanPdf } = await import('@/services/divePlanPdf');
       downloadDivePlanPdf({
         result: currentResult,
         settings: appliedSettings,
