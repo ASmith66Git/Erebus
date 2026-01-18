@@ -876,18 +876,49 @@ export default function DivePlanningScreen() {
           </TouchableOpacity>
         )}
 
-        {currentResult.decoStops.length > 0 && (
-          <View style={[styles.decoStopsContainer, { borderTopColor: colors.border }]}>
-            <Text style={[styles.decoStopsTitle, { color: colors.text }]}>Decompression Stops</Text>
-            {currentResult.decoStops.map((stop, i) => (
-              <View key={i} style={styles.decoStopRow}>
-                <Text style={[styles.decoStopDepth, { color: colors.text }]}>{stop.depth}{depthUnit}</Text>
-                <Text style={[styles.decoStopDuration, { color: colors.primary }]}>{stop.duration} min</Text>
-                <Text style={[styles.decoStopGas, { color: colors.textSecondary }]}>{stop.gasMix.name}</Text>
-              </View>
-            ))}
+        {/* Dive Profile Table */}
+        <View style={[styles.decoStopsContainer, { borderTopColor: colors.border }]}>
+          <Text style={[styles.decoStopsTitle, { color: colors.text }]}>Dive Profile</Text>
+          
+          {/* Table Header */}
+          <View style={[styles.profileTableHeader, { borderBottomColor: colors.border }]}>
+            <Text style={[styles.profileHeaderCell, { width: 28, color: colors.textSecondary }]}></Text>
+            <Text style={[styles.profileHeaderCell, { width: 55, color: colors.textSecondary }]}>Depth</Text>
+            <Text style={[styles.profileHeaderCell, { width: 50, color: colors.textSecondary }]}>Run</Text>
+            <Text style={[styles.profileHeaderCell, { flex: 1, color: colors.textSecondary }]}>Gas</Text>
+            <Text style={[styles.profileHeaderCell, { width: 45, color: colors.textSecondary }]}>PO2</Text>
+            <Text style={[styles.profileHeaderCell, { width: 50, color: colors.textSecondary }]}>EAD</Text>
           </View>
-        )}
+          
+          {/* Table Rows */}
+          {currentResult.segments.filter(s => s.type !== 'surface_interval').map((seg, i) => {
+            const depth = seg.type === 'descent' || seg.type === 'ascent' ? seg.endDepth : seg.startDepth;
+            const pressure = 1 + depth / (settings.waterType === 'salt' ? 10 : 10.3);
+            const po2 = (seg.gasMix.o2Percent / 100) * pressure;
+            const fN2 = (100 - seg.gasMix.o2Percent - (seg.gasMix.hePercent || 0)) / 100;
+            const ead = fN2 > 0 ? Math.round(((pressure * fN2) - 0.79) / 0.79 * (settings.waterType === 'salt' ? 10 : 10.3)) : 0;
+            
+            let arrow = '→';
+            let arrowColor = colors.textSecondary;
+            if (seg.type === 'descent') { arrow = '↓'; arrowColor = colors.primary; }
+            else if (seg.type === 'ascent') { arrow = '↑'; arrowColor = colors.success; }
+            else if (seg.type === 'deco_stop') { arrow = '⏸'; arrowColor = colors.warning; }
+            else if (seg.type === 'gas_switch') { arrow = '⟳'; arrowColor = colors.accent; }
+            
+            const po2Color = po2 > 1.6 ? colors.error : po2 > 1.4 ? colors.warning : colors.text;
+            
+            return (
+              <View key={i} style={[styles.profileTableRow, { backgroundColor: i % 2 === 0 ? 'transparent' : colors.background + '40' }]}>
+                <Text style={[styles.profileCell, { width: 28, fontSize: 16, color: arrowColor }]}>{arrow}</Text>
+                <Text style={[styles.profileCell, { width: 55, color: colors.text }]}>{depth}{depthUnit}</Text>
+                <Text style={[styles.profileCell, { width: 50, color: colors.textSecondary }]}>{seg.runTime}'</Text>
+                <Text style={[styles.profileCell, { flex: 1, color: colors.text }]} numberOfLines={1}>{seg.gasMix.name}</Text>
+                <Text style={[styles.profileCell, { width: 45, color: po2Color }]}>{po2.toFixed(2)}</Text>
+                <Text style={[styles.profileCell, { width: 50, color: colors.textSecondary }]}>{ead > 0 ? `${ead}${depthUnit}` : '-'}</Text>
+              </View>
+            );
+          })}
+        </View>
 
         {currentResult.warnings.length > 0 && (
           <View style={styles.warningsContainer}>
@@ -2149,6 +2180,10 @@ const styles = StyleSheet.create({
   scrubberButtonText: { color: '#FFF', fontSize: 14, fontWeight: '500' },
   decoStopsContainer: { marginTop: 16, paddingTop: 16, borderTopWidth: 1 },
   decoStopsTitle: { fontSize: 14, fontWeight: '600', marginBottom: 12 },
+  profileTableHeader: { flexDirection: 'row', paddingBottom: 8, marginBottom: 4, borderBottomWidth: 1 },
+  profileHeaderCell: { fontSize: 11, fontWeight: '600', textTransform: 'uppercase' } as any,
+  profileTableRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 6, borderRadius: 4 },
+  profileCell: { fontSize: 13 },
   decoStopRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 16 },
   decoStopDepth: { fontSize: 14, fontWeight: '500', width: 50 },
   decoStopDuration: { fontSize: 14, fontWeight: '600' },
