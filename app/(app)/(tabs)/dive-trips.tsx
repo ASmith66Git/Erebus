@@ -132,7 +132,13 @@ export default function DiveTripsScreen() {
       });
       if (response.ok) {
         const data = await response.json();
-        setTrips(data);
+        // Convert latitude/longitude from PostgreSQL numeric strings to numbers
+        const parsedData = data.map((trip: any) => ({
+          ...trip,
+          latitude: trip.latitude != null ? parseFloat(trip.latitude) : null,
+          longitude: trip.longitude != null ? parseFloat(trip.longitude) : null,
+        }));
+        setTrips(parsedData);
       }
     } catch (error) {
       console.error('Fetch trips error:', error);
@@ -151,7 +157,13 @@ export default function DiveTripsScreen() {
       });
       if (response.ok) {
         const data = await response.json();
-        setSelectedTrip(data);
+        // Convert latitude/longitude from PostgreSQL numeric strings to numbers
+        const parsedData = {
+          ...data,
+          latitude: data.latitude != null ? parseFloat(data.latitude) : null,
+          longitude: data.longitude != null ? parseFloat(data.longitude) : null,
+        };
+        setSelectedTrip(parsedData);
         setLinkedDives(data.linked_dives || []);
       }
     } catch (error) {
