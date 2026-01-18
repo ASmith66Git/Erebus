@@ -158,7 +158,7 @@ export default function HomeScreen() {
   const statsData = [
     { icon: 'water', label: 'Total Dives', value: stats.totalDives.toString(), gradient: colorShades[0] },
     { icon: 'time', label: 'Dive Time', value: formatDiveTime(stats.totalTime), gradient: colorShades[1] },
-    { icon: 'navigate', label: 'Max Depth', value: stats.maxDepth > 0 ? `${stats.maxDepth}m` : '--', gradient: colorShades[2] },
+    { icon: 'location', label: 'Dive Sites', value: stats.sitesVisited.toString(), gradient: colorShades[2] },
   ];
 
   const quickActions = [
