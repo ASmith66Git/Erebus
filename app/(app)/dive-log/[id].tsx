@@ -19,7 +19,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { getApiUrl } from '@/utils/apiConfig';
 
-const TABS = ['Dive', 'Profile', 'Computer', 'Notes', 'Team'] as const;
+const TABS = ['Dive', 'Profile', 'Computer', 'Notes', 'Team', 'Problems'] as const;
 type TabType = typeof TABS[number];
 
 const EQUIPMENT_OPTIONS = [
@@ -761,6 +761,14 @@ function DiveTab({ diveLog, colors, gearProfileName }: { diveLog: DiveLog; color
         </View>
       )}
 
+      <View style={{ height: 40 }} />
+    </ScrollView>
+  );
+}
+
+function ProblemsTab({ diveLog, colors }: { diveLog: DiveLog; colors: any }) {
+  return (
+    <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
       <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
         <View style={styles.fieldRow}>
           <Feather name="alert-triangle" size={16} color={colors.textSecondary} />
@@ -1356,6 +1364,8 @@ export default function DiveLogDetailScreen() {
         return <NotesTab diveLog={diveLog} colors={colors} />;
       case 'Team':
         return <TeamTab diveLog={diveLog} colors={colors} token={token} onRefresh={fetchDiveLog} />;
+      case 'Problems':
+        return <ProblemsTab diveLog={diveLog} colors={colors} />;
       default:
         return null;
     }
