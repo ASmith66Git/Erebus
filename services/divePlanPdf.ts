@@ -167,17 +167,21 @@ export function generateDivePlanPdf(input: DivePlanPdfInput): void {
     doc.text('DECOMPRESSION SCHEDULE', margin, yPos);
     yPos += 5;
     
-    const decoData = result.decoStops.map((stop, i) => [
-      `${i + 1}`,
-      `${stop.depth} ${settings.units === 'metric' ? 'm' : 'ft'}`,
-      `${formatDuration(stop.duration)} min`,
-      formatGas(stop.gasMix),
-      `${formatDuration(stop.ceiling)} min`
-    ]);
+    let cumulativeRuntime = 0;
+    const decoData = result.decoStops.map((stop, i) => {
+      cumulativeRuntime += stop.duration;
+      return [
+        `${i + 1}`,
+        `${stop.depth} ${settings.units === 'metric' ? 'm' : 'ft'}`,
+        `${formatDuration(stop.duration)} min`,
+        formatGas(stop.gasMix),
+        `${Math.round(stop.ceiling)} ${settings.units === 'metric' ? 'm' : 'ft'}`
+      ];
+    });
     
     autoTable(doc, {
       startY: yPos,
-      head: [['#', 'Depth', 'Duration', 'Gas', 'Runtime']],
+      head: [['#', 'Depth', 'Duration', 'Gas', 'Ceiling']],
       body: decoData,
       theme: 'striped',
       margin: { left: margin, right: margin },

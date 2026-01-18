@@ -15,6 +15,7 @@ import {
   calculateMValueAtPressure, depthToPressure, calculateGFAtDepth, findFirstStop
 } from '@/services/divePlanner';
 import { CYLINDER_PRESETS_LEGACY as CYLINDER_PRESETS } from '@/services/cylinderCatalog';
+import { downloadDivePlanPdf } from '@/services/divePlanPdf';
 import PageHeader from '@/components/PageHeader';
 import { useTheme } from '@/contexts/ThemeContext';
 
@@ -916,6 +917,42 @@ export default function DivePlanningScreen() {
             <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>OTU (Pulmonary)</Text>
           </View>
         </View>
+
+        {/* Export PDF Button - Web only for now */}
+        {Platform.OS === 'web' && currentResult && (
+          <TouchableOpacity
+            style={[styles.exportButton, { backgroundColor: colors.primary }]}
+            onPress={() => {
+              try {
+                if (!currentResult || currentResult.segments.length === 0) {
+                  console.warn('No dive plan to export');
+                  return;
+                }
+                const selectedDive = dives[selectedDiveIndex];
+                if (!selectedDive) {
+                  console.warn('No dive selected');
+                  return;
+                }
+                const gasesForPdf = gases.map(g => ({
+                  ...createGasMix(g.o2Percent, g.hePercent, g.switchDepth, g.cylinderVolume, g.fillPressure, g.reservePressure),
+                  name: g.name,
+                }));
+                downloadDivePlanPdf({
+                  result: currentResult,
+                  settings: appliedSettings,
+                  depth: selectedDive.depth,
+                  bottomTime: selectedDive.bottomTime,
+                  gases: gasesForPdf,
+                });
+              } catch (error) {
+                console.error('PDF generation error:', error);
+              }
+            }}
+          >
+            <Feather name="download" size={16} color="#FFF" />
+            <Text style={styles.exportButtonText}>Export PDF</Text>
+          </TouchableOpacity>
+        )}
 
         {settings.circuit === 'ccr' && (
           <TouchableOpacity
@@ -2228,6 +2265,17 @@ const styles = StyleSheet.create({
   summaryItem: { width: '50%', marginBottom: 16 },
   summaryValue: { fontSize: 24, fontWeight: '700' },
   summaryLabel: { fontSize: 12, marginTop: 2 },
+  exportButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginTop: 12,
+    marginBottom: 4,
+  },
+  exportButtonText: { color: '#FFF', fontSize: 14, fontWeight: '600' },
   scrubberButton: {
     flexDirection: 'row',
     alignItems: 'center',
