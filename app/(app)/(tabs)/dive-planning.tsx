@@ -12,7 +12,7 @@ import {
   calculateDivePlan, calculateMultiDivePlan, createGasMix, initializeTissues,
   DEFAULT_SETTINGS, GasMix, DivePlanResult, TissueState, DivePlanInput, DivePlanSettings,
   CircuitType, DecoModel, WaterType, UnitSystem, calculateCNS, calculateOTU, GasConsumption,
-  calculateMValueAtPressure, depthToPressure
+  calculateMValueAtPressure, depthToPressure, calculateGFAtDepth, findFirstStop
 } from '@/services/divePlanner';
 import { CYLINDER_PRESETS_LEGACY as CYLINDER_PRESETS } from '@/services/cylinderCatalog';
 import PageHeader from '@/components/PageHeader';
@@ -741,11 +741,14 @@ export default function DivePlanningScreen() {
     // Get tissue loading at current scrubber position
     const scrubberValues = getValuesAtTime(chartScrubberTime);
     const tissues = scrubberValues?.tissues || currentResult.tissueHistory[currentResult.tissueHistory.length - 1];
+    const currentDepth = scrubberValues?.depth || 0;
     
-    // Get baseline tissues (surface before dive starts)
+    // Get baseline tissues (surface before dive starts - equilibrium at ~0.74 bar)
     const baselineTissues = currentResult.tissueHistory[0];
-    // Get final tissues for max reference
-    const finalTissues = currentResult.tissueHistory[currentResult.tissueHistory.length - 1];
+    const baselinePpInert = 0.74; // Surface equilibrium N2 partial pressure
+    
+    // Find first stop depth for GF interpolation
+    const firstStopDepth = findFirstStop(tissues, appliedSettings.gfLow, appliedSettings.decoStopInterval || 3, appliedSettings.waterType || 'salt');
     
     const padding = { top: 24, right: 40, bottom: 12, left: 24 };
     const chartW = Math.max(tissueChartWidth - padding.left - padding.right, 100);
@@ -753,31 +756,43 @@ export default function DivePlanningScreen() {
     const barGap = 2;
     const chartH = 16 * (barHeight + barGap);
 
-    // Calculate max ppInert across all tissues in final state for scaling
-    const maxPpInert = Math.max(...finalTissues.map(t => t.ppInert), 1);
-
     // Max bar width (leave space for percentage text)
     const maxBarWidth = chartW * 0.7;
     
-    // Horizontal bars showing tissue loading (ppInert) normalized to max
+    // Horizontal bars showing tissue saturation relative to GF ceiling
+    // 0% = surface equilibrium, 100% = at GF-limited M-value ceiling
     const bars = tissues.map((tissue, i) => {
-      const baseline = baselineTissues[i]?.ppInert || 0.74;
+      // Get ambient pressure at current depth
+      const Pamb = depthToPressure(currentDepth, appliedSettings.waterType || 'salt');
+      
+      // Calculate M-value at current ambient pressure
+      const mValue = calculateMValueAtPressure(tissue, i, Pamb);
+      
+      // Get current GF based on depth position between first stop and surface
+      const gf = calculateGFAtDepth(currentDepth, firstStopDepth, appliedSettings.gfLow, appliedSettings.gfHigh, appliedSettings.waterType || 'salt');
+      
+      // Calculate GF-limited ceiling: Plimit = Pamb + (M - Pamb) * (gf/100)
+      const Plimit = Pamb + (mValue - Pamb) * (gf / 100);
+      
+      // Percentage: 0% = surface equilibrium, 100% = at GF ceiling
       const current = tissue.ppInert;
-      const maxVal = Math.max(finalTissues[i]?.ppInert || 1, baseline * 1.5);
+      const numerator = current - baselinePpInert;
+      const denominator = Plimit - baselinePpInert;
+      const percent = denominator > 0 ? (numerator / denominator) * 100 : 0;
       
-      // Show loading as percentage: 0% = baseline, 100% = max loading reached
-      const loadingIncrease = current - baseline;
-      const maxIncrease = maxVal - baseline;
-      const percent = maxIncrease > 0 ? (loadingIncrease / maxIncrease) * 100 : 0;
-      const clampedPercent = Math.max(0, Math.min(percent, 100));
+      // Clamp to reasonable display range (0-120%)
+      const clampedPercent = Math.max(0, Math.min(percent, 120));
       
-      // Width capped at maxBarWidth
-      const width = Math.max((clampedPercent / 100) * maxBarWidth, 2);
+      // Width capped at 100% of maxBarWidth
+      const displayPercent = Math.min(clampedPercent, 100);
+      const width = Math.max((displayPercent / 100) * maxBarWidth, 2);
       const y = padding.top + i * (barHeight + barGap);
       const x = padding.left;
       
-      // Get color for this compartment
-      const barColor = tissueColors[i] || '#FF5722';
+      // Color: normal color, warning if >80%, danger if >100%
+      let barColor = tissueColors[i] || '#FF5722';
+      if (percent > 100) barColor = colors.error;
+      else if (percent > 80) barColor = '#FF9800'; // warning orange
 
       return (
         <G key={i}>
@@ -800,7 +815,7 @@ export default function DivePlanningScreen() {
             x={x + maxBarWidth + 6}
             y={y + barHeight / 2 + 3}
             fontSize={7}
-            fill={colors.text}
+            fill={percent > 100 ? colors.error : percent > 80 ? '#FF9800' : colors.text}
             textAnchor="start"
           >
             {Math.round(percent)}%
