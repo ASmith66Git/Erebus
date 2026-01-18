@@ -191,17 +191,6 @@ export default function HomeScreen() {
               start={{ x: 0, y: 0 }}
               end={{ x: 0, y: 1 }}
             />
-            <LinearGradient
-              colors={isDark 
-                ? [colors.primary + '30', colors.primary + '15', 'transparent']
-                : [colors.primary + '20', colors.primary + '10', 'transparent']
-              }
-              style={styles.heroColorTint}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-            />
-            <BubbleDecoration color={colors.primary} />
-            
             <View style={styles.welcomeContent}>
               <Text style={[styles.timeGreeting, { color: colors.primary }]}>
                 {getTimeGreeting()}
@@ -213,8 +202,6 @@ export default function HomeScreen() {
                 Ready for your next underwater adventure?
               </Text>
             </View>
-            
-            <WavePattern color={colors.primary} opacity={isDark ? 0.25 : 0.2} />
           </ImageBackground>
         </View>
 
