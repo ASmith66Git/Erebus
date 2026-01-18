@@ -10,6 +10,7 @@
     "web": "expo start --web",
     "web:build": "expo export --platform web --output-dir dist --clear",
     "test": "jest --watchAll",
+    "test:planner": "npx tsx tests/divePlanner.test.ts",
     "lint": "expo lint",
     "postinstall": "patch-package"
   },
