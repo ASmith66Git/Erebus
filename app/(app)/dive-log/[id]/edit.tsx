@@ -17,7 +17,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { getApiUrl } from '@/utils/apiConfig';
 
-const TABS = ['Dive', 'Profile', 'Computer', 'Notes', 'Team', 'Problems'] as const;
+const TABS = ['Dive', 'Gas', 'Problems', 'Skills', 'Team', 'Notes'] as const;
 type TabType = typeof TABS[number];
 
 const EQUIPMENT_OPTIONS = [
@@ -608,7 +608,7 @@ export default function EditDiveLogScreen() {
     </ScrollView>
   );
 
-  const renderProfileTab = () => (
+  const renderGasTab = () => (
     <ScrollView style={styles.tabContent} contentContainerStyle={styles.tabContentContainer}>
       <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
         <Text style={[styles.cardTitle, { color: colors.text }]}>Dive Mode</Text>
@@ -631,6 +631,17 @@ export default function EditDiveLogScreen() {
         </View>
       </View>
 
+      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>Cylinders</Text>
+        <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+          Gas configuration is managed through the linked gear profile.
+        </Text>
+      </View>
+    </ScrollView>
+  );
+
+  const renderSkillsTab = () => (
+    <ScrollView style={styles.tabContent} contentContainerStyle={styles.tabContentContainer}>
       <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
         <Text style={[styles.cardTitle, { color: colors.text }]}>Skills Practiced</Text>
         <View style={styles.checkboxGrid}>
@@ -845,16 +856,16 @@ export default function EditDiveLogScreen() {
     switch (activeTab) {
       case 'Dive':
         return renderDiveTab();
-      case 'Profile':
-        return renderProfileTab();
-      case 'Computer':
-        return renderComputerTab();
-      case 'Notes':
-        return renderNotesTab();
-      case 'Team':
-        return renderTeamTab();
+      case 'Gas':
+        return renderGasTab();
       case 'Problems':
         return renderProblemsTab();
+      case 'Skills':
+        return renderSkillsTab();
+      case 'Team':
+        return renderTeamTab();
+      case 'Notes':
+        return renderNotesTab();
       default:
         return null;
     }
