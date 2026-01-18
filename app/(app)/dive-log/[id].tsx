@@ -1400,13 +1400,23 @@ export default function DiveLogDetailScreen() {
       </View>
 
       <View style={styles.diveHeader}>
-        <Text style={[styles.diveTitle, { color: colors.text }]}>
-          Dive #{diveLog.diveNumber || diveLog.id}
-        </Text>
-        <View style={styles.dateRow}>
-          <Feather name="calendar" size={14} color={colors.textSecondary} />
-          <Text style={[styles.dateText, { color: colors.textSecondary }]}>
-            {formatDate(diveLog.diveDateTime)} • {formatTime(diveLog.diveDateTime)}
+        <View style={styles.diveHeaderLeft}>
+          <Text style={[styles.diveTitle, { color: colors.text }]}>
+            Dive #{diveLog.diveNumber || diveLog.id}
+          </Text>
+          <View style={styles.dateRow}>
+            <Feather name="calendar" size={14} color={colors.textSecondary} />
+            <Text style={[styles.dateText, { color: colors.textSecondary }]}>
+              {formatDate(diveLog.diveDateTime)} • {formatTime(diveLog.diveDateTime)}
+            </Text>
+          </View>
+        </View>
+        <View style={styles.diveHeaderRight}>
+          <Text style={[styles.computerName, { color: colors.text }]}>
+            {diveLog.deviceModel || 'Unknown'}
+          </Text>
+          <Text style={[styles.diveMode, { color: colors.textSecondary }]}>
+            {diveLog.diveMode || 'Open Circuit'}
           </Text>
         </View>
       </View>
@@ -1473,8 +1483,25 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   diveHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
     paddingHorizontal: 16,
     paddingVertical: 16,
+  },
+  diveHeaderLeft: {
+    flex: 1,
+  },
+  diveHeaderRight: {
+    alignItems: 'flex-end',
+  },
+  computerName: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  diveMode: {
+    fontSize: 12,
+    marginTop: 2,
   },
   diveTitle: {
     fontSize: 24,
