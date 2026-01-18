@@ -1283,7 +1283,7 @@ export default function DivePlanningScreen() {
     const bailoutGases = gases.filter(g => g.role === 'bailout');
     const extensionGases = gases.filter(g => g.role === 'extension');
     
-    const bottomGas = gases.find(g => g.role === 'bottom');
+    const bottomGases = gases.filter(g => g.role === 'bottom');
     const travelGases = gases.filter(g => g.role === 'travel');
     const decoGases = gases.filter(g => g.role === 'deco');
     
@@ -1362,21 +1362,19 @@ export default function DivePlanningScreen() {
           </>
         ) : (
           <>
-            {/* OC Bottom Gas */}
+            {/* OC Bottom Gases */}
             <View style={[styles.section, { backgroundColor: colors.card }]}>
-              <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 8 }]}>Bottom Gas</Text>
+              <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 8 }]}>Bottom Gases</Text>
               <Text style={[styles.settingHint, { color: colors.textSecondary, marginBottom: 12 }]}>
-                Primary gas for the bottom phase of the dive
+                Primary gases for the bottom phase of the dive
               </Text>
               
-              {bottomGas && renderGasCard(bottomGas, false, false)}
+              {bottomGases.map(gas => renderGasCard(gas, bottomGases.length > 1, false))}
               
-              {!bottomGas && (
-                <TouchableOpacity onPress={() => addGas('bottom')} style={[styles.addGasButton, { borderColor: colors.primary }]}>
-                  <Feather name="plus" size={16} color={colors.primary} />
-                  <Text style={[styles.addGasText, { color: colors.primary }]}>Add Bottom Gas</Text>
-                </TouchableOpacity>
-              )}
+              <TouchableOpacity onPress={() => addGas('bottom')} style={[styles.addGasButton, { borderColor: colors.primary }]}>
+                <Feather name="plus" size={16} color={colors.primary} />
+                <Text style={[styles.addGasText, { color: colors.primary }]}>Add Bottom Gas</Text>
+              </TouchableOpacity>
             </View>
 
             {/* OC Travel Gases */}
