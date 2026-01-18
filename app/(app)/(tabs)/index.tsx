@@ -138,7 +138,12 @@ export default function HomeScreen() {
       });
       if (response.ok) {
         const data = await response.json();
-        setStats(data);
+        setStats({
+          totalDives: data.totalDives || 0,
+          totalTime: Math.floor((data.totalDurationSeconds || 0) / 60),
+          sitesVisited: data.sitesVisited || 0,
+          maxDepth: data.deepestDiveMeters || 0,
+        });
       }
     } catch (error) {
       console.error('Error fetching stats:', error);
