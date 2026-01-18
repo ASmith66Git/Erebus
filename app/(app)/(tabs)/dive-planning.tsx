@@ -756,6 +756,9 @@ export default function DivePlanningScreen() {
     // Calculate max ppInert across all tissues in final state for scaling
     const maxPpInert = Math.max(...finalTissues.map(t => t.ppInert), 1);
 
+    // Max bar width (leave space for percentage text)
+    const maxBarWidth = chartW * 0.7;
+    
     // Horizontal bars showing tissue loading (ppInert) normalized to max
     const bars = tissues.map((tissue, i) => {
       const baseline = baselineTissues[i]?.ppInert || 0.74;
@@ -765,23 +768,23 @@ export default function DivePlanningScreen() {
       // Show loading as percentage: 0% = baseline, 100% = max loading reached
       const loadingIncrease = current - baseline;
       const maxIncrease = maxVal - baseline;
-      const percent = maxIncrease > 0 ? Math.min((loadingIncrease / maxIncrease) * 100, 150) : 0;
+      const percent = maxIncrease > 0 ? (loadingIncrease / maxIncrease) * 100 : 0;
+      const clampedPercent = Math.max(0, Math.min(percent, 100));
       
-      const width = Math.max((percent / 100) * chartW * 0.8, 1);
+      // Width capped at maxBarWidth
+      const width = Math.max((clampedPercent / 100) * maxBarWidth, 2);
       const y = padding.top + i * (barHeight + barGap);
       const x = padding.left;
       
-      // Color based on saturation level
-      let fillColor = tissueColors[i];
-      if (percent > 100) fillColor = colors.error;
-      else if (percent > 80) fillColor = colors.warning;
+      // Get color for this compartment
+      const barColor = tissueColors[i] || '#FF5722';
 
       return (
         <G key={i}>
           {/* Background track */}
-          <Rect x={x} y={y} width={chartW * 0.8} height={barHeight} fill={colors.border + '30'} rx={1} />
+          <Rect x={x} y={y} width={maxBarWidth} height={barHeight} fill={isDark ? '#333' : '#E0E0E0'} rx={2} />
           {/* Filled bar */}
-          <Rect x={x} y={y} width={width} height={barHeight} fill={fillColor} rx={1} />
+          <Rect x={x} y={y} width={width} height={barHeight} fill={barColor} rx={2} />
           {/* Compartment number */}
           <SvgText
             x={x - 4}
@@ -794,10 +797,10 @@ export default function DivePlanningScreen() {
           </SvgText>
           {/* Percentage value */}
           <SvgText
-            x={x + chartW * 0.8 + 4}
+            x={x + maxBarWidth + 6}
             y={y + barHeight / 2 + 3}
             fontSize={7}
-            fill={percent > 100 ? colors.error : percent > 80 ? colors.warning : colors.text}
+            fill={colors.text}
             textAnchor="start"
           >
             {Math.round(percent)}%
@@ -806,9 +809,9 @@ export default function DivePlanningScreen() {
       );
     });
 
-    // Vertical grid lines at 25%, 50%, 75%, 100%
-    const gridLines = [25, 50, 75, 100].map((pct, i) => {
-      const x = padding.left + (pct / 100) * chartW * 0.8;
+    // Vertical grid lines at 50% and 100%
+    const gridLines = [50, 100].map((pct, i) => {
+      const x = padding.left + (pct / 100) * maxBarWidth;
       return (
         <G key={i}>
           <Line
@@ -816,15 +819,15 @@ export default function DivePlanningScreen() {
             y1={padding.top - 4}
             x2={x}
             y2={padding.top + chartH}
-            stroke={pct === 100 ? colors.warning : colors.border}
-            strokeWidth={pct === 100 ? 1 : 0.5}
-            strokeOpacity={pct === 100 ? 0.8 : 0.3}
+            stroke={isDark ? '#555' : '#CCC'}
+            strokeWidth={0.5}
+            strokeDasharray="2,2"
           />
           <SvgText
             x={x}
             y={padding.top - 6}
             fontSize={7}
-            fill={pct === 100 ? colors.warning : colors.textSecondary}
+            fill={colors.textSecondary}
             textAnchor="middle"
           >
             {pct}%
