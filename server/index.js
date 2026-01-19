@@ -113,6 +113,14 @@ async function initDatabase() {
     `).catch(() => {});
     
     await client.query(`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS age INTEGER;
+    `).catch(() => {});
+    
+    await client.query(`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS sex VARCHAR(20);
+    `).catch(() => {});
+    
+    await client.query(`
       CREATE TABLE IF NOT EXISTS dive_sites (
         id SERIAL PRIMARY KEY,
         user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
@@ -1127,7 +1135,7 @@ app.post('/api/auth/reset-password', async (req, res) => {
 app.get('/api/auth/me', authenticateToken, async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT id, email, first_name, last_name, role, created_at FROM users WHERE id = $1',
+      'SELECT id, email, first_name, last_name, age, sex, role, created_at FROM users WHERE id = $1',
       [req.user.id]
     );
     
@@ -1141,6 +1149,8 @@ app.get('/api/auth/me', authenticateToken, async (req, res) => {
       email: user.email,
       firstName: user.first_name,
       lastName: user.last_name,
+      age: user.age,
+      sex: user.sex,
       role: user.role,
       createdAt: user.created_at
     });
@@ -1751,6 +1761,104 @@ app.put('/api/user/dive-computer', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     console.error('Update user dive computer error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.get('/api/user/profile', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT id, email, first_name, last_name, age, sex, role, created_at FROM users WHERE id = $1',
+      [req.user.id]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    const user = result.rows[0];
+    res.json({
+      id: user.id,
+      email: user.email,
+      firstName: user.first_name,
+      lastName: user.last_name,
+      age: user.age,
+      sex: user.sex,
+      role: user.role,
+      createdAt: user.created_at
+    });
+  } catch (error) {
+    console.error('Get user profile error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.put('/api/user/profile', authenticateToken, async (req, res) => {
+  const { firstName, lastName, age, sex } = req.body;
+  
+  try {
+    const updates = [];
+    const params = [];
+    let paramIndex = 1;
+    
+    if (firstName !== undefined) {
+      updates.push(`first_name = $${paramIndex}`);
+      params.push(firstName);
+      paramIndex++;
+    }
+    
+    if (lastName !== undefined) {
+      updates.push(`last_name = $${paramIndex}`);
+      params.push(lastName);
+      paramIndex++;
+    }
+    
+    if (age !== undefined) {
+      if (age !== null && (age < 0 || age > 150)) {
+        return res.status(400).json({ error: 'Invalid age value' });
+      }
+      updates.push(`age = $${paramIndex}`);
+      params.push(age);
+      paramIndex++;
+    }
+    
+    if (sex !== undefined) {
+      const validSexOptions = ['male', 'female', 'other', 'prefer_not_to_say', null];
+      if (!validSexOptions.includes(sex)) {
+        return res.status(400).json({ error: 'Invalid sex value' });
+      }
+      updates.push(`sex = $${paramIndex}`);
+      params.push(sex);
+      paramIndex++;
+    }
+    
+    if (updates.length === 0) {
+      return res.status(400).json({ error: 'No fields to update' });
+    }
+    
+    updates.push('updated_at = CURRENT_TIMESTAMP');
+    params.push(req.user.id);
+    
+    const result = await pool.query(
+      `UPDATE users SET ${updates.join(', ')} WHERE id = $${paramIndex} RETURNING id, email, first_name, last_name, age, sex, role`,
+      params
+    );
+    
+    const user = result.rows[0];
+    res.json({
+      message: 'Profile updated successfully',
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.first_name,
+        lastName: user.last_name,
+        age: user.age,
+        sex: user.sex,
+        role: user.role
+      }
+    });
+  } catch (error) {
+    console.error('Update user profile error:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });
