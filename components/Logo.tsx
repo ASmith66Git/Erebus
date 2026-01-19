@@ -12,7 +12,7 @@ export default function Logo({
   primaryColor = '#D22F00',
   highlightColor = '#FFFFFF'
 }: LogoProps) {
-  const viewBoxSize = 100;
+  const viewBoxSize = 106;
   
   const arcRadius = 46;
   const arcCenter = { x: 50, y: 54 };
@@ -22,7 +22,7 @@ export default function Logo({
   const gapLength = circumference * (1 - arcPercent);
   
   return (
-    <Svg width={size} height={size} viewBox={`0 0 ${viewBoxSize} ${viewBoxSize}`}>
+    <Svg width={size} height={size} viewBox="-3 -3 106 106">
       <G>
         {/* Arc using circle with stroke-dasharray - gap on left side, rotated counter-clockwise 20deg */}
         <Circle
