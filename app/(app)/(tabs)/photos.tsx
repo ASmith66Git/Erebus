@@ -436,12 +436,15 @@ export default function PhotosScreen() {
               </Pressable>
               <Pressable 
                 onPress={() => {
+                  const photoId = selectedPhoto.id;
                   setShowViewer(false);
-                  router.push(`/photo/${selectedPhoto.id}`);
+                  setTimeout(() => {
+                    router.push(`/photo/${photoId}`);
+                  }, 100);
                 }} 
                 style={styles.viewerButton}
               >
-                <Feather name="edit-2" size={22} color="#FFF" />
+                <Ionicons name="information-circle-outline" size={24} color="#FFF" />
               </Pressable>
             </View>
           </View>
