@@ -536,15 +536,18 @@ export default function DiveLogDetailScreen() {
           </View>
           {photos.length > 0 ? (
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.photosCarousel}>
-              {photos.map((photo) => (
-                <Pressable 
-                  key={photo.id} 
-                  onPress={() => router.push(`/photo/${photo.id}`)}
-                  style={styles.photoThumbnail}
-                >
-                  <Image source={{ uri: photo.imageUrl }} style={styles.photoImage} resizeMode="cover" />
-                </Pressable>
-              ))}
+              {photos.map((photo) => {
+                const photoUrl = photo.imageUrl.startsWith('/') ? `${getApiUrl()}${photo.imageUrl}` : photo.imageUrl;
+                return (
+                  <Pressable 
+                    key={photo.id} 
+                    onPress={() => router.push(`/photo/${photo.id}`)}
+                    style={styles.photoThumbnail}
+                  >
+                    <Image source={{ uri: photoUrl }} style={styles.photoImage} resizeMode="cover" />
+                  </Pressable>
+                );
+              })}
             </ScrollView>
           ) : (
             <Pressable 
