@@ -532,14 +532,7 @@ export default function DiveTripsScreen() {
       <Pressable
         key={trip.id}
         style={[styles.tripCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
-        onPress={() => {
-          setSelectedTrip(trip);
-          setLinkedDives([]);
-          setTripPhotos([]);
-          setDetailTab('Details');
-          setShowDetailModal(true);
-          fetchTripDetails(trip.id);
-        }}
+        onPress={() => router.push(`/dive-trip/${trip.id}` as any)}
       >
         <View style={styles.tripCardRow}>
           {coverUrl ? (
@@ -618,7 +611,7 @@ export default function DiveTripsScreen() {
             </Text>
             <Pressable
               style={[styles.emptyStateBtn, { backgroundColor: colors.primary }]}
-              onPress={() => { resetForm(); setShowAddModal(true); }}
+              onPress={() => router.push('/dive-trip/new' as any)}
             >
               <Feather name="plus" size={18} color="#FFF" />
               <Text style={styles.emptyStateBtnText}>Add Dive Trip</Text>
@@ -629,7 +622,7 @@ export default function DiveTripsScreen() {
 
       <Pressable
         style={[styles.fab, { backgroundColor: colors.primary }]}
-        onPress={() => { resetForm(); setShowAddModal(true); }}
+        onPress={() => router.push('/dive-trip/new' as any)}
       >
         <Feather name="plus" size={24} color="#FFF" />
       </Pressable>
