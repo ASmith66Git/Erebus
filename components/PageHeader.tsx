@@ -60,7 +60,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   logoWrapper: {
-    marginBottom: -10,
+    marginBottom: -14,
   },
   headerTitle: {
     fontSize: 18,
