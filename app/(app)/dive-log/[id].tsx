@@ -1297,6 +1297,9 @@ export default function DiveLogDetailScreen() {
   const [gearCylinders, setGearCylinders] = useState<any[]>([]);
   const [gearProfile, setGearProfile] = useState<any | null>(null);
   const [photos, setPhotos] = useState<{id: number; imageUrl: string; caption: string | null}[]>([]);
+  const [showPhotoViewer, setShowPhotoViewer] = useState(false);
+  const [photoViewerIndex, setPhotoViewerIndex] = useState(0);
+  const photoViewerScrollRef = useRef<ScrollView>(null);
 
   const fetchDiveLog = useCallback(async () => {
     if (!id || !token) return;
@@ -1452,49 +1455,135 @@ export default function DiveLogDetailScreen() {
 
   const renderPhotosTab = () => {
     const getPhotoUrl = (url: string) => url.startsWith('/') ? `${getApiUrl()}${url}` : url;
+    const screenWidth = Dimensions.get('window').width;
+    const screenHeight = Dimensions.get('window').height;
+    
+    const openPhotoViewer = (index: number) => {
+      setPhotoViewerIndex(index);
+      setShowPhotoViewer(true);
+      setTimeout(() => {
+        photoViewerScrollRef.current?.scrollTo({ x: index * screenWidth, animated: false });
+      }, 50);
+    };
+    
+    const handleViewerScroll = (event: any) => {
+      const x = event.nativeEvent.contentOffset.x;
+      const newIndex = Math.round(x / screenWidth);
+      if (newIndex !== photoViewerIndex && newIndex >= 0 && newIndex < photos.length) {
+        setPhotoViewerIndex(newIndex);
+      }
+    };
     
     return (
-      <ScrollView style={styles.tabContent} contentContainerStyle={{ padding: 16 }}>
-        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Linked Photos</Text>
-            <Pressable onPress={() => router.push(`/(app)/(tabs)/photos?diveLogId=${id}`)}>
-              <Text style={{ color: colors.primary, fontSize: 14 }}>View All</Text>
-            </Pressable>
-          </View>
-          
-          {photos.length > 0 ? (
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-              {photos.map((photo) => (
-                <Pressable 
-                  key={photo.id}
-                  onPress={() => router.push(`/photo/${photo.id}`)}
-                  style={{ width: 100, height: 100, borderRadius: 8, overflow: 'hidden' }}
-                >
-                  <Image 
-                    source={{ uri: getPhotoUrl(photo.imageUrl) }} 
-                    style={{ width: '100%', height: '100%' }} 
-                    resizeMode="cover" 
-                  />
-                </Pressable>
-              ))}
-            </View>
-          ) : (
-            <View style={{ alignItems: 'center', paddingVertical: 40 }}>
-              <Feather name="image" size={48} color={colors.textSecondary} />
-              <Text style={{ color: colors.textSecondary, marginTop: 12, textAlign: 'center' }}>
-                No photos linked to this dive yet.
-              </Text>
-              <Pressable 
-                style={{ marginTop: 16, paddingHorizontal: 20, paddingVertical: 10, backgroundColor: colors.primary, borderRadius: 8 }}
-                onPress={() => router.push(`/(app)/(tabs)/photos`)}
-              >
-                <Text style={{ color: '#FFF', fontWeight: '600' }}>Add Photos</Text>
+      <>
+        <ScrollView style={styles.tabContent} contentContainerStyle={{ padding: 16 }}>
+          <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <View style={styles.sectionHeader}>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>Linked Photos</Text>
+              <Pressable onPress={() => router.push(`/(app)/(tabs)/photos?diveLogId=${id}`)}>
+                <Text style={{ color: colors.primary, fontSize: 14 }}>View All</Text>
               </Pressable>
             </View>
-          )}
-        </View>
-      </ScrollView>
+            
+            {photos.length > 0 ? (
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                {photos.map((photo, index) => (
+                  <Pressable 
+                    key={photo.id}
+                    onPress={() => openPhotoViewer(index)}
+                    style={{ width: 100, height: 100, borderRadius: 8, overflow: 'hidden' }}
+                  >
+                    <Image 
+                      source={{ uri: getPhotoUrl(photo.imageUrl) }} 
+                      style={{ width: '100%', height: '100%' }} 
+                      resizeMode="cover" 
+                    />
+                  </Pressable>
+                ))}
+              </View>
+            ) : (
+              <View style={{ alignItems: 'center', paddingVertical: 40 }}>
+                <Feather name="image" size={48} color={colors.textSecondary} />
+                <Text style={{ color: colors.textSecondary, marginTop: 12, textAlign: 'center' }}>
+                  No photos linked to this dive yet.
+                </Text>
+                <Pressable 
+                  style={{ marginTop: 16, paddingHorizontal: 20, paddingVertical: 10, backgroundColor: colors.primary, borderRadius: 8 }}
+                  onPress={() => router.push(`/(app)/(tabs)/photos`)}
+                >
+                  <Text style={{ color: '#FFF', fontWeight: '600' }}>Add Photos</Text>
+                </Pressable>
+              </View>
+            )}
+          </View>
+        </ScrollView>
+        
+        {showPhotoViewer && (
+          <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#000', zIndex: 1000 }}>
+            <View style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 50, paddingHorizontal: 16, paddingBottom: 16 }}>
+              <Pressable onPress={() => setShowPhotoViewer(false)} style={{ padding: 8 }}>
+                <Feather name="x" size={28} color="#FFF" />
+              </Pressable>
+              <Text style={{ color: '#FFF', fontSize: 16 }}>{photoViewerIndex + 1} / {photos.length}</Text>
+              <Pressable onPress={() => router.push(`/photo/${photos[photoViewerIndex]?.id}`)} style={{ padding: 8 }}>
+                <Feather name="info" size={24} color="#FFF" />
+              </Pressable>
+            </View>
+            
+            <ScrollView
+              ref={photoViewerScrollRef}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              onMomentumScrollEnd={handleViewerScroll}
+              style={{ flex: 1 }}
+            >
+              {photos.map((photo) => (
+                <View key={photo.id} style={{ width: screenWidth, height: screenHeight, justifyContent: 'center', alignItems: 'center' }}>
+                  <Image
+                    source={{ uri: getPhotoUrl(photo.imageUrl) }}
+                    style={{ width: screenWidth, height: screenHeight * 0.6 }}
+                    resizeMode="contain"
+                  />
+                </View>
+              ))}
+            </ScrollView>
+            
+            <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.7)', paddingVertical: 12, paddingBottom: 40 }}>
+              {photos[photoViewerIndex]?.caption && (
+                <Text style={{ color: '#FFF', fontSize: 14, textAlign: 'center', marginBottom: 12, paddingHorizontal: 16 }}>
+                  {photos[photoViewerIndex].caption}
+                </Text>
+              )}
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}>
+                {photos.map((photo, index) => (
+                  <Pressable
+                    key={photo.id}
+                    onPress={() => {
+                      setPhotoViewerIndex(index);
+                      photoViewerScrollRef.current?.scrollTo({ x: index * screenWidth, animated: true });
+                    }}
+                    style={{
+                      width: 60,
+                      height: 60,
+                      borderRadius: 6,
+                      overflow: 'hidden',
+                      borderWidth: index === photoViewerIndex ? 2 : 0,
+                      borderColor: colors.primary,
+                    }}
+                  >
+                    <Image
+                      source={{ uri: getPhotoUrl(photo.imageUrl) }}
+                      style={{ width: '100%', height: '100%' }}
+                      resizeMode="cover"
+                    />
+                  </Pressable>
+                ))}
+              </ScrollView>
+            </View>
+          </View>
+        )}
+      </>
     );
   };
 
