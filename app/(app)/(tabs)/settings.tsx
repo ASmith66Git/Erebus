@@ -41,7 +41,7 @@ export default function SettingsScreen() {
                 Metric
               </Text>
               <Text style={[styles.optionSubtext, { color: units === 'metric' ? '#FFF' : colors.textSecondary }]}>
-                meters, °C
+                meters, °C, bar
               </Text>
             </Pressable>
             <Pressable
@@ -56,7 +56,7 @@ export default function SettingsScreen() {
                 Imperial
               </Text>
               <Text style={[styles.optionSubtext, { color: units === 'imperial' ? '#FFF' : colors.textSecondary }]}>
-                feet, °F
+                feet, °F, PSI
               </Text>
             </Pressable>
           </View>
