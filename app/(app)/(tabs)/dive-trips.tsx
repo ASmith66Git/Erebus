@@ -907,7 +907,7 @@ export default function DiveTripsScreen() {
       </Modal>
 
       <Modal visible={showDetailModal} animationType="slide" transparent>
-        <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
+        <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
             <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
               <Text style={[styles.modalTitle, { color: colors.text }]} numberOfLines={1}>
@@ -1362,10 +1362,10 @@ const styles = StyleSheet.create({
   tripCardStat: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   tripCardStatText: { fontSize: 13 },
   modalOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' },
-  modalContent: { width: '95%', maxWidth: 500, maxHeight: '90%', borderRadius: 16, overflow: 'hidden' },
+  modalContent: { width: '95%', maxWidth: 500, maxHeight: '90%', borderRadius: 16, overflow: 'hidden', flexDirection: 'column' },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderBottomWidth: 1 },
   modalTitle: { fontSize: 18, fontWeight: '600', flex: 1, marginRight: 12 },
-  modalBody: { padding: 16, maxHeight: 500 },
+  modalBody: { padding: 16 },
   modalFooter: { flexDirection: 'row', padding: 16, gap: 12, borderTopWidth: 1 },
   modalBtn: { flex: 1, paddingVertical: 12, borderRadius: 8, alignItems: 'center' },
   modalBtnSecondary: { borderWidth: 1 },
