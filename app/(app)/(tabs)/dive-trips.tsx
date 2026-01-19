@@ -18,7 +18,7 @@ import {
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { useRouter } from 'expo-router';
+import { useRouter, useSegments } from 'expo-router';
 import { useNavigation, DrawerActions, useFocusEffect, useIsFocused } from '@react-navigation/native';
 import { getApiUrl } from '@/utils/apiConfig';
 import EmbeddedMapPicker from '@/components/EmbeddedMapPicker';
@@ -89,6 +89,7 @@ export default function DiveTripsScreen() {
   const router = useRouter();
   const navigation = useNavigation();
   const isFocused = useIsFocused();
+  const segments = useSegments();
 
   const [trips, setTrips] = useState<DiveTrip[]>([]);
   const [loading, setLoading] = useState(true);
@@ -129,6 +130,23 @@ export default function DiveTripsScreen() {
     coverImageKey: null as string | null,
   });
   const [uploadingImage, setUploadingImage] = useState(false);
+
+  // Close all modals when navigating away from this screen (e.g., to /photo/[id])
+  useEffect(() => {
+    const isOnDiveTrips = segments.length === 3 && 
+      segments[0] === '(app)' && 
+      segments[1] === '(tabs)' && 
+      segments[2] === 'dive-trips';
+    
+    if (!isOnDiveTrips) {
+      setShowAddModal(false);
+      setShowDetailModal(false);
+      setShowPhotoViewer(false);
+      setShowDivePickerModal(false);
+      setSelectedTrip(null);
+      setEditingTrip(null);
+    }
+  }, [segments]);
 
   const resetForm = () => {
     setFormData({
