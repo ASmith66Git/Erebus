@@ -14,7 +14,7 @@ import {
   Platform,
   Image,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'expo-router';
@@ -59,6 +59,7 @@ interface DiveTrip {
   notes: string | null;
   cover_image_key: string | null;
   linked_dives?: number | LinkedDiveLog[];
+  photo_count?: number;
 }
 
 const TRIP_TYPES = [
@@ -408,9 +409,17 @@ export default function DiveTripsScreen() {
               </Text>
             )}
             
-            <Text style={[styles.tripCardDives, { color: colors.primary }]}>
-              {typeof trip.linked_dives === 'number' ? trip.linked_dives : (Array.isArray(trip.linked_dives) ? trip.linked_dives.length : trip.total_dives || 0)} dives
-            </Text>
+            <View style={styles.tripCardStats}>
+              <Text style={[styles.tripCardDives, { color: colors.primary }]}>
+                {typeof trip.linked_dives === 'number' ? trip.linked_dives : (Array.isArray(trip.linked_dives) ? trip.linked_dives.length : trip.total_dives || 0)} dives
+              </Text>
+              {(trip.photo_count ?? 0) > 0 && (
+                <View style={styles.tripPhotoIndicator}>
+                  <Ionicons name="image" size={12} color={colors.primary} />
+                  <Text style={[styles.tripPhotoCount, { color: colors.primary }]}>{trip.photo_count}</Text>
+                </View>
+              )}
+            </View>
           </View>
         </View>
       </Pressable>
@@ -964,7 +973,10 @@ const styles = StyleSheet.create({
   tripCardThumbnailPlaceholder: { width: 90, height: 110, borderTopLeftRadius: 12, borderBottomLeftRadius: 12, alignItems: 'center', justifyContent: 'center' },
   tripCardContent: { padding: 10, flex: 1, justifyContent: 'center' },
   tripCardMeta: { fontSize: 12, marginTop: 2 },
-  tripCardDives: { fontSize: 12, fontWeight: '600', marginTop: 6 },
+  tripCardDives: { fontSize: 12, fontWeight: '600' },
+  tripCardStats: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 6 },
+  tripPhotoIndicator: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  tripPhotoCount: { fontSize: 11, fontWeight: '600' },
   detailCoverImage: { width: '100%', height: 180, borderRadius: 12, marginBottom: 16 },
   coverImageSection: { marginBottom: 16 },
   coverImagePreview: { width: '100%', height: 160, borderRadius: 12, marginBottom: 12 },

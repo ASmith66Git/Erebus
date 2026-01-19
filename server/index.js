@@ -5619,7 +5619,10 @@ app.get('/api/dive-trips', authenticateToken, async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT dt.*, 
-              (SELECT COUNT(*) FROM dive_trip_logs dtl WHERE dtl.trip_id = dt.id) as linked_dives
+              (SELECT COUNT(*) FROM dive_trip_logs dtl WHERE dtl.trip_id = dt.id) as linked_dives,
+              (SELECT COUNT(*) FROM dive_photos dp 
+               JOIN dive_trip_logs dtl ON dp.dive_log_id = dtl.dive_log_id 
+               WHERE dtl.trip_id = dt.id AND dp.deleted_at IS NULL) as photo_count
        FROM dive_trips dt
        WHERE dt.user_id = $1 AND dt.deleted_at IS NULL
        ORDER BY dt.start_date DESC NULLS LAST, dt.created_at DESC`,
