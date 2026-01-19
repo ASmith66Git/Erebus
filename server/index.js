@@ -5848,7 +5848,7 @@ app.delete('/api/dive-trips/:tripId/logs/:logId', authenticateToken, async (req,
   }
 });
 
-// Get photos for a trip
+// Get photos for a trip (from central dive_photos table)
 app.get('/api/dive-trips/:id/photos', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
@@ -5864,11 +5864,11 @@ app.get('/api/dive-trips/:id/photos', authenticateToken, async (req, res) => {
     }
     
     const result = await pool.query(
-      `SELECT id, image_url, caption, created_at
-       FROM dive_trip_photos
-       WHERE trip_id = $1
+      `SELECT id, image_url, thumbnail_url, caption, taken_at, is_favorite, created_at
+       FROM dive_photos
+       WHERE trip_id = $1 AND user_id = $2 AND deleted_at IS NULL
        ORDER BY created_at DESC`,
-      [id]
+      [id, req.user.id]
     );
     
     res.json({ photos: result.rows });
@@ -5878,7 +5878,7 @@ app.get('/api/dive-trips/:id/photos', authenticateToken, async (req, res) => {
   }
 });
 
-// Add photo to trip
+// Add photo to trip (uses central dive_photos table)
 app.post('/api/dive-trips/:id/photos', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
@@ -5895,7 +5895,7 @@ app.post('/api/dive-trips/:id/photos', authenticateToken, async (req, res) => {
     }
     
     const result = await pool.query(
-      `INSERT INTO dive_trip_photos (trip_id, user_id, image_url, caption)
+      `INSERT INTO dive_photos (trip_id, user_id, image_url, caption)
        VALUES ($1, $2, $3, $4)
        RETURNING *`,
       [id, req.user.id, image_url, caption || null]
@@ -5908,7 +5908,7 @@ app.post('/api/dive-trips/:id/photos', authenticateToken, async (req, res) => {
   }
 });
 
-// Delete photo from trip
+// Unlink photo from trip (soft-unlink, keeps photo in central table)
 app.delete('/api/dive-trips/:tripId/photos/:photoId', authenticateToken, async (req, res) => {
   try {
     const { tripId, photoId } = req.params;
@@ -5923,14 +5923,15 @@ app.delete('/api/dive-trips/:tripId/photos/:photoId', authenticateToken, async (
       return res.status(404).json({ error: 'Trip not found' });
     }
     
+    // Unlink photo from trip (set trip_id to null)
     await pool.query(
-      'DELETE FROM dive_trip_photos WHERE id = $1 AND trip_id = $2',
-      [photoId, tripId]
+      'UPDATE dive_photos SET trip_id = NULL WHERE id = $1 AND trip_id = $2 AND user_id = $3',
+      [photoId, tripId, req.user.id]
     );
     
-    res.json({ message: 'Photo deleted' });
+    res.json({ message: 'Photo unlinked from trip' });
   } catch (error) {
-    console.error('Delete trip photo error:', error);
+    console.error('Unlink trip photo error:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });
