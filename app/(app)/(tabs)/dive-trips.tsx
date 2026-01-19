@@ -613,6 +613,7 @@ export default function DiveTripsScreen() {
                       value={formData.endDate}
                       onChange={(v) => setFormData(prev => ({ ...prev, endDate: v }))}
                       placeholder="Select end date"
+                      initialDisplayDate={formData.startDate}
                     />
                   )}
                 </View>

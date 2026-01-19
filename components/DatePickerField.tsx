@@ -18,6 +18,7 @@ interface DatePickerFieldProps {
   placeholder?: string;
   minDate?: Date;
   maxDate?: Date;
+  initialDisplayDate?: string;
 }
 
 export default function DatePickerField({
@@ -27,11 +28,14 @@ export default function DatePickerField({
   placeholder = 'Select date',
   minDate,
   maxDate,
+  initialDisplayDate,
 }: DatePickerFieldProps) {
   const { colors, isDark } = useTheme();
   const [showPicker, setShowPicker] = useState(false);
   
-  const selectedDate = value ? dayjs(value) : dayjs();
+  const selectedDate = value 
+    ? dayjs(value) 
+    : (initialDisplayDate ? dayjs(initialDisplayDate) : dayjs());
   
   const formatDisplayDate = (dateStr: string) => {
     if (!dateStr) return '';
