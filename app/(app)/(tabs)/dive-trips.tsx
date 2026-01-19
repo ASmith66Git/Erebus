@@ -19,7 +19,7 @@ import { Feather, Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'expo-router';
-import { useNavigation, DrawerActions } from '@react-navigation/native';
+import { useNavigation, DrawerActions, useFocusEffect } from '@react-navigation/native';
 import { getApiUrl } from '@/utils/apiConfig';
 import EmbeddedMapPicker from '@/components/EmbeddedMapPicker';
 import StaticMapView from '@/components/StaticMapView';
@@ -206,6 +206,19 @@ export default function DiveTripsScreen() {
       fetchTrips();
     }
   }, [authLoading, token, fetchTrips]);
+
+  // Close modals when navigating away from this screen
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        // Cleanup when screen loses focus
+        setShowAddModal(false);
+        setShowDetailModal(false);
+        setShowDivePickerModal(false);
+        setShowPhotoViewer(false);
+      };
+    }, [])
+  );
 
   const fetchAvailableDives = async () => {
     if (!token) return;
