@@ -15,7 +15,7 @@ import {
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { getApiUrl } from '@/utils/apiConfig';
 import PageHeader from '@/components/PageHeader';
@@ -48,6 +48,7 @@ const GAP = 2;
 export default function PhotosScreen() {
   const { colors } = useTheme();
   const { token, isLoading: authLoading } = useAuth();
+  const { diveLogId } = useLocalSearchParams<{ diveLogId?: string }>();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const [containerWidth, setContainerWidth] = useState(0);
   const gridWidth = containerWidth > 0 ? containerWidth : Math.min(windowWidth, 500);
@@ -68,6 +69,7 @@ export default function PhotosScreen() {
   const viewerScrollRef = useRef<ScrollView>(null);
   const thumbnailScrollRef = useRef<ScrollView>(null);
   const thumbnailScrollPosition = useRef(0);
+  const filterByDiveLogId = diveLogId ? parseInt(diveLogId) : null;
 
   useEffect(() => {
     if (showViewer && viewerScrollRef.current) {
@@ -78,10 +80,11 @@ export default function PhotosScreen() {
   }, [showViewer, viewerIndex]);
 
   const fetchPhotos = async () => {
-    console.log('Fetching photos...', 'token exists:', !!token);
+    console.log('Fetching photos...', 'token exists:', !!token, 'filterByDiveLogId:', filterByDiveLogId);
     try {
       const params = new URLSearchParams();
       if (filter === 'favorites') params.append('favorites', 'true');
+      if (filterByDiveLogId) params.append('diveLogId', filterByDiveLogId.toString());
       
       const response = await fetch(`${getApiUrl()}/api/photos?${params}`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -94,6 +97,9 @@ export default function PhotosScreen() {
         let filteredPhotos = data.photos || [];
         if (filter === 'unlinked') {
           filteredPhotos = filteredPhotos.filter((p: Photo) => !p.diveLogId);
+        }
+        if (filterByDiveLogId) {
+          filteredPhotos = filteredPhotos.filter((p: Photo) => p.diveLogId === filterByDiveLogId);
         }
         setPhotos(filteredPhotos);
       } else {
@@ -112,7 +118,7 @@ export default function PhotosScreen() {
     if (!authLoading && token) {
       fetchPhotos();
     }
-  }, [filter, token, authLoading]);
+  }, [filter, token, authLoading, filterByDiveLogId]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -525,7 +531,22 @@ export default function PhotosScreen() {
 
   return (
     <ThemedBackground>
-      <PageHeader title="Photos" />
+      <PageHeader title={filterByDiveLogId ? "Dive Photos" : "Photos"} />
+      
+      {filterByDiveLogId && (
+        <View style={[styles.filterBanner, { backgroundColor: colors.primary + '20', borderBottomColor: colors.border }]}>
+          <View style={styles.filterBannerContent}>
+            <Ionicons name="water" size={16} color={colors.primary} />
+            <Text style={[styles.filterBannerText, { color: colors.text }]}>
+              Showing photos linked to this dive
+            </Text>
+          </View>
+          <Pressable onPress={() => router.replace('/(app)/(tabs)/photos')}>
+            <Text style={[styles.filterClearText, { color: colors.primary }]}>View All</Text>
+          </Pressable>
+        </View>
+      )}
+      
       <View style={[styles.toolbar, { borderBottomColor: colors.border }]}>
         {selectionMode ? (
           <>
@@ -616,6 +637,27 @@ const styles = StyleSheet.create({
   centered: {
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  filterBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+  },
+  filterBannerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  filterBannerText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  filterClearText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
   toolbar: {
     flexDirection: 'row',
