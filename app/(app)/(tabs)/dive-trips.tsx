@@ -1185,7 +1185,15 @@ export default function DiveTripsScreen() {
                 <Feather name="x" size={28} color="#FFF" />
               </Pressable>
               <Text style={{ color: '#FFF', fontSize: 16 }}>{photoViewerIndex + 1} / {tripPhotos.length}</Text>
-              <Pressable onPress={() => router.push(`/photo/${tripPhotos[photoViewerIndex]?.id}`)} style={{ padding: 8 }}>
+              <Pressable onPress={() => {
+                  const photoId = tripPhotos[photoViewerIndex]?.id;
+                  if (photoId) {
+                    setShowPhotoViewer(false);
+                    setShowDetailModal(false);
+                    setShowAddModal(false);
+                    setTimeout(() => router.push(`/photo/${photoId}`), 50);
+                  }
+                }} style={{ padding: 8 }}>
                 <Feather name="info" size={24} color="#FFF" />
               </Pressable>
             </View>
