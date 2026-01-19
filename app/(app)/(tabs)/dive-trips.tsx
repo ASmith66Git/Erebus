@@ -131,22 +131,11 @@ export default function DiveTripsScreen() {
   });
   const [uploadingImage, setUploadingImage] = useState(false);
 
-  // Close all modals when navigating away from this screen (e.g., to /photo/[id])
-  useEffect(() => {
-    const isOnDiveTrips = segments.length === 3 && 
-      segments[0] === '(app)' && 
-      segments[1] === '(tabs)' && 
-      segments[2] === 'dive-trips';
-    
-    if (!isOnDiveTrips) {
-      setShowAddModal(false);
-      setShowDetailModal(false);
-      setShowPhotoViewer(false);
-      setShowDivePickerModal(false);
-      setSelectedTrip(null);
-      setEditingTrip(null);
-    }
-  }, [segments]);
+  // Check if we're on the dive-trips route - used to completely unmount modals when navigating away
+  const isOnDiveTripsRoute = segments.length >= 3 && 
+    segments[0] === '(app)' && 
+    segments[1] === '(tabs)' && 
+    segments[2] === 'dive-trips';
 
   const resetForm = () => {
     setFormData({
@@ -645,7 +634,8 @@ export default function DiveTripsScreen() {
         <Feather name="plus" size={24} color="#FFF" />
       </Pressable>
 
-      <Modal visible={isFocused && showAddModal} animationType="slide" transparent>
+      {isOnDiveTripsRoute && (
+      <Modal visible={showAddModal} animationType="slide" transparent>
         <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
           <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
             <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
@@ -937,8 +927,10 @@ export default function DiveTripsScreen() {
           </View>
         </View>
       </Modal>
+      )}
 
-      <Modal visible={isFocused && showDetailModal} animationType="slide" transparent>
+      {isOnDiveTripsRoute && (
+      <Modal visible={showDetailModal} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
             <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
@@ -1285,9 +1277,11 @@ export default function DiveTripsScreen() {
           </View>
         )}
       </Modal>
+      )}
 
       {/* Delete button removed - now inside Details tab */}
-      <Modal visible={isFocused && showDivePickerModal} transparent animationType="slide" onRequestClose={() => setShowDivePickerModal(false)}>
+      {isOnDiveTripsRoute && (
+      <Modal visible={showDivePickerModal} transparent animationType="slide" onRequestClose={() => setShowDivePickerModal(false)}>
         <View style={styles.modalOverlay}>
           <View style={[styles.divePickerModal, { backgroundColor: colors.surface }]}>
             <View style={[styles.divePickerHeader, { borderBottomColor: colors.border }]}>
@@ -1367,6 +1361,7 @@ export default function DiveTripsScreen() {
           </View>
         </View>
       </Modal>
+      )}
     </ThemedBackground>
   );
 }
