@@ -42,8 +42,7 @@ interface Photo {
 
 interface DiveLog {
   id: number;
-  diveNumber: number;
-  diveDate: string;
+  diveDateTime: string;
   diveSiteName: string | null;
 }
 
@@ -101,7 +100,7 @@ export default function PhotoDetailScreen() {
       
       if (response.ok) {
         const data = await response.json();
-        setDiveLogs(data.logs || []);
+        setDiveLogs(data.diveLogs || []);
       }
     } catch (error) {
       console.error('Error fetching dive logs:', error);
@@ -305,7 +304,7 @@ export default function PhotoDetailScreen() {
               <View style={styles.selectedDive}>
                 <Ionicons name="water" size={18} color={colors.primary} />
                 <Text style={[styles.selectedDiveText, { color: colors.text }]}>
-                  Dive #{getSelectedDive()?.diveNumber} - {getSelectedDive()?.diveSiteName || 'Unknown site'}
+                  {getSelectedDive()?.diveSiteName || 'Unknown site'} - {getSelectedDive()?.diveDateTime ? new Date(getSelectedDive()!.diveDateTime).toLocaleDateString() : ''}
                 </Text>
               </View>
             ) : (
@@ -328,11 +327,10 @@ export default function PhotoDetailScreen() {
                   onPress={() => { setSelectedDiveId(dive.id); setShowDiveSelector(false); }}
                 >
                   <View style={styles.diveItemContent}>
-                    <Text style={[styles.diveItemNumber, { color: colors.primary }]}>#{dive.diveNumber}</Text>
                     <Text style={[styles.diveItemText, { color: colors.text }]}>{dive.diveSiteName || 'Unknown site'}</Text>
                   </View>
                   <Text style={[styles.diveItemDate, { color: colors.textSecondary }]}>
-                    {new Date(dive.diveDate).toLocaleDateString()}
+                    {new Date(dive.diveDateTime).toLocaleDateString()}
                   </Text>
                 </Pressable>
               ))}
