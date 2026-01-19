@@ -436,15 +436,17 @@ export default function PhotosScreen() {
               </Pressable>
               <Pressable 
                 onPress={() => {
+                  console.log('[Photo Viewer] Info button pressed for photo:', selectedPhoto.id);
                   const photoId = selectedPhoto.id;
                   setShowViewer(false);
                   setTimeout(() => {
                     router.push(`/photo/${photoId}`);
-                  }, 100);
+                  }, 150);
                 }} 
                 style={styles.viewerButton}
+                hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
               >
-                <Ionicons name="information-circle-outline" size={24} color="#FFF" />
+                <Ionicons name="information-circle-outline" size={28} color="#FFF" />
               </Pressable>
             </View>
           </View>
