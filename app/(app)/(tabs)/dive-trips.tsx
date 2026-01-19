@@ -87,6 +87,11 @@ export default function DiveTripsScreen() {
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [editingTrip, setEditingTrip] = useState<DiveTrip | null>(null);
   const [saving, setSaving] = useState(false);
+  const [showDivePickerModal, setShowDivePickerModal] = useState(false);
+  const [availableDives, setAvailableDives] = useState<any[]>([]);
+  const [selectedDiveIds, setSelectedDiveIds] = useState<Set<number>>(new Set());
+  const [loadingDives, setLoadingDives] = useState(false);
+  const [linkingDives, setLinkingDives] = useState(false);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -180,6 +185,80 @@ export default function DiveTripsScreen() {
       fetchTrips();
     }
   }, [authLoading, token, fetchTrips]);
+
+  const fetchAvailableDives = async () => {
+    if (!token) return;
+    setLoadingDives(true);
+    try {
+      const response = await fetch(`${getApiUrl()}/api/dive-logs?limit=100`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setAvailableDives(data.diveLogs || []);
+        // Pre-select already linked dives
+        const linkedIds = new Set(linkedDives.map(d => d.id));
+        setSelectedDiveIds(linkedIds);
+      }
+    } catch (error) {
+      console.error('Fetch available dives error:', error);
+    } finally {
+      setLoadingDives(false);
+    }
+  };
+
+  const handleLinkDives = async () => {
+    if (!selectedTrip || !token) return;
+    setLinkingDives(true);
+    try {
+      const currentLinkedIds = new Set(linkedDives.map(d => d.id));
+      
+      // Add newly selected dives
+      for (const diveId of selectedDiveIds) {
+        if (!currentLinkedIds.has(diveId)) {
+          await fetch(`${getApiUrl()}/api/dive-trips/${selectedTrip.id}/dives`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ diveLogId: diveId }),
+          });
+        }
+      }
+      
+      // Remove unselected dives
+      for (const diveId of currentLinkedIds) {
+        if (!selectedDiveIds.has(diveId)) {
+          await fetch(`${getApiUrl()}/api/dive-trips/${selectedTrip.id}/dives/${diveId}`, {
+            method: 'DELETE',
+            headers: { Authorization: `Bearer ${token}` },
+          });
+        }
+      }
+      
+      setShowDivePickerModal(false);
+      fetchTripDetails(selectedTrip.id);
+      fetchTrips();
+    } catch (error) {
+      console.error('Link dives error:', error);
+      Alert.alert('Error', 'Failed to update linked dives');
+    } finally {
+      setLinkingDives(false);
+    }
+  };
+
+  const toggleDiveSelection = (diveId: number) => {
+    setSelectedDiveIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(diveId)) {
+        newSet.delete(diveId);
+      } else {
+        newSet.add(diveId);
+      }
+      return newSet;
+    });
+  };
 
   const handleSave = async () => {
     if (!formData.name.trim()) {
@@ -885,9 +964,21 @@ export default function DiveTripsScreen() {
                 )}
 
                 <View style={{ marginTop: 16 }}>
-                  <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                    Linked Dives ({linkedDives.length})
-                  </Text>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                      Linked Dives ({linkedDives.length})
+                    </Text>
+                    <Pressable
+                      style={[styles.addDivesBtn, { backgroundColor: colors.primary }]}
+                      onPress={() => {
+                        fetchAvailableDives();
+                        setShowDivePickerModal(true);
+                      }}
+                    >
+                      <Feather name="plus" size={14} color="#FFF" />
+                      <Text style={styles.addDivesBtnText}>Add Dives</Text>
+                    </Pressable>
+                  </View>
                   {loadingDetail ? (
                     <ActivityIndicator size="small" color={colors.primary} style={{ marginTop: 8 }} />
                   ) : linkedDives.length === 0 ? (
@@ -897,7 +988,7 @@ export default function DiveTripsScreen() {
                         No dives linked to this trip yet
                       </Text>
                       <Text style={[styles.emptyDivesHint, { color: colors.textSecondary }]}>
-                        Link dives from your dive logs
+                        Tap "Add Dives" to link dive logs
                       </Text>
                     </View>
                   ) : (
@@ -938,6 +1029,92 @@ export default function DiveTripsScreen() {
                 </Pressable>
               </ScrollView>
             )}
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={showDivePickerModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowDivePickerModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.divePickerModal, { backgroundColor: colors.surface }]}>
+            <View style={[styles.divePickerHeader, { borderBottomColor: colors.border }]}>
+              <Text style={[styles.divePickerTitle, { color: colors.text }]}>Select Dives</Text>
+              <Pressable onPress={() => setShowDivePickerModal(false)}>
+                <Feather name="x" size={24} color={colors.textSecondary} />
+              </Pressable>
+            </View>
+            <Text style={[styles.divePickerSubtitle, { color: colors.textSecondary }]}>
+              {selectedDiveIds.size} dive{selectedDiveIds.size !== 1 ? 's' : ''} selected
+            </Text>
+            
+            {loadingDives ? (
+              <View style={styles.divePickerLoading}>
+                <ActivityIndicator size="large" color={colors.primary} />
+              </View>
+            ) : (
+              <ScrollView style={styles.divePickerList}>
+                {availableDives.map((dive) => (
+                  <Pressable
+                    key={dive.id}
+                    style={[
+                      styles.divePickerItem,
+                      { borderBottomColor: colors.border },
+                      selectedDiveIds.has(dive.id) && { backgroundColor: colors.primary + '15' }
+                    ]}
+                    onPress={() => toggleDiveSelection(dive.id)}
+                  >
+                    <View style={styles.divePickerCheckbox}>
+                      {selectedDiveIds.has(dive.id) ? (
+                        <Ionicons name="checkbox" size={24} color={colors.primary} />
+                      ) : (
+                        <Ionicons name="square-outline" size={24} color={colors.textSecondary} />
+                      )}
+                    </View>
+                    <View style={styles.divePickerItemContent}>
+                      <Text style={[styles.divePickerItemDate, { color: colors.text }]}>
+                        {new Date(dive.diveDateTime).toLocaleDateString()}
+                      </Text>
+                      {dive.diveSiteName && (
+                        <Text style={[styles.divePickerItemSite, { color: colors.textSecondary }]} numberOfLines={1}>
+                          {dive.diveSiteName}
+                        </Text>
+                      )}
+                    </View>
+                    <View style={styles.divePickerItemStats}>
+                      {dive.maxDepthMeters && (
+                        <Text style={[styles.divePickerItemStat, { color: colors.primary }]}>
+                          {dive.maxDepthMeters.toFixed(1)}m
+                        </Text>
+                      )}
+                    </View>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            )}
+            
+            <View style={[styles.divePickerFooter, { borderTopColor: colors.border }]}>
+              <Pressable
+                style={[styles.divePickerCancelBtn, { borderColor: colors.border }]}
+                onPress={() => setShowDivePickerModal(false)}
+              >
+                <Text style={[styles.divePickerCancelText, { color: colors.textSecondary }]}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.divePickerSaveBtn, { backgroundColor: colors.primary }]}
+                onPress={handleLinkDives}
+                disabled={linkingDives}
+              >
+                {linkingDives ? (
+                  <ActivityIndicator size="small" color="#FFF" />
+                ) : (
+                  <Text style={styles.divePickerSaveText}>Save</Text>
+                )}
+              </Pressable>
+            </View>
           </View>
         </View>
       </Modal>
@@ -1051,4 +1228,24 @@ const styles = StyleSheet.create({
   linkedDiveStats: { flexDirection: 'row', gap: 12 },
   linkedDiveStat: { fontSize: 13, fontWeight: '500' },
   mapPlaceholder: { height: 200, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  addDivesBtn: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, gap: 4 },
+  addDivesBtnText: { color: '#FFF', fontSize: 13, fontWeight: '600' },
+  divePickerModal: { width: '95%', maxWidth: 440, maxHeight: '80%', borderRadius: 16, overflow: 'hidden' },
+  divePickerHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderBottomWidth: 1 },
+  divePickerTitle: { fontSize: 18, fontWeight: '600' },
+  divePickerSubtitle: { fontSize: 13, paddingHorizontal: 16, paddingVertical: 8 },
+  divePickerLoading: { height: 200, justifyContent: 'center', alignItems: 'center' },
+  divePickerList: { maxHeight: 350 },
+  divePickerItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 16, borderBottomWidth: 1 },
+  divePickerCheckbox: { marginRight: 12 },
+  divePickerItemContent: { flex: 1 },
+  divePickerItemDate: { fontSize: 15, fontWeight: '500' },
+  divePickerItemSite: { fontSize: 13, marginTop: 2 },
+  divePickerItemStats: { alignItems: 'flex-end' },
+  divePickerItemStat: { fontSize: 14, fontWeight: '600' },
+  divePickerFooter: { flexDirection: 'row', padding: 16, gap: 12, borderTopWidth: 1 },
+  divePickerCancelBtn: { flex: 1, paddingVertical: 12, borderRadius: 8, borderWidth: 1, alignItems: 'center' },
+  divePickerCancelText: { fontSize: 15, fontWeight: '500' },
+  divePickerSaveBtn: { flex: 1, paddingVertical: 12, borderRadius: 8, alignItems: 'center' },
+  divePickerSaveText: { color: '#FFF', fontSize: 15, fontWeight: '600' },
 });
