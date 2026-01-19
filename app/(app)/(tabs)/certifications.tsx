@@ -120,6 +120,7 @@ export default function CertificationsScreen() {
   const [showAddWishlistModal, setShowAddWishlistModal] = useState(false);
   const [wishlistCourse, setWishlistCourse] = useState<TrainingCourse | null>(null);
   const [wishlistDiveCenter, setWishlistDiveCenter] = useState('');
+  const [editingWishlistItem, setEditingWishlistItem] = useState<WishlistItem | null>(null);
   const [selectedAgency, setSelectedAgency] = useState<TrainingAgency | null>(null);
   const [selectedCourse, setSelectedCourse] = useState<TrainingCourse | null>(null);
   const [agencyCourses, setAgencyCourses] = useState<TrainingCourse[]>([]);
@@ -329,39 +330,59 @@ export default function CertificationsScreen() {
   };
 
   const handleAddToWishlist = async () => {
-    if (!token || !wishlistCourse) {
+    if (!token || (!wishlistCourse && !editingWishlistItem)) {
       Alert.alert('Error', 'Please select a course');
       return;
     }
     
     setSaving(true);
     try {
-      const response = await fetch(`${getApiUrl()}/api/certification-wishlist`, {
-        method: 'POST',
+      const url = editingWishlistItem
+        ? `${getApiUrl()}/api/certification-wishlist/${editingWishlistItem.id}`
+        : `${getApiUrl()}/api/certification-wishlist`;
+      
+      const response = await fetch(url, {
+        method: editingWishlistItem ? 'PUT' : 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ 
-          courseId: wishlistCourse.id,
+          courseId: wishlistCourse?.id || editingWishlistItem?.course_id,
           diveCenter: wishlistDiveCenter || null,
         }),
       });
       
       if (response.ok) {
-        Alert.alert('Success', `${wishlistCourse.name} added to wishlist`);
+        Alert.alert('Success', editingWishlistItem ? 'Wishlist item updated' : `${wishlistCourse?.name} added to wishlist`);
         setShowAddWishlistModal(false);
         setWishlistCourse(null);
         setWishlistDiveCenter('');
+        setEditingWishlistItem(null);
         setSelectedAgency(null);
         setAgencyCourses([]);
         fetchData();
       }
     } catch (error) {
-      console.error('Error adding to wishlist:', error);
+      console.error('Error saving wishlist:', error);
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleEditWishlistItem = (item: WishlistItem) => {
+    setEditingWishlistItem(item);
+    setWishlistDiveCenter(item.dive_center || '');
+    setWishlistCourse({
+      id: item.course_id,
+      name: item.course_name,
+      level: item.course_level,
+      category: item.course_category,
+      agency_id: item.agency_id,
+      agency_name: item.agency_name,
+      agency_logo: item.agency_logo,
+    });
+    setShowAddWishlistModal(true);
   };
 
   const handleSelectWishlistCourse = (course: any) => {
@@ -749,9 +770,10 @@ export default function CertificationsScreen() {
   );
 
   const renderWishlistCard = (item: WishlistItem) => (
-    <View
+    <Pressable
       key={item.id}
       style={[styles.wishlistCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+      onPress={() => handleEditWishlistItem(item)}
     >
       <View style={styles.wishlistCardContent}>
         <Text style={[styles.agencyName, { color: colors.primary }]}>{item.agency_name}</Text>
@@ -784,11 +806,11 @@ export default function CertificationsScreen() {
       
       <Pressable
         style={[styles.removeWishlistBtn, { backgroundColor: colors.danger + '20' }]}
-        onPress={() => handleRemoveFromWishlist(item.id)}
+        onPress={(e) => { e.stopPropagation(); handleRemoveFromWishlist(item.id); }}
       >
         <Feather name="x" size={18} color={colors.danger} />
       </Pressable>
-    </View>
+    </Pressable>
   );
 
   if (authLoading || loading) {
@@ -1380,11 +1402,14 @@ export default function CertificationsScreen() {
         <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
           <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
             <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>Add to Wishlist</Text>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>
+                {editingWishlistItem ? 'Edit Wishlist Item' : 'Add to Wishlist'}
+              </Text>
               <Pressable onPress={() => {
                 setShowAddWishlistModal(false);
                 setWishlistCourse(null);
                 setWishlistDiveCenter('');
+                setEditingWishlistItem(null);
                 setSelectedAgency(null);
                 setAgencyCourses([]);
               }}>
@@ -1444,12 +1469,14 @@ export default function CertificationsScreen() {
                   <View style={[styles.selectedCourseCard, { backgroundColor: colors.background, borderColor: colors.border }]}>
                     <Text style={[styles.agencyName, { color: colors.primary }]}>{wishlistCourse.agency_name}</Text>
                     <Text style={[styles.courseName, { color: colors.text, fontSize: 18 }]}>{wishlistCourse.name}</Text>
-                    <Pressable
-                      onPress={() => setWishlistCourse(null)}
-                      style={{ marginTop: 8 }}
-                    >
-                      <Text style={{ color: colors.primary }}>Change course</Text>
-                    </Pressable>
+                    {!editingWishlistItem && (
+                      <Pressable
+                        onPress={() => setWishlistCourse(null)}
+                        style={{ marginTop: 8 }}
+                      >
+                        <Text style={{ color: colors.primary }}>Change course</Text>
+                      </Pressable>
+                    )}
                   </View>
                   
                   <View style={styles.formGroup}>
@@ -1474,6 +1501,7 @@ export default function CertificationsScreen() {
                     setShowAddWishlistModal(false);
                     setWishlistCourse(null);
                     setWishlistDiveCenter('');
+                    setEditingWishlistItem(null);
                     setSelectedAgency(null);
                     setAgencyCourses([]);
                   }}
@@ -1488,7 +1516,9 @@ export default function CertificationsScreen() {
                   {saving ? (
                     <ActivityIndicator size="small" color="#FFF" />
                   ) : (
-                    <Text style={[styles.modalBtnText, { color: '#FFF' }]}>Add to Wishlist</Text>
+                    <Text style={[styles.modalBtnText, { color: '#FFF' }]}>
+                      {editingWishlistItem ? 'Save Changes' : 'Add to Wishlist'}
+                    </Text>
                   )}
                 </Pressable>
               </View>

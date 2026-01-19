@@ -5518,14 +5518,14 @@ app.post('/api/certification-wishlist', authenticateToken, async (req, res) => {
 app.put('/api/certification-wishlist/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    const { priority, targetDate, notes } = req.body;
+    const { priority, targetDate, notes, diveCenter } = req.body;
     
     const result = await pool.query(
       `UPDATE user_course_wishlist 
-       SET priority = $1, target_date = $2, notes = $3
-       WHERE id = $4 AND user_id = $5
+       SET priority = $1, target_date = $2, notes = $3, dive_center = $4
+       WHERE id = $5 AND user_id = $6
        RETURNING *`,
-      [priority || 0, targetDate || null, notes || null, id, req.user.id]
+      [priority || 0, targetDate || null, notes || null, diveCenter || null, id, req.user.id]
     );
     
     if (result.rows.length === 0) {
