@@ -7,10 +7,10 @@ import {
   Pressable,
   Image,
   ActivityIndicator,
-  Dimensions,
   Modal,
   Platform,
   RefreshControl,
+  useWindowDimensions,
 } from 'react-native';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -42,14 +42,14 @@ interface Photo {
   updatedAt: string;
 }
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const NUM_COLUMNS = 3;
 const GAP = 2;
-const ITEM_SIZE = (SCREEN_WIDTH - GAP * (NUM_COLUMNS + 1)) / NUM_COLUMNS;
 
 export default function PhotosScreen() {
   const { colors } = useTheme();
   const { token, isLoading: authLoading } = useAuth();
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+  const itemSize = (screenWidth - GAP * (NUM_COLUMNS + 1)) / NUM_COLUMNS;
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -68,7 +68,7 @@ export default function PhotosScreen() {
   useEffect(() => {
     if (showViewer && viewerScrollRef.current) {
       setTimeout(() => {
-        viewerScrollRef.current?.scrollTo({ x: viewerIndex * SCREEN_WIDTH, animated: false });
+        viewerScrollRef.current?.scrollTo({ x: viewerIndex * screenWidth, animated: false });
       }, 50);
     }
   }, [showViewer, viewerIndex]);
@@ -313,7 +313,7 @@ export default function PhotosScreen() {
     return (
       <Pressable
         key={photo.id}
-        style={[styles.photoItem, { width: ITEM_SIZE, height: ITEM_SIZE }]}
+        style={[styles.photoItem, { width: itemSize, height: itemSize }]}
         onPress={() => openViewer(photo, index)}
         onLongPress={() => {
           setSelectionMode(true);
@@ -391,7 +391,7 @@ export default function PhotosScreen() {
             pagingEnabled
             showsHorizontalScrollIndicator={false}
             onMomentumScrollEnd={(e) => {
-              const newIndex = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH);
+              const newIndex = Math.round(e.nativeEvent.contentOffset.x / screenWidth);
               if (newIndex >= 0 && newIndex < photos.length) {
                 setViewerIndex(newIndex);
                 setSelectedPhoto(photos[newIndex]);
@@ -445,7 +445,7 @@ export default function PhotosScreen() {
                   onPress={() => {
                     setViewerIndex(index);
                     setSelectedPhoto(photo);
-                    viewerScrollRef.current?.scrollTo({ x: index * SCREEN_WIDTH, animated: true });
+                    viewerScrollRef.current?.scrollTo({ x: index * screenWidth, animated: true });
                   }}
                 >
                   <Image
