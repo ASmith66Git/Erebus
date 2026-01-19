@@ -3122,10 +3122,11 @@ app.get('/api/photos/:id', authenticateToken, async (req, res) => {
   
   try {
     const result = await pool.query(`
-      SELECT p.*, dl.dive_number, dl.dive_datetime, ds.name as dive_site_name
+      SELECT p.*, dl.dive_number, dl.dive_datetime, ds.name as dive_site_name, dt.name as trip_name
       FROM dive_photos p
       LEFT JOIN dive_logs dl ON p.dive_log_id = dl.id
       LEFT JOIN dive_sites ds ON dl.dive_site_id = ds.id
+      LEFT JOIN dive_trips dt ON p.trip_id = dt.id
       WHERE p.id = $1 AND p.user_id = $2 AND p.deleted_at IS NULL
     `, [id, req.user.id]);
     
@@ -3138,9 +3139,11 @@ app.get('/api/photos/:id', authenticateToken, async (req, res) => {
       id: row.id,
       userId: row.user_id,
       diveLogId: row.dive_log_id,
+      tripId: row.trip_id,
       diveNumber: row.dive_number,
       diveDate: row.dive_datetime,
       diveSiteName: row.dive_site_name,
+      tripName: row.trip_name,
       imageUrl: row.image_url,
       thumbnailUrl: row.thumbnail_url,
       caption: row.caption,
@@ -3210,7 +3213,7 @@ app.post('/api/photos', authenticateToken, async (req, res) => {
 // Update photo
 app.put('/api/photos/:id', authenticateToken, async (req, res) => {
   const { id } = req.params;
-  const { caption, diveLogId, isFavorite, takenAt } = req.body;
+  const { caption, diveLogId, tripId, isFavorite, takenAt } = req.body;
   
   try {
     // Verify photo belongs to user
@@ -3227,22 +3230,32 @@ app.put('/api/photos/:id', authenticateToken, async (req, res) => {
       }
     }
     
+    // Verify trip belongs to user if provided
+    if (tripId !== undefined && tripId !== null) {
+      const tripCheck = await pool.query('SELECT id FROM dive_trips WHERE id = $1 AND user_id = $2', [tripId, req.user.id]);
+      if (tripCheck.rows.length === 0) {
+        return res.status(403).json({ error: 'Dive trip not found or access denied' });
+      }
+    }
+    
     const result = await pool.query(`
       UPDATE dive_photos SET
         caption = COALESCE($1, caption),
-        dive_log_id = COALESCE($2, dive_log_id),
+        dive_log_id = $2,
         is_favorite = COALESCE($3, is_favorite),
         taken_at = COALESCE($4, taken_at),
+        trip_id = $5,
         updated_at = CURRENT_TIMESTAMP
-      WHERE id = $5 AND user_id = $6
+      WHERE id = $6 AND user_id = $7
       RETURNING *
-    `, [caption, diveLogId, isFavorite, takenAt, id, req.user.id]);
+    `, [caption, diveLogId, isFavorite, takenAt, tripId, id, req.user.id]);
     
     const row = result.rows[0];
     res.json({
       id: row.id,
       userId: row.user_id,
       diveLogId: row.dive_log_id,
+      tripId: row.trip_id,
       imageUrl: row.image_url,
       thumbnailUrl: row.thumbnail_url,
       caption: row.caption,

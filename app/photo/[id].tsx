@@ -23,9 +23,11 @@ interface Photo {
   id: number;
   userId: number;
   diveLogId: number | null;
+  tripId: number | null;
   diveNumber: number | null;
   diveDate: string | null;
   diveSiteName: string | null;
+  tripName: string | null;
   imageUrl: string;
   thumbnailUrl: string | null;
   caption: string | null;
@@ -44,6 +46,12 @@ interface DiveLog {
   id: number;
   diveDateTime: string;
   diveSiteName: string | null;
+}
+
+interface DiveTrip {
+  id: number;
+  name: string;
+  start_date: string | null;
 }
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -65,12 +73,16 @@ export default function PhotoDetailScreen() {
   const [saving, setSaving] = useState(false);
   const [caption, setCaption] = useState('');
   const [selectedDiveId, setSelectedDiveId] = useState<number | null>(null);
+  const [selectedTripId, setSelectedTripId] = useState<number | null>(null);
   const [diveLogs, setDiveLogs] = useState<DiveLog[]>([]);
+  const [diveTrips, setDiveTrips] = useState<DiveTrip[]>([]);
   const [showDiveSelector, setShowDiveSelector] = useState(false);
+  const [showTripSelector, setShowTripSelector] = useState(false);
 
   useEffect(() => {
     fetchPhoto();
     fetchDiveLogs();
+    fetchDiveTrips();
   }, [id]);
 
   const fetchPhoto = async () => {
@@ -84,11 +96,27 @@ export default function PhotoDetailScreen() {
         setPhoto(data);
         setCaption(data.caption || '');
         setSelectedDiveId(data.diveLogId);
+        setSelectedTripId(data.tripId);
       }
     } catch (error) {
       console.error('Error fetching photo:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchDiveTrips = async () => {
+    try {
+      const response = await fetch(`${getApiUrl()}/api/dive-trips`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setDiveTrips(data.trips || data || []);
+      }
+    } catch (error) {
+      console.error('Error fetching dive trips:', error);
     }
   };
 
@@ -121,6 +149,7 @@ export default function PhotoDetailScreen() {
         body: JSON.stringify({
           caption: caption || null,
           diveLogId: selectedDiveId,
+          tripId: selectedTripId,
         }),
       });
       
@@ -204,6 +233,11 @@ export default function PhotoDetailScreen() {
   const getSelectedDive = () => {
     if (!selectedDiveId) return null;
     return diveLogs.find(d => d.id === selectedDiveId);
+  };
+
+  const getSelectedTrip = () => {
+    if (!selectedTripId) return null;
+    return diveTrips.find(t => t.id === selectedTripId);
   };
 
   if (loading) {
@@ -332,6 +366,53 @@ export default function PhotoDetailScreen() {
                   <Text style={[styles.diveItemDate, { color: colors.textSecondary }]}>
                     {new Date(dive.diveDateTime).toLocaleDateString()}
                   </Text>
+                </Pressable>
+              ))}
+            </View>
+          )}
+          
+          <Pressable 
+            style={[styles.section, styles.diveSelector, { backgroundColor: colors.surface, borderColor: colors.border }]}
+            onPress={() => setShowTripSelector(!showTripSelector)}
+          >
+            <View style={styles.diveSelectorHeader}>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>Linked Trip</Text>
+              <Ionicons name={showTripSelector ? 'chevron-up' : 'chevron-down'} size={20} color={colors.textSecondary} />
+            </View>
+            {selectedTripId ? (
+              <View style={styles.selectedDive}>
+                <Ionicons name="airplane" size={18} color={colors.primary} />
+                <Text style={[styles.selectedDiveText, { color: colors.text }]}>
+                  {getSelectedTrip()?.name || 'Unknown trip'}
+                </Text>
+              </View>
+            ) : (
+              <Text style={[styles.noLinkText, { color: colors.textSecondary }]}>No trip linked</Text>
+            )}
+          </Pressable>
+          
+          {showTripSelector && (
+            <View style={[styles.diveList, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <Pressable 
+                style={[styles.diveItem, !selectedTripId && styles.selectedDiveItem]}
+                onPress={() => { setSelectedTripId(null); setShowTripSelector(false); }}
+              >
+                <Text style={[styles.diveItemText, { color: colors.text }]}>No link</Text>
+              </Pressable>
+              {diveTrips.map(trip => (
+                <Pressable
+                  key={trip.id}
+                  style={[styles.diveItem, selectedTripId === trip.id && styles.selectedDiveItem]}
+                  onPress={() => { setSelectedTripId(trip.id); setShowTripSelector(false); }}
+                >
+                  <View style={styles.diveItemContent}>
+                    <Text style={[styles.diveItemText, { color: colors.text }]}>{trip.name}</Text>
+                  </View>
+                  {trip.start_date && (
+                    <Text style={[styles.diveItemDate, { color: colors.textSecondary }]}>
+                      {new Date(trip.start_date).toLocaleDateString()}
+                    </Text>
+                  )}
                 </Pressable>
               ))}
             </View>
