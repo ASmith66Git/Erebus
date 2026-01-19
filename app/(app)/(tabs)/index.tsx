@@ -215,36 +215,38 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
+    justifyContent: 'space-between',
+    paddingBottom: 24,
   },
   welcomeSection: {
-    paddingTop: 16,
-    paddingBottom: 8,
+    paddingTop: 24,
+    paddingBottom: 16,
   },
   timeGreeting: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
-    marginBottom: 4,
+    marginBottom: 6,
     textTransform: 'uppercase',
-    letterSpacing: 1,
+    letterSpacing: 1.5,
   },
   userName: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: 'bold',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   welcomeMessage: {
-    fontSize: 16,
+    fontSize: 15,
     lineHeight: 22,
   },
   statsSection: {
-    marginTop: 12,
+    marginTop: 8,
   },
   sectionLabel: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
-    letterSpacing: 1,
-    marginBottom: 12,
+    letterSpacing: 1.2,
+    marginBottom: 14,
     marginLeft: 4,
   },
   statsGrid: {
@@ -289,7 +291,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   quickActionsSection: {
-    marginTop: 20,
+    marginTop: 24,
   },
   actionsGrid: {
     flexDirection: 'row',
@@ -333,7 +335,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   tipCard: {
-    marginTop: 20,
+    marginTop: 'auto',
     padding: 16,
     borderRadius: 16,
     borderWidth: 1,
