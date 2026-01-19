@@ -400,10 +400,10 @@ export default function PhotosScreen() {
             style={styles.viewerScrollView}
           >
             {photos.map((photo) => (
-              <View key={photo.id} style={styles.viewerPage}>
+              <View key={photo.id} style={[styles.viewerPage, { width: screenWidth, height: screenHeight }]}>
                 <Image
                   source={{ uri: getImageUrl(photo.imageUrl) }}
-                  style={styles.viewerImage}
+                  style={[styles.viewerImage, { maxWidth: screenWidth, maxHeight: screenHeight - 200 }]}
                   resizeMode="contain"
                 />
               </View>
@@ -764,14 +764,10 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   viewerPage: {
-    width: SCREEN_WIDTH,
-    height: SCREEN_HEIGHT,
     justifyContent: 'center',
     alignItems: 'center',
   },
   viewerImage: {
-    maxWidth: SCREEN_WIDTH,
-    maxHeight: SCREEN_HEIGHT - 200,
     width: '100%',
     height: '100%',
   },
