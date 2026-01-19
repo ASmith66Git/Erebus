@@ -1,5 +1,5 @@
 import React, { ReactNode } from 'react';
-import { ImageBackground, StyleSheet, View, ViewStyle } from 'react-native';
+import { Image, StyleSheet, View, ViewStyle, Platform } from 'react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 
 interface ThemedBackgroundProps {
@@ -13,7 +13,7 @@ export default function ThemedBackground({
   style,
   showImage = true 
 }: ThemedBackgroundProps) {
-  const { colors, backgroundImage } = useTheme();
+  const { colors, backgroundImage, isDark } = useTheme();
 
   if (!showImage) {
     return (
@@ -24,23 +24,51 @@ export default function ThemedBackground({
   }
 
   return (
-    <ImageBackground
-      source={backgroundImage}
-      style={[styles.container, style]}
-      resizeMode="cover"
-    >
-      <View style={[styles.overlay, { backgroundColor: colors.background + 'E6' }]}>
+    <View style={[styles.container, { backgroundColor: colors.background }, style]}>
+      <Image
+        source={backgroundImage}
+        style={styles.backgroundImage}
+        resizeMode="cover"
+      />
+      <View style={[
+        styles.overlay, 
+        { 
+          backgroundColor: isDark 
+            ? 'rgba(0, 0, 0, 0.55)' 
+            : 'rgba(255, 255, 255, 0.65)' 
+        }
+      ]} />
+      <View style={styles.content}>
         {children}
       </View>
-    </ImageBackground>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    position: 'relative',
+  },
+  backgroundImage: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: '100%',
+    height: '100%',
   },
   overlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  content: {
     flex: 1,
+    position: 'relative',
+    zIndex: 1,
   },
 });
