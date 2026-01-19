@@ -15,12 +15,7 @@ export default function TabLayout() {
           tabBarInactiveTintColor: colors.textSecondary,
           headerShown: false,
           tabBarStyle: {
-            backgroundColor: colors.surface,
-            borderTopColor: colors.border,
-            paddingBottom: 6,
-            paddingTop: 6,
-            height: 60,
-            justifyContent: 'space-around',
+            display: 'none',
           },
           tabBarItemStyle: {
             flex: 1,
