@@ -5472,7 +5472,7 @@ app.delete('/api/certifications/:certId/images/:imageId', authenticateToken, asy
 app.get('/api/certification-wishlist', authenticateToken, async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT w.id, w.priority, w.target_date, w.notes, w.created_at,
+      `SELECT w.id, w.priority, w.target_date, w.notes, w.dive_center, w.created_at,
               tc.id as course_id, tc.name as course_name, tc.level as course_level, tc.category as course_category,
               ta.id as agency_id, ta.name as agency_name, ta.logo_url as agency_logo
        FROM user_course_wishlist w
@@ -5492,19 +5492,19 @@ app.get('/api/certification-wishlist', authenticateToken, async (req, res) => {
 // Add to wishlist
 app.post('/api/certification-wishlist', authenticateToken, async (req, res) => {
   try {
-    const { courseId, priority, targetDate, notes } = req.body;
+    const { courseId, priority, targetDate, notes, diveCenter } = req.body;
     
     if (!courseId) {
       return res.status(400).json({ error: 'Course ID is required' });
     }
     
     const result = await pool.query(
-      `INSERT INTO user_course_wishlist (user_id, course_id, priority, target_date, notes)
-       VALUES ($1, $2, $3, $4, $5)
+      `INSERT INTO user_course_wishlist (user_id, course_id, priority, target_date, notes, dive_center)
+       VALUES ($1, $2, $3, $4, $5, $6)
        ON CONFLICT (user_id, course_id) DO UPDATE 
-       SET priority = EXCLUDED.priority, target_date = EXCLUDED.target_date, notes = EXCLUDED.notes
+       SET priority = EXCLUDED.priority, target_date = EXCLUDED.target_date, notes = EXCLUDED.notes, dive_center = EXCLUDED.dive_center
        RETURNING *`,
-      [req.user.id, courseId, priority || 0, targetDate || null, notes || null]
+      [req.user.id, courseId, priority || 0, targetDate || null, notes || null, diveCenter || null]
     );
     
     res.status(201).json(result.rows[0]);
