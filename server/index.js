@@ -874,6 +874,61 @@ async function initDatabase() {
       console.log('Training agencies and courses seeded successfully');
     }
     
+    // Dive Messages table for dynamic tips and taglines
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS dive_messages (
+        id SERIAL PRIMARY KEY,
+        message_type VARCHAR(20) NOT NULL,
+        text TEXT NOT NULL,
+        is_active BOOLEAN DEFAULT TRUE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `).catch(() => {});
+    
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_dive_messages_type ON dive_messages(message_type);
+    `).catch(() => {});
+    
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_dive_messages_active ON dive_messages(is_active);
+    `).catch(() => {});
+    
+    await client.query(`
+      DROP TRIGGER IF EXISTS update_dive_messages_updated_at ON dive_messages;
+      CREATE TRIGGER update_dive_messages_updated_at
+        BEFORE UPDATE ON dive_messages
+        FOR EACH ROW
+        EXECUTE FUNCTION update_updated_at_column();
+    `).catch(() => {});
+    
+    // Seed default dive messages if table is empty
+    const messagesCount = await client.query('SELECT COUNT(*) FROM dive_messages');
+    if (parseInt(messagesCount.rows[0].count) === 0) {
+      const defaultMessages = [
+        { type: 'tagline', text: 'Ready for your next underwater adventure?' },
+        { type: 'tagline', text: 'Every dive is a new discovery!' },
+        { type: 'tagline', text: 'The ocean is calling...' },
+        { type: 'tagline', text: 'Explore the depths, discover yourself.' },
+        { type: 'tagline', text: 'Life is better underwater!' },
+        { type: 'tip', text: 'Always do a buddy check before every dive. Check your BCD, weights, releases, air, and final equipment.' },
+        { type: 'tip', text: 'Never hold your breath while ascending. The most important rule of diving!' },
+        { type: 'tip', text: 'Equalize early and often during descent to prevent ear injuries.' },
+        { type: 'tip', text: 'Plan your dive and dive your plan. Know your limits and stick to them.' },
+        { type: 'tip', text: 'Stay hydrated! Dehydration increases the risk of decompression sickness.' },
+        { type: 'tip', text: 'Check your air frequently. Always surface with a reserve of at least 50 bar.' },
+        { type: 'tip', text: 'Maintain neutral buoyancy to protect marine life and conserve energy.' },
+      ];
+      
+      for (const msg of defaultMessages) {
+        await client.query(
+          'INSERT INTO dive_messages (message_type, text) VALUES ($1, $2)',
+          [msg.type, msg.text]
+        );
+      }
+      console.log('Default dive messages seeded successfully');
+    }
+    
     console.log('Database initialized successfully');
   } catch (error) {
     console.error('Database initialization error:', error);
@@ -1409,6 +1464,186 @@ app.delete('/api/admin/dev-log/:id', authenticateToken, requireAdmin, async (req
     res.json({ message: 'Dev log entry deleted successfully' });
   } catch (error) {
     console.error('Delete dev log error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Dive Messages - Admin CRUD
+app.get('/api/admin/dive-messages', authenticateToken, requireAdmin, async (req, res) => {
+  const { type } = req.query;
+  
+  try {
+    let query = 'SELECT * FROM dive_messages';
+    const params = [];
+    
+    if (type) {
+      query += ' WHERE message_type = $1';
+      params.push(type);
+    }
+    
+    query += ' ORDER BY message_type, created_at DESC';
+    
+    const result = await pool.query(query, params);
+    
+    res.json({
+      messages: result.rows.map(row => ({
+        id: row.id,
+        messageType: row.message_type,
+        text: row.text,
+        isActive: row.is_active,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at
+      }))
+    });
+  } catch (error) {
+    console.error('Get dive messages error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.post('/api/admin/dive-messages', authenticateToken, requireAdmin, async (req, res) => {
+  const { messageType, text } = req.body;
+  
+  if (!messageType || !text) {
+    return res.status(400).json({ error: 'Message type and text are required' });
+  }
+  
+  if (!['tip', 'tagline'].includes(messageType)) {
+    return res.status(400).json({ error: 'Message type must be "tip" or "tagline"' });
+  }
+  
+  try {
+    const result = await pool.query(
+      'INSERT INTO dive_messages (message_type, text) VALUES ($1, $2) RETURNING *',
+      [messageType, text]
+    );
+    
+    const row = result.rows[0];
+    res.status(201).json({
+      id: row.id,
+      messageType: row.message_type,
+      text: row.text,
+      isActive: row.is_active,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at
+    });
+  } catch (error) {
+    console.error('Create dive message error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.put('/api/admin/dive-messages/:id', authenticateToken, requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  const { text, isActive } = req.body;
+  
+  try {
+    const updates = [];
+    const params = [];
+    let paramIndex = 1;
+    
+    if (text !== undefined) {
+      updates.push(`text = $${paramIndex}`);
+      params.push(text);
+      paramIndex++;
+    }
+    
+    if (isActive !== undefined) {
+      updates.push(`is_active = $${paramIndex}`);
+      params.push(isActive);
+      paramIndex++;
+    }
+    
+    if (updates.length === 0) {
+      return res.status(400).json({ error: 'No fields to update' });
+    }
+    
+    updates.push('updated_at = CURRENT_TIMESTAMP');
+    params.push(id);
+    
+    const result = await pool.query(
+      `UPDATE dive_messages SET ${updates.join(', ')} WHERE id = $${paramIndex} RETURNING *`,
+      params
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Dive message not found' });
+    }
+    
+    const row = result.rows[0];
+    res.json({
+      id: row.id,
+      messageType: row.message_type,
+      text: row.text,
+      isActive: row.is_active,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at
+    });
+  } catch (error) {
+    console.error('Update dive message error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.delete('/api/admin/dive-messages/:id', authenticateToken, requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  
+  try {
+    const result = await pool.query('DELETE FROM dive_messages WHERE id = $1 RETURNING id', [id]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Dive message not found' });
+    }
+    
+    res.json({ message: 'Dive message deleted successfully' });
+  } catch (error) {
+    console.error('Delete dive message error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Dive Messages - Public endpoint for random message
+app.get('/api/dive-messages/random', authenticateToken, async (req, res) => {
+  const { type } = req.query;
+  
+  try {
+    let tipResult, taglineResult;
+    
+    if (!type || type === 'tip') {
+      tipResult = await pool.query(
+        `SELECT id, message_type, text FROM dive_messages 
+         WHERE message_type = 'tip' AND is_active = true 
+         ORDER BY RANDOM() LIMIT 1`
+      );
+    }
+    
+    if (!type || type === 'tagline') {
+      taglineResult = await pool.query(
+        `SELECT id, message_type, text FROM dive_messages 
+         WHERE message_type = 'tagline' AND is_active = true 
+         ORDER BY RANDOM() LIMIT 1`
+      );
+    }
+    
+    const response = {};
+    
+    if (tipResult?.rows.length > 0) {
+      response.tip = {
+        id: tipResult.rows[0].id,
+        text: tipResult.rows[0].text
+      };
+    }
+    
+    if (taglineResult?.rows.length > 0) {
+      response.tagline = {
+        id: taglineResult.rows[0].id,
+        text: taglineResult.rows[0].text
+      };
+    }
+    
+    res.json(response);
+  } catch (error) {
+    console.error('Get random dive message error:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });

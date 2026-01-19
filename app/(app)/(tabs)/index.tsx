@@ -84,9 +84,12 @@ export default function HomeScreen() {
     sitesVisited: 0,
     maxDepth: 0,
   });
+  const [tagline, setTagline] = useState('Ready for your next underwater adventure?');
+  const [diveTip, setDiveTip] = useState('Always do a buddy check before every dive. Check your BCD, weights, releases, air, and final equipment.');
 
   useEffect(() => {
     fetchStats();
+    fetchDiveMessages();
   }, []);
 
   const fetchStats = async () => {
@@ -105,6 +108,25 @@ export default function HomeScreen() {
       }
     } catch (error) {
       console.error('Error fetching stats:', error);
+    }
+  };
+
+  const fetchDiveMessages = async () => {
+    try {
+      const response = await fetch(`${getApiUrl()}/api/dive-messages/random`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (data.tagline?.text) {
+          setTagline(data.tagline.text);
+        }
+        if (data.tip?.text) {
+          setDiveTip(data.tip.text);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching dive messages:', error);
     }
   };
 
@@ -142,7 +164,7 @@ export default function HomeScreen() {
             {user?.firstName || user?.email?.split('@')[0] || 'Diver'}
           </Text>
           <Text style={[styles.welcomeMessage, { color: colors.textSecondary }]}>
-            Ready for your next underwater adventure?
+            {tagline}
           </Text>
         </View>
 
@@ -203,7 +225,7 @@ export default function HomeScreen() {
           <View style={styles.tipContent}>
             <Text style={[styles.tipTitle, { color: colors.text }]}>Dive Tip</Text>
             <Text style={[styles.tipText, { color: colors.textSecondary }]}>
-              Always do a buddy check before every dive. Check your BCD, weights, releases, air, and final equipment.
+              {diveTip}
             </Text>
           </View>
         </View>
