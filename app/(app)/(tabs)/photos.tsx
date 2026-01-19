@@ -49,8 +49,8 @@ export default function PhotosScreen() {
   const { colors } = useTheme();
   const { token, isLoading: authLoading } = useAuth();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
-  const [containerWidth, setContainerWidth] = useState(windowWidth);
-  const screenWidth = containerWidth || windowWidth;
+  const [containerWidth, setContainerWidth] = useState(0);
+  const screenWidth = containerWidth > 0 ? containerWidth : Math.min(windowWidth, 500);
   const screenHeight = windowHeight;
   const itemSize = Math.floor((screenWidth - GAP * (NUM_COLUMNS + 1)) / NUM_COLUMNS);
   const [photos, setPhotos] = useState<Photo[]>([]);
@@ -550,11 +550,8 @@ export default function PhotosScreen() {
         )}
       </View>
       
-      <ScrollView
-        contentContainerStyle={styles.grid}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
-        }
+      <View 
+        style={{ flex: 1 }}
         onLayout={(e) => {
           const { width } = e.nativeEvent.layout;
           if (width > 0 && width !== containerWidth) {
@@ -562,20 +559,27 @@ export default function PhotosScreen() {
           }
         }}
       >
-        {photos.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Ionicons name="images-outline" size={64} color={colors.textSecondary} />
-            <Text style={[styles.emptyTitle, { color: colors.text }]}>No Photos Yet</Text>
-            <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-              Tap the + button to add photos from your camera or underwater camera
-            </Text>
-          </View>
-        ) : (
-          <View style={styles.gridContainer}>
-            {photos.map((photo, index) => renderPhoto(photo, index))}
-          </View>
-        )}
-      </ScrollView>
+        <ScrollView
+          contentContainerStyle={styles.grid}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+          }
+        >
+          {photos.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Ionicons name="images-outline" size={64} color={colors.textSecondary} />
+              <Text style={[styles.emptyTitle, { color: colors.text }]}>No Photos Yet</Text>
+              <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+                Tap the + button to add photos from your camera or underwater camera
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.gridContainer}>
+              {photos.map((photo, index) => renderPhoto(photo, index))}
+            </View>
+          )}
+        </ScrollView>
+      </View>
       
       {!selectionMode && (
         <Pressable
