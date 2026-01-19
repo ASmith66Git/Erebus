@@ -24,7 +24,9 @@ export default function PageHeader({ title, rightAction }: PageHeaderProps) {
         <Ionicons name="menu-outline" size={24} color={colors.text} />
       </Pressable>
       <View style={styles.headerCenter}>
-        <Logo size={36} primaryColor={colors.primary} />
+        <View style={styles.logoWrapper}>
+          <Logo size={36} primaryColor={colors.primary} />
+        </View>
         <Text style={[styles.headerTitle, { color: colors.text }]}>{title}</Text>
       </View>
       <View style={styles.rightActions}>
@@ -53,9 +55,12 @@ const styles = StyleSheet.create({
   headerCenter: {
     flex: 1,
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-end',
     justifyContent: 'center',
     gap: 8,
+  },
+  logoWrapper: {
+    marginBottom: -10,
   },
   headerTitle: {
     fontSize: 18,
