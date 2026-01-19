@@ -62,6 +62,8 @@ export default function PhotosScreen() {
   const [filter, setFilter] = useState<'all' | 'favorites' | 'unlinked'>('all');
   const [showUploadMenu, setShowUploadMenu] = useState(false);
   const viewerScrollRef = useRef<ScrollView>(null);
+  const thumbnailScrollRef = useRef<ScrollView>(null);
+  const thumbnailScrollPosition = useRef(0);
 
   useEffect(() => {
     if (showViewer && viewerScrollRef.current) {
@@ -409,11 +411,29 @@ export default function PhotosScreen() {
           </ScrollView>
           
           {/* Thumbnail scroll bar */}
-          <View style={styles.thumbnailBar}>
+          <View 
+            style={styles.thumbnailBar}
+            {...(Platform.OS === 'web' ? {
+              onWheel: (e: any) => {
+                e.preventDefault();
+                const delta = e.deltaY || e.deltaX;
+                thumbnailScrollPosition.current += delta;
+                thumbnailScrollRef.current?.scrollTo({ 
+                  x: Math.max(0, thumbnailScrollPosition.current), 
+                  animated: false 
+                });
+              }
+            } : {})}
+          >
             <ScrollView 
+              ref={thumbnailScrollRef}
               horizontal 
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.thumbnailContainer}
+              onScroll={(e) => {
+                thumbnailScrollPosition.current = e.nativeEvent.contentOffset.x;
+              }}
+              scrollEventThrottle={16}
             >
               {photos.map((photo, index) => (
                 <Pressable
