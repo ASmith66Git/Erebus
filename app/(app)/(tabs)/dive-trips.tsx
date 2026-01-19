@@ -223,7 +223,7 @@ export default function DiveTripsScreen() {
       for (const diveId of selectedDiveIds) {
         if (!currentLinkedIds.has(diveId)) {
           console.log('Adding dive:', diveId);
-          const res = await fetch(`${getApiUrl()}/api/dive-trips/${selectedTrip.id}/dives`, {
+          const res = await fetch(`${getApiUrl()}/api/dive-trips/${selectedTrip.id}/logs`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -239,7 +239,7 @@ export default function DiveTripsScreen() {
       for (const diveId of currentLinkedIds) {
         if (!selectedDiveIds.has(diveId)) {
           console.log('Removing dive:', diveId);
-          const res = await fetch(`${getApiUrl()}/api/dive-trips/${selectedTrip.id}/dives/${diveId}`, {
+          const res = await fetch(`${getApiUrl()}/api/dive-trips/${selectedTrip.id}/logs/${diveId}`, {
             method: 'DELETE',
             headers: { Authorization: `Bearer ${token}` },
           });
