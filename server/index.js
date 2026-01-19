@@ -3661,7 +3661,7 @@ app.get('/api/dive-logs', authenticateToken, async (req, res) => {
     let query = `
       SELECT dl.*, ds.name as dive_site_name, 
         COALESCE(dsi.image_url, ds.image_url) as dive_site_image_url,
-        (SELECT COUNT(*) FROM photos p WHERE p.dive_log_id = dl.id AND p.deleted_at IS NULL) as photo_count
+        (SELECT COUNT(*) FROM dive_photos p WHERE p.dive_log_id = dl.id AND p.deleted_at IS NULL) as photo_count
       FROM dive_logs dl
       LEFT JOIN dive_sites ds ON dl.dive_site_id = ds.id
       LEFT JOIN dive_site_images dsi ON ds.id = dsi.dive_site_id AND dsi.is_primary = TRUE
