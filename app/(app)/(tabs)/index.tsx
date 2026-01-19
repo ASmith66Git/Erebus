@@ -1,10 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Dimensions, ImageBackground } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import Svg, { Path, Circle, Defs, RadialGradient, Stop } from 'react-native-svg';
-
-const underwaterImage = require('../../../assets/images/underwater-hero.jpg');
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'expo-router';
@@ -13,46 +10,6 @@ import { getApiUrl } from '@/utils/apiConfig';
 import ThemedBackground from '@/components/ThemedBackground';
 
 const { width: screenWidth } = Dimensions.get('window');
-
-function WavePattern({ color, opacity = 0.15 }: { color: string; opacity?: number }) {
-  return (
-    <Svg
-      width="100%"
-      height="120"
-      viewBox="0 0 1440 120"
-      preserveAspectRatio="none"
-      style={styles.wavePattern}
-    >
-      <Path
-        d="M0,60 C240,100 480,20 720,60 C960,100 1200,20 1440,60 L1440,120 L0,120 Z"
-        fill={color}
-        fillOpacity={opacity}
-      />
-      <Path
-        d="M0,80 C360,120 720,40 1080,80 C1260,100 1350,60 1440,80 L1440,120 L0,120 Z"
-        fill={color}
-        fillOpacity={opacity * 0.7}
-      />
-    </Svg>
-  );
-}
-
-function BubbleDecoration({ color }: { color: string }) {
-  return (
-    <Svg width="200" height="200" viewBox="0 0 200 200" style={styles.bubbleDecoration}>
-      <Defs>
-        <RadialGradient id="bubbleGrad" cx="30%" cy="30%" r="70%">
-          <Stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.4" />
-          <Stop offset="100%" stopColor={color} stopOpacity="0.1" />
-        </RadialGradient>
-      </Defs>
-      <Circle cx="160" cy="40" r="20" fill="url(#bubbleGrad)" />
-      <Circle cx="180" cy="80" r="12" fill="url(#bubbleGrad)" />
-      <Circle cx="140" cy="70" r="8" fill="url(#bubbleGrad)" />
-      <Circle cx="170" cy="110" r="6" fill="url(#bubbleGrad)" />
-    </Svg>
-  );
-}
 
 function getTimeGreeting(): string {
   const hour = new Date().getHours();
@@ -176,39 +133,17 @@ export default function HomeScreen() {
   return (
     <ThemedBackground>
       <PageHeader title="Erebus" />
-      <ScrollView 
-        style={styles.container} 
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.contentContainer}
-      >
-        <View style={styles.heroSection}>
-          <ImageBackground
-            source={underwaterImage}
-            style={styles.heroImageBackground}
-            imageStyle={styles.heroImage}
-            resizeMode="cover"
-          >
-            <LinearGradient
-              colors={isDark 
-                ? ['transparent', colors.background + '40', colors.background + 'CC']
-                : ['transparent', colors.background + '30', colors.background + 'B3']
-              }
-              style={styles.heroOverlay}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 0, y: 1 }}
-            />
-            <View style={styles.welcomeContent}>
-              <Text style={[styles.timeGreeting, { color: colors.primary }]}>
-                {getTimeGreeting()}
-              </Text>
-              <Text style={[styles.userName, { color: colors.text }]}>
-                {user?.firstName || user?.email?.split('@')[0] || 'Diver'}
-              </Text>
-              <Text style={[styles.welcomeMessage, { color: colors.textSecondary }]}>
-                Ready for your next underwater adventure?
-              </Text>
-            </View>
-          </ImageBackground>
+      <View style={styles.container}>
+        <View style={styles.welcomeSection}>
+          <Text style={[styles.timeGreeting, { color: colors.primary }]}>
+            {getTimeGreeting()}
+          </Text>
+          <Text style={[styles.userName, { color: colors.text }]}>
+            {user?.firstName || user?.email?.split('@')[0] || 'Diver'}
+          </Text>
+          <Text style={[styles.welcomeMessage, { color: colors.textSecondary }]}>
+            Ready for your next underwater adventure?
+          </Text>
         </View>
 
         <View style={styles.statsSection}>
@@ -272,32 +207,7 @@ export default function HomeScreen() {
             </Text>
           </View>
         </View>
-
-        <View style={[styles.featuresSection, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
-          <Text style={[styles.featuresTitle, { color: colors.text }]}>Explore Erebus</Text>
-          <View style={styles.featuresList}>
-            {[
-              { icon: 'book-outline', title: 'Dive Logs', desc: 'Track all your dives' },
-              { icon: 'hardware-chip-outline', title: 'Gear Profiles', desc: 'Manage your equipment' },
-              { icon: 'school-outline', title: 'Certifications', desc: 'Track your training' },
-              { icon: 'people-outline', title: 'Dive Buddies', desc: 'Connect with divers' },
-            ].map((feature, index) => (
-              <View key={index} style={[styles.featureItem, index < 3 && { borderBottomWidth: 1, borderBottomColor: colors.border }]}>
-                <View style={[styles.featureIcon, { backgroundColor: colors.primary + '15' }]}>
-                  <Ionicons name={feature.icon as any} size={20} color={colors.primary} />
-                </View>
-                <View style={styles.featureText}>
-                  <Text style={[styles.featureTitle, { color: colors.text }]}>{feature.title}</Text>
-                  <Text style={[styles.featureDesc, { color: colors.textSecondary }]}>{feature.desc}</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
-              </View>
-            ))}
-          </View>
-        </View>
-
-        <View style={{ height: 32 }} />
-      </ScrollView>
+      </View>
     </ThemedBackground>
   );
 }
@@ -305,63 +215,11 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    paddingHorizontal: 16,
   },
-  contentContainer: {
-    paddingBottom: 16,
-  },
-  heroSection: {
-    position: 'relative',
-    overflow: 'hidden',
-  },
-  heroImageBackground: {
-    height: 180,
-    justifyContent: 'flex-end',
-    paddingBottom: 16,
-  },
-  heroImage: {
-    opacity: 0.9,
-    left: -50,
-    top: -20,
-    width: '120%',
-  },
-  heroOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 0,
-  },
-  heroColorTint: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 0,
-  },
-  heroGradient: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-  bubbleDecoration: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-  },
-  wavePattern: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-  },
-  welcomeContent: {
-    paddingHorizontal: 20,
-    zIndex: 1,
-    paddingTop: 8,
+  welcomeSection: {
+    paddingTop: 16,
+    paddingBottom: 8,
   },
   timeGreeting: {
     fontSize: 16,
@@ -380,8 +238,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   statsSection: {
-    paddingHorizontal: 16,
-    marginTop: 16,
+    marginTop: 12,
   },
   sectionLabel: {
     fontSize: 12,
@@ -432,8 +289,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   quickActionsSection: {
-    paddingHorizontal: 16,
-    marginTop: 24,
+    marginTop: 20,
   },
   actionsGrid: {
     flexDirection: 'row',
@@ -477,8 +333,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   tipCard: {
-    marginHorizontal: 16,
-    marginTop: 24,
+    marginTop: 20,
     padding: 16,
     borderRadius: 16,
     borderWidth: 1,
@@ -504,45 +359,5 @@ const styles = StyleSheet.create({
   tipText: {
     fontSize: 14,
     lineHeight: 20,
-  },
-  featuresSection: {
-    marginHorizontal: 16,
-    marginTop: 24,
-    borderRadius: 16,
-    borderWidth: 1,
-    overflow: 'hidden',
-  },
-  featuresTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    padding: 16,
-    paddingBottom: 12,
-  },
-  featuresList: {
-    paddingHorizontal: 16,
-  },
-  featureItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 14,
-    gap: 14,
-  },
-  featureIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  featureText: {
-    flex: 1,
-  },
-  featureTitle: {
-    fontSize: 15,
-    fontWeight: '500',
-  },
-  featureDesc: {
-    fontSize: 13,
-    marginTop: 2,
   },
 });
