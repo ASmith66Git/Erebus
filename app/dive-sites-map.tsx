@@ -56,7 +56,13 @@ export default function DiveSitesMap() {
       if (!response.ok) throw new Error('Failed to fetch sites');
       const data = await response.json();
       const allSites = data.sites || data;
-      const sitesWithCoords = allSites.filter((s: DiveSite) => s.latitude != null && s.longitude != null);
+      // Convert latitude/longitude from PostgreSQL numeric strings to numbers
+      const parsedSites = allSites.map((s: any) => ({
+        ...s,
+        latitude: s.latitude != null ? parseFloat(s.latitude) : null,
+        longitude: s.longitude != null ? parseFloat(s.longitude) : null,
+      }));
+      const sitesWithCoords = parsedSites.filter((s: DiveSite) => s.latitude != null && s.longitude != null);
       setSites(sitesWithCoords);
     } catch (err: any) {
       setError(err.message);
