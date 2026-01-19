@@ -66,6 +66,9 @@ export default function PhotosScreen() {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [filter, setFilter] = useState<'all' | 'favorites' | 'unlinked'>('all');
   const [showUploadMenu, setShowUploadMenu] = useState(false);
+  const [showLinkModal, setShowLinkModal] = useState(false);
+  const [diveLogs, setDiveLogs] = useState<{id: number; diveDateTime: string; diveSiteName: string | null}[]>([]);
+  const [linking, setLinking] = useState(false);
   const viewerScrollRef = useRef<ScrollView>(null);
   const thumbnailScrollRef = useRef<ScrollView>(null);
   const thumbnailScrollPosition = useRef(0);
@@ -124,6 +127,46 @@ export default function PhotosScreen() {
     setRefreshing(true);
     fetchPhotos();
   }, [filter]);
+
+  const fetchDiveLogs = async () => {
+    try {
+      const response = await fetch(`${getApiUrl()}/api/dive-logs`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setDiveLogs(data.diveLogs || []);
+      }
+    } catch (error) {
+      console.error('Error fetching dive logs:', error);
+    }
+  };
+
+  const linkSelectedPhotos = async (diveLogId: number | null) => {
+    setLinking(true);
+    try {
+      const selectedPhotoIds = Array.from(selectedIds);
+      for (const photoId of selectedPhotoIds) {
+        await fetch(`${getApiUrl()}/api/photos/${photoId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ diveLogId }),
+        });
+      }
+      setShowLinkModal(false);
+      setSelectionMode(false);
+      setSelectedIds(new Set());
+      fetchPhotos();
+    } catch (error) {
+      console.error('Error linking photos:', error);
+      Alert.alert('Error', 'Failed to link photos to dive');
+    } finally {
+      setLinking(false);
+    }
+  };
 
   const pickImage = async (useCamera: boolean) => {
     setShowUploadMenu(false);
@@ -554,9 +597,17 @@ export default function PhotosScreen() {
               <Text style={[styles.toolbarText, { color: colors.primary }]}>Cancel</Text>
             </Pressable>
             <Text style={[styles.toolbarTitle, { color: colors.text }]}>{selectedIds.size} selected</Text>
-            <Pressable onPress={deleteSelected}>
-              <Ionicons name="trash-outline" size={24} color="#FF3B30" />
-            </Pressable>
+            <View style={{ flexDirection: 'row', gap: 16 }}>
+              <Pressable 
+                onPress={() => { fetchDiveLogs(); setShowLinkModal(true); }}
+                disabled={selectedIds.size === 0}
+              >
+                <Ionicons name="link" size={24} color={selectedIds.size > 0 ? colors.primary : colors.textSecondary} />
+              </Pressable>
+              <Pressable onPress={deleteSelected}>
+                <Ionicons name="trash-outline" size={24} color="#FF3B30" />
+              </Pressable>
+            </View>
           </>
         ) : (
           <>
@@ -626,6 +677,68 @@ export default function PhotosScreen() {
       
       {renderViewer()}
       {renderUploadMenu()}
+      
+      <Modal
+        visible={showLinkModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowLinkModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.linkModal, { backgroundColor: colors.surface }]}>
+            <View style={styles.linkModalHeader}>
+              <Text style={[styles.linkModalTitle, { color: colors.text }]}>Link to Dive</Text>
+              <Pressable onPress={() => setShowLinkModal(false)}>
+                <Ionicons name="close" size={24} color={colors.textSecondary} />
+              </Pressable>
+            </View>
+            <Text style={[styles.linkModalSubtitle, { color: colors.textSecondary }]}>
+              Link {selectedIds.size} photo{selectedIds.size !== 1 ? 's' : ''} to a dive log
+            </Text>
+            
+            <ScrollView style={styles.diveLogsList}>
+              <Pressable
+                style={[styles.diveLogItem, { borderBottomColor: colors.border }]}
+                onPress={() => linkSelectedPhotos(null)}
+              >
+                <View style={styles.diveLogItemContent}>
+                  <Ionicons name="close-circle-outline" size={24} color={colors.textSecondary} />
+                  <Text style={[styles.diveLogItemText, { color: colors.textSecondary }]}>Unlink from dive</Text>
+                </View>
+              </Pressable>
+              
+              {diveLogs.map((log) => (
+                <Pressable
+                  key={log.id}
+                  style={[styles.diveLogItem, { borderBottomColor: colors.border }]}
+                  onPress={() => linkSelectedPhotos(log.id)}
+                >
+                  <View style={styles.diveLogItemContent}>
+                    <Ionicons name="water" size={24} color={colors.primary} />
+                    <View>
+                      <Text style={[styles.diveLogItemText, { color: colors.text }]}>
+                        {new Date(log.diveDateTime).toLocaleDateString()}
+                      </Text>
+                      {log.diveSiteName && (
+                        <Text style={[styles.diveLogItemSubtext, { color: colors.textSecondary }]}>
+                          {log.diveSiteName}
+                        </Text>
+                      )}
+                    </View>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+                </Pressable>
+              ))}
+            </ScrollView>
+            
+            {linking && (
+              <View style={styles.linkingOverlay}>
+                <ActivityIndicator color={colors.primary} size="large" />
+              </View>
+            )}
+          </View>
+        </View>
+      </Modal>
     </ThemedBackground>
   );
 }
@@ -887,5 +1000,67 @@ const styles = StyleSheet.create({
   menuDivider: {
     height: 1,
     marginHorizontal: 20,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  linkModal: {
+    width: '100%',
+    maxWidth: 400,
+    maxHeight: '80%',
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  linkModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.1)',
+  },
+  linkModalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  linkModalSubtitle: {
+    fontSize: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  diveLogsList: {
+    maxHeight: 400,
+  },
+  diveLogItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+  },
+  diveLogItemContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  diveLogItemText: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  diveLogItemSubtext: {
+    fontSize: 13,
+    marginTop: 2,
+  },
+  linkingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
