@@ -220,7 +220,7 @@ export default function DiveTripScreen() {
 
   const pickCoverImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsEditing: true,
       aspect: [16, 9],
       quality: 0.8,
@@ -229,26 +229,48 @@ export default function DiveTripScreen() {
     if (!result.canceled && result.assets[0]) {
       setUploadingImage(true);
       try {
-        const formDataUpload = new FormData();
-        formDataUpload.append('file', {
-          uri: result.assets[0].uri,
-          type: 'image/jpeg',
-          name: 'cover.jpg',
-        } as any);
-
-        const response = await fetch(`${getApiUrl()}/api/upload`, {
+        const asset = result.assets[0];
+        
+        // Step 1: Request upload URL from server
+        const urlResponse = await fetch(`${getApiUrl()}/api/uploads/request-url`, {
           method: 'POST',
-          headers: { Authorization: `Bearer ${token}` },
-          body: formDataUpload,
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            name: `trip-cover-${Date.now()}.jpg`,
+            size: asset.fileSize || 0,
+            contentType: 'image/jpeg',
+          }),
         });
 
-        if (response.ok) {
-          const data = await response.json();
-          setFormData(prev => ({ ...prev, coverImageKey: data.key }));
+        if (!urlResponse.ok) {
+          throw new Error('Failed to get upload URL');
+        }
+
+        const { uploadURL, objectPath } = await urlResponse.json();
+
+        // Step 2: Fetch image as blob
+        const imageResponse = await fetch(asset.uri);
+        const imageBlob = await imageResponse.blob();
+
+        // Step 3: Upload to object storage
+        const uploadResponse = await fetch(uploadURL, {
+          method: 'PUT',
+          body: imageBlob,
+          headers: {
+            'Content-Type': 'image/jpeg',
+          },
+        });
+
+        if (uploadResponse.ok) {
+          setFormData(prev => ({ ...prev, coverImageKey: objectPath }));
         } else {
           Alert.alert('Error', 'Failed to upload image');
         }
       } catch (error) {
+        console.error('Upload error:', error);
         Alert.alert('Error', 'Failed to upload image');
       } finally {
         setUploadingImage(false);
@@ -258,7 +280,10 @@ export default function DiveTripScreen() {
 
   const getCoverImageUrl = (key: string | null) => {
     if (!key) return null;
-    return `${getApiUrl()}/api/images/${key}`;
+    if (key.startsWith('/objects/')) {
+      return `${getApiUrl()}${key}`;
+    }
+    return `${getApiUrl()}/objects/${key}`;
   };
 
   const formatDate = (dateStr: string) => {
