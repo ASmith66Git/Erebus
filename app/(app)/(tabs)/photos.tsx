@@ -395,6 +395,7 @@ export default function PhotosScreen() {
                 setSelectedPhoto(photos[newIndex]);
               }
             }}
+            style={styles.viewerScrollView}
           >
             {photos.map((photo) => (
               <View key={photo.id} style={styles.viewerPage}>
@@ -406,6 +407,36 @@ export default function PhotosScreen() {
               </View>
             ))}
           </ScrollView>
+          
+          {/* Thumbnail scroll bar */}
+          <View style={styles.thumbnailBar}>
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.thumbnailContainer}
+            >
+              {photos.map((photo, index) => (
+                <Pressable
+                  key={photo.id}
+                  style={[
+                    styles.thumbnailItem,
+                    viewerIndex === index && { borderColor: colors.primary, borderWidth: 2 }
+                  ]}
+                  onPress={() => {
+                    setViewerIndex(index);
+                    setSelectedPhoto(photo);
+                    viewerScrollRef.current?.scrollTo({ x: index * SCREEN_WIDTH, animated: true });
+                  }}
+                >
+                  <Image
+                    source={{ uri: getImageUrl(photo.thumbnailUrl || photo.imageUrl) }}
+                    style={styles.thumbnailImage}
+                    resizeMode="cover"
+                  />
+                </Pressable>
+              ))}
+            </ScrollView>
+          </View>
           
           <View style={styles.viewerFooter}>
             {selectedPhoto.diveSiteName && (
@@ -663,6 +694,33 @@ const styles = StyleSheet.create({
   },
   viewerContainer: {
     flex: 1,
+  },
+  viewerScrollView: {
+    flex: 1,
+  },
+  thumbnailBar: {
+    position: 'absolute',
+    bottom: 120,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingVertical: 8,
+  },
+  thumbnailContainer: {
+    paddingHorizontal: 8,
+    gap: 8,
+  },
+  thumbnailItem: {
+    width: 50,
+    height: 50,
+    borderRadius: 6,
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  thumbnailImage: {
+    width: '100%',
+    height: '100%',
   },
   viewerHeader: {
     position: 'absolute',
