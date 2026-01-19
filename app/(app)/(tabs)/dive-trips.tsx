@@ -85,6 +85,12 @@ export default function DiveTripsScreen() {
 
   const getCoverImageUrl = (key: string | null) => {
     if (!key) return null;
+    if (key.startsWith('/objects/')) {
+      return `${getApiUrl()}${key}`;
+    }
+    if (key.startsWith('/')) {
+      return `${getApiUrl()}${key}`;
+    }
     return `${getApiUrl()}/objects/${key}`;
   };
 
