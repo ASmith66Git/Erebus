@@ -13,7 +13,7 @@ export default function ThemedBackground({
   style,
   showImage = true 
 }: ThemedBackgroundProps) {
-  const { colors, backgroundImage, isDark } = useTheme();
+  const { colors, backgroundImage } = useTheme();
 
   if (!showImage) {
     return (
@@ -30,14 +30,6 @@ export default function ThemedBackground({
         style={styles.backgroundImage}
         resizeMode="cover"
       />
-      <View style={[
-        styles.overlay, 
-        { 
-          backgroundColor: isDark 
-            ? 'rgba(0, 0, 0, 0.55)' 
-            : 'rgba(255, 255, 255, 0.65)' 
-        }
-      ]} />
       <View style={styles.content}>
         {children}
       </View>
@@ -58,13 +50,6 @@ const styles = StyleSheet.create({
     bottom: 0,
     width: '100%',
     height: '100%',
-  },
-  overlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
   },
   content: {
     flex: 1,
