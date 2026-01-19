@@ -10,6 +10,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'expo-router';
 import PageHeader from '@/components/PageHeader';
 import { getApiUrl } from '@/utils/apiConfig';
+import ThemedBackground from '@/components/ThemedBackground';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -173,7 +174,7 @@ export default function HomeScreen() {
   ];
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
+    <ThemedBackground>
       <PageHeader title="Erebus" />
       <ScrollView 
         style={styles.container} 
@@ -297,7 +298,7 @@ export default function HomeScreen() {
 
         <View style={{ height: 32 }} />
       </ScrollView>
-    </View>
+    </ThemedBackground>
   );
 }
 

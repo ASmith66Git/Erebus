@@ -1,8 +1,11 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo } from 'react';
-import { useColorScheme as useSystemColorScheme } from 'react-native';
+import { useColorScheme as useSystemColorScheme, ImageSourcePropType } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors, ThemeColors, ColorScheme } from '@/constants/Colors';
 import { useSettings, DEFAULT_THEME_COLOR } from '@/contexts/SettingsContext';
+
+const coralBackgroundLight = require('@/assets/images/coral-background-light.jpg');
+const coralBackgroundDark = require('@/assets/images/coral-background-dark.jpg');
 
 interface ThemeContextType {
   colorScheme: ColorScheme;
@@ -10,6 +13,7 @@ interface ThemeContextType {
   isDark: boolean;
   toggleTheme: () => void;
   setTheme: (scheme: ColorScheme) => void;
+  backgroundImage: ImageSourcePropType;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -59,12 +63,15 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     };
   }, [colorScheme, themeColor]);
 
+  const backgroundImage = colorScheme === 'dark' ? coralBackgroundDark : coralBackgroundLight;
+
   const value: ThemeContextType = {
     colorScheme,
     colors,
     isDark: colorScheme === 'dark',
     toggleTheme,
     setTheme,
+    backgroundImage,
   };
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;

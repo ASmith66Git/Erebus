@@ -21,6 +21,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { getApiUrl } from '@/utils/apiConfig';
 import * as DocumentPicker from 'expo-document-picker';
 import PageHeader from '@/components/PageHeader';
+import ThemedBackground from '@/components/ThemedBackground';
 
 interface DiveLog {
   id: number;
@@ -495,7 +496,7 @@ export default function DiveLogsScreen() {
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <ThemedBackground style={styles.container}>
       <PageHeader title="Dive Logs" />
       <View style={styles.searchContainer}>
         <View style={[styles.searchBar, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -542,7 +543,7 @@ export default function DiveLogsScreen() {
       >
         <Feather name="plus" size={24} color="#FFFFFF" />
       </Pressable>
-    </View>
+    </ThemedBackground>
   );
 }
 

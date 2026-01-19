@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { getApiUrl } from '@/utils/apiConfig';
 import biometricService from '@/services/biometricService';
 import PageHeader from '@/components/PageHeader';
+import ThemedBackground from '@/components/ThemedBackground';
 
 interface Manufacturer {
   id: string;
@@ -190,10 +191,10 @@ export default function ProfileScreen() {
   ];
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
+    <ThemedBackground>
       <PageHeader title="Profile" />
       <ScrollView 
-        style={[styles.container, { backgroundColor: colors.background }]}
+        style={styles.container}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} tintColor={colors.primary} />
         }
@@ -479,7 +480,7 @@ export default function ProfileScreen() {
         </View>
       </Modal>
       </ScrollView>
-    </View>
+    </ThemedBackground>
   );
 }
 
