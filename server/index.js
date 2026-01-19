@@ -5848,6 +5848,93 @@ app.delete('/api/dive-trips/:tripId/logs/:logId', authenticateToken, async (req,
   }
 });
 
+// Get photos for a trip
+app.get('/api/dive-trips/:id/photos', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Verify trip belongs to user
+    const tripCheck = await pool.query(
+      'SELECT id FROM dive_trips WHERE id = $1 AND user_id = $2',
+      [id, req.user.id]
+    );
+    
+    if (tripCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Trip not found' });
+    }
+    
+    const result = await pool.query(
+      `SELECT id, image_url, caption, created_at
+       FROM dive_trip_photos
+       WHERE trip_id = $1
+       ORDER BY created_at DESC`,
+      [id]
+    );
+    
+    res.json({ photos: result.rows });
+  } catch (error) {
+    console.error('Get trip photos error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Add photo to trip
+app.post('/api/dive-trips/:id/photos', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { image_url, caption } = req.body;
+    
+    // Verify trip belongs to user
+    const tripCheck = await pool.query(
+      'SELECT id FROM dive_trips WHERE id = $1 AND user_id = $2',
+      [id, req.user.id]
+    );
+    
+    if (tripCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Trip not found' });
+    }
+    
+    const result = await pool.query(
+      `INSERT INTO dive_trip_photos (trip_id, user_id, image_url, caption)
+       VALUES ($1, $2, $3, $4)
+       RETURNING *`,
+      [id, req.user.id, image_url, caption || null]
+    );
+    
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('Add trip photo error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Delete photo from trip
+app.delete('/api/dive-trips/:tripId/photos/:photoId', authenticateToken, async (req, res) => {
+  try {
+    const { tripId, photoId } = req.params;
+    
+    // Verify trip belongs to user
+    const tripCheck = await pool.query(
+      'SELECT id FROM dive_trips WHERE id = $1 AND user_id = $2',
+      [tripId, req.user.id]
+    );
+    
+    if (tripCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Trip not found' });
+    }
+    
+    await pool.query(
+      'DELETE FROM dive_trip_photos WHERE id = $1 AND trip_id = $2',
+      [photoId, tripId]
+    );
+    
+    res.json({ message: 'Photo deleted' });
+  } catch (error) {
+    console.error('Delete trip photo error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // ==================== DIVE BUDDIES ====================
 
 // Get all dive buddies for user
