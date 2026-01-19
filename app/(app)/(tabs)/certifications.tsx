@@ -770,12 +770,14 @@ export default function CertificationsScreen() {
   );
 
   const renderWishlistCard = (item: WishlistItem) => (
-    <Pressable
+    <View
       key={item.id}
       style={[styles.wishlistCard, { backgroundColor: colors.card, borderColor: colors.border }]}
-      onPress={() => handleEditWishlistItem(item)}
     >
-      <View style={styles.wishlistCardContent}>
+      <Pressable 
+        style={styles.wishlistCardContent}
+        onPress={() => handleEditWishlistItem(item)}
+      >
         <Text style={[styles.agencyName, { color: colors.primary }]}>{item.agency_name}</Text>
         <Text style={[styles.certCourseName, { color: colors.text }]}>{item.course_name}</Text>
         
@@ -802,15 +804,15 @@ export default function CertificationsScreen() {
             </Text>
           </View>
         )}
-      </View>
+      </Pressable>
       
       <Pressable
         style={[styles.removeWishlistBtn, { backgroundColor: colors.danger + '20' }]}
-        onPress={(e) => { e.stopPropagation(); handleRemoveFromWishlist(item.id); }}
+        onPress={() => handleRemoveFromWishlist(item.id)}
       >
         <Feather name="x" size={18} color={colors.danger} />
       </Pressable>
-    </Pressable>
+    </View>
   );
 
   if (authLoading || loading) {
