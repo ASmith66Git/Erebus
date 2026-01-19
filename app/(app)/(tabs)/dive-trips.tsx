@@ -19,7 +19,7 @@ import { Feather, Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'expo-router';
-import { useNavigation, DrawerActions, useFocusEffect } from '@react-navigation/native';
+import { useNavigation, DrawerActions, useFocusEffect, useIsFocused } from '@react-navigation/native';
 import { getApiUrl } from '@/utils/apiConfig';
 import EmbeddedMapPicker from '@/components/EmbeddedMapPicker';
 import StaticMapView from '@/components/StaticMapView';
@@ -88,6 +88,7 @@ export default function DiveTripsScreen() {
   const { token, isLoading: authLoading } = useAuth();
   const router = useRouter();
   const navigation = useNavigation();
+  const isFocused = useIsFocused();
 
   const [trips, setTrips] = useState<DiveTrip[]>([]);
   const [loading, setLoading] = useState(true);
@@ -626,7 +627,7 @@ export default function DiveTripsScreen() {
         <Feather name="plus" size={24} color="#FFF" />
       </Pressable>
 
-      <Modal visible={showAddModal} animationType="slide" transparent>
+      <Modal visible={isFocused && showAddModal} animationType="slide" transparent>
         <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
           <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
             <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
@@ -919,7 +920,7 @@ export default function DiveTripsScreen() {
         </View>
       </Modal>
 
-      <Modal visible={showDetailModal} animationType="slide" transparent>
+      <Modal visible={isFocused && showDetailModal} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
             <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
@@ -1260,7 +1261,7 @@ export default function DiveTripsScreen() {
       </Modal>
 
       {/* Delete button removed - now inside Details tab */}
-      <Modal visible={showDivePickerModal} transparent animationType="slide" onRequestClose={() => setShowDivePickerModal(false)}>
+      <Modal visible={isFocused && showDivePickerModal} transparent animationType="slide" onRequestClose={() => setShowDivePickerModal(false)}>
         <View style={styles.modalOverlay}>
           <View style={[styles.divePickerModal, { backgroundColor: colors.surface }]}>
             <View style={[styles.divePickerHeader, { borderBottomColor: colors.border }]}>
