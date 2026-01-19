@@ -655,9 +655,17 @@ export default function PhotosScreen() {
               </Text>
             </View>
           ) : (
-            <View style={styles.gridContainer}>
-              {photos.map((photo, index) => renderPhoto(photo, index))}
-            </View>
+            <>
+              <View style={styles.gridContainer}>
+                {photos.map((photo, index) => renderPhoto(photo, index))}
+              </View>
+              <View style={[styles.helpSection, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                <Ionicons name="information-circle-outline" size={20} color={colors.textSecondary} />
+                <Text style={[styles.helpText, { color: colors.textSecondary }]}>
+                  To link photos to a dive: tap "Select", choose photos, then tap the link icon. Or tap a photo and use the info button to edit its details.
+                </Text>
+              </View>
+            </>
           )}
         </ScrollView>
       </View>
@@ -1062,5 +1070,21 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.3)',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  helpSection: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    marginTop: 16,
+    marginHorizontal: 4,
+    marginBottom: 100,
+    padding: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  helpText: {
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 18,
   },
 });
