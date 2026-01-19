@@ -14,6 +14,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
+import Logo from '@/components/Logo';
 
 export default function SignupScreen() {
   const { colors } = useTheme();
@@ -78,9 +79,7 @@ export default function SignupScreen() {
         </Pressable>
 
         <View style={styles.header}>
-          <View style={[styles.iconContainer, { backgroundColor: colors.primary }]}>
-            <Ionicons name="water" size={40} color="#FFFFFF" />
-          </View>
+          <Logo size={80} primaryColor={colors.primary} />
           <Text style={[styles.title, { color: colors.text }]}>Create Account</Text>
           <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
             Join Erebus and start tracking your dives

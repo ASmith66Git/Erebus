@@ -87,7 +87,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   logoContainer: {
-    marginBottom: -20,
+    marginBottom: 16,
   },
   title: {
     fontSize: 36,

@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { getApiUrl } from '@/utils/apiConfig';
+import Logo from '@/components/Logo';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function LoginScreen() {
@@ -144,9 +145,7 @@ export default function LoginScreen() {
         </Pressable>
 
         <View style={styles.header}>
-          <View style={[styles.iconContainer, { backgroundColor: colors.primary }]}>
-            <Ionicons name="water" size={40} color="#FFFFFF" />
-          </View>
+          <Logo size={80} primaryColor={colors.primary} />
           <Text style={[styles.title, { color: colors.text }]}>Welcome Back</Text>
           <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
             Sign in to continue managing your dives
