@@ -944,7 +944,7 @@ export default function DiveTripsScreen() {
 
                 <View style={{ flex: 1 }}>
                   {detailTab === 'Details' && (
-                    <ScrollView style={[styles.modalBody, { flex: 1 }]}>
+                    <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
                     {selectedTrip.cover_image_key && (
                       <Image
                         source={{ uri: getCoverImageUrl(selectedTrip.cover_image_key)! }}
@@ -1055,7 +1055,7 @@ export default function DiveTripsScreen() {
                 )}
 
                 {detailTab === 'Dives' && (
-                  <ScrollView style={[styles.modalBody, { flex: 1 }]}>
+                  <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                       <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 0 }]}>
                         Linked Dives ({linkedDives.length})
@@ -1114,7 +1114,7 @@ export default function DiveTripsScreen() {
                 )}
 
                 {detailTab === 'Photos' && (
-                  <ScrollView style={[styles.modalBody, { flex: 1 }]}>
+                  <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
                     {loadingPhotos ? (
                       <View style={{ alignItems: 'center', paddingVertical: 40 }}>
                         <ActivityIndicator size="large" color={colors.primary} />
@@ -1362,7 +1362,7 @@ const styles = StyleSheet.create({
   tripCardStat: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   tripCardStatText: { fontSize: 13 },
   modalOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' },
-  modalContent: { width: '95%', maxWidth: 500, maxHeight: '90%', borderRadius: 16, overflow: 'hidden', flexDirection: 'column' },
+  modalContent: { width: '95%', maxWidth: 500, height: '85%', borderRadius: 16, overflow: 'hidden', flexDirection: 'column' },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderBottomWidth: 1 },
   modalTitle: { fontSize: 18, fontWeight: '600', flex: 1, marginRight: 12 },
   modalBody: { padding: 16 },
