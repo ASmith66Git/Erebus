@@ -50,9 +50,10 @@ export default function PhotosScreen() {
   const { token, isLoading: authLoading } = useAuth();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const [containerWidth, setContainerWidth] = useState(0);
-  const screenWidth = containerWidth > 0 ? containerWidth : Math.min(windowWidth, 500);
+  const gridWidth = containerWidth > 0 ? containerWidth : Math.min(windowWidth, 500);
+  const screenWidth = containerWidth > 0 ? containerWidth : windowWidth;
   const screenHeight = windowHeight;
-  const itemSize = Math.floor((screenWidth - GAP * (NUM_COLUMNS + 1)) / NUM_COLUMNS);
+  const itemSize = Math.floor((gridWidth - GAP * (NUM_COLUMNS - 1)) / NUM_COLUMNS);
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -312,11 +313,19 @@ export default function PhotosScreen() {
 
   const renderPhoto = (photo: Photo, index: number) => {
     const isSelected = selectedIds.has(photo.id);
+    const isLastInRow = (index + 1) % NUM_COLUMNS === 0;
     
     return (
       <Pressable
         key={photo.id}
-        style={[styles.photoItem, { width: itemSize, height: itemSize }]}
+        style={[
+          styles.photoItem, 
+          { 
+            width: itemSize, 
+            height: itemSize,
+            marginRight: isLastInRow ? 0 : GAP,
+          }
+        ]}
         onPress={() => openViewer(photo, index)}
         onLongPress={() => {
           setSelectionMode(true);
@@ -642,10 +651,8 @@ const styles = StyleSheet.create({
   gridContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    paddingHorizontal: GAP,
   },
   photoItem: {
-    marginRight: GAP,
     marginBottom: GAP,
     position: 'relative',
     overflow: 'hidden',
