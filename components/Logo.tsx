@@ -1,5 +1,5 @@
 import React from 'react';
-import Svg, { Path, Circle, G } from 'react-native-svg';
+import Svg, { Path, G, Circle } from 'react-native-svg';
 
 interface LogoProps {
   size?: number;
@@ -14,40 +14,41 @@ export default function Logo({
 }: LogoProps) {
   const viewBoxSize = 100;
   
+  const arcRadius = 40;
+  const arcCenter = { x: 50, y: 54 };
+  const circumference = 2 * Math.PI * arcRadius;
+  const arcPercent = 0.70;
+  const dashLength = circumference * arcPercent;
+  const gapLength = circumference * (1 - arcPercent);
+  
   return (
     <Svg width={size} height={size} viewBox={`0 0 ${viewBoxSize} ${viewBoxSize}`}>
       <G>
-        {/* Arc around the droplet - starts at ~7 o'clock, goes clockwise to ~11 o'clock */}
-        {/* Gap is on the upper-left side */}
-        <Path
-          d="M 25 75 
-             A 35 35 0 1 1 30 22"
+        {/* Arc using circle with stroke-dasharray - gap on left side */}
+        <Circle
+          cx={arcCenter.x}
+          cy={arcCenter.y}
+          r={arcRadius}
           fill="none"
           stroke={primaryColor}
-          strokeWidth={4}
+          strokeWidth={5}
           strokeLinecap="round"
+          strokeDasharray={`${dashLength} ${gapLength}`}
+          strokeDashoffset={-circumference * 0.15}
+          transform={`rotate(-90 ${arcCenter.x} ${arcCenter.y})`}
         />
         
         {/* Water droplet shape */}
         <Path
-          d="M 50 25
-             C 50 25, 35 45, 35 58
-             C 35 70, 41 78, 50 78
-             C 59 78, 65 70, 65 58
-             C 65 45, 50 25, 50 25
-             Z"
+          d="M 50 18 C 50 18, 30 48, 30 64 C 30 80, 39 88, 50 88 C 61 88, 70 80, 70 64 C 70 48, 50 18, 50 18 Z"
           fill={primaryColor}
         />
         
         {/* White crescent highlight on bottom-right of droplet */}
         <Path
-          d="M 52 68
-             Q 56 64, 54 60
-             Q 58 64, 56 70
-             Q 54 72, 52 68
-             Z"
+          d="M 52 74 Q 58 70, 55 64 Q 60 70, 56 78 Q 54 80, 52 74 Z"
           fill={highlightColor}
-          opacity={0.9}
+          opacity={0.95}
         />
       </G>
     </Svg>
