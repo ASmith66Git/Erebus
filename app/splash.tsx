@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
+import Logo from '@/components/Logo';
 
 export default function SplashScreen() {
   const { colors } = useTheme();
@@ -24,8 +25,8 @@ export default function SplashScreen() {
   return (
     <View style={[styles.safeArea, { backgroundColor: colors.background }]}>
       <View style={styles.container}>
-        <View style={[styles.iconContainer, { backgroundColor: colors.primary + '20' }]}>
-          <Ionicons name="water" size={56} color={colors.primary} />
+        <View style={styles.logoContainer}>
+          <Logo size={88} primaryColor={colors.primary} />
         </View>
         
         <Text style={[styles.title, { color: colors.text }]}>Erebus</Text>
@@ -80,12 +81,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 24,
   },
-  iconContainer: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
-    justifyContent: 'center',
-    alignItems: 'center',
+  logoContainer: {
     marginBottom: 16,
   },
   title: {
