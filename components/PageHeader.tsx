@@ -1,8 +1,10 @@
 import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView, Pressable } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, Pressable, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { DrawerActions, useNavigation } from '@react-navigation/native';
 import { useTheme } from '@/contexts/ThemeContext';
+
+const logoImage = require('../assets/images/icon.png');
 
 interface PageHeaderProps {
   title: string;
@@ -23,7 +25,7 @@ export default function PageHeader({ title, rightAction }: PageHeaderProps) {
         <Ionicons name="menu-outline" size={24} color={colors.text} />
       </Pressable>
       <View style={styles.headerCenter}>
-        <Ionicons name="water" size={20} color={colors.primary} />
+        <Image source={logoImage} style={styles.logoImage} />
         <Text style={[styles.headerTitle, { color: colors.text }]}>{title}</Text>
       </View>
       <View style={styles.rightActions}>
@@ -55,6 +57,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
+  },
+  logoImage: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
   },
   headerTitle: {
     fontSize: 18,
