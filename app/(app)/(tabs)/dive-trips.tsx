@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import {
   Alert,
   Platform,
   Image,
+  Dimensions,
 } from 'react-native';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -24,6 +25,17 @@ import EmbeddedMapPicker from '@/components/EmbeddedMapPicker';
 import StaticMapView from '@/components/StaticMapView';
 import PageHeader from '@/components/PageHeader';
 import ThemedBackground from '@/components/ThemedBackground';
+
+const DETAIL_TABS = ['Details', 'Dives', 'Photos'] as const;
+type DetailTabType = typeof DETAIL_TABS[number];
+
+interface TripPhoto {
+  id: number;
+  imageUrl: string;
+  thumbnailUrl: string | null;
+  caption: string | null;
+  diveLogId: number | null;
+}
 
 // Dynamic import to prevent DatePickerField from loading on Android (causes latin1 encoding crash)
 // iOS and web can use the date picker; only Android has the TextDecoder latin1 issue
@@ -92,6 +104,12 @@ export default function DiveTripsScreen() {
   const [selectedDiveIds, setSelectedDiveIds] = useState<Set<number>>(new Set());
   const [loadingDives, setLoadingDives] = useState(false);
   const [linkingDives, setLinkingDives] = useState(false);
+  const [detailTab, setDetailTab] = useState<DetailTabType>('Details');
+  const [tripPhotos, setTripPhotos] = useState<TripPhoto[]>([]);
+  const [loadingPhotos, setLoadingPhotos] = useState(false);
+  const [showPhotoViewer, setShowPhotoViewer] = useState(false);
+  const [photoViewerIndex, setPhotoViewerIndex] = useState(0);
+  const photoViewerScrollRef = useRef<ScrollView>(null);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -171,7 +189,10 @@ export default function DiveTripsScreen() {
           longitude: data.longitude != null ? parseFloat(data.longitude) : null,
         };
         setSelectedTrip(parsedData);
-        setLinkedDives(data.linked_dives || []);
+        const dives = data.linked_dives || [];
+        setLinkedDives(dives);
+        // Fetch photos from linked dives
+        fetchTripPhotos(dives);
       }
     } catch (error) {
       console.error('Fetch trip details error:', error);
@@ -204,6 +225,31 @@ export default function DiveTripsScreen() {
       console.error('Fetch available dives error:', error);
     } finally {
       setLoadingDives(false);
+    }
+  };
+
+  const fetchTripPhotos = async (dives: LinkedDiveLog[]) => {
+    if (!token || dives.length === 0) {
+      setTripPhotos([]);
+      return;
+    }
+    setLoadingPhotos(true);
+    try {
+      const allPhotos: TripPhoto[] = [];
+      for (const dive of dives) {
+        const response = await fetch(`${getApiUrl()}/api/photos?diveLogId=${dive.id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (response.ok) {
+          const data = await response.json();
+          allPhotos.push(...(data.photos || []));
+        }
+      }
+      setTripPhotos(allPhotos);
+    } catch (error) {
+      console.error('Fetch trip photos error:', error);
+    } finally {
+      setLoadingPhotos(false);
     }
   };
 
@@ -468,6 +514,8 @@ export default function DiveTripsScreen() {
         onPress={() => {
           setSelectedTrip(trip);
           setLinkedDives([]);
+          setTripPhotos([]);
+          setDetailTab('Details');
           setShowDetailModal(true);
           fetchTripDetails(trip.id);
         }}
@@ -862,194 +910,340 @@ export default function DiveTripsScreen() {
         <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
           <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
             <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>Trip Details</Text>
+              <Text style={[styles.modalTitle, { color: colors.text }]} numberOfLines={1}>
+                {selectedTrip?.name || 'Trip Details'}
+              </Text>
               <View style={{ flexDirection: 'row', gap: 12 }}>
                 <Pressable onPress={() => selectedTrip && handleEdit(selectedTrip)}>
                   <Feather name="edit-2" size={22} color={colors.primary} />
                 </Pressable>
-                <Pressable onPress={() => { setShowDetailModal(false); setSelectedTrip(null); }}>
+                <Pressable onPress={() => { setShowDetailModal(false); setSelectedTrip(null); setShowPhotoViewer(false); }}>
                   <Feather name="x" size={24} color={colors.text} />
                 </Pressable>
               </View>
             </View>
 
             {selectedTrip && (
-              <ScrollView style={styles.modalBody}>
-                {selectedTrip.cover_image_key && (
-                  <Image
-                    source={{ uri: getCoverImageUrl(selectedTrip.cover_image_key)! }}
-                    style={styles.detailCoverImage}
-                    resizeMode="cover"
-                  />
+              <>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={[styles.tabBar, { borderBottomColor: colors.border }]} contentContainerStyle={{ paddingHorizontal: 8 }}>
+                  {DETAIL_TABS.map((tab) => (
+                    <Pressable
+                      key={tab}
+                      style={[styles.tabItem, detailTab === tab && { borderBottomColor: colors.primary, borderBottomWidth: 2 }]}
+                      onPress={() => setDetailTab(tab)}
+                    >
+                      <Text style={[styles.tabText, { color: detailTab === tab ? colors.primary : colors.textSecondary }]}>
+                        {tab}{tab === 'Photos' && tripPhotos.length > 0 ? ` (${tripPhotos.length})` : ''}
+                        {tab === 'Dives' && linkedDives.length > 0 ? ` (${linkedDives.length})` : ''}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </ScrollView>
+
+                {detailTab === 'Details' && (
+                  <ScrollView style={styles.modalBody}>
+                    {selectedTrip.cover_image_key && (
+                      <Image
+                        source={{ uri: getCoverImageUrl(selectedTrip.cover_image_key)! }}
+                        style={styles.detailCoverImage}
+                        resizeMode="cover"
+                      />
+                    )}
+                    <View style={styles.detailSection}>
+                      <View style={styles.detailHeader}>
+                        <View style={[styles.tripTypeIcon, { backgroundColor: colors.primary + '20' }]}>
+                          <Feather name={getTripTypeInfo(selectedTrip.trip_type).icon as any} size={24} color={colors.primary} />
+                        </View>
+                        <View>
+                          <Text style={[styles.detailName, { color: colors.text }]}>{selectedTrip.name}</Text>
+                          <Text style={[styles.detailType, { color: colors.textSecondary }]}>
+                            {getTripTypeInfo(selectedTrip.trip_type).label}
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+
+                    <View style={[styles.detailCard, { backgroundColor: colors.background, borderColor: colors.border }]}>
+                      {(selectedTrip.start_date || selectedTrip.end_date) && (
+                        <View style={styles.detailRow}>
+                          <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Dates</Text>
+                          <Text style={[styles.detailValue, { color: colors.text }]}>
+                            {formatDate(selectedTrip.start_date)}
+                            {selectedTrip.end_date && ` - ${formatDate(selectedTrip.end_date)}`}
+                          </Text>
+                        </View>
+                      )}
+                      {selectedTrip.vessel_name && (
+                        <View style={styles.detailRow}>
+                          <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Vessel</Text>
+                          <Text style={[styles.detailValue, { color: colors.text }]}>{selectedTrip.vessel_name}</Text>
+                        </View>
+                      )}
+                      {selectedTrip.operator_name && (
+                        <View style={styles.detailRow}>
+                          <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Operator</Text>
+                          <Text style={[styles.detailValue, { color: colors.text }]}>{selectedTrip.operator_name}</Text>
+                        </View>
+                      )}
+                      {selectedTrip.dive_center_name && (
+                        <View style={styles.detailRow}>
+                          <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Dive Center</Text>
+                          <Text style={[styles.detailValue, { color: colors.text }]}>{selectedTrip.dive_center_name}</Text>
+                        </View>
+                      )}
+                      {selectedTrip.location && (
+                        <View style={styles.detailRow}>
+                          <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Location</Text>
+                          <Text style={[styles.detailValue, { color: colors.text }]}>
+                            {selectedTrip.location}{selectedTrip.country ? `, ${selectedTrip.country}` : ''}
+                          </Text>
+                        </View>
+                      )}
+                      {selectedTrip.accommodation && (
+                        <View style={styles.detailRow}>
+                          <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Accommodation</Text>
+                          <Text style={[styles.detailValue, { color: colors.text }]}>{selectedTrip.accommodation}</Text>
+                        </View>
+                      )}
+                      <View style={styles.detailRow}>
+                        <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Total Dives</Text>
+                        <Text style={[styles.detailValue, { color: colors.text }]}>
+                          {linkedDives.length || selectedTrip.total_dives || 0}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {selectedTrip.latitude && selectedTrip.longitude && (
+                      <View style={{ marginTop: 16 }}>
+                        <Text style={[styles.sectionTitle, { color: colors.text }]}>Map</Text>
+                        {DEBUG_DISABLE_MAPS ? (
+                          <View style={[styles.mapPlaceholder, { backgroundColor: colors.background, borderColor: colors.border }]}>
+                            <Feather name="map-pin" size={32} color={colors.textSecondary} />
+                            <Text style={{ color: colors.textSecondary, marginTop: 8 }}>Map disabled for debugging</Text>
+                            <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
+                              Lat: {selectedTrip.latitude}, Lng: {selectedTrip.longitude}
+                            </Text>
+                          </View>
+                        ) : (
+                          <StaticMapView
+                            latitude={selectedTrip.latitude}
+                            longitude={selectedTrip.longitude}
+                            colors={colors}
+                          />
+                        )}
+                      </View>
+                    )}
+
+                    {selectedTrip.notes && (
+                      <View style={{ marginTop: 16 }}>
+                        <Text style={[styles.sectionTitle, { color: colors.text }]}>Notes</Text>
+                        <Text style={[styles.notesText, { color: colors.textSecondary }]}>{selectedTrip.notes}</Text>
+                      </View>
+                    )}
+
+                    <Pressable
+                      style={[styles.deleteBtn, { borderColor: colors.primary }]}
+                      onPress={() => handleDelete(selectedTrip.id)}
+                    >
+                      <Feather name="trash-2" size={18} color={colors.primary} />
+                      <Text style={[styles.deleteBtnText, { color: colors.primary }]}>Delete Trip</Text>
+                    </Pressable>
+                  </ScrollView>
                 )}
-                <View style={styles.detailSection}>
-                  <View style={styles.detailHeader}>
-                    <View style={[styles.tripTypeIcon, { backgroundColor: colors.primary + '20' }]}>
-                      <Feather name={getTripTypeInfo(selectedTrip.trip_type).icon as any} size={24} color={colors.primary} />
-                    </View>
-                    <View>
-                      <Text style={[styles.detailName, { color: colors.text }]}>{selectedTrip.name}</Text>
-                      <Text style={[styles.detailType, { color: colors.textSecondary }]}>
-                        {getTripTypeInfo(selectedTrip.trip_type).label}
-                      </Text>
-                    </View>
-                  </View>
-                </View>
 
-                <View style={[styles.detailCard, { backgroundColor: colors.background, borderColor: colors.border }]}>
-                  {(selectedTrip.start_date || selectedTrip.end_date) && (
-                    <View style={styles.detailRow}>
-                      <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Dates</Text>
-                      <Text style={[styles.detailValue, { color: colors.text }]}>
-                        {formatDate(selectedTrip.start_date)}
-                        {selectedTrip.end_date && ` - ${formatDate(selectedTrip.end_date)}`}
+                {detailTab === 'Dives' && (
+                  <ScrollView style={styles.modalBody}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                      <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 0 }]}>
+                        Linked Dives ({linkedDives.length})
                       </Text>
+                      <Pressable
+                        style={[styles.addDivesBtn, { backgroundColor: colors.primary }]}
+                        onPress={() => {
+                          fetchAvailableDives();
+                          setShowDivePickerModal(true);
+                        }}
+                      >
+                        <Feather name="plus" size={14} color="#FFF" />
+                        <Text style={styles.addDivesBtnText}>Add Dives</Text>
+                      </Pressable>
                     </View>
-                  )}
-                  {selectedTrip.vessel_name && (
-                    <View style={styles.detailRow}>
-                      <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Vessel</Text>
-                      <Text style={[styles.detailValue, { color: colors.text }]}>{selectedTrip.vessel_name}</Text>
-                    </View>
-                  )}
-                  {selectedTrip.operator_name && (
-                    <View style={styles.detailRow}>
-                      <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Operator</Text>
-                      <Text style={[styles.detailValue, { color: colors.text }]}>{selectedTrip.operator_name}</Text>
-                    </View>
-                  )}
-                  {selectedTrip.dive_center_name && (
-                    <View style={styles.detailRow}>
-                      <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Dive Center</Text>
-                      <Text style={[styles.detailValue, { color: colors.text }]}>{selectedTrip.dive_center_name}</Text>
-                    </View>
-                  )}
-                  {selectedTrip.location && (
-                    <View style={styles.detailRow}>
-                      <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Location</Text>
-                      <Text style={[styles.detailValue, { color: colors.text }]}>
-                        {selectedTrip.location}{selectedTrip.country ? `, ${selectedTrip.country}` : ''}
-                      </Text>
-                    </View>
-                  )}
-                  {selectedTrip.accommodation && (
-                    <View style={styles.detailRow}>
-                      <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Accommodation</Text>
-                      <Text style={[styles.detailValue, { color: colors.text }]}>{selectedTrip.accommodation}</Text>
-                    </View>
-                  )}
-                  <View style={styles.detailRow}>
-                    <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Total Dives</Text>
-                    <Text style={[styles.detailValue, { color: colors.text }]}>
-                      {linkedDives.length || selectedTrip.total_dives || 0}
-                    </Text>
-                  </View>
-                </View>
-
-                {selectedTrip.latitude && selectedTrip.longitude && (
-                  <View style={{ marginTop: 16 }}>
-                    <Text style={[styles.sectionTitle, { color: colors.text }]}>Map</Text>
-                    {DEBUG_DISABLE_MAPS ? (
-                      <View style={[styles.mapPlaceholder, { backgroundColor: colors.background, borderColor: colors.border }]}>
-                        <Feather name="map-pin" size={32} color={colors.textSecondary} />
-                        <Text style={{ color: colors.textSecondary, marginTop: 8 }}>Map disabled for debugging</Text>
-                        <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
-                          Lat: {selectedTrip.latitude}, Lng: {selectedTrip.longitude}
+                    {loadingDetail ? (
+                      <ActivityIndicator size="small" color={colors.primary} style={{ marginTop: 8 }} />
+                    ) : linkedDives.length === 0 ? (
+                      <View style={[styles.emptyDivesBox, { backgroundColor: colors.background, borderColor: colors.border }]}>
+                        <Feather name="activity" size={24} color={colors.textSecondary} />
+                        <Text style={[styles.emptyDivesText, { color: colors.textSecondary }]}>
+                          No dives linked to this trip yet
+                        </Text>
+                        <Text style={[styles.emptyDivesHint, { color: colors.textSecondary }]}>
+                          Tap "Add Dives" to link dive logs
                         </Text>
                       </View>
                     ) : (
-                      <StaticMapView
-                        latitude={selectedTrip.latitude}
-                        longitude={selectedTrip.longitude}
-                        colors={colors}
-                      />
+                      <View style={styles.linkedDivesList}>
+                        {linkedDives.map((dive) => (
+                          <View
+                            key={dive.id}
+                            style={[styles.linkedDiveItem, { backgroundColor: colors.background, borderColor: colors.border }]}
+                          >
+                            <View style={styles.linkedDiveInfo}>
+                              <Text style={[styles.linkedDiveSite, { color: colors.text }]}>
+                                {dive.site_name || 'Unknown Site'}
+                              </Text>
+                              <Text style={[styles.linkedDiveDate, { color: colors.textSecondary }]}>
+                                {formatDate(dive.dive_date)}
+                              </Text>
+                            </View>
+                            <View style={styles.linkedDiveStats}>
+                              <Text style={[styles.linkedDiveStat, { color: colors.primary }]}>
+                                {dive.max_depth_meters}m
+                              </Text>
+                              <Text style={[styles.linkedDiveStat, { color: colors.textSecondary }]}>
+                                {dive.duration_minutes}min
+                              </Text>
+                            </View>
+                          </View>
+                        ))}
+                      </View>
                     )}
-                  </View>
+                  </ScrollView>
                 )}
 
-                {selectedTrip.notes && (
-                  <View style={{ marginTop: 16 }}>
-                    <Text style={[styles.sectionTitle, { color: colors.text }]}>Notes</Text>
-                    <Text style={[styles.notesText, { color: colors.textSecondary }]}>{selectedTrip.notes}</Text>
-                  </View>
+                {detailTab === 'Photos' && (
+                  <ScrollView style={styles.modalBody}>
+                    {loadingPhotos ? (
+                      <View style={{ alignItems: 'center', paddingVertical: 40 }}>
+                        <ActivityIndicator size="large" color={colors.primary} />
+                        <Text style={{ color: colors.textSecondary, marginTop: 12 }}>Loading photos...</Text>
+                      </View>
+                    ) : tripPhotos.length === 0 ? (
+                      <View style={[styles.emptyDivesBox, { backgroundColor: colors.background, borderColor: colors.border }]}>
+                        <Feather name="image" size={32} color={colors.textSecondary} />
+                        <Text style={[styles.emptyDivesText, { color: colors.textSecondary }]}>
+                          No photos from this trip yet
+                        </Text>
+                        <Text style={[styles.emptyDivesHint, { color: colors.textSecondary }]}>
+                          Link dives and add photos to see them here
+                        </Text>
+                      </View>
+                    ) : (
+                      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4 }}>
+                        {tripPhotos.map((photo, index) => {
+                          const getPhotoUrl = (url: string) => url.startsWith('/') ? `${getApiUrl()}${url}` : url;
+                          return (
+                            <Pressable
+                              key={photo.id}
+                              onPress={() => {
+                                setPhotoViewerIndex(index);
+                                setShowPhotoViewer(true);
+                                setTimeout(() => {
+                                  photoViewerScrollRef.current?.scrollTo({ x: index * Dimensions.get('window').width, animated: false });
+                                }, 50);
+                              }}
+                              style={{ width: '32%', aspectRatio: 1, borderRadius: 6, overflow: 'hidden' }}
+                            >
+                              <Image
+                                source={{ uri: getPhotoUrl(photo.thumbnailUrl || photo.imageUrl) }}
+                                style={{ width: '100%', height: '100%' }}
+                                resizeMode="cover"
+                              />
+                            </Pressable>
+                          );
+                        })}
+                      </View>
+                    )}
+                  </ScrollView>
                 )}
-
-                <View style={{ marginTop: 16 }}>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                      Linked Dives ({linkedDives.length})
-                    </Text>
-                    <Pressable
-                      style={[styles.addDivesBtn, { backgroundColor: colors.primary }]}
-                      onPress={() => {
-                        fetchAvailableDives();
-                        setShowDivePickerModal(true);
-                      }}
-                    >
-                      <Feather name="plus" size={14} color="#FFF" />
-                      <Text style={styles.addDivesBtnText}>Add Dives</Text>
-                    </Pressable>
-                  </View>
-                  {loadingDetail ? (
-                    <ActivityIndicator size="small" color={colors.primary} style={{ marginTop: 8 }} />
-                  ) : linkedDives.length === 0 ? (
-                    <View style={[styles.emptyDivesBox, { backgroundColor: colors.background, borderColor: colors.border }]}>
-                      <Feather name="activity" size={24} color={colors.textSecondary} />
-                      <Text style={[styles.emptyDivesText, { color: colors.textSecondary }]}>
-                        No dives linked to this trip yet
-                      </Text>
-                      <Text style={[styles.emptyDivesHint, { color: colors.textSecondary }]}>
-                        Tap "Add Dives" to link dive logs
-                      </Text>
-                    </View>
-                  ) : (
-                    <View style={styles.linkedDivesList}>
-                      {linkedDives.map((dive) => (
-                        <View
-                          key={dive.id}
-                          style={[styles.linkedDiveItem, { backgroundColor: colors.background, borderColor: colors.border }]}
-                        >
-                          <View style={styles.linkedDiveInfo}>
-                            <Text style={[styles.linkedDiveSite, { color: colors.text }]}>
-                              {dive.site_name || 'Unknown Site'}
-                            </Text>
-                            <Text style={[styles.linkedDiveDate, { color: colors.textSecondary }]}>
-                              {formatDate(dive.dive_date)}
-                            </Text>
-                          </View>
-                          <View style={styles.linkedDiveStats}>
-                            <Text style={[styles.linkedDiveStat, { color: colors.primary }]}>
-                              {dive.max_depth_meters}m
-                            </Text>
-                            <Text style={[styles.linkedDiveStat, { color: colors.textSecondary }]}>
-                              {dive.duration_minutes}min
-                            </Text>
-                          </View>
-                        </View>
-                      ))}
-                    </View>
-                  )}
-                </View>
-
-                <Pressable
-                  style={[styles.deleteBtn, { borderColor: colors.primary }]}
-                  onPress={() => handleDelete(selectedTrip.id)}
-                >
-                  <Feather name="trash-2" size={18} color={colors.primary} />
-                  <Text style={[styles.deleteBtnText, { color: colors.primary }]}>Delete Trip</Text>
-                </Pressable>
-              </ScrollView>
+              </>
             )}
           </View>
         </View>
+
+        {showPhotoViewer && tripPhotos.length > 0 && (
+          <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#000', zIndex: 1000 }}>
+            <View style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 50, paddingHorizontal: 16, paddingBottom: 16 }}>
+              <Pressable onPress={() => setShowPhotoViewer(false)} style={{ padding: 8 }}>
+                <Feather name="x" size={28} color="#FFF" />
+              </Pressable>
+              <Text style={{ color: '#FFF', fontSize: 16 }}>{photoViewerIndex + 1} / {tripPhotos.length}</Text>
+              <Pressable onPress={() => router.push(`/photo/${tripPhotos[photoViewerIndex]?.id}`)} style={{ padding: 8 }}>
+                <Feather name="info" size={24} color="#FFF" />
+              </Pressable>
+            </View>
+
+            <ScrollView
+              ref={photoViewerScrollRef}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              onMomentumScrollEnd={(event) => {
+                const x = event.nativeEvent.contentOffset.x;
+                const screenWidth = Dimensions.get('window').width;
+                const newIndex = Math.round(x / screenWidth);
+                if (newIndex !== photoViewerIndex && newIndex >= 0 && newIndex < tripPhotos.length) {
+                  setPhotoViewerIndex(newIndex);
+                }
+              }}
+              style={{ flex: 1 }}
+            >
+              {tripPhotos.map((photo) => {
+                const getPhotoUrl = (url: string) => url.startsWith('/') ? `${getApiUrl()}${url}` : url;
+                const screenWidth = Dimensions.get('window').width;
+                const screenHeight = Dimensions.get('window').height;
+                return (
+                  <View key={photo.id} style={{ width: screenWidth, height: screenHeight, justifyContent: 'center', alignItems: 'center' }}>
+                    <Image
+                      source={{ uri: getPhotoUrl(photo.imageUrl) }}
+                      style={{ width: screenWidth, height: screenHeight * 0.6 }}
+                      resizeMode="contain"
+                    />
+                  </View>
+                );
+              })}
+            </ScrollView>
+
+            <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.7)', paddingVertical: 12, paddingBottom: 40 }}>
+              {tripPhotos[photoViewerIndex]?.caption && (
+                <Text style={{ color: '#FFF', fontSize: 14, textAlign: 'center', marginBottom: 12, paddingHorizontal: 16 }}>
+                  {tripPhotos[photoViewerIndex].caption}
+                </Text>
+              )}
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}>
+                {tripPhotos.map((photo, index) => {
+                  const getPhotoUrl = (url: string) => url.startsWith('/') ? `${getApiUrl()}${url}` : url;
+                  return (
+                    <Pressable
+                      key={photo.id}
+                      onPress={() => {
+                        setPhotoViewerIndex(index);
+                        photoViewerScrollRef.current?.scrollTo({ x: index * Dimensions.get('window').width, animated: true });
+                      }}
+                      style={{
+                        width: 60,
+                        height: 60,
+                        borderRadius: 6,
+                        overflow: 'hidden',
+                        borderWidth: index === photoViewerIndex ? 2 : 0,
+                        borderColor: colors.primary,
+                      }}
+                    >
+                      <Image
+                        source={{ uri: getPhotoUrl(photo.thumbnailUrl || photo.imageUrl) }}
+                        style={{ width: '100%', height: '100%' }}
+                        resizeMode="cover"
+                      />
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          </View>
+        )}
       </Modal>
 
-      <Modal
-        visible={showDivePickerModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowDivePickerModal(false)}
-      >
+      {/* Delete button removed - now inside Details tab */}
+      <Modal visible={showDivePickerModal} transparent animationType="slide" onRequestClose={() => setShowDivePickerModal(false)}>
         <View style={styles.modalOverlay}>
           <View style={[styles.divePickerModal, { backgroundColor: colors.surface }]}>
             <View style={[styles.divePickerHeader, { borderBottomColor: colors.border }]}>
@@ -1061,7 +1255,7 @@ export default function DiveTripsScreen() {
             <Text style={[styles.divePickerSubtitle, { color: colors.textSecondary }]}>
               {selectedDiveIds.size} dive{selectedDiveIds.size !== 1 ? 's' : ''} selected
             </Text>
-            
+
             {loadingDives ? (
               <View style={styles.divePickerLoading}>
                 <ActivityIndicator size="large" color={colors.primary} />
@@ -1106,7 +1300,7 @@ export default function DiveTripsScreen() {
                 ))}
               </ScrollView>
             )}
-            
+
             <View style={[styles.divePickerFooter, { borderTopColor: colors.border }]}>
               <Pressable
                 style={[styles.divePickerCancelBtn, { borderColor: colors.border }]}
@@ -1145,85 +1339,53 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: 1,
   },
-  menuButton: { padding: 8 },
-  headerTitle: { fontSize: 18, fontWeight: '600' },
-  content: { flex: 1 },
-  contentContainer: { padding: 16 },
-  emptyContainer: { flexGrow: 1, justifyContent: 'center' },
-  emptyState: { alignItems: 'center', paddingVertical: 48 },
-  emptyStateTitle: { fontSize: 20, fontWeight: '600', marginTop: 16 },
-  emptyStateText: { fontSize: 14, textAlign: 'center', marginTop: 8, paddingHorizontal: 32 },
-  emptyStateBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 20, paddingVertical: 12, borderRadius: 8, marginTop: 24 },
-  emptyStateBtnText: { color: '#FFF', fontSize: 16, fontWeight: '500' },
-  tripCard: { borderRadius: 12, marginBottom: 12, borderWidth: 1, overflow: 'hidden' },
-  tripCardRow: { flexDirection: 'row', alignItems: 'stretch' },
-  tripCardThumbnail: { width: 90, height: 110, borderTopLeftRadius: 12, borderBottomLeftRadius: 12 },
-  tripCardThumbnailPlaceholder: { width: 90, height: 110, borderTopLeftRadius: 12, borderBottomLeftRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  tripCardContent: { padding: 10, flex: 1, justifyContent: 'center' },
-  tripCardMeta: { fontSize: 12, marginTop: 2 },
-  tripCardDives: { fontSize: 12, fontWeight: '600' },
-  tripCardStats: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 6 },
-  tripPhotoIndicator: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  tripPhotoCount: { fontSize: 11, fontWeight: '600' },
-  detailCoverImage: { width: '100%', height: 180, borderRadius: 12, marginBottom: 16 },
-  coverImageSection: { marginBottom: 16 },
-  coverImagePreview: { width: '100%', height: 160, borderRadius: 12, marginBottom: 12 },
-  coverImagePlaceholder: { width: '100%', height: 120, borderRadius: 12, borderWidth: 1, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
-  imageButtonRow: { flexDirection: 'row', gap: 12 },
-  imageButton: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 12, borderRadius: 8, borderWidth: 1 },
-  imageButtonText: { fontSize: 14, fontWeight: '500' },
-  tripCardHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
-  tripTypeIcon: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
-  tripCardHeaderText: { flex: 1 },
-  tripName: { fontSize: 18, fontWeight: '700' },
-  tripType: { fontSize: 13, marginTop: 2 },
-  tripCardDetails: { gap: 6 },
-  tripDetailRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  tripDetailText: { fontSize: 13 },
-  tripCardFooter: { flexDirection: 'row', marginTop: 12, paddingTop: 12, borderTopWidth: 1 },
-  tripStat: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  tripStatText: { fontSize: 13, fontWeight: '500' },
-  fab: {
-    position: 'absolute',
-    bottom: 24,
-    right: 24,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 6,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-  },
-  modalOverlay: { flex: 1, justifyContent: 'flex-end' },
-  modalContent: { borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '90%' },
-  modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderBottomWidth: 1 },
-  modalTitle: { fontSize: 18, fontWeight: '600' },
-  modalBody: { padding: 16 },
-  modalFooter: { flexDirection: 'row', gap: 12, padding: 16, borderTopWidth: 1 },
-  modalBtn: { flex: 1, paddingVertical: 14, borderRadius: 8, alignItems: 'center' },
+  headerTitle: { fontSize: 20, fontWeight: '700' },
+  addButton: { padding: 8 },
+  emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32 },
+  emptyText: { fontSize: 18, fontWeight: '600', marginTop: 16, textAlign: 'center' },
+  emptySubtext: { fontSize: 14, marginTop: 8, textAlign: 'center' },
+  listContent: { padding: 16 },
+  tripCard: { borderRadius: 12, borderWidth: 1, marginBottom: 12, overflow: 'hidden' },
+  tripCardRow: { flexDirection: 'row' },
+  tripCardImage: { width: 80, height: 80 },
+  tripCardImagePlaceholder: { width: 80, height: 80, justifyContent: 'center', alignItems: 'center' },
+  tripCardContent: { flex: 1, padding: 12 },
+  tripCardName: { fontSize: 16, fontWeight: '600' },
+  tripCardType: { fontSize: 12, marginTop: 2 },
+  tripCardMeta: { flexDirection: 'row', alignItems: 'center', marginTop: 4, gap: 4 },
+  tripCardMetaText: { fontSize: 12 },
+  tripCardStats: { flexDirection: 'row', marginTop: 8, gap: 16 },
+  tripCardStat: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  tripCardStatText: { fontSize: 13 },
+  modalOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' },
+  modalContent: { width: '95%', maxWidth: 500, maxHeight: '90%', borderRadius: 16, overflow: 'hidden' },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderBottomWidth: 1 },
+  modalTitle: { fontSize: 18, fontWeight: '600', flex: 1, marginRight: 12 },
+  modalBody: { padding: 16, maxHeight: 500 },
+  modalFooter: { flexDirection: 'row', padding: 16, gap: 12, borderTopWidth: 1 },
+  modalBtn: { flex: 1, paddingVertical: 12, borderRadius: 8, alignItems: 'center' },
   modalBtnSecondary: { borderWidth: 1 },
   modalBtnPrimary: {},
-  modalBtnText: { fontSize: 16, fontWeight: '600' },
-  formGroup: { marginBottom: 16 },
-  formRow: { flexDirection: 'row', gap: 12 },
+  modalBtnText: { fontSize: 16, fontWeight: '500' },
   formLabel: { fontSize: 14, fontWeight: '500', marginBottom: 6 },
-  formInput: { borderWidth: 1, borderRadius: 8, padding: 12, fontSize: 16 },
-  formTextarea: { height: 100, textAlignVertical: 'top' },
-  tripTypeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  tripTypeBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, borderWidth: 1 },
-  tripTypeBtnText: { fontSize: 13, fontWeight: '500' },
-  detailSection: { marginBottom: 20 },
+  formInput: { borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, fontSize: 16 },
+  formTextArea: { height: 80, textAlignVertical: 'top' },
+  formRow: { marginBottom: 16 },
+  typeSelector: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  typeOption: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, borderWidth: 1, gap: 6 },
+  typeOptionText: { fontSize: 13 },
+  dateRow: { flexDirection: 'row', gap: 12 },
+  dateField: { flex: 1 },
+  detailSection: { marginBottom: 16 },
   detailHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  detailName: { fontSize: 22, fontWeight: '700' },
+  tripTypeIcon: { width: 48, height: 48, borderRadius: 24, justifyContent: 'center', alignItems: 'center' },
+  detailName: { fontSize: 20, fontWeight: '700' },
   detailType: { fontSize: 14, marginTop: 2 },
-  detailCard: { borderRadius: 12, padding: 16, borderWidth: 1 },
-  detailRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8 },
+  detailCard: { borderRadius: 12, borderWidth: 1, padding: 16 },
+  detailRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 0.5, borderBottomColor: 'rgba(128,128,128,0.2)' },
   detailLabel: { fontSize: 14 },
-  detailValue: { fontSize: 14, fontWeight: '500', textAlign: 'right', flex: 1, marginLeft: 16 },
+  detailValue: { fontSize: 14, fontWeight: '500' },
+  detailCoverImage: { width: '100%', height: 180, borderRadius: 12, marginBottom: 16 },
   sectionTitle: { fontSize: 16, fontWeight: '600', marginBottom: 12 },
   notesText: { fontSize: 14, lineHeight: 20 },
   deleteBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 24, marginBottom: 16, paddingVertical: 14, borderRadius: 8, borderWidth: 1 },
@@ -1232,7 +1394,7 @@ const styles = StyleSheet.create({
   emptyDivesText: { fontSize: 14, fontWeight: '500' },
   emptyDivesHint: { fontSize: 12 },
   linkedDivesList: { gap: 8 },
-  linkedDiveItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 12, borderRadius: 8, borderWidth: 1 },
+  linkedDiveItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 12, borderRadius: 8, borderWidth: 1 },
   linkedDiveInfo: { flex: 1 },
   linkedDiveSite: { fontSize: 14, fontWeight: '600' },
   linkedDiveDate: { fontSize: 12, marginTop: 2 },
@@ -1259,4 +1421,7 @@ const styles = StyleSheet.create({
   divePickerCancelText: { fontSize: 15, fontWeight: '500' },
   divePickerSaveBtn: { flex: 1, paddingVertical: 12, borderRadius: 8, alignItems: 'center' },
   divePickerSaveText: { color: '#FFF', fontSize: 15, fontWeight: '600' },
+  tabBar: { borderBottomWidth: 1 },
+  tabItem: { paddingHorizontal: 16, paddingVertical: 12 },
+  tabText: { fontSize: 14, fontWeight: '500' },
 });
