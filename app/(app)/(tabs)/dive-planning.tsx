@@ -16,6 +16,7 @@ import {
 } from '@/services/divePlanner';
 import { CYLINDER_PRESETS_LEGACY as CYLINDER_PRESETS } from '@/services/cylinderCatalog';
 import PageHeader from '@/components/PageHeader';
+import ThemedBackground from '@/components/ThemedBackground';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -2043,7 +2044,7 @@ export default function DivePlanningScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <ThemedBackground>
       <PageHeader 
         title="Dive Planning" 
         rightAction={
@@ -2066,7 +2067,7 @@ export default function DivePlanningScreen() {
       </ScrollView>
 
       {renderScrubberModal()}
-    </View>
+    </ThemedBackground>
   );
 }
 

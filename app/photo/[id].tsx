@@ -17,6 +17,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { router, useLocalSearchParams, Stack } from 'expo-router';
 import { getApiUrl } from '@/utils/apiConfig';
+import ThemedBackground from '@/components/ThemedBackground';
 
 interface Photo {
   id: number;
@@ -210,9 +211,9 @@ export default function PhotoDetailScreen() {
     return (
       <>
         <Stack.Screen options={{ headerShown: false }} />
-        <View style={[styles.container, styles.centered, { backgroundColor: colors.background }]}>
+        <ThemedBackground style={[styles.container, styles.centered]}>
           <ActivityIndicator size="large" color={colors.primary} />
-        </View>
+        </ThemedBackground>
       </>
     );
   }
@@ -221,9 +222,9 @@ export default function PhotoDetailScreen() {
     return (
       <>
         <Stack.Screen options={{ headerShown: false }} />
-        <View style={[styles.container, styles.centered, { backgroundColor: colors.background }]}>
+        <ThemedBackground style={[styles.container, styles.centered]}>
           <Text style={{ color: colors.text }}>Photo not found</Text>
-        </View>
+        </ThemedBackground>
       </>
     );
   }
@@ -231,7 +232,7 @@ export default function PhotoDetailScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <ThemedBackground>
         <View style={[styles.header, { backgroundColor: colors.headerBackground, borderBottomColor: colors.border }]}>
           <Pressable onPress={() => router.back()} style={styles.headerButton}>
             <Ionicons name="chevron-back" size={28} color={colors.text} />
@@ -366,7 +367,7 @@ export default function PhotoDetailScreen() {
           
           <View style={{ height: 40 }} />
         </ScrollView>
-      </View>
+      </ThemedBackground>
     </>
   );
 }

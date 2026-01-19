@@ -17,6 +17,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { getApiUrl } from '@/utils/apiConfig';
 import PageHeader from '@/components/PageHeader';
+import ThemedBackground from '@/components/ThemedBackground';
 
 interface DiveSite {
   id: number;
@@ -217,7 +218,7 @@ export default function DiveSitesScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <ThemedBackground>
       <PageHeader 
         title="Dive Sites" 
         rightAction={
@@ -269,7 +270,7 @@ export default function DiveSitesScreen() {
       >
         <Feather name="plus" size={24} color="#FFFFFF" />
       </Pressable>
-    </View>
+    </ThemedBackground>
   );
 }
 

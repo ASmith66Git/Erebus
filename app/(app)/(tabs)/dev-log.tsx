@@ -21,6 +21,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'expo-router';
 import { authFetch } from '@/utils/authFetch';
 import PageHeader from '@/components/PageHeader';
+import ThemedBackground from '@/components/ThemedBackground';
 
 interface DevLogEntry {
   id: number;
@@ -351,7 +352,7 @@ Please help me with this development task.`;
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <ThemedBackground>
       <PageHeader title="Dev Log" />
 
       <View style={styles.searchContainer}>
@@ -683,7 +684,7 @@ Please help me with this development task.`;
           </View>
         </View>
       )}
-    </View>
+    </ThemedBackground>
   );
 }
 

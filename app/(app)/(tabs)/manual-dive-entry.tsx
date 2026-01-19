@@ -15,6 +15,7 @@ import { Feather } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { getApiUrl } from '@/utils/apiConfig';
+import ThemedBackground from '@/components/ThemedBackground';
 
 const TABS = ['Dive', 'Profile', 'Computer', 'Notes', 'Team'] as const;
 type TabType = typeof TABS[number];
@@ -598,7 +599,7 @@ export default function ManualDiveEntryScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <ThemedBackground>
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <Pressable onPress={() => router.back()} style={styles.backButton}>
           <Feather name="x" size={24} color={colors.text} />
@@ -640,7 +641,7 @@ export default function ManualDiveEntryScreen() {
       </View>
 
       {renderTabContent()}
-    </View>
+    </ThemedBackground>
   );
 }
 

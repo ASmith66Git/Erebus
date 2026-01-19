@@ -23,6 +23,7 @@ import { getApiUrl } from '@/utils/apiConfig';
 import EmbeddedMapPicker from '@/components/EmbeddedMapPicker';
 import StaticMapView from '@/components/StaticMapView';
 import PageHeader from '@/components/PageHeader';
+import ThemedBackground from '@/components/ThemedBackground';
 
 // Dynamic import to prevent DatePickerField from loading on Android (causes latin1 encoding crash)
 // iOS and web can use the date picker; only Android has the TextDecoder latin1 issue
@@ -418,15 +419,15 @@ export default function DiveTripsScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.container, styles.centered, { backgroundColor: colors.background }]}>
+      <ThemedBackground style={[styles.container, styles.centered]}>
         <ActivityIndicator size="large" color={colors.primary} />
         <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Loading trips...</Text>
-      </View>
+      </ThemedBackground>
     );
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <ThemedBackground>
       <PageHeader title="Dive Trips" />
 
       <FlatList
@@ -930,7 +931,7 @@ export default function DiveTripsScreen() {
           </View>
         </View>
       </Modal>
-    </View>
+    </ThemedBackground>
   );
 }
 

@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useSettings, languageOptions, themeColorOptions, UnitSystem, DateFormat, Language } from '@/contexts/SettingsContext';
 import PageHeader from '@/components/PageHeader';
+import ThemedBackground from '@/components/ThemedBackground';
 
 const dateFormatOptions: { value: DateFormat; label: string; example: string }[] = [
   { value: 'DMY', label: 'Day / Month / Year', example: '25/12/2024' },
@@ -19,7 +20,7 @@ export default function SettingsScreen() {
   const selectedLanguage = languageOptions.find(l => l.value === language);
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <ThemedBackground>
       <PageHeader title="Settings" />
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={[styles.section, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
@@ -178,7 +179,7 @@ export default function SettingsScreen() {
           </View>
         </Pressable>
       </Modal>
-    </View>
+    </ThemedBackground>
   );
 }
 

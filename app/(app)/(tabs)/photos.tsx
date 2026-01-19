@@ -19,6 +19,7 @@ import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { getApiUrl } from '@/utils/apiConfig';
 import PageHeader from '@/components/PageHeader';
+import ThemedBackground from '@/components/ThemedBackground';
 
 interface Photo {
   id: number;
@@ -450,17 +451,17 @@ export default function PhotosScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <ThemedBackground>
         <PageHeader title="Photos" />
         <View style={[styles.container, styles.centered]}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
-      </View>
+      </ThemedBackground>
     );
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <ThemedBackground>
       <PageHeader title="Photos" />
       <View style={[styles.toolbar, { borderBottomColor: colors.border }]}>
         {selectionMode ? (
@@ -531,7 +532,7 @@ export default function PhotosScreen() {
       
       {renderViewer()}
       {renderUploadMenu()}
-    </View>
+    </ThemedBackground>
   );
 }
 

@@ -18,6 +18,7 @@ import { GestureResponderEvent, PanResponder } from 'react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { getApiUrl } from '@/utils/apiConfig';
+import ThemedBackground from '@/components/ThemedBackground';
 
 const TABS = ['Dive', 'Gas', 'Problems', 'Skills', 'Team', 'Notes'] as const;
 type TabType = typeof TABS[number];
@@ -1397,15 +1398,15 @@ export default function DiveLogDetailScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.container, styles.centered, { backgroundColor: colors.background }]}>
+      <ThemedBackground style={[styles.container, styles.centered]}>
         <ActivityIndicator size="large" color={colors.primary} />
-      </View>
+      </ThemedBackground>
     );
   }
 
   if (error || !diveLog) {
     return (
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <ThemedBackground>
         <View style={[styles.header, { borderBottomColor: colors.border }]}>
           <Pressable style={styles.backButton} onPress={() => router.back()}>
             <Feather name="arrow-left" size={24} color={colors.text} />
@@ -1425,7 +1426,7 @@ export default function DiveLogDetailScreen() {
             <Text style={styles.retryButtonText}>Retry</Text>
           </Pressable>
         </View>
-      </View>
+      </ThemedBackground>
     );
   }
 
@@ -1449,7 +1450,7 @@ export default function DiveLogDetailScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <ThemedBackground>
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <Pressable style={styles.backButton} onPress={() => router.back()}>
           <Feather name="arrow-left" size={24} color={colors.text} />
@@ -1510,7 +1511,7 @@ export default function DiveLogDetailScreen() {
       </View>
 
       {renderTabContent()}
-    </View>
+    </ThemedBackground>
   );
 }
 

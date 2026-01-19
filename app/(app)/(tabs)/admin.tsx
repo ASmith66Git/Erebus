@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'expo-router';
 import { authFetch } from '@/utils/authFetch';
 import PageHeader from '@/components/PageHeader';
+import ThemedBackground from '@/components/ThemedBackground';
 
 interface UserData {
   id: number;
@@ -195,7 +196,7 @@ export default function AdminScreen() {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
+    <ThemedBackground>
       <PageHeader title="Admin" />
       <ScrollView 
         style={styles.container}
@@ -337,7 +338,7 @@ export default function AdminScreen() {
       )}
 
       </ScrollView>
-    </View>
+    </ThemedBackground>
   );
 }
 

@@ -24,6 +24,7 @@ import * as ImagePicker from 'expo-image-picker';
 import EmbeddedMapPicker from '@/components/EmbeddedMapPicker';
 import DatePickerField from '@/components/DatePickerField';
 import PageHeader from '@/components/PageHeader';
+import ThemedBackground from '@/components/ThemedBackground';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -667,15 +668,15 @@ export default function CertificationsScreen() {
 
   if (authLoading || loading) {
     return (
-      <View style={[styles.container, styles.centered, { backgroundColor: colors.background }]}>
+      <ThemedBackground style={[styles.container, styles.centered]}>
         <ActivityIndicator size="large" color={colors.primary} />
         <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Loading certifications...</Text>
-      </View>
+      </ThemedBackground>
     );
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <ThemedBackground>
       <PageHeader title="Certifications" />
 
       <View style={[styles.tabBar, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
@@ -1233,7 +1234,7 @@ export default function CertificationsScreen() {
           </View>
         </View>
       </Modal>
-    </View>
+    </ThemedBackground>
   );
 }
 

@@ -21,6 +21,7 @@ import { useFocusEffect, useNavigation, DrawerActions } from '@react-navigation/
 import { getApiUrl } from '@/utils/apiConfig';
 import * as ImagePicker from 'expo-image-picker';
 import PageHeader from '@/components/PageHeader';
+import ThemedBackground from '@/components/ThemedBackground';
 
 interface Buddy {
   id: number;
@@ -346,15 +347,15 @@ export default function DiveBuddiesScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.container, styles.centered, { backgroundColor: colors.background }]}>
+      <ThemedBackground style={[styles.container, styles.centered]}>
         <ActivityIndicator size="large" color={colors.primary} />
         <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Loading buddies...</Text>
-      </View>
+      </ThemedBackground>
     );
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <ThemedBackground>
       <PageHeader title="Dive Buddies" />
 
       <FlatList
@@ -623,7 +624,7 @@ export default function DiveBuddiesScreen() {
           </View>
         </View>
       </Modal>
-    </View>
+    </ThemedBackground>
   );
 }
 

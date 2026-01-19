@@ -16,6 +16,7 @@ import { errorLogger, LogEntry, LogLevel } from '@/services/errorLogger';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import PageHeader from '@/components/PageHeader';
+import ThemedBackground from '@/components/ThemedBackground';
 
 const LOG_COLORS: Record<LogLevel, string> = {
   debug: '#888888',
@@ -148,7 +149,7 @@ export default function DebugLogScreen() {
   ];
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <ThemedBackground>
       <PageHeader 
         title="Debug Logs" 
         rightAction={
@@ -271,7 +272,7 @@ export default function DebugLogScreen() {
           })
         )}
       </ScrollView>
-    </View>
+    </ThemedBackground>
   );
 }
 

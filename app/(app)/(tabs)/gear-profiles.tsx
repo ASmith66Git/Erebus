@@ -18,6 +18,7 @@ import { useSettings } from '@/contexts/SettingsContext';
 import { getApiUrl } from '@/utils/apiConfig';
 import { DrawerActions, useNavigation } from '@react-navigation/native';
 import PageHeader from '@/components/PageHeader';
+import ThemedBackground from '@/components/ThemedBackground';
 
 interface GearProfile {
   id: number;
@@ -181,7 +182,7 @@ export default function GearProfilesScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <ThemedBackground>
       <PageHeader title="Gear Profiles" />
 
       {loading ? (
@@ -224,7 +225,7 @@ export default function GearProfilesScreen() {
       >
         <Feather name="plus" size={24} color="#FFFFFF" />
       </Pressable>
-    </View>
+    </ThemedBackground>
   );
 }
 

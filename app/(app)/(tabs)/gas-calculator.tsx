@@ -17,6 +17,7 @@ import {
 import { useSettings } from '@/contexts/SettingsContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import PageHeader from '@/components/PageHeader';
+import ThemedBackground from '@/components/ThemedBackground';
 
 type TabType = 'gases' | 'density' | 'fill' | 'mix' | 'bestmix';
 
@@ -729,7 +730,7 @@ export default function GasCalculatorScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <ThemedBackground>
       <PageHeader title="Gas Calculator" />
 
       {renderTabBar()}
@@ -814,7 +815,7 @@ export default function GasCalculatorScreen() {
           </View>
         </View>
       </Modal>
-    </View>
+    </ThemedBackground>
   );
 }
 

@@ -22,6 +22,7 @@ import EmbeddedMapPicker from '@/components/EmbeddedMapPicker';
 import StaticMapView from '@/components/StaticMapView';
 import { getApiUrl } from '@/utils/apiConfig';
 import * as ImagePicker from 'expo-image-picker';
+import ThemedBackground from '@/components/ThemedBackground';
 
 const DEBUG_DISABLE_MAPS = false;
 
@@ -777,9 +778,9 @@ export default function DiveSiteDetailScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.container, styles.centered, { backgroundColor: colors.background }]}>
+      <ThemedBackground style={[styles.container, styles.centered]}>
         <ActivityIndicator size="large" color={colors.primary} />
-      </View>
+      </ThemedBackground>
     );
   }
 
@@ -1715,7 +1716,7 @@ export default function DiveSiteDetailScreen() {
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <ThemedBackground>
       <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <Pressable onPress={() => router.back()} style={styles.backButton}>
           <Feather name="arrow-left" size={24} color={colors.text} />
@@ -1781,7 +1782,7 @@ export default function DiveSiteDetailScreen() {
         {tabs[activeTab] === 'Notes' && renderNotesTab()}
       </ScrollView>
 
-    </View>
+    </ThemedBackground>
   );
 }
 

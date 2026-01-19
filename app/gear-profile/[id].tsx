@@ -17,6 +17,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSettings } from '@/contexts/SettingsContext';
 import { getApiUrl } from '@/utils/apiConfig';
+import ThemedBackground from '@/components/ThemedBackground';
 
 interface Cylinder {
   id?: number;
@@ -1374,11 +1375,11 @@ export default function GearProfileScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <ThemedBackground style={styles.container}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
-      </View>
+      </ThemedBackground>
     );
   }
 
@@ -1400,7 +1401,7 @@ export default function GearProfileScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <ThemedBackground>
       <View style={[styles.header, { paddingTop: insets.top + 8, backgroundColor: colors.headerBackground, borderBottomColor: colors.border }]}>
         <Pressable style={styles.backButton} onPress={handleClose}>
           <Feather name={isEditing ? "x" : "arrow-left"} size={24} color={colors.text} />
@@ -1464,7 +1465,7 @@ export default function GearProfileScreen() {
         {activeTab === 'weight' && (isEditing ? renderWeightTab() : renderWeightViewTab())}
         {activeTab === 'equipment' && (isEditing ? renderEquipmentTab() : renderEquipmentViewTab())}
       </ScrollView>
-    </View>
+    </ThemedBackground>
   );
 }
 

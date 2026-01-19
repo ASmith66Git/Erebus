@@ -15,6 +15,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { getApiUrl } from '@/utils/apiConfig';
 import * as DocumentPicker from 'expo-document-picker';
+import ThemedBackground from '@/components/ThemedBackground';
 
 interface DiveComputerCapabilities {
   brand: { id: string; name: string } | null;
@@ -178,14 +179,14 @@ export default function ImportDiveLogScreen() {
 
   if (loadingCapabilities) {
     return (
-      <View style={[styles.container, styles.centered, { backgroundColor: colors.background }]}>
+      <ThemedBackground style={[styles.container, styles.centered]}>
         <ActivityIndicator size="large" color={colors.primary} />
-      </View>
+      </ThemedBackground>
     );
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <ThemedBackground>
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <Pressable onPress={() => router.back()} style={styles.backButton}>
           <Feather name="arrow-left" size={24} color={colors.text} />
@@ -285,7 +286,7 @@ export default function ImportDiveLogScreen() {
           </Text>
         </View>
       </ScrollView>
-    </View>
+    </ThemedBackground>
   );
 }
 
