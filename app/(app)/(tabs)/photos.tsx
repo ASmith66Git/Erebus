@@ -48,8 +48,11 @@ const GAP = 2;
 export default function PhotosScreen() {
   const { colors } = useTheme();
   const { token, isLoading: authLoading } = useAuth();
-  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
-  const itemSize = (screenWidth - GAP * (NUM_COLUMNS + 1)) / NUM_COLUMNS;
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  const [containerWidth, setContainerWidth] = useState(windowWidth);
+  const screenWidth = containerWidth || windowWidth;
+  const screenHeight = windowHeight;
+  const itemSize = Math.floor((screenWidth - GAP * (NUM_COLUMNS + 1)) / NUM_COLUMNS);
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -552,6 +555,12 @@ export default function PhotosScreen() {
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
         }
+        onLayout={(e) => {
+          const { width } = e.nativeEvent.layout;
+          if (width > 0 && width !== containerWidth) {
+            setContainerWidth(width);
+          }
+        }}
       >
         {photos.length === 0 ? (
           <View style={styles.emptyState}>
