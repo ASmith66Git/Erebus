@@ -40,6 +40,7 @@ interface DiveLog {
   rating: number | null;
   importSource: string;
   createdAt: string;
+  photoCount: number;
 }
 
 interface DiveStats {
@@ -169,6 +170,12 @@ function DiveLogCard({ log, onPress, colors }: { log: DiveLog; onPress: () => vo
           <Text style={[styles.sourceText, { color: colors.textSecondary }]}>
             {log.importSource === 'manual' ? 'Manual entry' : `Imported (${log.importSource.toUpperCase()})`}
           </Text>
+          {log.photoCount > 0 && (
+            <View style={styles.photoIndicator}>
+              <Ionicons name="image" size={12} color={colors.primary} />
+              <Text style={[styles.photoCountText, { color: colors.primary }]}>{log.photoCount}</Text>
+            </View>
+          )}
         </View>
       </View>
       <Feather name="chevron-right" size={20} color={colors.textSecondary} />
@@ -661,6 +668,16 @@ const styles = StyleSheet.create({
   },
   sourceText: {
     fontSize: 11,
+  },
+  photoIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    marginLeft: 'auto',
+  },
+  photoCountText: {
+    fontSize: 11,
+    fontWeight: '600',
   },
   statsCard: {
     marginHorizontal: 0,
