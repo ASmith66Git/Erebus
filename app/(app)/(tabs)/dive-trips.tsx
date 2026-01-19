@@ -1032,11 +1032,11 @@ export default function DiveTripsScreen() {
                 </View>
 
                 <Pressable
-                  style={[styles.deleteBtn, { borderColor: colors.error }]}
+                  style={[styles.deleteBtn, { borderColor: colors.primary }]}
                   onPress={() => handleDelete(selectedTrip.id)}
                 >
-                  <Feather name="trash-2" size={18} color={colors.error} />
-                  <Text style={[styles.deleteBtnText, { color: colors.error }]}>Delete Trip</Text>
+                  <Feather name="trash-2" size={18} color={colors.primary} />
+                  <Text style={[styles.deleteBtnText, { color: colors.primary }]}>Delete Trip</Text>
                 </Pressable>
               </ScrollView>
             )}
