@@ -20,6 +20,8 @@ interface User {
   email: string;
   firstName: string | null;
   lastName: string | null;
+  age: number | null;
+  sex: 'male' | 'female' | 'other' | 'prefer_not_to_say' | null;
   role: 'user' | 'admin';
 }
 

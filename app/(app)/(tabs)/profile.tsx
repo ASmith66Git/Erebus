@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Switch, Modal, ActivityIndicator, Platform, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Switch, Modal, ActivityIndicator, Platform, RefreshControl, TextInput, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -7,6 +7,16 @@ import { getApiUrl } from '@/utils/apiConfig';
 import biometricService from '@/services/biometricService';
 import PageHeader from '@/components/PageHeader';
 import ThemedBackground from '@/components/ThemedBackground';
+
+type SexOption = 'male' | 'female' | 'other' | 'prefer_not_to_say' | null;
+
+const SEX_OPTIONS: { value: SexOption; label: string }[] = [
+  { value: null, label: 'Not specified' },
+  { value: 'male', label: 'Male' },
+  { value: 'female', label: 'Female' },
+  { value: 'other', label: 'Other' },
+  { value: 'prefer_not_to_say', label: 'Prefer not to say' },
+];
 
 interface Manufacturer {
   id: string;
@@ -33,7 +43,7 @@ interface DiveComputerCapabilities {
 
 export default function ProfileScreen() {
   const { colors } = useTheme();
-  const { user, logout, isAdmin, token, biometricCapability, isBiometricEnabled, setBiometricEnabled } = useAuth();
+  const { user, logout, isAdmin, token, biometricCapability, isBiometricEnabled, setBiometricEnabled, refreshUser } = useAuth();
   
   const [manufacturers, setManufacturers] = useState<Manufacturer[]>([]);
   const [models, setModels] = useState<DiveComputerModel[]>([]);
@@ -46,6 +56,15 @@ export default function ProfileScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [searchableProfile, setSearchableProfile] = useState(false);
   const [searchableLoading, setSearchableLoading] = useState(false);
+  const [showEditProfile, setShowEditProfile] = useState(false);
+  const [editLoading, setEditLoading] = useState(false);
+  const [showSexPicker, setShowSexPicker] = useState(false);
+  const [editFormData, setEditFormData] = useState({
+    firstName: '',
+    lastName: '',
+    age: '',
+    sex: null as SexOption,
+  });
 
   useEffect(() => {
     loadManufacturers();
@@ -182,6 +201,74 @@ export default function ProfileScreen() {
     return 'Not selected';
   };
 
+  const openEditProfile = () => {
+    setEditFormData({
+      firstName: user?.firstName || '',
+      lastName: user?.lastName || '',
+      age: user?.age?.toString() || '',
+      sex: user?.sex || null,
+    });
+    setShowEditProfile(true);
+  };
+
+  const saveProfile = async () => {
+    setEditLoading(true);
+    try {
+      const payload: any = {};
+      
+      if (editFormData.firstName !== (user?.firstName || '')) {
+        payload.firstName = editFormData.firstName.trim() || null;
+      }
+      if (editFormData.lastName !== (user?.lastName || '')) {
+        payload.lastName = editFormData.lastName.trim() || null;
+      }
+      if (editFormData.age !== (user?.age?.toString() || '')) {
+        const ageValue = editFormData.age.trim();
+        payload.age = ageValue ? parseInt(ageValue, 10) : null;
+        if (payload.age !== null && (isNaN(payload.age) || payload.age < 0 || payload.age > 150)) {
+          Alert.alert('Invalid Age', 'Please enter a valid age between 0 and 150');
+          setEditLoading(false);
+          return;
+        }
+      }
+      if (editFormData.sex !== (user?.sex || null)) {
+        payload.sex = editFormData.sex;
+      }
+
+      if (Object.keys(payload).length === 0) {
+        setShowEditProfile(false);
+        setEditLoading(false);
+        return;
+      }
+
+      const response = await fetch(`${getApiUrl()}/api/user/profile`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (response.ok) {
+        await refreshUser();
+        setShowEditProfile(false);
+      } else {
+        const data = await response.json();
+        Alert.alert('Error', data.error || 'Failed to update profile');
+      }
+    } catch (error) {
+      console.error('Error saving profile:', error);
+      Alert.alert('Error', 'Failed to save profile. Please try again.');
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
+  const getSexLabel = (sex: SexOption) => {
+    return SEX_OPTIONS.find(opt => opt.value === sex)?.label || 'Not specified';
+  };
+
   const menuItems = [
     { icon: 'person-outline', title: 'Edit Profile', description: 'Update your information' },
     { icon: 'notifications-outline', title: 'Notifications', description: 'Manage your alerts' },
@@ -200,6 +287,9 @@ export default function ProfileScreen() {
         }
       >
         <View style={[styles.profileHeader, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
+        <Pressable style={styles.editProfileButton} onPress={openEditProfile}>
+          <Ionicons name="pencil" size={18} color={colors.primary} />
+        </Pressable>
         <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
           <Text style={styles.avatarText}>
             {user?.firstName?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'D'}
@@ -211,6 +301,9 @@ export default function ProfileScreen() {
             : user?.firstName || user?.email?.split('@')[0] || 'Diver'}
         </Text>
         <Text style={[styles.userEmail, { color: colors.textSecondary }]}>{user?.email}</Text>
+        {user?.age && (
+          <Text style={[styles.userAge, { color: colors.textSecondary }]}>{user.age} years old</Text>
+        )}
         {isAdmin && (
           <View style={[styles.adminBadge, { backgroundColor: colors.primary }]}>
             <Ionicons name="shield-checkmark" size={14} color="#FFFFFF" />
@@ -371,7 +464,11 @@ export default function ProfileScreen() {
         <Text style={[styles.sectionTitle, { color: colors.text }]}>Settings</Text>
         
         {menuItems.map((item, index) => (
-          <Pressable key={index} style={styles.menuRow}>
+          <Pressable 
+            key={index} 
+            style={styles.menuRow}
+            onPress={item.title === 'Edit Profile' ? openEditProfile : undefined}
+          >
             <View style={[styles.menuIcon, { backgroundColor: colors.primary + '20' }]}>
               <Ionicons name={item.icon as any} size={20} color={colors.primary} />
             </View>
@@ -471,6 +568,126 @@ export default function ProfileScreen() {
                     </View>
                   </View>
                   {selectedModel === model.id && (
+                    <Ionicons name="checkmark" size={20} color={colors.primary} />
+                  )}
+                </Pressable>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={showEditProfile}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowEditProfile(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: colors.cardBackground }]}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>Edit Profile</Text>
+              <Pressable onPress={() => setShowEditProfile(false)}>
+                <Ionicons name="close" size={24} color={colors.text} />
+              </Pressable>
+            </View>
+            <ScrollView style={styles.modalScroll} keyboardShouldPersistTaps="handled">
+              <View style={styles.formGroup}>
+                <Text style={[styles.formLabel, { color: colors.text }]}>First Name</Text>
+                <TextInput
+                  style={[styles.formInput, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border }]}
+                  value={editFormData.firstName}
+                  onChangeText={(text) => setEditFormData(prev => ({ ...prev, firstName: text }))}
+                  placeholder="Enter first name"
+                  placeholderTextColor={colors.textSecondary}
+                />
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={[styles.formLabel, { color: colors.text }]}>Last Name</Text>
+                <TextInput
+                  style={[styles.formInput, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border }]}
+                  value={editFormData.lastName}
+                  onChangeText={(text) => setEditFormData(prev => ({ ...prev, lastName: text }))}
+                  placeholder="Enter last name"
+                  placeholderTextColor={colors.textSecondary}
+                />
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={[styles.formLabel, { color: colors.text }]}>Age</Text>
+                <TextInput
+                  style={[styles.formInput, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border }]}
+                  value={editFormData.age}
+                  onChangeText={(text) => setEditFormData(prev => ({ ...prev, age: text.replace(/[^0-9]/g, '') }))}
+                  placeholder="Enter age"
+                  placeholderTextColor={colors.textSecondary}
+                  keyboardType="number-pad"
+                  maxLength={3}
+                />
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={[styles.formLabel, { color: colors.text }]}>Sex</Text>
+                <Pressable
+                  style={[styles.formInput, styles.formSelect, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                  onPress={() => setShowSexPicker(true)}
+                >
+                  <Text style={{ color: editFormData.sex ? colors.text : colors.textSecondary }}>
+                    {getSexLabel(editFormData.sex)}
+                  </Text>
+                  <Ionicons name="chevron-down" size={20} color={colors.textSecondary} />
+                </Pressable>
+              </View>
+
+              <Pressable
+                style={[styles.saveButton, { backgroundColor: colors.primary }]}
+                onPress={saveProfile}
+                disabled={editLoading}
+              >
+                {editLoading ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.saveButtonText}>Save Changes</Text>
+                )}
+              </Pressable>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={showSexPicker}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowSexPicker(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: colors.cardBackground }]}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>Select Sex</Text>
+              <Pressable onPress={() => setShowSexPicker(false)}>
+                <Ionicons name="close" size={24} color={colors.text} />
+              </Pressable>
+            </View>
+            <ScrollView style={styles.modalScroll}>
+              {SEX_OPTIONS.map((option) => (
+                <Pressable
+                  key={option.label}
+                  style={[
+                    styles.pickerItem,
+                    { borderBottomColor: colors.border },
+                    editFormData.sex === option.value && { backgroundColor: colors.primary + '20' }
+                  ]}
+                  onPress={() => {
+                    setEditFormData(prev => ({ ...prev, sex: option.value }));
+                    setShowSexPicker(false);
+                  }}
+                >
+                  <Text style={[styles.pickerItemText, { color: colors.text }]}>
+                    {option.label}
+                  </Text>
+                  {editFormData.sex === option.value && (
                     <Ionicons name="checkmark" size={20} color={colors.primary} />
                   )}
                 </Pressable>
@@ -718,6 +935,54 @@ const styles = StyleSheet.create({
   bleBadgeText: {
     fontSize: 11,
     color: '#10B981',
+    fontWeight: '600',
+  },
+  editProfileButton: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(210, 47, 0, 0.1)',
+  },
+  userAge: {
+    fontSize: 13,
+    marginTop: 4,
+  },
+  formGroup: {
+    marginBottom: 16,
+  },
+  formLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    marginBottom: 8,
+  },
+  formInput: {
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    fontSize: 16,
+  },
+  formSelect: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  saveButton: {
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 8,
+    marginBottom: 16,
+  },
+  saveButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
     fontWeight: '600',
   },
 });
