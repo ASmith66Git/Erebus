@@ -139,6 +139,7 @@ export default function CertificationsScreen() {
   const [showImageViewer, setShowImageViewer] = useState(false);
   const [viewingImage, setViewingImage] = useState<CertificationImage | null>(null);
   const [deletingImageId, setDeletingImageId] = useState<number | null>(null);
+  const [pendingCardImages, setPendingCardImages] = useState<{ front: string | null; back: string | null }>({ front: null, back: null });
 
   const fetchData = useCallback(async () => {
     if (!token) {
@@ -237,6 +238,7 @@ export default function CertificationsScreen() {
     setSelectedCourse(null);
     setAgencyCourses([]);
     setEditingCertification(null);
+    setPendingCardImages({ front: null, back: null });
   };
 
   const handleSaveCertification = async () => {
@@ -272,6 +274,13 @@ export default function CertificationsScreen() {
       });
       
       if (response.ok) {
+        const savedCert = await response.json();
+        
+        // Upload pending card images for new certifications
+        if (!editingCertification && (pendingCardImages.front || pendingCardImages.back)) {
+          await uploadPendingImages(savedCert.id);
+        }
+        
         Alert.alert('Success', editingCertification ? 'Certification updated' : 'Certification added');
         setShowAddModal(false);
         resetForm();
@@ -479,6 +488,86 @@ export default function CertificationsScreen() {
     
     if (!result.canceled && result.assets[0]) {
       await uploadScannedImage(result.assets[0].uri, side);
+    }
+  };
+
+  const handleScanCardForAdd = async (side: 'front' | 'back') => {
+    // Try to use document scanner on native platforms (requires EAS Build)
+    if (Platform.OS !== 'web' && DocumentScanner) {
+      try {
+        const { scannedImages } = await DocumentScanner.scanDocument({
+          maxNumDocuments: 1,
+          croppedImageQuality: 80,
+        });
+        
+        if (scannedImages && scannedImages.length > 0) {
+          setPendingCardImages(prev => ({ ...prev, [side]: scannedImages[0] }));
+        }
+        return;
+      } catch (scanError: any) {
+        if (scanError?.message !== 'User canceled') {
+          console.log('Document scanner error, falling back to camera:', scanError);
+        } else {
+          return;
+        }
+      }
+    }
+    
+    // Fallback to expo-image-picker
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [16, 10],
+      quality: 0.8,
+    });
+    
+    if (!result.canceled && result.assets[0]) {
+      setPendingCardImages(prev => ({ ...prev, [side]: result.assets[0].uri }));
+    }
+  };
+
+  const uploadPendingImages = async (certificationId: number) => {
+    const sides: ('front' | 'back')[] = ['front', 'back'];
+    
+    for (const side of sides) {
+      const imageUri = pendingCardImages[side];
+      if (!imageUri) continue;
+      
+      try {
+        const filename = `cert-card-${certificationId}-${side}-${Date.now()}.jpg`;
+        const urlResponse = await fetch(`${getApiUrl()}/api/uploads/request-url`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ name: filename, contentType: 'image/jpeg' }),
+        });
+        
+        if (!urlResponse.ok) throw new Error('Failed to get upload URL');
+        
+        const { uploadURL, objectPath } = await urlResponse.json();
+        const imageBlob = await fetch(imageUri).then(r => r.blob());
+        
+        const uploadResponse = await fetch(uploadURL, {
+          method: 'PUT',
+          body: imageBlob,
+          headers: { 'Content-Type': 'image/jpeg' },
+        });
+        
+        if (!uploadResponse.ok) throw new Error('Failed to upload image');
+        
+        await fetch(`${getApiUrl()}/api/certifications/${certificationId}/images`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ imageUrl: objectPath, imageSide: side }),
+        });
+      } catch (error) {
+        console.error(`Error uploading ${side} card image:`, error);
+      }
     }
   };
 
@@ -863,6 +952,48 @@ export default function CertificationsScreen() {
                 />
               </View>
               
+              {!editingCertification && (
+                <View style={styles.formGroup}>
+                  <Text style={[styles.formLabel, { color: colors.text }]}>Certification Card</Text>
+                  <View style={styles.cardScanButtons}>
+                    <Pressable
+                      style={[styles.scanBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
+                      onPress={() => handleScanCardForAdd('front')}
+                    >
+                      {pendingCardImages.front ? (
+                        <Image source={{ uri: pendingCardImages.front }} style={styles.scanBtnPreview} resizeMode="cover" />
+                      ) : (
+                        <>
+                          <Feather name="camera" size={24} color={colors.primary} />
+                          <Text style={[styles.scanBtnText, { color: colors.text }]}>Scan Front</Text>
+                        </>
+                      )}
+                    </Pressable>
+                    <Pressable
+                      style={[styles.scanBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
+                      onPress={() => handleScanCardForAdd('back')}
+                    >
+                      {pendingCardImages.back ? (
+                        <Image source={{ uri: pendingCardImages.back }} style={styles.scanBtnPreview} resizeMode="cover" />
+                      ) : (
+                        <>
+                          <Feather name="camera" size={24} color={colors.primary} />
+                          <Text style={[styles.scanBtnText, { color: colors.text }]}>Scan Back</Text>
+                        </>
+                      )}
+                    </Pressable>
+                  </View>
+                  {(pendingCardImages.front || pendingCardImages.back) && (
+                    <Pressable
+                      style={{ marginTop: 8 }}
+                      onPress={() => setPendingCardImages({ front: null, back: null })}
+                    >
+                      <Text style={{ color: colors.primary, fontSize: 14 }}>Clear scanned images</Text>
+                    </Pressable>
+                  )}
+                </View>
+              )}
+
               <View style={styles.formGroup}>
                 <Text style={[styles.formLabel, { color: colors.text }]}>Notes</Text>
                 <TextInput
@@ -1325,7 +1456,8 @@ const styles = StyleSheet.create({
   detailValue: { fontSize: 14, fontWeight: '500' },
   sectionTitle: { fontSize: 16, fontWeight: '600', marginTop: 24, marginBottom: 12 },
   cardScanButtons: { flexDirection: 'row', gap: 12 },
-  scanBtn: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 24, borderRadius: 12, borderWidth: 1, gap: 8 },
+  scanBtn: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 24, borderRadius: 12, borderWidth: 1, gap: 8, overflow: 'hidden' },
+  scanBtnPreview: { width: '100%', height: 80, borderRadius: 8 },
   scanBtnText: { fontSize: 14, fontWeight: '500' },
   scannedImages: { flexDirection: 'row', gap: 12, marginTop: 16 },
   scannedImageContainer: { flex: 1 },
