@@ -25,11 +25,12 @@ export default function SplashScreen() {
   return (
     <View style={[styles.safeArea, { backgroundColor: colors.background }]}>
       <View style={styles.container}>
-        <View style={styles.logoContainer}>
-          <Logo size={88} primaryColor={colors.primary} />
+        <View style={styles.brandContainer}>
+          <View style={styles.logoContainer}>
+            <Logo size={88} primaryColor={colors.primary} />
+          </View>
+          <Text style={[styles.title, { color: colors.text }]}>Erebus</Text>
         </View>
-        
-        <Text style={[styles.title, { color: colors.text }]}>Erebus</Text>
 
         <View style={styles.features}>
           <View style={styles.featureItem}>
@@ -81,13 +82,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 24,
   },
+  brandContainer: {
+    alignItems: 'center',
+    marginBottom: 24,
+  },
   logoContainer: {
-    marginBottom: 16,
+    marginBottom: -20,
   },
   title: {
     fontSize: 36,
     fontWeight: 'bold',
-    marginBottom: 24,
     letterSpacing: 2,
   },
   features: {

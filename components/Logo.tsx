@@ -35,7 +35,7 @@ export default function Logo({
           strokeLinecap="round"
           strokeDasharray={`${dashLength} ${gapLength}`}
           strokeDashoffset={-circumference * 0.15}
-          transform={`rotate(-110 ${arcCenter.x} ${arcCenter.y})`}
+          transform={`rotate(-130 ${arcCenter.x} ${arcCenter.y})`}
         />
         
         {/* Water droplet shape */}
