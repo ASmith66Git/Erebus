@@ -925,23 +925,26 @@ export default function DiveTripsScreen() {
 
             {selectedTrip && (
               <>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={[styles.tabBar, { borderBottomColor: colors.border }]} contentContainerStyle={{ paddingHorizontal: 8 }}>
-                  {DETAIL_TABS.map((tab) => (
-                    <Pressable
-                      key={tab}
-                      style={[styles.tabItem, detailTab === tab && { borderBottomColor: colors.primary, borderBottomWidth: 2 }]}
-                      onPress={() => setDetailTab(tab)}
-                    >
-                      <Text style={[styles.tabText, { color: detailTab === tab ? colors.primary : colors.textSecondary }]}>
-                        {tab}{tab === 'Photos' && tripPhotos.length > 0 ? ` (${tripPhotos.length})` : ''}
-                        {tab === 'Dives' && linkedDives.length > 0 ? ` (${linkedDives.length})` : ''}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </ScrollView>
+                <View style={[styles.tabBar, { borderBottomColor: colors.border }]}>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 8 }}>
+                    {DETAIL_TABS.map((tab) => (
+                      <Pressable
+                        key={tab}
+                        style={[styles.tabItem, detailTab === tab && { borderBottomColor: colors.primary, borderBottomWidth: 2 }]}
+                        onPress={() => setDetailTab(tab)}
+                      >
+                        <Text style={[styles.tabText, { color: detailTab === tab ? colors.primary : colors.textSecondary }]}>
+                          {tab}{tab === 'Photos' && tripPhotos.length > 0 ? ` (${tripPhotos.length})` : ''}
+                          {tab === 'Dives' && linkedDives.length > 0 ? ` (${linkedDives.length})` : ''}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </ScrollView>
+                </View>
 
-                {detailTab === 'Details' && (
-                  <ScrollView style={styles.modalBody}>
+                <View style={{ flex: 1 }}>
+                  {detailTab === 'Details' && (
+                    <ScrollView style={[styles.modalBody, { flex: 1 }]}>
                     {selectedTrip.cover_image_key && (
                       <Image
                         source={{ uri: getCoverImageUrl(selectedTrip.cover_image_key)! }}
@@ -1052,7 +1055,7 @@ export default function DiveTripsScreen() {
                 )}
 
                 {detailTab === 'Dives' && (
-                  <ScrollView style={styles.modalBody}>
+                  <ScrollView style={[styles.modalBody, { flex: 1 }]}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                       <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 0 }]}>
                         Linked Dives ({linkedDives.length})
@@ -1111,7 +1114,7 @@ export default function DiveTripsScreen() {
                 )}
 
                 {detailTab === 'Photos' && (
-                  <ScrollView style={styles.modalBody}>
+                  <ScrollView style={[styles.modalBody, { flex: 1 }]}>
                     {loadingPhotos ? (
                       <View style={{ alignItems: 'center', paddingVertical: 40 }}>
                         <ActivityIndicator size="large" color={colors.primary} />
@@ -1155,6 +1158,7 @@ export default function DiveTripsScreen() {
                     )}
                   </ScrollView>
                 )}
+                </View>
               </>
             )}
           </View>
