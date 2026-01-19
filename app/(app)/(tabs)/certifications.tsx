@@ -723,7 +723,7 @@ export default function CertificationsScreen() {
   const renderCertificationCard = (cert: Certification) => (
     <Pressable
       key={cert.id}
-      style={[styles.certCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+      style={[styles.certCard, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}
       onPress={() => {
         setSelectedCertification(cert);
         setShowDetailModal(true);
@@ -772,7 +772,7 @@ export default function CertificationsScreen() {
   const renderWishlistCard = (item: WishlistItem) => (
     <View
       key={item.id}
-      style={[styles.wishlistCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+      style={[styles.wishlistCard, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}
     >
       <Pressable 
         style={styles.wishlistCardContent}
@@ -1041,7 +1041,7 @@ export default function CertificationsScreen() {
                   <Text style={[styles.formLabel, { color: colors.text }]}>Certification Card</Text>
                   <View style={styles.cardScanButtons}>
                     <Pressable
-                      style={[styles.scanBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
+                      style={[styles.scanBtn, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}
                       onPress={() => handleScanCardForAdd('front')}
                     >
                       {pendingCardImages.front ? (
@@ -1054,7 +1054,7 @@ export default function CertificationsScreen() {
                       )}
                     </Pressable>
                     <Pressable
-                      style={[styles.scanBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
+                      style={[styles.scanBtn, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}
                       onPress={() => handleScanCardForAdd('back')}
                     >
                       {pendingCardImages.back ? (
@@ -1251,7 +1251,7 @@ export default function CertificationsScreen() {
                   </View>
                 </View>
                 
-                <View style={[styles.detailCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                <View style={[styles.detailCard, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
                   <View style={styles.detailRow}>
                     <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Date</Text>
                     <Text style={[styles.detailValue, { color: colors.text }]}>{formatDate(selectedCertification.certification_date)}</Text>
@@ -1307,7 +1307,7 @@ export default function CertificationsScreen() {
                 <Text style={[styles.sectionTitle, { color: colors.text }]}>Certification Card</Text>
                 <View style={styles.cardScanButtons}>
                   <Pressable
-                    style={[styles.scanBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
+                    style={[styles.scanBtn, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}
                     onPress={() => handleScanCard('front')}
                     disabled={uploadingImage}
                   >
@@ -1321,7 +1321,7 @@ export default function CertificationsScreen() {
                     )}
                   </Pressable>
                   <Pressable
-                    style={[styles.scanBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
+                    style={[styles.scanBtn, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}
                     onPress={() => handleScanCard('back')}
                     disabled={uploadingImage}
                   >
@@ -1351,14 +1351,14 @@ export default function CertificationsScreen() {
                             </Text>
                             <View style={styles.scannedImageActions}>
                               <Pressable
-                                style={[styles.imageActionBtn, { backgroundColor: colors.card }]}
+                                style={[styles.imageActionBtn, { backgroundColor: colors.cardBackground }]}
                                 onPress={() => handleReplaceImage(img)}
                                 disabled={isDeleting}
                               >
                                 <Feather name="refresh-cw" size={16} color={colors.primary} />
                               </Pressable>
                               <Pressable
-                                style={[styles.imageActionBtn, { backgroundColor: colors.card }]}
+                                style={[styles.imageActionBtn, { backgroundColor: colors.cardBackground }]}
                                 onPress={() => handleDeleteImage(img.id)}
                                 disabled={isDeleting}
                               >
