@@ -504,8 +504,8 @@ export default function DiveTripsScreen() {
                         style={[styles.imageButton, { borderColor: colors.border }]}
                         onPress={() => setFormData(prev => ({ ...prev, coverImageKey: null }))}
                       >
-                        <Feather name="trash-2" size={16} color={colors.error} />
-                        <Text style={[styles.imageButtonText, { color: colors.error }]}>Remove</Text>
+                        <Feather name="trash-2" size={16} color={colors.primary} />
+                        <Text style={[styles.imageButtonText, { color: colors.primary }]}>Remove</Text>
                       </Pressable>
                       <Pressable
                         style={[styles.imageButton, { borderColor: colors.primary }]}
