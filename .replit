@@ -117,4 +117,4 @@ JWT_SECRET = "7c49768ebb65c6e3995568872ac373224b6c099b2d0d2615c5b25df469a20058df
 [deployment]
 deploymentTarget = "autoscale"
 run = ["node", "server/index.js"]
-build = ["npm", "run", "web:build"]
+build = ["bash", "-c", "npx expo export --platform web"]
