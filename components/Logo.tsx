@@ -14,7 +14,7 @@ export default function Logo({
 }: LogoProps) {
   const viewBoxSize = 100;
   
-  const arcRadius = 40;
+  const arcRadius = 46;
   const arcCenter = { x: 50, y: 54 };
   const circumference = 2 * Math.PI * arcRadius;
   const arcPercent = 0.70;
@@ -24,7 +24,7 @@ export default function Logo({
   return (
     <Svg width={size} height={size} viewBox={`0 0 ${viewBoxSize} ${viewBoxSize}`}>
       <G>
-        {/* Arc using circle with stroke-dasharray - gap on left side */}
+        {/* Arc using circle with stroke-dasharray - gap on left side, rotated counter-clockwise 20deg */}
         <Circle
           cx={arcCenter.x}
           cy={arcCenter.y}
@@ -35,7 +35,7 @@ export default function Logo({
           strokeLinecap="round"
           strokeDasharray={`${dashLength} ${gapLength}`}
           strokeDashoffset={-circumference * 0.15}
-          transform={`rotate(-90 ${arcCenter.x} ${arcCenter.y})`}
+          transform={`rotate(-110 ${arcCenter.x} ${arcCenter.y})`}
         />
         
         {/* Water droplet shape */}
