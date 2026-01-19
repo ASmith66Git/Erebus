@@ -1,5 +1,5 @@
 import { Platform } from 'react-native';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import {
   View,
   Text,
@@ -56,7 +56,6 @@ export default function DiveSitesMap() {
       if (!response.ok) throw new Error('Failed to fetch sites');
       const data = await response.json();
       const allSites = data.sites || data;
-      // Convert latitude/longitude from PostgreSQL numeric strings to numbers
       const parsedSites = allSites.map((s: any) => ({
         ...s,
         latitude: s.latitude != null ? parseFloat(s.latitude) : null,
@@ -139,8 +138,8 @@ export default function DiveSitesMap() {
               path: google.maps.SymbolPath.CIRCLE,
               scale: 10,
               fillColor: colors.primary,
-              fillOpacity: 0.9,
-              strokeColor: '#FFFFFF',
+              fillOpacity: 1,
+              strokeColor: '#fff',
               strokeWeight: 2,
             },
           });
@@ -148,17 +147,11 @@ export default function DiveSitesMap() {
           marker.addListener('click', () => {
             setSelectedSite(site);
             const content = `
-              <div style="padding: 8px; min-width: 200px;">
-                <div style="font-weight: 600; font-size: 14px; color: #1a1a1a; margin-bottom: 4px;">
-                  ${site.name}
-                </div>
-                ${site.site_type ? `
-                  <div style="font-size: 12px; color: #666; margin-bottom: 2px;">
-                    ${site.site_type}
-                  </div>
-                ` : ''}
-                ${site.location || site.region || site.country ? `
-                  <div style="font-size: 12px; color: #888;">
+              <div style="padding: 8px; max-width: 200px;">
+                <strong style="font-size: 14px;">${site.name}</strong>
+                ${site.site_type ? `<div style="font-size: 12px; color: #666; margin-top: 4px;">${site.site_type}</div>` : ''}
+                ${site.region || site.country ? `
+                  <div style="font-size: 12px; color: #888; margin-top: 2px;">
                     ${[site.region, site.country].filter(Boolean).join(', ')}
                   </div>
                 ` : ''}
@@ -186,12 +179,49 @@ export default function DiveSitesMap() {
     router.back();
   };
 
-  const handleSitePress = () => {
-    if (selectedSite) {
-      router.push(`/dive-site/${selectedSite.id}`);
+  const handleSitePress = (site?: DiveSite) => {
+    const siteToOpen = site || selectedSite;
+    if (siteToOpen) {
+      router.push(`/dive-site/${siteToOpen.id}`);
     }
   };
 
+  const handleMarkerPress = (site: DiveSite) => {
+    setSelectedSite(site);
+  };
+
+  // Native map rendering (Android/iOS with EAS build)
+  const renderNativeMap = () => {
+    if (sites.length === 0) {
+      return (
+        <View style={styles.emptyContainer}>
+          <Feather name="map-pin" size={48} color={colors.textSecondary} />
+          <Text style={[styles.emptyText, { color: colors.text }]}>
+            No dive sites with coordinates
+          </Text>
+          <Text style={[styles.emptySubtext, { color: colors.textSecondary }]}>
+            Add coordinates to your dive sites to see them on the map
+          </Text>
+        </View>
+      );
+    }
+
+    // Lazy load NativeMapView to avoid bundling react-native-maps on web
+    const NativeMapView = require('@/components/NativeMapView').default;
+    
+    return (
+      <NativeMapView
+        sites={sites}
+        selectedSite={selectedSite}
+        onMarkerPress={handleMarkerPress}
+        onSitePress={() => handleSitePress()}
+        onMapReady={() => setMapLoaded(true)}
+        colors={colors}
+      />
+    );
+  };
+
+  // Native platform view
   if (Platform.OS !== 'web') {
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -203,21 +233,39 @@ export default function DiveSitesMap() {
             <Ionicons name="map" size={20} color={colors.primary} />
             <Text style={[styles.headerTitle, { color: colors.text }]}>Dive Sites Map</Text>
           </View>
-          <View style={{ width: 40 }} />
+          <View style={styles.siteCount}>
+            <Text style={[styles.siteCountText, { color: colors.textSecondary }]}>
+              {sites.length} sites
+            </Text>
+          </View>
         </View>
-        <View style={styles.nativeMapPlaceholder}>
-          <Feather name="map" size={48} color={colors.textSecondary} />
-          <Text style={[styles.placeholderText, { color: colors.text }]}>
-            Map view requires EAS Build
-          </Text>
-          <Text style={[styles.placeholderSubtext, { color: colors.textSecondary }]}>
-            Use Expo Go on a device or build with EAS for native map support
-          </Text>
-        </View>
+
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
+              Loading dive sites...
+            </Text>
+          </View>
+        ) : error ? (
+          <View style={styles.errorContainer}>
+            <Feather name="alert-circle" size={48} color={colors.error} />
+            <Text style={[styles.errorText, { color: colors.text }]}>{error}</Text>
+            <Pressable 
+              style={[styles.retryButton, { backgroundColor: colors.primary }]}
+              onPress={fetchSites}
+            >
+              <Text style={styles.retryButtonText}>Retry</Text>
+            </Pressable>
+          </View>
+        ) : (
+          renderNativeMap()
+        )}
       </View>
     );
   }
 
+  // Web platform view
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.header, { backgroundColor: colors.headerBackground, borderBottomColor: colors.border }]}>
@@ -284,7 +332,7 @@ export default function DiveSitesMap() {
           {selectedSite && (
             <Pressable 
               style={[styles.selectedCard, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}
-              onPress={handleSitePress}
+              onPress={() => handleSitePress()}
             >
               <View style={styles.selectedCardContent}>
                 <View style={[styles.siteIcon, { backgroundColor: colors.primary + '20' }]}>
@@ -341,7 +389,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   siteCountText: {
-    fontSize: 13,
+    fontSize: 12,
   },
   loadingContainer: {
     flex: 1,
@@ -356,8 +404,8 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 32,
     gap: 16,
+    padding: 32,
   },
   errorText: {
     fontSize: 16,
@@ -367,21 +415,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
+    marginTop: 8,
   },
   retryButtonText: {
-    color: '#FFF',
+    color: '#fff',
+    fontSize: 14,
     fontWeight: '600',
   },
   emptyContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 32,
     gap: 12,
+    padding: 32,
   },
   emptyText: {
-    fontSize: 16,
-    fontWeight: '500',
+    fontSize: 18,
+    fontWeight: '600',
     textAlign: 'center',
   },
   emptySubtext: {
@@ -399,23 +449,6 @@ const styles = StyleSheet.create({
     gap: 16,
     zIndex: 10,
   },
-  nativeMapPlaceholder: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 32,
-    gap: 16,
-  },
-  placeholderText: {
-    fontSize: 16,
-    fontWeight: '500',
-    textAlign: 'center',
-  },
-  placeholderSubtext: {
-    fontSize: 14,
-    textAlign: 'center',
-    maxWidth: 280,
-  },
   selectedCard: {
     position: 'absolute',
     bottom: 24,
@@ -423,22 +456,17 @@ const styles = StyleSheet.create({
     right: 16,
     borderRadius: 12,
     borderWidth: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 4,
+    padding: 12,
   },
   selectedCardContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
     gap: 12,
   },
   siteIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -450,7 +478,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   selectedCardSubtitle: {
-    fontSize: 13,
+    fontSize: 12,
     marginTop: 2,
   },
 });
