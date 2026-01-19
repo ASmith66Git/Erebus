@@ -807,7 +807,7 @@ export default function CertificationsScreen() {
       </Pressable>
       
       <Pressable
-        style={[styles.removeWishlistBtn, { backgroundColor: colors.danger }]}
+        style={[styles.removeWishlistBtn, { backgroundColor: colors.primary }]}
         onPress={() => handleRemoveFromWishlist(item.id)}
       >
         <Feather name="trash-2" size={16} color="#FFFFFF" />
