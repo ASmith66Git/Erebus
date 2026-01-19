@@ -458,17 +458,16 @@ export default function DiveTripScreen() {
             <View style={styles.formGroup}>
               <Text style={[styles.formLabel, { color: colors.text }]}>Location</Text>
               <EmbeddedMapPicker
-                latitude={formData.latitude}
-                longitude={formData.longitude}
-                onLocationChange={(lat, lng, address, country) => {
+                latitude={formData.latitude || 0}
+                longitude={formData.longitude || 0}
+                onCoordinatesChange={(lat, lng) => {
                   setFormData(prev => ({
                     ...prev,
                     latitude: lat,
                     longitude: lng,
-                    location: address || prev.location,
-                    country: country || prev.country,
                   }));
                 }}
+                colors={colors}
               />
             </View>
 
