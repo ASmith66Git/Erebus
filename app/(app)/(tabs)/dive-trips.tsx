@@ -208,15 +208,22 @@ export default function DiveTripsScreen() {
   };
 
   const handleLinkDives = async () => {
-    if (!selectedTrip || !token) return;
+    console.log('handleLinkDives called', { selectedTrip: selectedTrip?.id, token: !!token, selectedDiveIds: Array.from(selectedDiveIds) });
+    if (!selectedTrip || !token) {
+      console.log('handleLinkDives early return - missing selectedTrip or token');
+      return;
+    }
     setLinkingDives(true);
     try {
       const currentLinkedIds = new Set(linkedDives.map(d => d.id));
+      console.log('Current linked IDs:', Array.from(currentLinkedIds));
+      console.log('Selected dive IDs:', Array.from(selectedDiveIds));
       
       // Add newly selected dives
       for (const diveId of selectedDiveIds) {
         if (!currentLinkedIds.has(diveId)) {
-          await fetch(`${getApiUrl()}/api/dive-trips/${selectedTrip.id}/dives`, {
+          console.log('Adding dive:', diveId);
+          const res = await fetch(`${getApiUrl()}/api/dive-trips/${selectedTrip.id}/dives`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -224,19 +231,23 @@ export default function DiveTripsScreen() {
             },
             body: JSON.stringify({ diveLogId: diveId }),
           });
+          console.log('Add dive response:', res.status);
         }
       }
       
       // Remove unselected dives
       for (const diveId of currentLinkedIds) {
         if (!selectedDiveIds.has(diveId)) {
-          await fetch(`${getApiUrl()}/api/dive-trips/${selectedTrip.id}/dives/${diveId}`, {
+          console.log('Removing dive:', diveId);
+          const res = await fetch(`${getApiUrl()}/api/dive-trips/${selectedTrip.id}/dives/${diveId}`, {
             method: 'DELETE',
             headers: { Authorization: `Bearer ${token}` },
           });
+          console.log('Remove dive response:', res.status);
         }
       }
       
+      console.log('Link dives complete, closing modal');
       setShowDivePickerModal(false);
       fetchTripDetails(selectedTrip.id);
       fetchTrips();
