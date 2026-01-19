@@ -59,9 +59,9 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   logoImage: {
-    width: 35,
-    height: 35,
-    borderRadius: 17.5,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
   },
   headerTitle: {
     fontSize: 18,
