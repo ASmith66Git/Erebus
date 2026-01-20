@@ -1,0 +1,33 @@
+# Attached assets (screenshots, dev images)
+attached_assets/
+
+# Git
+.git/
+
+# Development files
+*.test.js
+*.test.ts
+*.spec.js
+*.spec.ts
+__tests__/
+
+# Documentation
+*.md
+!README.md
+
+# Node modules cache
+node_modules/.cache/
+
+# Temporary files
+*.log
+*.tmp
+.DS_Store
+
+# IDE files
+.idea/
+.vscode/
+
+# Replit specific
+.replit
+replit.nix
+.config/
