@@ -72,7 +72,7 @@ function formatGas(gas: GasMix): string {
 const DEPTH_LINE_COLOR: [number, number, number] = [0, 122, 255]; // #007AFF blue
 const CEILING_LINE_COLOR: [number, number, number] = [255, 59, 48]; // Red
 const CNS_LINE_COLOR: [number, number, number] = [255, 149, 0]; // Orange
-const OTU_LINE_COLOR: [number, number, number] = [175, 82, 222]; // Purple
+const OTU_LINE_COLOR: [number, number, number] = [175, 82, 222]; // Purple #AF52DE
 const DENSITY_LINE_COLOR: [number, number, number] = [52, 199, 89]; // Green
 
 function drawDiveProfileWithMetrics(

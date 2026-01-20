@@ -748,7 +748,7 @@ export default function DivePlanningScreen() {
             <View style={styles.scrubberDataRow}>
               <View style={styles.scrubberDataItem}>
                 <Text style={[styles.scrubberDataLabel, { color: colors.textSecondary }]}>OTU</Text>
-                <Text style={[styles.scrubberDataValue, { color: colors.accent }]}>{scrubberValues.otu}</Text>
+                <Text style={[styles.scrubberDataValue, { color: '#AF52DE' }]}>{scrubberValues.otu}</Text>
               </View>
               <View style={styles.scrubberDataItem}>
                 <Text style={[styles.scrubberDataLabel, { color: colors.textSecondary }]}>Density</Text>
@@ -797,7 +797,7 @@ export default function DivePlanningScreen() {
               {ceilingPathD && <Path d={ceilingPathD} stroke={colors.danger} strokeWidth={1.5} fill="none" strokeOpacity={0.8} />}
               {densityPathD && <Path d={densityPathD} stroke={colors.success} strokeWidth={1.5} fill="none" strokeOpacity={0.7} />}
               {cnsPathD && <Path d={cnsPathD} stroke="#FF9500" strokeWidth={1.5} fill="none" strokeOpacity={0.8} />}
-              {otuPathD && <Path d={otuPathD} stroke={colors.accent} strokeWidth={1.5} fill="none" strokeOpacity={0.7} />}
+              {otuPathD && <Path d={otuPathD} stroke="#AF52DE" strokeWidth={1.5} fill="none" strokeOpacity={0.7} />}
               <Path d={depthPathD} stroke="#007AFF" strokeWidth={3.5} fill="none" />
               {decoStopMarkers}
             </G>
@@ -868,7 +868,7 @@ export default function DivePlanningScreen() {
             <Text style={[styles.legendText, { color: colors.textSecondary }]}>CNS</Text>
           </View>
           <View style={styles.legendItem}>
-            <View style={[styles.legendLine, { backgroundColor: colors.accent }]} />
+            <View style={[styles.legendLine, { backgroundColor: '#AF52DE' }]} />
             <Text style={[styles.legendText, { color: colors.textSecondary }]}>OTU</Text>
           </View>
           <View style={styles.legendItem}>
