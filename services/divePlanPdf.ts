@@ -307,7 +307,57 @@ function drawDiveProfileWithMetrics(
     legendX += 28;
   });
   
-  currentY += 8;
+  currentY += 10;
+  
+  const finalTissues = result.tissueHistory?.[result.tissueHistory.length - 1];
+  if (finalTissues && finalTissues.length > 0) {
+    doc.setFontSize(8);
+    doc.setTextColor(60);
+    doc.text('Tissue Compartment Saturation (End of Dive)', x + padding.left, currentY);
+    currentY += 5;
+    
+    const tissueBarHeight = 25;
+    const barHeight = 3;
+    const barGap = 0.8;
+    const maxBarWidth = chartW;
+    const baselinePpInert = 0.74;
+    
+    const TISSUE_COLORS = [
+      [244, 67, 54], [255, 87, 34], [255, 152, 0], [255, 193, 7], 
+      [205, 220, 57], [139, 195, 74], [76, 175, 80], [0, 150, 136],
+      [0, 188, 212], [3, 169, 244], [33, 150, 243], [63, 81, 181],
+      [103, 58, 183], [156, 39, 176], [233, 30, 99], [244, 67, 54]
+    ];
+    
+    finalTissues.forEach((tissue, i) => {
+      const barY = currentY + i * (barHeight + barGap);
+      
+      const Pamb = 1.0;
+      const mValue = calculateMValueAtPressure(tissue, i, Pamb);
+      const Plimit = mValue;
+      
+      const current = tissue.ppInert;
+      const numerator = current - baselinePpInert;
+      const denominator = Plimit - baselinePpInert;
+      const percent = denominator > 0 ? (numerator / denominator) * 100 : 0;
+      const clampedPercent = Math.max(0, Math.min(percent, 100));
+      
+      const barWidth = (clampedPercent / 100) * maxBarWidth;
+      
+      doc.setFillColor(235, 235, 235);
+      doc.rect(x + padding.left, barY, maxBarWidth, barHeight, 'F');
+      
+      const color = TISSUE_COLORS[i];
+      doc.setFillColor(color[0], color[1], color[2]);
+      doc.rect(x + padding.left, barY, Math.max(barWidth, 0.5), barHeight, 'F');
+      
+      doc.setFontSize(5);
+      doc.setTextColor(60);
+      doc.text(`${i + 1}: ${Math.round(percent)}%`, x + padding.left + maxBarWidth + 2, barY + barHeight - 0.5);
+    });
+    
+    currentY += 16 * (barHeight + barGap) + 3;
+  }
   
   return currentY - y;
 }
