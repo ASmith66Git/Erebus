@@ -1844,15 +1844,15 @@ export default function DivePlanningScreen() {
       <View style={[styles.section, { backgroundColor: colors.card }]}>
         <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>Descent / Ascent Rates</Text>
         
-        {renderSlider(`Descent`, ps.descentRate, 5, 30, 1,
+        {renderSlider(`Descent`, ps.descentRate, 3, 18, 1,
           (v) => setPs({ descentRate: v }), ` ${rateUnit}`)}
-        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Descent rates throughout the plan</Text>
+        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Descent rate to bottom</Text>
 
-        {renderSlider(`Deco`, ps.decoRate, 3, 15, 1,
+        {renderSlider(`Deco`, ps.decoRate, 3, 18, 1,
           (v) => setPs({ decoRate: v }), ` ${rateUnit}`)}
         {renderSlider(`Ascent`, ps.ascentRate, 3, 18, 1,
           (v) => setPs({ ascentRate: v }), ` ${rateUnit}`)}
-        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Ascent rates throughout the plan</Text>
+        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Ascent rates during decompression</Text>
       </View>
 
       {/* Dive Site Elevation */}
