@@ -1167,7 +1167,7 @@ export default function DiveSiteDetailScreen() {
                   date.setDate(date.getDate() + dayOffset);
                   const dateStr = date.toISOString().split('T')[0];
                   const isSelected = selectedDate === dateStr;
-                  const dayLabel = dayOffset === 0 ? 'Today' : dayOffset === 1 ? 'Tomorrow' : date.toLocaleDateString('en-US', { weekday: 'short' });
+                  const dayLabel = dayOffset === 0 ? 'Today' : date.toLocaleDateString('en-US', { weekday: 'short' });
                   return (
                     <Pressable
                       key={dateStr}
