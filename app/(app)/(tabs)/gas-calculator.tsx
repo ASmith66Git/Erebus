@@ -711,7 +711,7 @@ export default function GasCalculatorScreen() {
           : `${calculateMOD(mixResult.actualO2Percent, 1.4)} m`)}
         {renderResultRow('END at MOD', (() => {
           const mod = calculateMOD(mixResult.actualO2Percent, 1.4);
-          const end = calculateEND(mod, mixResult.actualO2Percent, mixResult.actualHePercent, true);
+          const end = calculateEND(mod, mixResult.actualHePercent, mixResult.actualO2Percent, true);
           return units === 'imperial' ? `${(end * 3.28084).toFixed(0)} ft` : `${end.toFixed(0)} m`;
         })())}
         {(() => {

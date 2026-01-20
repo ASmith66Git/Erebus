@@ -686,13 +686,19 @@ export function calculateEND(
 }
 
 export function getMixName(o2Percent: number, hePercent: number): string {
+  const n2Percent = 100 - o2Percent - hePercent;
+  
   if (hePercent === 0) {
     if (o2Percent === 21) return 'Air';
     if (o2Percent === 100) return 'Oxygen';
     return `EAN${o2Percent}`;
   }
-  if (o2Percent === 21 && hePercent > 0) {
+  
+  // Heliox is ONLY O2 + He (no nitrogen, tolerance of 1% for rounding)
+  if (n2Percent <= 1) {
     return `Heliox ${o2Percent}/${hePercent}`;
   }
+  
+  // Trimix contains O2 + He + N2
   return `Tx${o2Percent}/${hePercent}`;
 }
