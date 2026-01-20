@@ -270,7 +270,6 @@ export default function ProfileScreen() {
   };
 
   const menuItems = [
-    { icon: 'person-outline', title: 'Edit Profile', description: 'Update your information' },
     { icon: 'notifications-outline', title: 'Notifications', description: 'Manage your alerts' },
     { icon: 'shield-checkmark-outline', title: 'Privacy', description: 'Control your data' },
     { icon: 'help-circle-outline', title: 'Help & Support', description: 'Get assistance' },
