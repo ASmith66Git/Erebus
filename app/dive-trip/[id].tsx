@@ -870,8 +870,8 @@ export default function DiveTripScreen() {
           keyExtractor={(item) => item.id.toString()}
           numColumns={3}
           contentContainerStyle={styles.photoGrid}
-          renderItem={({ item }) => (
-            <Pressable onPress={() => router.push(`/photo/${item.id}` as any)}>
+          renderItem={({ item, index }) => (
+            <Pressable onPress={() => router.push(`/photo/${item.id}?mode=view&tripId=${id}&photoIndex=${index}` as any)}>
               <Image
                 source={{ uri: getImageUrl(item.image_url)! }}
                 style={[styles.photoThumbnail, { backgroundColor: colors.surface }]}
