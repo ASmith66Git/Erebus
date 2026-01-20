@@ -21,6 +21,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { getApiUrl } from '@/utils/apiConfig';
 import ThemedBackground from '@/components/ThemedBackground';
 import EmbeddedMapPicker from '@/components/EmbeddedMapPicker';
+import StaticMapView from '@/components/StaticMapView';
 import * as ImagePicker from 'expo-image-picker';
 
 const DatePickerField = Platform.OS === 'android' ? null : require('@/components/DatePickerField').default;
@@ -629,6 +630,15 @@ export default function DiveTripScreen() {
                   longitude: lng,
                 }));
               }}
+              onPlaceSelect={(placeData) => {
+                if (placeData) {
+                  setFormData(prev => ({
+                    ...prev,
+                    location: placeData.name || prev.location,
+                    country: placeData.country || prev.country,
+                  }));
+                }
+              }}
               colors={colors}
             />
           </View>
@@ -755,6 +765,19 @@ export default function DiveTripScreen() {
             <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
               <Text style={[styles.sectionTitle, { color: colors.text }]}>Notes</Text>
               <Text style={[styles.notesText, { color: colors.text }]}>{formData.notes}</Text>
+            </View>
+          )}
+
+          {formData.latitude && formData.longitude && (
+            <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>Location</Text>
+              <View style={styles.mapContainer}>
+                <StaticMapView
+                  latitude={formData.latitude}
+                  longitude={formData.longitude}
+                  colors={colors}
+                />
+              </View>
             </View>
           )}
         </>
@@ -1016,6 +1039,7 @@ const styles = StyleSheet.create({
   detailValue: { fontSize: 16, flex: 1 },
   section: { borderRadius: 12, padding: 16, borderWidth: 1, marginBottom: 16 },
   sectionTitle: { fontSize: 16, fontWeight: '600', marginBottom: 12 },
+  mapContainer: { height: 200, borderRadius: 8, overflow: 'hidden' },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
