@@ -88,6 +88,7 @@ export default function GasCalculatorScreen() {
   const [mixNitroxO2, setMixNitroxO2] = useState('32');
   const [mixUseRealGas, setMixUseRealGas] = useState(true);
   const [mixTempCelsius, setMixTempCelsius] = useState('20');
+  const [mixHeFirst, setMixHeFirst] = useState(true);
 
   const [bestmixDepth, setBestmixDepth] = useState('40');
   const [bestmixPpo2, setBestmixPpo2] = useState('1.4');
@@ -621,6 +622,19 @@ export default function GasCalculatorScreen() {
         )}
       </View>
 
+      <View style={[styles.card, { backgroundColor: colors.card }]}>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>Blending Order</Text>
+        <View style={styles.switchRow}>
+          <Text style={[styles.inputLabel, { color: colors.text }]}>Add first</Text>
+          <TouchableOpacity
+            style={[styles.toggle, { backgroundColor: colors.primary }]}
+            onPress={() => setMixHeFirst(!mixHeFirst)}
+          >
+            <Text style={{ color: '#FFF' }}>{mixHeFirst ? 'Helium' : 'Oxygen'}</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
       <View style={[styles.resultsCard, { backgroundColor: colors.card, borderColor: mixResult.isValid ? colors.success : colors.danger }]}>
         <Text style={[styles.resultsTitle, { color: colors.text }]}>Blending Sequence</Text>
         
@@ -635,24 +649,31 @@ export default function GasCalculatorScreen() {
 
         {(() => {
           const residualBar = mixHasResidual ? parseFloat(mixResidualPressure) || 0 : 0;
-          const afterHeBar = residualBar + mixResult.hePressureToAdd;
-          const afterO2Bar = afterHeBar + mixResult.o2PressureToAdd;
+          const hePressure = mixResult.hePressureToAdd;
+          const o2Pressure = mixResult.o2PressureToAdd;
           const finalBar = parseFloat(mixFinalPressure) || 200;
           const hasHeliumStep = parseFloat(mixTargetHe) > 0 || (mixHasResidual && parseFloat(mixResidualHe) > 0);
           const PSI_PER_BAR = 14.5038;
           
+          const firstGas = mixHeFirst ? 'Helium' : 'Pure O2';
+          const secondGas = mixHeFirst ? 'Pure O2' : 'Helium';
+          const firstPressure = mixHeFirst ? hePressure : o2Pressure;
+          const secondPressure = mixHeFirst ? o2Pressure : hePressure;
+          const afterFirstBar = residualBar + firstPressure;
+          const afterSecondBar = afterFirstBar + secondPressure;
+          
           return (
             <>
-              {hasHeliumStep && renderResultRow('1. Add Helium to', 
+              {hasHeliumStep && renderResultRow(`1. Add ${firstGas} to`, 
                 units === 'imperial' 
-                  ? `${(afterHeBar * PSI_PER_BAR).toFixed(0)} psi` 
-                  : `${afterHeBar.toFixed(0)} bar`
+                  ? `${(afterFirstBar * PSI_PER_BAR).toFixed(0)} psi` 
+                  : `${afterFirstBar.toFixed(0)} bar`
               )}
               
-              {renderResultRow(hasHeliumStep ? '2. Add Pure O2 to' : '1. Add Pure O2 to', 
+              {renderResultRow(hasHeliumStep ? `2. Add ${secondGas} to` : '1. Add Pure O2 to', 
                 units === 'imperial' 
-                  ? `${(afterO2Bar * PSI_PER_BAR).toFixed(0)} psi` 
-                  : `${afterO2Bar.toFixed(0)} bar`
+                  ? `${(afterSecondBar * PSI_PER_BAR).toFixed(0)} psi` 
+                  : `${afterSecondBar.toFixed(0)} bar`
               )}
               
               {renderResultRow(
