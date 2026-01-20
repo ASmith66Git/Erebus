@@ -119,6 +119,8 @@ export default function DivePlanningScreen() {
   }
   const [savedPlans, setSavedPlans] = useState<SavedDivePlan[]>([]);
   const [planName, setPlanName] = useState('');
+  const [showElevationInfo, setShowElevationInfo] = useState(false);
+  const [showAcclimatizationInfo, setShowAcclimatizationInfo] = useState(false);
   
   // Apply pending settings
   const applySettings = () => {
@@ -1757,12 +1759,33 @@ export default function DivePlanningScreen() {
       <View style={[styles.section, { backgroundColor: colors.card }]}>
         <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>Dive Site Elevation</Text>
         
-        {renderSlider(`Elevation`, ps.elevation, 0, 3000, 100,
-          (v) => setPs({ elevation: v }), 'm')}
-        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Dive site elevation</Text>
+        <View style={styles.sliderWithInfo}>
+          <View style={{ flex: 1 }}>
+            {renderSlider(`Elevation`, ps.elevation, 0, 3000, 100,
+              (v) => setPs({ elevation: v }), 'm')}
+          </View>
+          <TouchableOpacity 
+            onPress={() => setShowElevationInfo(true)}
+            style={styles.infoIconButton}
+          >
+            <Feather name="info" size={18} color={colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
+        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Dive site elevation above sea level</Text>
 
-        {renderSlider(`Acclimatized`, ps.acclimatizedElevation, 0, 3000, 100,
-          (v) => setPs({ acclimatizedElevation: v }), 'm')}
+        <View style={styles.sliderWithInfo}>
+          <View style={{ flex: 1 }}>
+            {renderSlider(`Acclimatized`, ps.acclimatizedElevation, 0, 3000, 100,
+              (v) => setPs({ acclimatizedElevation: v }), 'm')}
+          </View>
+          <TouchableOpacity 
+            onPress={() => setShowAcclimatizationInfo(true)}
+            style={styles.infoIconButton}
+          >
+            <Feather name="info" size={18} color={colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
+        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Your home elevation for acclimatization</Text>
       </View>
 
       {/* Gas Switch Time - moved from removed Display section */}
@@ -2108,6 +2131,97 @@ export default function DivePlanningScreen() {
       </ScrollView>
 
       {renderScrubberModal()}
+
+      {/* Elevation Info Modal */}
+      <Modal visible={showElevationInfo} animationType="fade" transparent>
+        <View style={styles.infoModalOverlay}>
+          <View style={[styles.infoModalContent, { backgroundColor: colors.card }]}>
+            <View style={styles.infoModalHeader}>
+              <Text style={[styles.infoModalTitle, { color: colors.text }]}>Dive Site Elevation</Text>
+              <TouchableOpacity onPress={() => setShowElevationInfo(false)}>
+                <Feather name="x" size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+            
+            <ScrollView style={{ maxHeight: 400 }}>
+              <Text style={[styles.infoText, { color: colors.text }]}>
+                Elevation affects decompression calculations because atmospheric pressure decreases at altitude.
+              </Text>
+              
+              <Text style={[styles.infoHeading, { color: colors.primary }]}>Why it matters:</Text>
+              <Text style={[styles.infoText, { color: colors.textSecondary }]}>
+                At higher elevations, the surface pressure is lower than at sea level. This means your body is already at a relative "depth" compared to sea level, which affects nitrogen loading and off-gassing.
+              </Text>
+              
+              <Text style={[styles.infoHeading, { color: colors.primary }]}>Key effects:</Text>
+              <Text style={[styles.infoText, { color: colors.textSecondary }]}>
+                {'\u2022'} Increased decompression obligation{'\n'}
+                {'\u2022'} Shallower equivalent depths{'\n'}
+                {'\u2022'} Longer required safety/deco stops{'\n'}
+                {'\u2022'} Higher risk of DCS if not accounted for
+              </Text>
+              
+              <Text style={[styles.infoHeading, { color: colors.primary }]}>Common altitude diving locations:</Text>
+              <Text style={[styles.infoText, { color: colors.textSecondary }]}>
+                {'\u2022'} Lake Titicaca: 3,812m{'\n'}
+                {'\u2022'} Lake Tahoe: 1,897m{'\n'}
+                {'\u2022'} Mountain lakes in the Alps: 1,000-2,500m
+              </Text>
+            </ScrollView>
+            
+            <TouchableOpacity 
+              style={[styles.infoButton, { backgroundColor: colors.primary }]}
+              onPress={() => setShowElevationInfo(false)}
+            >
+              <Text style={styles.infoButtonText}>Got it</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Acclimatization Info Modal */}
+      <Modal visible={showAcclimatizationInfo} animationType="fade" transparent>
+        <View style={styles.infoModalOverlay}>
+          <View style={[styles.infoModalContent, { backgroundColor: colors.card }]}>
+            <View style={styles.infoModalHeader}>
+              <Text style={[styles.infoModalTitle, { color: colors.text }]}>Acclimatization</Text>
+              <TouchableOpacity onPress={() => setShowAcclimatizationInfo(false)}>
+                <Feather name="x" size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+            
+            <ScrollView style={{ maxHeight: 400 }}>
+              <Text style={[styles.infoText, { color: colors.text }]}>
+                Acclimatization refers to the elevation where your body has adapted to the ambient pressure over time.
+              </Text>
+              
+              <Text style={[styles.infoHeading, { color: colors.primary }]}>Why it matters:</Text>
+              <Text style={[styles.infoText, { color: colors.textSecondary }]}>
+                If you live at altitude, your body has adjusted to that lower pressure. When diving at a different elevation, the difference between your acclimatized elevation and the dive site elevation affects your decompression requirements.
+              </Text>
+              
+              <Text style={[styles.infoHeading, { color: colors.primary }]}>Scenarios:</Text>
+              <Text style={[styles.infoText, { color: colors.textSecondary }]}>
+                {'\u2022'} Sea level resident diving at altitude: Higher DCS risk, more conservative planning needed{'\n'}
+                {'\u2022'} Altitude resident diving at sea level: May have slight advantage due to adaptation{'\n'}
+                {'\u2022'} Same elevation: No adjustment needed
+              </Text>
+              
+              <Text style={[styles.infoHeading, { color: colors.primary }]}>Acclimatization time:</Text>
+              <Text style={[styles.infoText, { color: colors.textSecondary }]}>
+                Full acclimatization to a new elevation typically takes 1-3 weeks. If you've recently traveled to a different elevation, use your original home elevation until you've had time to adapt.
+              </Text>
+            </ScrollView>
+            
+            <TouchableOpacity 
+              style={[styles.infoButton, { backgroundColor: colors.primary }]}
+              onPress={() => setShowAcclimatizationInfo(false)}
+            >
+              <Text style={styles.infoButtonText}>Got it</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </ThemedBackground>
   );
 }
@@ -2579,5 +2693,57 @@ const styles = StyleSheet.create({
   gfPresetButtonText: {
     fontSize: 13,
     fontWeight: '500',
+  },
+  sliderWithInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  infoIconButton: {
+    padding: 8,
+    marginLeft: 4,
+  },
+  infoModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  infoModalContent: {
+    borderRadius: 16,
+    padding: 20,
+    maxWidth: 400,
+    width: '100%',
+  },
+  infoModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  infoModalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  infoHeading: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginTop: 12,
+    marginBottom: 4,
+  },
+  infoText: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  infoButton: {
+    marginTop: 16,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  infoButtonText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
