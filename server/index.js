@@ -1153,9 +1153,18 @@ app.get('/api/auth/me', authenticateToken, async (req, res) => {
     if (user.profile_image) {
       try {
         const REPLIT_SIDECAR = 'http://127.0.0.1:1106';
-        let path = user.profile_image;
-        if (!path.startsWith('/')) path = `/${path}`;
-        const pathParts = path.split('/');
+        let storedPath = user.profile_image;
+        
+        // Handle /objects/... path format by converting to full storage path
+        if (storedPath.startsWith('/objects/')) {
+          const entityId = storedPath.slice('/objects/'.length);
+          let entityDir = process.env.PRIVATE_OBJECT_DIR || '';
+          if (!entityDir.endsWith('/')) entityDir = `${entityDir}/`;
+          storedPath = `${entityDir}${entityId}`;
+        }
+        
+        if (!storedPath.startsWith('/')) storedPath = `/${storedPath}`;
+        const pathParts = storedPath.split('/');
         if (pathParts.length >= 3) {
           const bucketName = pathParts[1];
           const objectName = pathParts.slice(2).join('/');
@@ -1817,7 +1826,17 @@ app.get('/api/user/profile', authenticateToken, async (req, res) => {
     let profileImageUrl = null;
     if (user.profile_image) {
       try {
-        const { bucketName, objectName } = parseObjectPath(user.profile_image);
+        let storedPath = user.profile_image;
+        
+        // Handle /objects/... path format by converting to full storage path
+        if (storedPath.startsWith('/objects/')) {
+          const entityId = storedPath.slice('/objects/'.length);
+          let entityDir = process.env.PRIVATE_OBJECT_DIR || '';
+          if (!entityDir.endsWith('/')) entityDir = `${entityDir}/`;
+          storedPath = `${entityDir}${entityId}`;
+        }
+        
+        const { bucketName, objectName } = parseObjectPath(storedPath);
         profileImageUrl = await signObjectURL({ bucketName, objectName, method: 'GET', ttlSec: 3600 });
       } catch (err) {
         console.error('Error signing profile image URL:', err);
