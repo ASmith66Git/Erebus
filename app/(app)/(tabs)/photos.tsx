@@ -462,6 +462,13 @@ export default function PhotosScreen() {
               if (newIndex >= 0 && newIndex < photos.length) {
                 setViewerIndex(newIndex);
                 setSelectedPhoto(photos[newIndex]);
+                // Scroll thumbnail bar to center the current thumbnail
+                const thumbnailWidth = 50;
+                const thumbnailGap = 8;
+                const thumbnailTotalWidth = thumbnailWidth + thumbnailGap;
+                const scrollX = Math.max(0, (newIndex * thumbnailTotalWidth) - (screenWidth / 2) + (thumbnailWidth / 2));
+                thumbnailScrollRef.current?.scrollTo({ x: scrollX, animated: true });
+                thumbnailScrollPosition.current = scrollX;
               }
             }}
             style={styles.viewerScrollView}
