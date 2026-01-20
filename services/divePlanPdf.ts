@@ -316,11 +316,17 @@ function drawDiveProfileWithMetrics(
     doc.text('Tissue Compartment Saturation (End of Dive)', x + padding.left, currentY);
     currentY += 5;
     
-    const tissueBarHeight = 25;
     const barHeight = 3;
     const barGap = 0.8;
-    const maxBarWidth = chartW;
+    const labelWidth = 18;
+    const maxBarWidth = chartW - labelWidth;
     const baselinePpInert = 0.74;
+    const tissueChartHeight = 16 * (barHeight + barGap);
+    
+    doc.setDrawColor(150);
+    doc.setLineWidth(0.5);
+    doc.line(x + padding.left, currentY, x + padding.left, currentY + tissueChartHeight);
+    doc.line(x + padding.left + chartW, currentY, x + padding.left + chartW, currentY + tissueChartHeight);
     
     const TISSUE_COLORS = [
       [244, 67, 54], [255, 87, 34], [255, 152, 0], [255, 193, 7], 
@@ -356,7 +362,7 @@ function drawDiveProfileWithMetrics(
       doc.text(`${i + 1}: ${Math.round(percent)}%`, x + padding.left + maxBarWidth + 2, barY + barHeight - 0.5);
     });
     
-    currentY += 16 * (barHeight + barGap) + 3;
+    currentY += tissueChartHeight + 3;
   }
   
   return currentY - y;
