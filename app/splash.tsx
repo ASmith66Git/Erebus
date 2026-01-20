@@ -1,10 +1,12 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, Pressable, useWindowDimensions } from 'react-native';
+import { View, Text, StyleSheet, Pressable, useWindowDimensions, ImageBackground } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import Logo from '@/components/Logo';
+
+const darkCoralBackground = require('@/assets/images/coral-background-dark.jpg');
 
 export default function SplashScreen() {
   const { colors } = useTheme();
@@ -23,8 +25,9 @@ export default function SplashScreen() {
   };
 
   return (
-    <View style={[styles.safeArea, { backgroundColor: colors.background }]}>
-      <View style={styles.container}>
+    <ImageBackground source={darkCoralBackground} style={styles.safeArea} resizeMode="cover">
+      <View style={styles.overlay}>
+        <View style={styles.container}>
         <View style={styles.brandContainer}>
           <View style={styles.logoContainer}>
             <Logo size={88} primaryColor={colors.primary} />
@@ -67,14 +70,19 @@ export default function SplashScreen() {
             <Text style={[styles.loginLink, { color: colors.textSecondary }]}>Already have an account? Log in</Text>
           </Pressable>
         </View>
+        </View>
       </View>
-    </View>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
+  },
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   container: {
     flex: 1,

@@ -9,12 +9,15 @@ import {
   Platform,
   ScrollView,
   ActivityIndicator,
+  ImageBackground,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import Logo from '@/components/Logo';
+
+const darkCoralBackground = require('@/assets/images/coral-background-dark.jpg');
 
 export default function SignupScreen() {
   const { colors } = useTheme();
@@ -66,14 +69,16 @@ export default function SignupScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-      >
+    <ImageBackground source={darkCoralBackground} style={styles.backgroundImage} resizeMode="cover">
+      <View style={styles.overlay}>
+        <KeyboardAvoidingView
+          style={styles.container}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+          >
         <Pressable style={styles.backButton} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </Pressable>
@@ -200,13 +205,22 @@ export default function SignupScreen() {
               <Text style={[styles.loginLink, { color: colors.primary }]}>Sign In</Text>
             </Pressable>
           </View>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+          </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </View>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
+  backgroundImage: {
+    flex: 1,
+  },
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
   container: {
     flex: 1,
   },

@@ -10,6 +10,7 @@ import {
   ScrollView,
   ActivityIndicator,
   Modal,
+  ImageBackground,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,6 +19,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { getApiUrl } from '@/utils/apiConfig';
 import Logo from '@/components/Logo';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const darkCoralBackground = require('@/assets/images/coral-background-dark.jpg');
 
 export default function LoginScreen() {
   const { colors, isDark } = useTheme();
@@ -132,14 +135,16 @@ export default function LoginScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-      >
+    <ImageBackground source={darkCoralBackground} style={styles.backgroundImage} resizeMode="cover">
+      <View style={styles.overlay}>
+        <KeyboardAvoidingView
+          style={styles.container}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+          >
         <Pressable style={styles.backButton} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </Pressable>
@@ -247,87 +252,96 @@ export default function LoginScreen() {
               <Text style={[styles.signupLink, { color: colors.primary }]}>Sign Up</Text>
             </Pressable>
           </View>
-        </View>
-      </ScrollView>
+          </View>
+          </ScrollView>
 
-      <Modal
-        visible={forgotPasswordVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={closeForgotModal}
-      >
-        <Pressable style={styles.modalOverlay} onPress={closeForgotModal}>
-          <Pressable style={[styles.modalContent, { backgroundColor: colors.surface }]} onPress={(e) => e.stopPropagation()}>
-            <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>Forgot Password</Text>
-              <Pressable onPress={closeForgotModal}>
-                <Ionicons name="close" size={24} color={colors.text} />
-              </Pressable>
-            </View>
-
-            <Text style={[styles.modalDescription, { color: colors.textSecondary }]}>
-              Enter your email address and we'll help you reset your password.
-            </Text>
-
-            {forgotMessage ? (
-              <View style={[styles.successContainer, { backgroundColor: colors.primary + '20' }]}>
-                <Ionicons name="checkmark-circle" size={20} color={colors.primary} />
-                <Text style={[styles.successText, { color: colors.primary }]}>{forgotMessage}</Text>
-              </View>
-            ) : null}
-
-            {forgotError ? (
-              <View style={[styles.errorContainer, { backgroundColor: colors.error + '20' }]}>
-                <Ionicons name="alert-circle" size={20} color={colors.error} />
-                <Text style={[styles.errorText, { color: colors.error }]}>{forgotError}</Text>
-              </View>
-            ) : null}
-
-            {!forgotMessage && (
-              <>
-                <View style={[styles.inputContainer, { backgroundColor: colors.background, borderColor: colors.border, marginTop: 16 }]}>
-                  <Ionicons name="mail-outline" size={20} color={colors.primary} />
-                  <TextInput
-                    style={[styles.input, { color: colors.text }]}
-                    placeholder="Enter your email"
-                    placeholderTextColor={colors.textSecondary}
-                    value={forgotEmail}
-                    onChangeText={setForgotEmail}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                  />
+          <Modal
+            visible={forgotPasswordVisible}
+            transparent
+            animationType="fade"
+            onRequestClose={closeForgotModal}
+          >
+            <Pressable style={styles.modalOverlay} onPress={closeForgotModal}>
+              <Pressable style={[styles.modalContent, { backgroundColor: colors.surface }]} onPress={(e) => e.stopPropagation()}>
+                <View style={styles.modalHeader}>
+                  <Text style={[styles.modalTitle, { color: colors.text }]}>Forgot Password</Text>
+                  <Pressable onPress={closeForgotModal}>
+                    <Ionicons name="close" size={24} color={colors.text} />
+                  </Pressable>
                 </View>
 
-                <Pressable
-                  style={[styles.loginButton, { backgroundColor: colors.primary, marginTop: 16 }]}
-                  onPress={handleForgotPassword}
-                  disabled={forgotLoading}
-                >
-                  {forgotLoading ? (
-                    <ActivityIndicator color="#FFFFFF" />
-                  ) : (
-                    <Text style={styles.loginButtonText}>Send Reset Request</Text>
-                  )}
-                </Pressable>
-              </>
-            )}
+                <Text style={[styles.modalDescription, { color: colors.textSecondary }]}>
+                  Enter your email address and we'll help you reset your password.
+                </Text>
 
-            {forgotMessage && (
-              <Pressable
-                style={[styles.loginButton, { backgroundColor: colors.primary, marginTop: 16 }]}
-                onPress={closeForgotModal}
-              >
-                <Text style={styles.loginButtonText}>Done</Text>
+                {forgotMessage ? (
+                  <View style={[styles.successContainer, { backgroundColor: colors.primary + '20' }]}>
+                    <Ionicons name="checkmark-circle" size={20} color={colors.primary} />
+                    <Text style={[styles.successText, { color: colors.primary }]}>{forgotMessage}</Text>
+                  </View>
+                ) : null}
+
+                {forgotError ? (
+                  <View style={[styles.errorContainer, { backgroundColor: colors.error + '20' }]}>
+                    <Ionicons name="alert-circle" size={20} color={colors.error} />
+                    <Text style={[styles.errorText, { color: colors.error }]}>{forgotError}</Text>
+                  </View>
+                ) : null}
+
+                {!forgotMessage && (
+                  <>
+                    <View style={[styles.inputContainer, { backgroundColor: colors.background, borderColor: colors.border, marginTop: 16 }]}>
+                      <Ionicons name="mail-outline" size={20} color={colors.primary} />
+                      <TextInput
+                        style={[styles.input, { color: colors.text }]}
+                        placeholder="Enter your email"
+                        placeholderTextColor={colors.textSecondary}
+                        value={forgotEmail}
+                        onChangeText={setForgotEmail}
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                      />
+                    </View>
+
+                    <Pressable
+                      style={[styles.loginButton, { backgroundColor: colors.primary, marginTop: 16 }]}
+                      onPress={handleForgotPassword}
+                      disabled={forgotLoading}
+                    >
+                      {forgotLoading ? (
+                        <ActivityIndicator color="#FFFFFF" />
+                      ) : (
+                        <Text style={styles.loginButtonText}>Send Reset Request</Text>
+                      )}
+                    </Pressable>
+                  </>
+                )}
+
+                {forgotMessage && (
+                  <Pressable
+                    style={[styles.loginButton, { backgroundColor: colors.primary, marginTop: 16 }]}
+                    onPress={closeForgotModal}
+                  >
+                    <Text style={styles.loginButtonText}>Done</Text>
+                  </Pressable>
+                )}
               </Pressable>
-            )}
-          </Pressable>
-        </Pressable>
-      </Modal>
-    </KeyboardAvoidingView>
+            </Pressable>
+          </Modal>
+        </KeyboardAvoidingView>
+      </View>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
+  backgroundImage: {
+    flex: 1,
+  },
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
   container: {
     flex: 1,
   },
