@@ -721,6 +721,26 @@ export default function GasCalculatorScreen() {
         {renderResultRow('MOD (1.4 PPO2)', units === 'imperial' 
           ? `${(calculateMOD(mixResult.actualO2Percent, 1.4) * 3.28084).toFixed(0)} ft` 
           : `${calculateMOD(mixResult.actualO2Percent, 1.4)} m`)}
+        {renderResultRow('END at MOD', (() => {
+          const mod = calculateMOD(mixResult.actualO2Percent, 1.4);
+          const end = calculateEND(mod, mixResult.actualO2Percent, mixResult.actualHePercent, true);
+          return units === 'imperial' ? `${(end * 3.28084).toFixed(0)} ft` : `${end.toFixed(0)} m`;
+        })())}
+        {(() => {
+          const mod = calculateMOD(mixResult.actualO2Percent, 1.4);
+          const densityResult = calculateGasDensity(
+            { o2Percent: mixResult.actualO2Percent, hePercent: mixResult.actualHePercent }, 
+            mod
+          );
+          return (
+            <View style={[styles.resultRow]}>
+              <Text style={[styles.resultLabel, { color: colors.textSecondary }]}>Gas Density at MOD</Text>
+              <Text style={[styles.resultValue, { color: densityResult.isHighDensity ? colors.danger : colors.success }]}>
+                {densityResult.depthDensity.toFixed(2)} g/L
+              </Text>
+            </View>
+          );
+        })()}
         
         {mixUseRealGas && (
           <View style={[styles.zFactorInfo, { backgroundColor: colors.background }]}>
