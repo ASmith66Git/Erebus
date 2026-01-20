@@ -452,11 +452,12 @@ export function generateDivePlanPdf(input: DivePlanPdfInput): void {
     
     const getPhaseSymbol = (type: string): string => {
       switch (type) {
-        case 'descent': return '↓';
-        case 'ascent': return '↑';
-        case 'deco_stop': return '⏸';
-        case 'gas_switch': return '⟳';
-        default: return '→';
+        case 'descent': return 'v';
+        case 'ascent': return '^';
+        case 'deco_stop': return 'D';
+        case 'gas_switch': return 'G';
+        case 'bottom': return '-';
+        default: return '-';
       }
     };
     
@@ -568,10 +569,10 @@ export function generateDivePlanPdf(input: DivePlanPdfInput): void {
         }
         if (data.column.index === 0 && data.section === 'body') {
           const symbol = data.cell.raw as string;
-          if (symbol === '↓') data.cell.styles.textColor = themeRgb;
-          else if (symbol === '↑') data.cell.styles.textColor = [76, 175, 80];
-          else if (symbol === '⏸') data.cell.styles.textColor = [255, 152, 0];
-          else if (symbol === '⟳') data.cell.styles.textColor = [33, 150, 243];
+          if (symbol === 'v') data.cell.styles.textColor = themeRgb;
+          else if (symbol === '^') data.cell.styles.textColor = [76, 175, 80];
+          else if (symbol === 'D') data.cell.styles.textColor = [255, 152, 0];
+          else if (symbol === 'G') data.cell.styles.textColor = [33, 150, 243];
         }
       }
     });
