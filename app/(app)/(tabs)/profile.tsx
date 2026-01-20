@@ -466,7 +466,6 @@ export default function ProfileScreen() {
           <Pressable 
             key={index} 
             style={styles.menuRow}
-            onPress={item.title === 'Edit Profile' ? openEditProfile : undefined}
           >
             <View style={[styles.menuIcon, { backgroundColor: colors.primary + '20' }]}>
               <Ionicons name={item.icon as any} size={20} color={colors.primary} />
