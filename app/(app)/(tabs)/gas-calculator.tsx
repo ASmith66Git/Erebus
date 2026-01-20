@@ -662,25 +662,46 @@ export default function GasCalculatorScreen() {
           const afterFirstBar = residualBar + firstPressure;
           const afterSecondBar = afterFirstBar + secondPressure;
           
+          const formatPressure = (bar: number) => units === 'imperial' 
+            ? `${(bar * PSI_PER_BAR).toFixed(0)} psi` 
+            : `${bar.toFixed(0)} bar`;
+          
+          // Calculate O2% before air topup
+          const targetHe = parseFloat(mixTargetHe) || 0;
+          const residualO2 = mixHasResidual ? (parseFloat(mixResidualO2) || 21) : 0;
+          const residualHe = mixHasResidual ? (parseFloat(mixResidualHe) || 0) : 0;
+          
+          // O2 content before topup = (residual O2 + pure O2 added) / total pressure before topup
+          const o2FromResidual = residualBar * (residualO2 / 100);
+          const o2FromPure = o2Pressure; // Pure O2 is 100%
+          const heFromResidual = residualBar * (residualHe / 100);
+          const heTotal = heFromResidual + hePressure;
+          const o2BeforeTopup = afterSecondBar > 0 ? ((o2FromResidual + o2FromPure) / afterSecondBar) * 100 : 0;
+          
           return (
             <>
-              {hasHeliumStep && renderResultRow(`1. Add ${firstGas} to`, 
-                units === 'imperial' 
-                  ? `${(afterFirstBar * PSI_PER_BAR).toFixed(0)} psi` 
-                  : `${afterFirstBar.toFixed(0)} bar`
-              )}
-              
-              {renderResultRow(hasHeliumStep ? `2. Add ${secondGas} to` : '1. Add Pure O2 to', 
-                units === 'imperial' 
-                  ? `${(afterSecondBar * PSI_PER_BAR).toFixed(0)} psi` 
-                  : `${afterSecondBar.toFixed(0)} bar`
+              {hasHeliumStep && renderResultRow(
+                `1. Add ${firstGas}`, 
+                `${formatPressure(residualBar)} → ${formatPressure(afterFirstBar)}`
               )}
               
               {renderResultRow(
-                `${hasHeliumStep ? '3' : '2'}. Top with ${mixUseAir ? 'Air' : 'EAN' + mixNitroxO2} to`, 
-                units === 'imperial' 
-                  ? `${(finalBar * PSI_PER_BAR).toFixed(0)} psi` 
-                  : `${finalBar.toFixed(0)} bar`
+                hasHeliumStep ? `2. Add ${secondGas}` : '1. Add Pure O2', 
+                `${formatPressure(hasHeliumStep ? afterFirstBar : residualBar)} → ${formatPressure(afterSecondBar)}`
+              )}
+              
+              <View style={[styles.o2BeforeTopup, { backgroundColor: colors.background }]}>
+                <Text style={[styles.o2BeforeTopupLabel, { color: colors.textSecondary }]}>
+                  O2 before topup:
+                </Text>
+                <Text style={[styles.o2BeforeTopupValue, { color: colors.accent }]}>
+                  {o2BeforeTopup.toFixed(1)}%
+                </Text>
+              </View>
+              
+              {renderResultRow(
+                `${hasHeliumStep ? '3' : '2'}. Top with ${mixUseAir ? 'Air' : 'EAN' + mixNitroxO2}`, 
+                `${formatPressure(afterSecondBar)} → ${formatPressure(finalBar)}`
               )}
             </>
           );
@@ -1395,5 +1416,20 @@ const styles = StyleSheet.create({
   warningText: {
     fontSize: 12,
     lineHeight: 18,
+  },
+  o2BeforeTopup: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 10,
+    borderRadius: 8,
+    marginVertical: 8,
+  },
+  o2BeforeTopupLabel: {
+    fontSize: 13,
+  },
+  o2BeforeTopupValue: {
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
