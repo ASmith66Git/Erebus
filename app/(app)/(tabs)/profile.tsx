@@ -45,7 +45,7 @@ interface DiveComputerCapabilities {
 
 export default function ProfileScreen() {
   const { colors } = useTheme();
-  const { user, logout, isAdmin, token, biometricCapability, isBiometricEnabled, setBiometricEnabled, refreshUser } = useAuth();
+  const { user, isAdmin, token, biometricCapability, isBiometricEnabled, setBiometricEnabled, refreshUser } = useAuth();
   
   const [manufacturers, setManufacturers] = useState<Manufacturer[]>([]);
   const [models, setModels] = useState<DiveComputerModel[]>([]);
@@ -567,14 +567,6 @@ export default function ProfileScreen() {
         ))}
       </View>
 
-      <Pressable
-        style={[styles.logoutButton, { borderColor: colors.error }]}
-        onPress={logout}
-      >
-        <Ionicons name="log-out-outline" size={20} color={colors.error} />
-        <Text style={[styles.logoutText, { color: colors.error }]}>Logout</Text>
-      </Pressable>
-
       <Text style={[styles.version, { color: colors.textSecondary }]}>Erebus v1.0.0</Text>
 
       <Modal
@@ -948,20 +940,6 @@ const styles = StyleSheet.create({
   },
   menuDescription: {
     fontSize: 13,
-  },
-  logoutButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    padding: 16,
-    borderWidth: 1,
-    borderRadius: 12,
-    marginBottom: 16,
-  },
-  logoutText: {
-    fontSize: 16,
-    fontWeight: '600',
   },
   version: {
     textAlign: 'center',
