@@ -79,7 +79,7 @@ interface GearProfile {
   finsNickname: string | null;
   maskNickname: string | null;
   notes: string | null;
-  isTemplate: boolean;
+  status: 'live' | 'archived';
   cylinders: Cylinder[];
   weights: Weight[];
 }
@@ -192,7 +192,7 @@ export default function GearProfileScreen() {
     finsNickname: null,
     maskNickname: null,
     notes: null,
-    isTemplate: true,
+    status: 'live',
     cylinders: getDefaultCylinders('single_tank'),
     weights: [],
   });

@@ -28,7 +28,7 @@ interface GearProfile {
   suitThickness: string | null;
   cylinderCount: number;
   totalWeight: number;
-  isTemplate: boolean;
+  status: 'live' | 'archived';
   updatedAt: string;
 }
 
@@ -118,6 +118,49 @@ export default function GearProfilesScreen() {
     );
   };
 
+  const handleDuplicate = async (profile: GearProfile) => {
+    try {
+      const response = await fetch(`${getApiUrl()}/api/gear-profiles/${profile.id}/duplicate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ name: `${profile.name} (copy)` }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        router.push(`/gear-profile/${data.id}` as any);
+      }
+    } catch (error) {
+      console.error('Error duplicating profile:', error);
+      Alert.alert('Error', 'Failed to duplicate profile');
+    }
+  };
+
+  const handleToggleStatus = async (profile: GearProfile) => {
+    const newStatus = profile.status === 'live' ? 'archived' : 'live';
+    try {
+      const response = await fetch(`${getApiUrl()}/api/gear-profiles/${profile.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ status: newStatus }),
+      });
+
+      if (response.ok) {
+        setProfiles(prev => prev.map(p => 
+          p.id === profile.id ? { ...p, status: newStatus } : p
+        ));
+      }
+    } catch (error) {
+      console.error('Error updating profile status:', error);
+    }
+  };
+
   const renderProfileCard = (profile: GearProfile) => {
     const configIcon = CONFIG_TYPE_ICONS[profile.configType] || 'disc';
     const configLabel = CONFIG_TYPE_LABELS[profile.configType] || profile.configType;
@@ -136,12 +179,20 @@ export default function GearProfilesScreen() {
             <Text style={[styles.profileName, { color: colors.text }]}>{profile.name}</Text>
             <Text style={[styles.configLabel, { color: colors.textSecondary }]}>{configLabel}</Text>
           </View>
-          <Pressable
-            style={[styles.deleteButton, { backgroundColor: colors.error + '20' }]}
-            onPress={() => handleDelete(profile)}
-          >
-            <Feather name="trash-2" size={18} color={colors.error} />
-          </Pressable>
+          <View style={styles.cardActions}>
+            <Pressable
+              style={[styles.actionButton, { backgroundColor: colors.primary + '20' }]}
+              onPress={() => handleDuplicate(profile)}
+            >
+              <Feather name="copy" size={16} color={colors.primary} />
+            </Pressable>
+            <Pressable
+              style={[styles.actionButton, { backgroundColor: colors.error + '20' }]}
+              onPress={() => handleDelete(profile)}
+            >
+              <Feather name="trash-2" size={16} color={colors.error} />
+            </Pressable>
+          </View>
         </View>
 
         <View style={[styles.cardDivider, { backgroundColor: colors.border }]} />
@@ -171,12 +222,28 @@ export default function GearProfilesScreen() {
           )}
         </View>
 
-        {profile.isTemplate && (
-          <View style={[styles.templateBadge, { backgroundColor: colors.primary + '20' }]}>
-            <Feather name="bookmark" size={12} color={colors.primary} />
-            <Text style={[styles.templateBadgeText, { color: colors.primary }]}>Template</Text>
-          </View>
-        )}
+        <Pressable
+          style={[
+            styles.statusBadge,
+            { backgroundColor: profile.status === 'live' ? colors.success + '20' : colors.textSecondary + '20' }
+          ]}
+          onPress={(e) => {
+            e.stopPropagation();
+            handleToggleStatus(profile);
+          }}
+        >
+          <Feather
+            name={profile.status === 'live' ? 'check-circle' : 'archive'}
+            size={12}
+            color={profile.status === 'live' ? colors.success : colors.textSecondary}
+          />
+          <Text style={[
+            styles.statusBadgeText,
+            { color: profile.status === 'live' ? colors.success : colors.textSecondary }
+          ]}>
+            {profile.status === 'live' ? 'Live' : 'Archived'}
+          </Text>
+        </Pressable>
       </Pressable>
     );
   };
@@ -303,10 +370,14 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginTop: 2,
   },
-  deleteButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+  cardActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  actionButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -325,17 +396,17 @@ const styles = StyleSheet.create({
   detailText: {
     fontSize: 13,
   },
-  templateBadge: {
+  statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     borderRadius: 12,
-    gap: 4,
+    gap: 5,
     marginTop: 12,
   },
-  templateBadgeText: {
+  statusBadgeText: {
     fontSize: 11,
     fontWeight: '600',
   },
