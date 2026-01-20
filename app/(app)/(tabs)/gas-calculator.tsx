@@ -456,10 +456,15 @@ export default function GasCalculatorScreen() {
             width: `${Math.min(100, (densityResult.depthDensity / 8) * 100)}%`,
             backgroundColor: densityResult.depthDensity > 6.2 ? colors.danger : densityResult.depthDensity > 5.7 ? colors.warning : colors.success
           }]} />
-          <View style={[styles.densityMarker, { left: '65%' }]} />
-          <View style={[styles.densityMarker, { left: '77.5%' }]} />
+          <View style={[styles.densityMarker, { left: `${(5.2 / 8) * 100}%` }]} />
+          <View style={[styles.densityMarker, { left: `${(6.2 / 8) * 100}%` }]} />
         </View>
-        <Text style={[styles.densityScale, { color: colors.textSecondary }]}>0 -------- 5.2 ---- 6.2 -------- 8</Text>
+        <View style={styles.densityScaleContainer}>
+          <Text style={[styles.densityScaleLabel, { color: colors.textSecondary, left: 0 }]}>0</Text>
+          <Text style={[styles.densityScaleLabel, { color: colors.textSecondary, left: `${(5.2 / 8) * 100}%`, transform: [{ translateX: -10 }] }]}>5.2</Text>
+          <Text style={[styles.densityScaleLabel, { color: colors.textSecondary, left: `${(6.2 / 8) * 100}%`, transform: [{ translateX: -10 }] }]}>6.2</Text>
+          <Text style={[styles.densityScaleLabel, { color: colors.textSecondary, right: 0 }]}>8</Text>
+        </View>
       </View>
 
       <View style={[styles.infoCard, { backgroundColor: colors.card }]}>
@@ -1146,10 +1151,14 @@ const styles = StyleSheet.create({
     width: 2,
     backgroundColor: '#FFF',
   },
-  densityScale: {
-    fontSize: 10,
+  densityScaleContainer: {
+    position: 'relative',
+    height: 20,
     marginTop: 4,
-    textAlign: 'center',
+  },
+  densityScaleLabel: {
+    position: 'absolute',
+    fontSize: 10,
   },
   infoCard: {
     borderRadius: 12,
