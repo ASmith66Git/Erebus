@@ -270,14 +270,12 @@ export default function SignupScreen() {
                   {privacyAccepted && <Ionicons name="checkmark" size={16} color="#FFFFFF" />}
                 </View>
               </Pressable>
-              <Text style={[styles.consentText, { color: 'rgba(255,255,255,0.8)' }]}>
-                I have read and accept the{' '}
-              </Text>
-              <Pressable onPress={() => router.push('/(auth)/privacy' as any)}>
-                <Text style={{ color: colors.primary, textDecorationLine: 'underline', fontSize: 14 }}>
-                  Privacy Policy
-                </Text>
-              </Pressable>
+              <View style={styles.consentTextRow}>
+                <Text style={[styles.consentText, { color: 'rgba(255,255,255,0.8)' }]}>I have read and accept the </Text>
+                <Pressable onPress={() => router.push('/(auth)/privacy' as any)}>
+                  <Text style={{ color: colors.primary, textDecorationLine: 'underline', fontSize: 14 }}>Privacy Policy</Text>
+                </Pressable>
+              </View>
             </View>
 
             <View style={styles.checkboxRow}>
@@ -289,14 +287,12 @@ export default function SignupScreen() {
                   {termsAccepted && <Ionicons name="checkmark" size={16} color="#FFFFFF" />}
                 </View>
               </Pressable>
-              <Text style={[styles.consentText, { color: 'rgba(255,255,255,0.8)' }]}>
-                I have read and accept the{' '}
-              </Text>
-              <Pressable onPress={() => router.push('/(auth)/terms' as any)}>
-                <Text style={{ color: colors.primary, textDecorationLine: 'underline', fontSize: 14 }}>
-                  Terms & Conditions
-                </Text>
-              </Pressable>
+              <View style={styles.consentTextRow}>
+                <Text style={[styles.consentText, { color: 'rgba(255,255,255,0.8)' }]}>I have read and accept the </Text>
+                <Pressable onPress={() => router.push('/(auth)/terms' as any)}>
+                  <Text style={{ color: colors.primary, textDecorationLine: 'underline', fontSize: 14 }}>Terms & Conditions</Text>
+                </Pressable>
+              </View>
             </View>
           </View>
 
@@ -467,6 +463,12 @@ const styles = StyleSheet.create({
   },
   checkboxTouchable: {
     marginRight: 8,
+  },
+  consentTextRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    flex: 1,
   },
   checkbox: {
     width: 24,
