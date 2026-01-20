@@ -642,47 +642,58 @@ function DiveTab({ diveLog, colors, gearProfileName, gearProfileId }: { diveLog:
   const [showPpo2, setShowPpo2] = useState(true);
   const [showCns, setShowCns] = useState(true);
 
+  const samples = diveLog.samples || [];
+  const hasTemp = samples.some(s => s.temperature_celsius != null);
+  const hasNdl = samples.some(s => (s.ndl_minutes ?? s.ndl_min ?? (s.ndl_seconds != null ? s.ndl_seconds / 60 : null)) != null);
+  const hasGf99 = samples.some(s => (s.gf99_percent ?? s.gf99_pct) != null);
+  const hasPpo2 = samples.some(s => s.ppo2_bar != null);
+  const hasCns = samples.some(s => (s.cns_percent ?? s.cns_pct) != null);
+
+  const minNdl = hasNdl ? Math.min(...samples.filter(s => {
+    const v = s.ndl_minutes ?? s.ndl_min ?? (s.ndl_seconds != null ? s.ndl_seconds / 60 : null);
+    return v != null;
+  }).map(s => s.ndl_minutes ?? s.ndl_min ?? (s.ndl_seconds! / 60))) : null;
+  const maxGf99 = hasGf99 ? Math.max(...samples.filter(s => (s.gf99_percent ?? s.gf99_pct) != null).map(s => s.gf99_percent ?? s.gf99_pct!)) : null;
+  const maxPpo2 = hasPpo2 ? Math.max(...samples.filter(s => s.ppo2_bar != null).map(s => s.ppo2_bar!)) : null;
+  const maxCns = hasCns ? Math.max(...samples.filter(s => (s.cns_percent ?? s.cns_pct) != null).map(s => s.cns_percent ?? s.cns_pct!)) : null;
+
+  const renderMetricCard = (
+    label: string,
+    value: string,
+    isActive: boolean,
+    onToggle: () => void,
+    lineColor: string,
+    hasData: boolean
+  ) => {
+    if (!hasData) return null;
+    return (
+      <Pressable
+        style={[
+          styles.metricCard,
+          { 
+            backgroundColor: isActive ? lineColor + '15' : colors.surface, 
+            borderColor: isActive ? lineColor : colors.border,
+          }
+        ]}
+        onPress={onToggle}
+      >
+        <View style={styles.metricHeader}>
+          <View style={[styles.metricIndicator, { backgroundColor: isActive ? lineColor : colors.border }]} />
+          <Text style={[styles.metricLabel, { color: isActive ? lineColor : colors.textSecondary }]}>{label}</Text>
+        </View>
+        <Text style={[styles.metricValue, { color: isActive ? colors.text : colors.textSecondary }]}>{value}</Text>
+      </Pressable>
+    );
+  };
+
   return (
     <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
-      {diveLog.samples && diveLog.samples.length > 0 && (
+      {samples.length > 0 && (
         <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <Text style={[styles.cardTitle, { color: colors.text }]}>Dive Profile</Text>
-          
-          <View style={styles.toggleRow}>
-            <Pressable
-              style={[styles.toggleButton, showTemp && { backgroundColor: colors.primary + '20' }]}
-              onPress={() => setShowTemp(!showTemp)}
-            >
-              <Text style={[styles.toggleText, { color: showTemp ? colors.primary : colors.textSecondary }]}>Temp</Text>
-            </Pressable>
-            <Pressable
-              style={[styles.toggleButton, showNdl && { backgroundColor: colors.primary + '20' }]}
-              onPress={() => setShowNdl(!showNdl)}
-            >
-              <Text style={[styles.toggleText, { color: showNdl ? colors.primary : colors.textSecondary }]}>NDL</Text>
-            </Pressable>
-            <Pressable
-              style={[styles.toggleButton, showGf99 && { backgroundColor: colors.primary + '20' }]}
-              onPress={() => setShowGf99(!showGf99)}
-            >
-              <Text style={[styles.toggleText, { color: showGf99 ? colors.primary : colors.textSecondary }]}>GF99</Text>
-            </Pressable>
-            <Pressable
-              style={[styles.toggleButton, showPpo2 && { backgroundColor: colors.primary + '20' }]}
-              onPress={() => setShowPpo2(!showPpo2)}
-            >
-              <Text style={[styles.toggleText, { color: showPpo2 ? colors.primary : colors.textSecondary }]}>PPO2</Text>
-            </Pressable>
-            <Pressable
-              style={[styles.toggleButton, showCns && { backgroundColor: colors.primary + '20' }]}
-              onPress={() => setShowCns(!showCns)}
-            >
-              <Text style={[styles.toggleText, { color: showCns ? colors.primary : colors.textSecondary }]}>CNS</Text>
-            </Pressable>
-          </View>
 
           <DiveProfileChart 
-            samples={diveLog.samples} 
+            samples={samples} 
             colors={colors} 
             showTemp={showTemp}
             showNdl={showNdl}
@@ -690,6 +701,14 @@ function DiveTab({ diveLog, colors, gearProfileName, gearProfileId }: { diveLog:
             showPpo2={showPpo2}
             showCns={showCns}
           />
+
+          <View style={styles.metricCardsRow}>
+            {renderMetricCard('Min Temp', diveLog.minTemperatureCelsius ? `${diveLog.minTemperatureCelsius.toFixed(0)}°C` : '--', showTemp, () => setShowTemp(!showTemp), '#4CAF50', hasTemp)}
+            {renderMetricCard('Min NDL', minNdl != null ? `${Math.round(minNdl)} min` : '--', showNdl, () => setShowNdl(!showNdl), '#FFC107', hasNdl)}
+            {renderMetricCard('Max GF99', maxGf99 != null ? `${Math.round(maxGf99)}%` : '--', showGf99, () => setShowGf99(!showGf99), '#9C27B0', hasGf99)}
+            {renderMetricCard('Max PPO2', maxPpo2 != null ? `${maxPpo2.toFixed(2)} bar` : '--', showPpo2, () => setShowPpo2(!showPpo2), '#FF5722', hasPpo2)}
+            {renderMetricCard('Max CNS', maxCns != null ? `${Math.round(maxCns)}%` : '--', showCns, () => setShowCns(!showCns), '#E91E63', hasCns)}
+          </View>
         </View>
       )}
 
@@ -726,11 +745,11 @@ function DiveTab({ diveLog, colors, gearProfileName, gearProfileId }: { diveLog:
         </View>
         <View style={[styles.halfCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <View style={styles.fieldRow}>
-            <Feather name="thermometer" size={16} color={colors.primary} />
-            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Min Temp</Text>
+            <Feather name="wind" size={16} color={colors.primary} />
+            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Surface</Text>
           </View>
           <Text style={[styles.cardValue, { color: colors.text }]}>
-            {diveLog.minTemperatureCelsius ? `${diveLog.minTemperatureCelsius.toFixed(0)}°C` : '--'}
+            {diveLog.surfaceConditions || 'Not set'}
           </Text>
         </View>
       </View>
@@ -738,20 +757,20 @@ function DiveTab({ diveLog, colors, gearProfileName, gearProfileId }: { diveLog:
       <View style={styles.rowCards}>
         <View style={[styles.halfCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <View style={styles.fieldRow}>
-            <Feather name="wind" size={16} color={colors.primary} />
-            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Surface Conditions</Text>
-          </View>
-          <Text style={[styles.cardValue, { color: colors.text }]}>
-            {diveLog.surfaceConditions || 'Not set'}
-          </Text>
-        </View>
-        <View style={[styles.halfCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <View style={styles.fieldRow}>
             <Feather name="sun" size={16} color={colors.primary} />
             <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Weather</Text>
           </View>
           <Text style={[styles.cardValue, { color: colors.text }]}>
             {diveLog.weatherConditions || 'Not set'}
+          </Text>
+        </View>
+        <View style={[styles.halfCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <View style={styles.fieldRow}>
+            <Feather name="thermometer" size={16} color={colors.primary} />
+            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Max Temp</Text>
+          </View>
+          <Text style={[styles.cardValue, { color: colors.text }]}>
+            {diveLog.maxTemperatureCelsius ? `${diveLog.maxTemperatureCelsius.toFixed(0)}°C` : '--'}
           </Text>
         </View>
       </View>
@@ -2011,6 +2030,41 @@ const styles = StyleSheet.create({
   toggleText: {
     fontSize: 13,
     fontWeight: '500',
+  },
+  metricCardsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 16,
+    justifyContent: 'center',
+  },
+  metricCard: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    minWidth: 75,
+  },
+  metricHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 2,
+  },
+  metricIndicator: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  metricLabel: {
+    fontSize: 10,
+    fontWeight: '500',
+    textTransform: 'uppercase',
+  },
+  metricValue: {
+    fontSize: 14,
+    fontWeight: '700',
   },
   noDataContainer: {
     alignItems: 'center',
