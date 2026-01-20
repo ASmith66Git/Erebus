@@ -23,6 +23,91 @@ import { useAuth } from '@/contexts/AuthContext';
 const CHART_HEIGHT = 280;
 const TISSUE_CHART_HEIGHT = 180;
 
+// Numeric input component that allows clearing and editing easily
+interface NumericInputProps {
+  value: number;
+  onChange: (value: number) => void;
+  style?: any;
+  placeholder?: string;
+  placeholderTextColor?: string;
+  editable?: boolean;
+  min?: number;
+  max?: number;
+  allowFloat?: boolean;
+  defaultValue?: number;
+}
+
+const NumericInput: React.FC<NumericInputProps> = ({
+  value,
+  onChange,
+  style,
+  placeholder,
+  placeholderTextColor,
+  editable = true,
+  min,
+  max,
+  allowFloat = false,
+  defaultValue = 0,
+}) => {
+  const [textValue, setTextValue] = useState(String(value));
+  const [isFocused, setIsFocused] = useState(false);
+
+  // Update text when external value changes (but not while editing)
+  React.useEffect(() => {
+    if (!isFocused) {
+      setTextValue(String(value));
+    }
+  }, [value, isFocused]);
+
+  const handleChangeText = (text: string) => {
+    // Allow empty string, digits, and decimal point (if float allowed)
+    const pattern = allowFloat ? /^-?\d*\.?\d*$/ : /^-?\d*$/;
+    if (pattern.test(text) || text === '') {
+      setTextValue(text);
+    }
+  };
+
+  const handleBlur = () => {
+    setIsFocused(false);
+    let numValue = allowFloat ? parseFloat(textValue) : parseInt(textValue, 10);
+    
+    // Handle invalid/empty input
+    if (isNaN(numValue)) {
+      numValue = defaultValue;
+    }
+    
+    // Apply min/max constraints
+    if (min !== undefined && numValue < min) numValue = min;
+    if (max !== undefined && numValue > max) numValue = max;
+    
+    setTextValue(String(numValue));
+    onChange(numValue);
+  };
+
+  const handleFocus = () => {
+    setIsFocused(true);
+    // Select all text on focus for easy editing
+    if (textValue === '0' || textValue === String(defaultValue)) {
+      setTextValue('');
+    }
+  };
+
+  return (
+    <TextInput
+      style={style}
+      value={textValue}
+      onChangeText={handleChangeText}
+      onFocus={handleFocus}
+      onBlur={handleBlur}
+      keyboardType="numeric"
+      placeholder={placeholder}
+      placeholderTextColor={placeholderTextColor}
+      editable={editable}
+      selectTextOnFocus
+    />
+  );
+};
+
 type TabType = 'plan' | 'gases' | 'settings' | 'saved';
 
 interface DiveEntry {
@@ -1049,11 +1134,12 @@ export default function DivePlanningScreen() {
               <View style={styles.inputRow}>
                 <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Surface Interval</Text>
                 <View style={styles.inputGroup}>
-                  <TextInput
+                  <NumericInput
                     style={[styles.input, { color: colors.text, borderColor: colors.border }]}
-                    value={String(dive.surfaceInterval)}
-                    onChangeText={(v) => updateDive(dive.id, 'surfaceInterval', parseInt(v) || 0)}
-                    keyboardType="numeric"
+                    value={dive.surfaceInterval}
+                    onChange={(v) => updateDive(dive.id, 'surfaceInterval', v)}
+                    min={0}
+                    defaultValue={0}
                   />
                   <Text style={[styles.inputUnit, { color: colors.textSecondary }]}>min</Text>
                 </View>
@@ -1062,11 +1148,13 @@ export default function DivePlanningScreen() {
             <View style={styles.inputRow}>
               <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Depth</Text>
               <View style={styles.inputGroup}>
-                <TextInput
+                <NumericInput
                   style={[styles.input, { color: colors.text, borderColor: colors.border }]}
-                  value={String(dive.depth)}
-                  onChangeText={(v) => updateDive(dive.id, 'depth', parseFloat(v) || 0)}
-                  keyboardType="numeric"
+                  value={dive.depth}
+                  onChange={(v) => updateDive(dive.id, 'depth', v)}
+                  min={0}
+                  allowFloat
+                  defaultValue={0}
                 />
                 <Text style={[styles.inputUnit, { color: colors.textSecondary }]}>{depthUnit}</Text>
               </View>
@@ -1074,11 +1162,12 @@ export default function DivePlanningScreen() {
             <View style={styles.inputRow}>
               <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Bottom Time</Text>
               <View style={styles.inputGroup}>
-                <TextInput
+                <NumericInput
                   style={[styles.input, { color: colors.text, borderColor: colors.border }]}
-                  value={String(dive.bottomTime)}
-                  onChangeText={(v) => updateDive(dive.id, 'bottomTime', parseInt(v) || 0)}
-                  keyboardType="numeric"
+                  value={dive.bottomTime}
+                  onChange={(v) => updateDive(dive.id, 'bottomTime', v)}
+                  min={0}
+                  defaultValue={0}
                 />
                 <Text style={[styles.inputUnit, { color: colors.textSecondary }]}>min</Text>
               </View>
@@ -1175,32 +1264,40 @@ export default function DivePlanningScreen() {
         <View style={styles.gasInputRow}>
           <View style={styles.gasInputGroup}>
             <Text style={[styles.gasInputLabel, { color: colors.textSecondary }]}>O2%</Text>
-            <TextInput
+            <NumericInput
               style={[styles.gasInput, { color: colors.text, borderColor: colors.border, backgroundColor: isO2Fixed ? colors.background : undefined }]}
-              value={String(gas.o2Percent)}
-              onChangeText={(v) => updateGas(gas.id, 'o2Percent', parseFloat(v) || 21)}
-              keyboardType="numeric"
+              value={gas.o2Percent}
+              onChange={(v) => updateGas(gas.id, 'o2Percent', v)}
+              min={0}
+              max={100}
+              allowFloat
+              defaultValue={21}
               editable={!isO2Fixed}
             />
           </View>
           <View style={styles.gasInputGroup}>
             <Text style={[styles.gasInputLabel, { color: colors.textSecondary }]}>He%</Text>
-            <TextInput
+            <NumericInput
               style={[styles.gasInput, { color: colors.text, borderColor: colors.border, backgroundColor: isO2Fixed ? colors.background : undefined }]}
-              value={String(gas.hePercent)}
-              onChangeText={(v) => updateGas(gas.id, 'hePercent', parseFloat(v) || 0)}
-              keyboardType="numeric"
+              value={gas.hePercent}
+              onChange={(v) => updateGas(gas.id, 'hePercent', v)}
+              min={0}
+              max={100}
+              allowFloat
+              defaultValue={0}
               editable={!isO2Fixed}
             />
           </View>
           {showSwitchDepth && (
             <View style={styles.gasInputGroup}>
               <Text style={[styles.gasInputLabel, { color: colors.textSecondary }]}>Switch@</Text>
-              <TextInput
+              <NumericInput
                 style={[styles.gasInput, { color: colors.text, borderColor: colors.border }]}
-                value={gas.switchDepth !== null ? String(gas.switchDepth) : ''}
-                onChangeText={(v) => updateGas(gas.id, 'switchDepth', v ? parseFloat(v) : null)}
-                keyboardType="numeric"
+                value={gas.switchDepth ?? 0}
+                onChange={(v) => updateGas(gas.id, 'switchDepth', v === 0 ? null : v)}
+                min={0}
+                allowFloat
+                defaultValue={0}
                 placeholder={depthUnit}
                 placeholderTextColor={colors.textSecondary}
               />
