@@ -92,32 +92,36 @@ export default function GearProfilesScreen() {
     fetchProfiles();
   };
 
-  const handleDelete = (profile: GearProfile) => {
-    Alert.alert(
-      'Delete Profile',
-      `Are you sure you want to delete "${profile.name}"?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const response = await fetch(`${getApiUrl()}/api/gear-profiles/${profile.id}`, {
-                method: 'DELETE',
-                headers: { Authorization: `Bearer ${token}` },
-              });
+  const handleDelete = async (profile: GearProfile) => {
+    const doDelete = async () => {
+      try {
+        const response = await fetch(`${getApiUrl()}/api/gear-profiles/${profile.id}`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` },
+        });
 
-              if (response.ok) {
-                setProfiles(prev => prev.filter(p => p.id !== profile.id));
-              }
-            } catch (error) {
-              console.error('Error deleting profile:', error);
-            }
-          },
-        },
-      ]
-    );
+        if (response.ok) {
+          setProfiles(prev => prev.filter(p => p.id !== profile.id));
+        }
+      } catch (error) {
+        console.error('Error deleting profile:', error);
+      }
+    };
+
+    if (Platform.OS === 'web') {
+      if (window.confirm(`Are you sure you want to delete "${profile.name}"?`)) {
+        doDelete();
+      }
+    } else {
+      Alert.alert(
+        'Delete Profile',
+        `Are you sure you want to delete "${profile.name}"?`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Delete', style: 'destructive', onPress: doDelete },
+        ]
+      );
+    }
   };
 
   const handleDuplicate = async (profile: GearProfile) => {
@@ -137,7 +141,11 @@ export default function GearProfilesScreen() {
       }
     } catch (error) {
       console.error('Error duplicating profile:', error);
-      Alert.alert('Error', 'Failed to duplicate profile');
+      if (Platform.OS === 'web') {
+        window.alert('Failed to duplicate profile');
+      } else {
+        Alert.alert('Error', 'Failed to duplicate profile');
+      }
     }
   };
 
