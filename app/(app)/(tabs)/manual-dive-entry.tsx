@@ -33,9 +33,14 @@ interface DiveBuddy {
 
 const SURFACE_CONDITIONS = ['Calm', 'Light chop', 'Moderate waves', 'Rough', 'Strong current'];
 const WEATHER_CONDITIONS = ['Sunny', 'Partly cloudy', 'Overcast', 'Rainy', 'Windy'];
-const WORKLOAD_OPTIONS = ['Light', 'Moderate', 'Heavy', 'Strenuous'];
-const THERMAL_COMFORT = ['Too cold', 'Cold', 'Comfortable', 'Warm', 'Too warm'];
+const WORKLOAD_OPTIONS = ['Light', 'Moderate', 'Heavy', 'Exhausting'];
+const THERMAL_OPTIONS = ['Cold', 'Cool', 'Comfortable', 'Warm', 'Hot'];
 const DIVE_MODES = ['Open Circuit', 'CCR', 'SCR', 'Sidemount', 'Freedive'];
+const EQUIPMENT_OPTIONS = [
+  'None', 'First Stages', 'Second Stages', 'Gas Hoses', 'Wing', 'Harness',
+  'Torches', 'Weights', 'SMBs', 'Reels', 'Suit Inflation', 'Suit Venting',
+  'Fins', 'Masks', 'CCR O2', 'CCR Dil', 'CCR CO2', 'Dive Computer', 'Other'
+];
 
 export default function ManualDiveEntryScreen() {
   const { colors } = useTheme();
@@ -83,7 +88,9 @@ export default function ManualDiveEntryScreen() {
   
   const [selectedBuddyIds, setSelectedBuddyIds] = useState<number[]>([]);
   const [buddyNotes, setBuddyNotes] = useState('');
-  const [equipmentIssues, setEquipmentIssues] = useState('');
+  const [equipmentIssues, setEquipmentIssues] = useState<string[]>([]);
+  const [decompressionSymptoms, setDecompressionSymptoms] = useState(false);
+  const [problemNotes, setProblemNotes] = useState('');
   const [skillsNotes, setSkillsNotes] = useState('');
 
   useEffect(() => {
@@ -188,6 +195,47 @@ export default function ManualDiveEntryScreen() {
     }
   };
 
+  const toggleEquipmentIssue = (issue: string) => {
+    if (issue === 'None') {
+      setEquipmentIssues(equipmentIssues.includes('None') ? [] : ['None']);
+    } else {
+      const withoutNone = equipmentIssues.filter(i => i !== 'None');
+      if (withoutNone.includes(issue)) {
+        setEquipmentIssues(withoutNone.filter(i => i !== issue));
+      } else {
+        setEquipmentIssues([...withoutNone, issue]);
+      }
+    }
+  };
+
+  const renderChipSelector = (
+    label: string,
+    options: string[],
+    value: string,
+    onChange: (val: string) => void
+  ) => (
+    <View style={styles.fieldGroup}>
+      <Text style={[styles.label, { color: colors.textSecondary }]}>{label}</Text>
+      <View style={styles.chipsRow}>
+        {options.map((option) => (
+          <Pressable
+            key={option}
+            style={[
+              styles.chip,
+              { borderColor: colors.border },
+              value === option && { backgroundColor: colors.primary + '20', borderColor: colors.primary }
+            ]}
+            onPress={() => onChange(value === option ? '' : option)}
+          >
+            <Text style={[styles.chipText, { color: value === option ? colors.primary : colors.text }]}>
+              {option}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+    </View>
+  );
+
   const renderStarRating = () => {
     return (
       <View style={styles.ratingContainer}>
@@ -204,36 +252,6 @@ export default function ManualDiveEntryScreen() {
       </View>
     );
   };
-
-  const renderChipSelector = (
-    options: string[], 
-    selected: string, 
-    onSelect: (value: string) => void,
-    label: string
-  ) => (
-    <View style={styles.chipSection}>
-      <Text style={[styles.label, { color: colors.textSecondary }]}>{label}</Text>
-      <View style={styles.chipRow}>
-        {options.map((option) => (
-          <Pressable
-            key={option}
-            style={[
-              styles.chip,
-              { borderColor: colors.border, backgroundColor: colors.surface },
-              selected === option && { backgroundColor: colors.primary + '20', borderColor: colors.primary }
-            ]}
-            onPress={() => onSelect(selected === option ? '' : option)}
-          >
-            <Text style={[
-              styles.chipText,
-              { color: colors.text },
-              selected === option && { color: colors.primary }
-            ]}>{option}</Text>
-          </Pressable>
-        ))}
-      </View>
-    </View>
-  );
 
   const renderDiveTab = () => (
     <ScrollView style={styles.tabContent} contentContainerStyle={styles.tabContentContainer}>
@@ -378,10 +396,8 @@ export default function ManualDiveEntryScreen() {
 
       <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
         <Text style={[styles.cardTitle, { color: colors.text }]}>Conditions</Text>
-        {renderChipSelector(SURFACE_CONDITIONS, surfaceConditions, setSurfaceConditions, 'Surface Conditions')}
-        {renderChipSelector(WEATHER_CONDITIONS, weatherConditions, setWeatherConditions, 'Weather')}
-        {renderChipSelector(WORKLOAD_OPTIONS, workload, setWorkload, 'Workload')}
-        {renderChipSelector(THERMAL_COMFORT, thermalComfort, setThermalComfort, 'Thermal Comfort')}
+        {renderChipSelector('Surface Conditions', SURFACE_CONDITIONS, surfaceConditions, setSurfaceConditions)}
+        {renderChipSelector('Weather', WEATHER_CONDITIONS, weatherConditions, setWeatherConditions)}
       </View>
     </ScrollView>
   );
@@ -390,7 +406,7 @@ export default function ManualDiveEntryScreen() {
     <ScrollView style={styles.tabContent} contentContainerStyle={styles.tabContentContainer}>
       <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
         <Text style={[styles.cardTitle, { color: colors.text }]}>Dive Mode</Text>
-        {renderChipSelector(DIVE_MODES, diveMode, setDiveMode, '')}
+        {renderChipSelector('Dive Mode', DIVE_MODES, diveMode, setDiveMode)}
       </View>
 
       <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -478,23 +494,52 @@ export default function ManualDiveEntryScreen() {
   const renderProblemsTab = () => (
     <ScrollView style={styles.tabContent} contentContainerStyle={styles.tabContentContainer}>
       <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <View style={styles.fieldRow}>
-          <Feather name="alert-triangle" size={16} color={colors.primary} />
-          <Text style={[styles.cardTitle, { color: colors.text }]}>Equipment Issues</Text>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>Physical State</Text>
+        {renderChipSelector('Workload', WORKLOAD_OPTIONS, workload, setWorkload)}
+        {renderChipSelector('Thermal Comfort', THERMAL_OPTIONS, thermalComfort, setThermalComfort)}
+      </View>
+
+      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>Equipment Issues</Text>
+        <View style={styles.checkboxGrid}>
+          {EQUIPMENT_OPTIONS.map((equip) => {
+            const isChecked = equipmentIssues.includes(equip);
+            return (
+              <Pressable key={equip} style={styles.checkboxItem} onPress={() => toggleEquipmentIssue(equip)}>
+                <View style={[styles.checkbox, { borderColor: colors.border, backgroundColor: isChecked ? colors.primary + '20' : 'transparent' }]}>
+                  {isChecked && <Feather name="check" size={12} color={colors.primary} />}
+                </View>
+                <Text style={[styles.checkboxLabel, { color: colors.text }]}>{equip}</Text>
+              </Pressable>
+            );
+          })}
         </View>
+      </View>
+
+      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>Decompression Symptoms</Text>
+        <View style={styles.radioRow}>
+          <Pressable style={styles.radioItem} onPress={() => setDecompressionSymptoms(false)}>
+            <View style={[styles.radio, { borderColor: colors.border, backgroundColor: !decompressionSymptoms ? colors.primary : 'transparent' }]} />
+            <Text style={[styles.radioLabel, { color: colors.text }]}>No</Text>
+          </Pressable>
+          <Pressable style={styles.radioItem} onPress={() => setDecompressionSymptoms(true)}>
+            <View style={[styles.radio, { borderColor: colors.border, backgroundColor: decompressionSymptoms ? colors.primary : 'transparent' }]} />
+            <Text style={[styles.radioLabel, { color: colors.text }]}>Yes</Text>
+          </Pressable>
+        </View>
+      </View>
+
+      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>Problem Notes</Text>
         <TextInput
-          style={[styles.textArea, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text, minHeight: 150 }]}
-          value={equipmentIssues}
-          onChangeText={setEquipmentIssues}
-          placeholder={`Record any equipment problems during the dive, for example:
-• Regulator free-flow
-• Mask leaking
-• BCD inflator sticking
-• Computer malfunction
-• Torch failure
-• Drysuit leak`}
+          style={[styles.textArea, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
+          value={problemNotes}
+          onChangeText={setProblemNotes}
+          placeholder="Describe any problems encountered during the dive..."
           placeholderTextColor={colors.textSecondary}
           multiline
+          numberOfLines={4}
           textAlignVertical="top"
         />
       </View>
@@ -900,5 +945,55 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     fontWeight: '500',
+  },
+  fieldGroup: {
+    marginBottom: 16,
+  },
+  chipsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 8,
+  },
+  checkboxGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  checkboxItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '50%',
+    paddingVertical: 8,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 1,
+    marginRight: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxLabel: {
+    fontSize: 13,
+    flex: 1,
+  },
+  radioRow: {
+    flexDirection: 'row',
+    gap: 24,
+  },
+  radioItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  radio: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+  },
+  radioLabel: {
+    fontSize: 14,
   },
 });
