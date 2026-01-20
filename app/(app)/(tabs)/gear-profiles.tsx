@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -16,7 +16,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSettings } from '@/contexts/SettingsContext';
 import { getApiUrl } from '@/utils/apiConfig';
-import { DrawerActions, useNavigation } from '@react-navigation/native';
+import { DrawerActions, useNavigation, useFocusEffect } from '@react-navigation/native';
 import PageHeader from '@/components/PageHeader';
 import ThemedBackground from '@/components/ThemedBackground';
 
@@ -81,9 +81,11 @@ export default function GearProfilesScreen() {
     }
   }, [token, logout]);
 
-  useEffect(() => {
-    fetchProfiles();
-  }, [fetchProfiles]);
+  useFocusEffect(
+    useCallback(() => {
+      fetchProfiles();
+    }, [fetchProfiles])
+  );
 
   const onRefresh = () => {
     setRefreshing(true);
