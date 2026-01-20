@@ -1598,7 +1598,7 @@ export default function DivePlanningScreen() {
 
       {/* Units & Environment */}
       <View style={[styles.section, { backgroundColor: colors.card }]}>
-        <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>Feet / Meter / Units</Text>
+        <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>Units</Text>
         
         {renderPicker('Depth', [
           { value: 'imperial', label: 'Feet' },
