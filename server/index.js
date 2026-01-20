@@ -3817,7 +3817,15 @@ app.get('/api/dive-logs/stats', authenticateToken, async (req, res) => {
       WHERE user_id = $1 AND deleted_at IS NULL
     `, [req.user.id]);
 
+    const sitesResult = await pool.query(`
+      SELECT COUNT(*) as total_sites
+      FROM dive_sites
+      WHERE (user_id = $1 OR user_id IS NULL) AND deleted_at IS NULL AND is_archived = FALSE
+    `, [req.user.id]);
+
     const stats = result.rows[0];
+    const totalSites = parseInt(sitesResult.rows[0].total_sites) || 0;
+    
     res.json({
       totalDives: parseInt(stats.total_dives) || 0,
       totalDurationSeconds: parseInt(stats.total_duration_seconds) || 0,
@@ -3825,7 +3833,7 @@ app.get('/api/dive-logs/stats', authenticateToken, async (req, res) => {
       avgMaxDepthMeters: stats.avg_max_depth_meters ? parseFloat(stats.avg_max_depth_meters) : null,
       coldestTemp: stats.coldest_temp ? parseFloat(stats.coldest_temp) : null,
       warmestTemp: stats.warmest_temp ? parseFloat(stats.warmest_temp) : null,
-      sitesVisited: parseInt(stats.sites_visited) || 0
+      sitesVisited: totalSites
     });
   } catch (error) {
     console.error('Get dive stats error:', error);
