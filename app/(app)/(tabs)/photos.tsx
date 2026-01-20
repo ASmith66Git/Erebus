@@ -73,7 +73,18 @@ export default function PhotosScreen() {
   const viewerScrollRef = useRef<ScrollView>(null);
   const thumbnailScrollRef = useRef<ScrollView>(null);
   const thumbnailScrollPosition = useRef(0);
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const filterByDiveLogId = diveLogId ? parseInt(diveLogId) : null;
+
+  // Helper to scroll thumbnail bar to center a given index
+  const scrollThumbnailToIndex = useCallback((index: number, animated: boolean = true) => {
+    const thumbnailWidth = 50;
+    const thumbnailGap = 8;
+    const thumbnailTotalWidth = thumbnailWidth + thumbnailGap;
+    const scrollX = Math.max(0, (index * thumbnailTotalWidth) - (screenWidth / 2) + (thumbnailWidth / 2));
+    thumbnailScrollRef.current?.scrollTo({ x: scrollX, animated });
+    thumbnailScrollPosition.current = scrollX;
+  }, [screenWidth]);
 
   useEffect(() => {
     if (showViewer && viewerScrollRef.current) {
@@ -457,18 +468,28 @@ export default function PhotosScreen() {
             horizontal
             pagingEnabled
             showsHorizontalScrollIndicator={false}
+            onScroll={(e) => {
+              // Use debounced scroll detection for web compatibility
+              if (scrollTimeoutRef.current) {
+                clearTimeout(scrollTimeoutRef.current);
+              }
+              scrollTimeoutRef.current = setTimeout(() => {
+                const newIndex = Math.round(e.nativeEvent.contentOffset.x / screenWidth);
+                if (newIndex >= 0 && newIndex < photos.length && newIndex !== viewerIndex) {
+                  setViewerIndex(newIndex);
+                  setSelectedPhoto(photos[newIndex]);
+                  scrollThumbnailToIndex(newIndex);
+                }
+              }, 100);
+            }}
+            scrollEventThrottle={16}
             onMomentumScrollEnd={(e) => {
+              // Also handle momentum scroll end for native
               const newIndex = Math.round(e.nativeEvent.contentOffset.x / screenWidth);
               if (newIndex >= 0 && newIndex < photos.length) {
                 setViewerIndex(newIndex);
                 setSelectedPhoto(photos[newIndex]);
-                // Scroll thumbnail bar to center the current thumbnail
-                const thumbnailWidth = 50;
-                const thumbnailGap = 8;
-                const thumbnailTotalWidth = thumbnailWidth + thumbnailGap;
-                const scrollX = Math.max(0, (newIndex * thumbnailTotalWidth) - (screenWidth / 2) + (thumbnailWidth / 2));
-                thumbnailScrollRef.current?.scrollTo({ x: scrollX, animated: true });
-                thumbnailScrollPosition.current = scrollX;
+                scrollThumbnailToIndex(newIndex);
               }
             }}
             style={styles.viewerScrollView}
