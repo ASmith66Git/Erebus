@@ -17,13 +17,63 @@ export default function TermsScreen() {
             <Pressable onPress={() => router.back()} style={styles.backButton}>
               <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
             </Pressable>
-            <Text style={styles.headerTitle}>Terms & Conditions</Text>
+            <Text style={styles.headerTitle}>Terms and Conditions</Text>
             <View style={styles.placeholder} />
           </View>
           <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-            <Text style={styles.placeholderText}>
-              Terms and conditions content will be added here.
+            <Text style={styles.lastUpdated}>
+              Last Updated: January 20, 2026
             </Text>
+
+            <Text style={[styles.sectionTitle, { color: colors.primary }]}>1. Acceptance of Risk</Text>
+            <Text style={styles.paragraph}>
+              Scuba diving, particularly technical diving involving gas blending and decompression planning, is an inherently dangerous activity. By using Leviathan Systems Ltd Erebus Dive Management app (Erebus App), you acknowledge that you are a certified diver and understand the risks of DCI (Decompression Illness), oxygen toxicity, and nitrogen narcosis. Use of this app is at your own sole risk.
+            </Text>
+
+            <Text style={[styles.sectionTitle, { color: colors.primary }]}>2. No Liability for Calculations</Text>
+            <Text style={styles.paragraph}>
+              The Erebus App provides gas planning and decompression models (e.g., Bühlmann ZHL-16C) for informational and educational purposes only.
+            </Text>
+            <Text style={styles.bulletPoint}>
+              • Strict Liability Waiver: To the maximum extent permitted by law, the Erebus App and its developers shall not be liable for any injury, fatality, or property damage resulting from the use of calculations provided by this app.
+            </Text>
+            <Text style={styles.bulletPoint}>
+              • Math vs. Reality: You acknowledge that mathematical models cannot account for individual physiological variables such as hydration, fatigue, thermal stress, or PFO (Patent Foramen Ovale).
+            </Text>
+
+            <Text style={[styles.sectionTitle, { color: colors.primary }]}>3. Requirement for Cross-Verification (Redundancy)</Text>
+            <Text style={styles.paragraph}>
+              This app is not a primary life-support tool.
+            </Text>
+            <Text style={styles.bulletPoint}>
+              • The Rule of Two: You must cross-verify every calculation (MOD, END, Gas Volume, Decompression Stops) against at least one other independent source, such as printed dive tables or a primary dive computer from a different manufacturer.
+            </Text>
+            <Text style={styles.bulletPoint}>
+              • Manual Verification: Users are expected to perform manual "sanity checks" on all gas mixes and planning outputs before entering the water.
+            </Text>
+
+            <Text style={[styles.sectionTitle, { color: colors.primary }]}>4. Gas Blending & Planning</Text>
+            <Text style={styles.paragraph}>
+              Calculations regarding Nitrox, Trimix, or Heliox are based on ideal gas laws or van der Waals equations.
+            </Text>
+            <Text style={styles.bulletPoint}>
+              • Real-world variables (temperature changes during filling, cylinder impurities, or inaccurate O2/He analyzers) can create discrepancies between the app's plan and your actual gas.
+            </Text>
+            <Text style={styles.bulletPoint}>
+              • Always analyze your gas with a calibrated analyzer. Never dive a gas based solely on an app calculation.
+            </Text>
+
+            <Text style={[styles.sectionTitle, { color: colors.primary }]}>5. Not a Substitute for Training</Text>
+            <Text style={styles.paragraph}>
+              This app does not grant "certification" or "competency." Using the planning features for dives beyond your current level of training (e.g., using the Trimix planner when only Open Water certified) is a violation of these terms and a life-threatening practice.
+            </Text>
+
+            <Text style={[styles.sectionTitle, { color: colors.primary }]}>6. "As-Is" Software Warranty</Text>
+            <Text style={styles.paragraph}>
+              We provide this software "as-is." While we strive for 100% mathematical accuracy, we do not warrant that the app will be error-free or that its calculations will prevent decompression sickness. Software bugs, sensor errors, or OS updates can affect app performance.
+            </Text>
+
+            <View style={styles.footer} />
           </ScrollView>
         </SafeAreaView>
       </View>
@@ -68,10 +118,32 @@ const styles = StyleSheet.create({
   content: {
     padding: 20,
   },
-  placeholderText: {
-    fontSize: 16,
-    textAlign: 'center',
-    marginTop: 40,
-    color: 'rgba(255,255,255,0.7)',
+  lastUpdated: {
+    fontSize: 14,
+    marginBottom: 16,
+    fontStyle: 'italic',
+    color: 'rgba(255,255,255,0.6)',
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginTop: 20,
+    marginBottom: 12,
+  },
+  paragraph: {
+    fontSize: 15,
+    lineHeight: 22,
+    marginBottom: 12,
+    color: '#FFFFFF',
+  },
+  bulletPoint: {
+    fontSize: 15,
+    lineHeight: 22,
+    marginBottom: 8,
+    paddingLeft: 8,
+    color: 'rgba(255,255,255,0.8)',
+  },
+  footer: {
+    height: 40,
   },
 });
