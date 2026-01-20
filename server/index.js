@@ -1772,7 +1772,7 @@ app.put('/api/user/dive-computer', authenticateToken, async (req, res) => {
 app.get('/api/user/profile', authenticateToken, async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT id, email, first_name, last_name, age, sex, role, created_at FROM users WHERE id = $1',
+      'SELECT id, email, first_name, last_name, age, sex, role, profile_image, created_at FROM users WHERE id = $1',
       [req.user.id]
     );
     
@@ -1789,6 +1789,7 @@ app.get('/api/user/profile', authenticateToken, async (req, res) => {
       age: user.age,
       sex: user.sex,
       role: user.role,
+      profileImage: user.profile_image,
       createdAt: user.created_at
     });
   } catch (error) {
@@ -1798,7 +1799,7 @@ app.get('/api/user/profile', authenticateToken, async (req, res) => {
 });
 
 app.put('/api/user/profile', authenticateToken, async (req, res) => {
-  const { firstName, lastName, age, sex } = req.body;
+  const { firstName, lastName, age, sex, profileImage } = req.body;
   
   try {
     const updates = [];
@@ -1836,6 +1837,12 @@ app.put('/api/user/profile', authenticateToken, async (req, res) => {
       paramIndex++;
     }
     
+    if (profileImage !== undefined) {
+      updates.push(`profile_image = $${paramIndex}`);
+      params.push(profileImage);
+      paramIndex++;
+    }
+    
     if (updates.length === 0) {
       return res.status(400).json({ error: 'No fields to update' });
     }
@@ -1844,7 +1851,7 @@ app.put('/api/user/profile', authenticateToken, async (req, res) => {
     params.push(req.user.id);
     
     const result = await pool.query(
-      `UPDATE users SET ${updates.join(', ')} WHERE id = $${paramIndex} RETURNING id, email, first_name, last_name, age, sex, role`,
+      `UPDATE users SET ${updates.join(', ')} WHERE id = $${paramIndex} RETURNING id, email, first_name, last_name, age, sex, role, profile_image`,
       params
     );
     
@@ -1858,7 +1865,8 @@ app.put('/api/user/profile', authenticateToken, async (req, res) => {
         lastName: user.last_name,
         age: user.age,
         sex: user.sex,
-        role: user.role
+        role: user.role,
+        profileImage: user.profile_image
       }
     });
   } catch (error) {
