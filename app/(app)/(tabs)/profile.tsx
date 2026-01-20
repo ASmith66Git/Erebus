@@ -342,6 +342,7 @@ export default function ProfileScreen() {
   };
 
   const menuItems = [
+    { icon: 'diamond-outline', title: 'Subscription', description: 'Manage your plan', route: '/(app)/(tabs)/subscription' },
     { icon: 'notifications-outline', title: 'Notifications', description: 'Manage your alerts', route: null },
     { icon: 'shield-checkmark-outline', title: 'Privacy', description: 'Control your data', route: '/privacy' },
     { icon: 'help-circle-outline', title: 'Help & Support', description: 'Get assistance', route: null },
