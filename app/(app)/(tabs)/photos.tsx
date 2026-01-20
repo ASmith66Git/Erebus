@@ -67,6 +67,7 @@ export default function PhotosScreen() {
   const [filter, setFilter] = useState<'all' | 'favorites' | 'unlinked'>('all');
   const [showUploadMenu, setShowUploadMenu] = useState(false);
   const [showLinkModal, setShowLinkModal] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [diveLogs, setDiveLogs] = useState<{id: number; diveDateTime: string; diveSiteName: string | null}[]>([]);
   const [linking, setLinking] = useState(false);
   const viewerScrollRef = useRef<ScrollView>(null);
@@ -609,8 +610,8 @@ export default function PhotosScreen() {
               >
                 <Ionicons name="link" size={24} color={selectedIds.size > 0 ? colors.primary : colors.textSecondary} />
               </Pressable>
-              <Pressable onPress={deleteSelected}>
-                <Ionicons name="trash-outline" size={24} color="#FF3B30" />
+              <Pressable onPress={() => setShowDeleteConfirm(true)} disabled={selectedIds.size === 0}>
+                <Ionicons name="trash-outline" size={24} color={selectedIds.size > 0 ? '#FF3B30' : colors.textSecondary} />
               </Pressable>
             </View>
           </>
@@ -749,6 +750,40 @@ export default function PhotosScreen() {
                 <ActivityIndicator color={colors.primary} size="large" />
               </View>
             )}
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={showDeleteConfirm}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowDeleteConfirm(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.deleteConfirmModal, { backgroundColor: colors.surface }]}>
+            <Ionicons name="warning" size={48} color="#FF3B30" style={{ marginBottom: 16 }} />
+            <Text style={[styles.deleteConfirmTitle, { color: colors.text }]}>Delete Photos?</Text>
+            <Text style={[styles.deleteConfirmText, { color: colors.textSecondary }]}>
+              Are you sure you want to delete {selectedIds.size} photo{selectedIds.size !== 1 ? 's' : ''}? This action cannot be undone.
+            </Text>
+            <View style={styles.deleteConfirmButtons}>
+              <Pressable
+                style={[styles.deleteConfirmButton, { backgroundColor: colors.background, borderColor: colors.border, borderWidth: 1 }]}
+                onPress={() => setShowDeleteConfirm(false)}
+              >
+                <Text style={[styles.deleteConfirmButtonText, { color: colors.text }]}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.deleteConfirmButton, { backgroundColor: '#FF3B30' }]}
+                onPress={() => {
+                  setShowDeleteConfirm(false);
+                  deleteSelected();
+                }}
+              >
+                <Text style={[styles.deleteConfirmButtonText, { color: '#FFF' }]}>Delete</Text>
+              </Pressable>
+            </View>
           </View>
         </View>
       </Modal>
@@ -1091,5 +1126,38 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 13,
     lineHeight: 18,
+  },
+  deleteConfirmModal: {
+    width: '90%',
+    maxWidth: 340,
+    borderRadius: 16,
+    padding: 24,
+    alignItems: 'center',
+  },
+  deleteConfirmTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  deleteConfirmText: {
+    fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 24,
+  },
+  deleteConfirmButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    width: '100%',
+  },
+  deleteConfirmButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  deleteConfirmButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
