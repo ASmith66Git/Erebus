@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput,
-  Dimensions, Platform, Modal, Switch, Pressable
+  Dimensions, Platform, Modal, Switch, Pressable, ActivityIndicator
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { DrawerActions, useNavigation } from '@react-navigation/native';
@@ -235,6 +235,7 @@ export default function DivePlanningScreen() {
   const [showScrubberModal, setShowScrubberModal] = useState(false);
   const [scrubberElapsed, setScrubberElapsed] = useState(0);
   const [chartScrubberTime, setChartScrubberTime] = useState<number>(0);
+  const [isPdfLoading, setIsPdfLoading] = useState(false);
 
   const gasMixes = useMemo(() => {
     return gases.map(g => {
@@ -2271,10 +2272,17 @@ export default function DivePlanningScreen() {
         console.warn('No dive selected');
         return;
       }
+      
+      setIsPdfLoading(true);
+      
       const gasesForPdf = gases.map(g => ({
         ...createGasMix(g.o2Percent, g.hePercent, g.switchDepth, g.cylinderVolume, g.fillPressure, g.reservePressure),
         name: g.name,
       }));
+      
+      // Small delay to allow modal to render before heavy PDF work
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       // Dynamic import to prevent jsPDF from loading on Android (causes latin1 encoding crash)
       const { downloadDivePlanPdf } = await import('@/services/divePlanPdf');
       downloadDivePlanPdf({
@@ -2286,8 +2294,11 @@ export default function DivePlanningScreen() {
         userName: user?.name || user?.email?.split('@')[0] || 'Diver',
         themeColor: colors.primary,
       });
+      
+      setIsPdfLoading(false);
     } catch (error) {
       console.error('PDF generation error:', error);
+      setIsPdfLoading(false);
     }
   };
 
@@ -2587,6 +2598,21 @@ export default function DivePlanningScreen() {
             <TouchableOpacity style={[styles.infoButton, { backgroundColor: colors.primary }]} onPress={() => setShowIbcdInfo(false)}>
               <Text style={styles.infoButtonText}>Got it</Text>
             </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* PDF Loading Modal */}
+      <Modal visible={isPdfLoading} animationType="fade" transparent>
+        <View style={styles.infoModalOverlay}>
+          <View style={[styles.infoModalContent, { backgroundColor: colors.card, alignItems: 'center', paddingVertical: 32 }]}>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={[styles.infoModalTitle, { color: colors.text, marginTop: 16, textAlign: 'center' }]}>
+              Preparing Dive Plan
+            </Text>
+            <Text style={[styles.infoText, { color: colors.textSecondary, textAlign: 'center', marginTop: 8 }]}>
+              Your dive plan PDF is being generated. This may take a few seconds...
+            </Text>
           </View>
         </View>
       </Modal>
