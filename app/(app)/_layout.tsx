@@ -137,7 +137,7 @@ export default function AppLayout() {
           headerShown: false,
           drawerStyle: {
             backgroundColor: colors.surface,
-            width: 320,
+            width: 260,
           },
           swipeEnabled: true,
           swipeEdgeWidth: 100,
