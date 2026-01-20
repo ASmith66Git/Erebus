@@ -121,6 +121,11 @@ export default function DivePlanningScreen() {
   const [planName, setPlanName] = useState('');
   const [showElevationInfo, setShowElevationInfo] = useState(false);
   const [showAcclimatizationInfo, setShowAcclimatizationInfo] = useState(false);
+  const [showPpo2AboveInfo, setShowPpo2AboveInfo] = useState(false);
+  const [showPpo2BelowInfo, setShowPpo2BelowInfo] = useState(false);
+  const [showOtuInfo, setShowOtuInfo] = useState(false);
+  const [showCnsInfo, setShowCnsInfo] = useState(false);
+  const [showIbcdInfo, setShowIbcdInfo] = useState(false);
   
   // Apply pending settings
   const applySettings = () => {
@@ -1801,83 +1806,116 @@ export default function DivePlanningScreen() {
       <View style={[styles.section, { backgroundColor: colors.card }]}>
         <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>Dive Monitor Controls</Text>
         
-        <View style={styles.monitorRow}>
-          {renderToggle(`ppO2 above = ${ps.ppo2AboveThreshold.toFixed(2)}`, ps.ppo2AboveEnabled,
-            (v) => setPs({ ppo2AboveEnabled: v })
-          )}
-          {ps.ppo2AboveEnabled && (
-            <View style={styles.monitorSlider}>
-              {renderSlider('', ps.ppo2AboveThreshold, 1.0, 2.0, 0.1,
-                (v) => setPs({ ppo2AboveThreshold: Math.round(v * 100) / 100 }), '')}
+        <View style={styles.monitorRowWithInfo}>
+          <View style={{ flex: 1 }}>
+            <View style={styles.monitorRow}>
+              {renderToggle(`ppO2 above = ${ps.ppo2AboveThreshold.toFixed(2)}`, ps.ppo2AboveEnabled,
+                (v) => setPs({ ppo2AboveEnabled: v })
+              )}
+              {ps.ppo2AboveEnabled && (
+                <View style={styles.monitorSlider}>
+                  {renderSlider('', ps.ppo2AboveThreshold, 1.0, 2.0, 0.1,
+                    (v) => setPs({ ppo2AboveThreshold: Math.round(v * 100) / 100 }), '')}
+                </View>
+              )}
             </View>
-          )}
+          </View>
+          <TouchableOpacity onPress={() => setShowPpo2AboveInfo(true)} style={styles.infoIconButton}>
+            <Feather name="info" size={18} color={colors.textSecondary} />
+          </TouchableOpacity>
         </View>
-        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Monitor when ppO2 exceeds...</Text>
+        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Warn when ppO2 exceeds threshold</Text>
 
-        <View style={styles.monitorRow}>
-          {renderToggle(`ppO2 below = ${ps.ppo2BelowThreshold.toFixed(2)}`, ps.ppo2BelowEnabled,
-            (v) => setPs({ ppo2BelowEnabled: v })
-          )}
-          {ps.ppo2BelowEnabled && (
-            <View style={styles.monitorSlider}>
-              {renderSlider('', ps.ppo2BelowThreshold, 0.10, 0.21, 0.01,
-                (v) => setPs({ ppo2BelowThreshold: Math.round(v * 100) / 100 }), '')}
+        <View style={styles.monitorRowWithInfo}>
+          <View style={{ flex: 1 }}>
+            <View style={styles.monitorRow}>
+              {renderToggle(`ppO2 below = ${ps.ppo2BelowThreshold.toFixed(2)}`, ps.ppo2BelowEnabled,
+                (v) => setPs({ ppo2BelowEnabled: v })
+              )}
+              {ps.ppo2BelowEnabled && (
+                <View style={styles.monitorSlider}>
+                  {renderSlider('', ps.ppo2BelowThreshold, 0.10, 0.21, 0.01,
+                    (v) => setPs({ ppo2BelowThreshold: Math.round(v * 100) / 100 }), '')}
+                </View>
+              )}
             </View>
-          )}
+          </View>
+          <TouchableOpacity onPress={() => setShowPpo2BelowInfo(true)} style={styles.infoIconButton}>
+            <Feather name="info" size={18} color={colors.textSecondary} />
+          </TouchableOpacity>
         </View>
-        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Monitor when ppO2 is lower than</Text>
+        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Warn when ppO2 drops below threshold</Text>
 
-        <View style={styles.monitorRow}>
-          {renderToggle(`OTU's above = ${ps.otuAboveThreshold}`, ps.otuAboveEnabled,
-            (v) => setPs({ otuAboveEnabled: v })
-          )}
-          {ps.otuAboveEnabled && (
-            <View style={styles.monitorSlider}>
-              {renderSlider('', ps.otuAboveThreshold, 100, 600, 50,
-                (v) => setPs({ otuAboveThreshold: v }), '')}
+        <View style={styles.monitorRowWithInfo}>
+          <View style={{ flex: 1 }}>
+            <View style={styles.monitorRow}>
+              {renderToggle(`OTU's above = ${ps.otuAboveThreshold}`, ps.otuAboveEnabled,
+                (v) => setPs({ otuAboveEnabled: v })
+              )}
+              {ps.otuAboveEnabled && (
+                <View style={styles.monitorSlider}>
+                  {renderSlider('', ps.otuAboveThreshold, 100, 600, 50,
+                    (v) => setPs({ otuAboveThreshold: v }), '')}
+                </View>
+              )}
             </View>
-          )}
+          </View>
+          <TouchableOpacity onPress={() => setShowOtuInfo(true)} style={styles.infoIconButton}>
+            <Feather name="info" size={18} color={colors.textSecondary} />
+          </TouchableOpacity>
         </View>
-        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Monitor when OTU's exceeds...</Text>
+        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Warn when OTU accumulation exceeds threshold</Text>
 
-        <View style={styles.monitorRow}>
-          {renderToggle(`CNS % above = ${ps.cnsAboveThreshold}%`, ps.cnsAboveEnabled,
-            (v) => setPs({ cnsAboveEnabled: v })
-          )}
-          {ps.cnsAboveEnabled && (
-            <View style={styles.monitorSlider}>
-              {renderSlider('', ps.cnsAboveThreshold, 50, 100, 5,
-                (v) => setPs({ cnsAboveThreshold: v }), '')}
+        <View style={styles.monitorRowWithInfo}>
+          <View style={{ flex: 1 }}>
+            <View style={styles.monitorRow}>
+              {renderToggle(`CNS % above = ${ps.cnsAboveThreshold}%`, ps.cnsAboveEnabled,
+                (v) => setPs({ cnsAboveEnabled: v })
+              )}
+              {ps.cnsAboveEnabled && (
+                <View style={styles.monitorSlider}>
+                  {renderSlider('', ps.cnsAboveThreshold, 50, 100, 5,
+                    (v) => setPs({ cnsAboveThreshold: v }), '')}
+                </View>
+              )}
             </View>
-          )}
+          </View>
+          <TouchableOpacity onPress={() => setShowCnsInfo(true)} style={styles.infoIconButton}>
+            <Feather name="info" size={18} color={colors.textSecondary} />
+          </TouchableOpacity>
         </View>
-        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Monitor when CNS % exceeds...</Text>
+        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Warn when CNS % exceeds threshold</Text>
 
-        <View style={styles.monitorRow}>
-          {renderToggle(`IBCD N2 = ${ps.ibcdN2Threshold} ATA`, ps.ibcdN2Enabled,
-            (v) => setPs({ ibcdN2Enabled: v })
-          )}
-          {ps.ibcdN2Enabled && (
-            <View style={styles.monitorSlider}>
-              {renderSlider('', ps.ibcdN2Threshold, 0.1, 1.0, 0.1,
-                (v) => setPs({ ibcdN2Threshold: Math.round(v * 10) / 10 }), '')}
+        <View style={styles.monitorRowWithInfo}>
+          <View style={{ flex: 1 }}>
+            <View style={styles.monitorRow}>
+              {renderToggle(`IBCD N2 = ${ps.ibcdN2Threshold} ATA`, ps.ibcdN2Enabled,
+                (v) => setPs({ ibcdN2Enabled: v })
+              )}
+              {ps.ibcdN2Enabled && (
+                <View style={styles.monitorSlider}>
+                  {renderSlider('', ps.ibcdN2Threshold, 0.1, 1.0, 0.1,
+                    (v) => setPs({ ibcdN2Threshold: Math.round(v * 10) / 10 }), '')}
+                </View>
+              )}
             </View>
-          )}
-        </View>
-        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Deco mix swap ppN2 exceeds...</Text>
-
-        <View style={styles.monitorRow}>
-          {renderToggle(`IBCD He = ${ps.ibcdHeThreshold} ATA`, ps.ibcdHeEnabled,
-            (v) => setPs({ ibcdHeEnabled: v })
-          )}
-          {ps.ibcdHeEnabled && (
-            <View style={styles.monitorSlider}>
-              {renderSlider('', ps.ibcdHeThreshold, 0.1, 1.0, 0.1,
-                (v) => setPs({ ibcdHeThreshold: Math.round(v * 10) / 10 }), '')}
+            <View style={styles.monitorRow}>
+              {renderToggle(`IBCD He = ${ps.ibcdHeThreshold} ATA`, ps.ibcdHeEnabled,
+                (v) => setPs({ ibcdHeEnabled: v })
+              )}
+              {ps.ibcdHeEnabled && (
+                <View style={styles.monitorSlider}>
+                  {renderSlider('', ps.ibcdHeThreshold, 0.1, 1.0, 0.1,
+                    (v) => setPs({ ibcdHeThreshold: Math.round(v * 10) / 10 }), '')}
+                </View>
+              )}
             </View>
-          )}
+          </View>
+          <TouchableOpacity onPress={() => setShowIbcdInfo(true)} style={styles.infoIconButton}>
+            <Feather name="info" size={18} color={colors.textSecondary} />
+          </TouchableOpacity>
         </View>
-        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Deco mix swap ppHe exceeds...</Text>
+        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Isobaric counter-diffusion thresholds</Text>
 
         {ps.circuit === 'ccr' && (
           <>
@@ -2217,6 +2255,190 @@ export default function DivePlanningScreen() {
               style={[styles.infoButton, { backgroundColor: colors.primary }]}
               onPress={() => setShowAcclimatizationInfo(false)}
             >
+              <Text style={styles.infoButtonText}>Got it</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* PPO2 Above Info Modal */}
+      <Modal visible={showPpo2AboveInfo} animationType="fade" transparent>
+        <View style={styles.infoModalOverlay}>
+          <View style={[styles.infoModalContent, { backgroundColor: colors.card }]}>
+            <View style={styles.infoModalHeader}>
+              <Text style={[styles.infoModalTitle, { color: colors.text }]}>PPO2 Upper Limit</Text>
+              <TouchableOpacity onPress={() => setShowPpo2AboveInfo(false)}>
+                <Feather name="x" size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={{ maxHeight: 400 }}>
+              <Text style={[styles.infoText, { color: colors.text }]}>
+                Partial pressure of oxygen (ppO2) monitoring warns you when oxygen levels become dangerously high.
+              </Text>
+              <Text style={[styles.infoHeading, { color: colors.primary }]}>Why it matters:</Text>
+              <Text style={[styles.infoText, { color: colors.textSecondary }]}>
+                High ppO2 can cause Central Nervous System (CNS) oxygen toxicity, which can lead to seizures underwater - often fatal.
+              </Text>
+              <Text style={[styles.infoHeading, { color: colors.primary }]}>Common thresholds:</Text>
+              <Text style={[styles.infoText, { color: colors.textSecondary }]}>
+                {'\u2022'} 1.4 bar - Maximum for recreational/working bottom{'\n'}
+                {'\u2022'} 1.6 bar - Maximum for decompression stops{'\n'}
+                {'\u2022'} Above 1.6 bar - Significant seizure risk
+              </Text>
+              <Text style={[styles.infoHeading, { color: colors.primary }]}>Symptoms of CNS toxicity:</Text>
+              <Text style={[styles.infoText, { color: colors.textSecondary }]}>
+                Visual disturbances, ringing ears, nausea, twitching, irritability, dizziness - often remembered by "VENTID-C" (Vision, Ears, Nausea, Twitching, Irritability, Dizziness, Convulsions).
+              </Text>
+            </ScrollView>
+            <TouchableOpacity style={[styles.infoButton, { backgroundColor: colors.primary }]} onPress={() => setShowPpo2AboveInfo(false)}>
+              <Text style={styles.infoButtonText}>Got it</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* PPO2 Below Info Modal */}
+      <Modal visible={showPpo2BelowInfo} animationType="fade" transparent>
+        <View style={styles.infoModalOverlay}>
+          <View style={[styles.infoModalContent, { backgroundColor: colors.card }]}>
+            <View style={styles.infoModalHeader}>
+              <Text style={[styles.infoModalTitle, { color: colors.text }]}>PPO2 Lower Limit</Text>
+              <TouchableOpacity onPress={() => setShowPpo2BelowInfo(false)}>
+                <Feather name="x" size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={{ maxHeight: 400 }}>
+              <Text style={[styles.infoText, { color: colors.text }]}>
+                Low ppO2 monitoring warns you when oxygen levels drop to hypoxic (dangerously low) levels.
+              </Text>
+              <Text style={[styles.infoHeading, { color: colors.primary }]}>Why it matters:</Text>
+              <Text style={[styles.infoText, { color: colors.textSecondary }]}>
+                Hypoxia (insufficient oxygen) causes loss of consciousness without warning. This is particularly relevant for hypoxic trimix and CCR diving.
+              </Text>
+              <Text style={[styles.infoHeading, { color: colors.primary }]}>Common thresholds:</Text>
+              <Text style={[styles.infoText, { color: colors.textSecondary }]}>
+                {'\u2022'} 0.21 bar - Equivalent to air at surface{'\n'}
+                {'\u2022'} 0.18 bar - Minimum safe for conscious activity{'\n'}
+                {'\u2022'} 0.16 bar - Impairment begins{'\n'}
+                {'\u2022'} Below 0.10 bar - Unconsciousness
+              </Text>
+              <Text style={[styles.infoHeading, { color: colors.primary }]}>When this matters:</Text>
+              <Text style={[styles.infoText, { color: colors.textSecondary }]}>
+                During ascent with hypoxic travel mixes, or CCR bailout scenarios where diluent ppO2 may be low.
+              </Text>
+            </ScrollView>
+            <TouchableOpacity style={[styles.infoButton, { backgroundColor: colors.primary }]} onPress={() => setShowPpo2BelowInfo(false)}>
+              <Text style={styles.infoButtonText}>Got it</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* OTU Info Modal */}
+      <Modal visible={showOtuInfo} animationType="fade" transparent>
+        <View style={styles.infoModalOverlay}>
+          <View style={[styles.infoModalContent, { backgroundColor: colors.card }]}>
+            <View style={styles.infoModalHeader}>
+              <Text style={[styles.infoModalTitle, { color: colors.text }]}>Oxygen Tolerance Units (OTUs)</Text>
+              <TouchableOpacity onPress={() => setShowOtuInfo(false)}>
+                <Feather name="x" size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={{ maxHeight: 400 }}>
+              <Text style={[styles.infoText, { color: colors.text }]}>
+                OTUs measure cumulative pulmonary (lung) oxygen toxicity exposure over time.
+              </Text>
+              <Text style={[styles.infoHeading, { color: colors.primary }]}>Why it matters:</Text>
+              <Text style={[styles.infoText, { color: colors.textSecondary }]}>
+                Unlike CNS toxicity (acute), pulmonary toxicity builds up over hours and days. High OTU exposure can cause chest tightness, coughing, and reduced vital capacity.
+              </Text>
+              <Text style={[styles.infoHeading, { color: colors.primary }]}>Guidelines:</Text>
+              <Text style={[styles.infoText, { color: colors.textSecondary }]}>
+                {'\u2022'} Single dive: 300 OTU maximum{'\n'}
+                {'\u2022'} Daily limit: 600 OTU{'\n'}
+                {'\u2022'} Multi-day diving: 850 OTU over several days{'\n'}
+                {'\u2022'} Recovery: ~50% reduction per day of rest
+              </Text>
+              <Text style={[styles.infoHeading, { color: colors.primary }]}>Calculation:</Text>
+              <Text style={[styles.infoText, { color: colors.textSecondary }]}>
+                OTUs accumulate based on ppO2 and exposure time. Higher ppO2 = faster accumulation.
+              </Text>
+            </ScrollView>
+            <TouchableOpacity style={[styles.infoButton, { backgroundColor: colors.primary }]} onPress={() => setShowOtuInfo(false)}>
+              <Text style={styles.infoButtonText}>Got it</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* CNS Info Modal */}
+      <Modal visible={showCnsInfo} animationType="fade" transparent>
+        <View style={styles.infoModalOverlay}>
+          <View style={[styles.infoModalContent, { backgroundColor: colors.card }]}>
+            <View style={styles.infoModalHeader}>
+              <Text style={[styles.infoModalTitle, { color: colors.text }]}>CNS Oxygen Toxicity %</Text>
+              <TouchableOpacity onPress={() => setShowCnsInfo(false)}>
+                <Feather name="x" size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={{ maxHeight: 400 }}>
+              <Text style={[styles.infoText, { color: colors.text }]}>
+                CNS % tracks your accumulated risk of Central Nervous System oxygen toxicity.
+              </Text>
+              <Text style={[styles.infoHeading, { color: colors.primary }]}>Why it matters:</Text>
+              <Text style={[styles.infoText, { color: colors.textSecondary }]}>
+                CNS oxygen toxicity can cause seizures underwater with little or no warning. The CNS clock tracks your accumulated exposure.
+              </Text>
+              <Text style={[styles.infoHeading, { color: colors.primary }]}>Guidelines:</Text>
+              <Text style={[styles.infoText, { color: colors.textSecondary }]}>
+                {'\u2022'} 80% - Caution threshold, consider ending dive{'\n'}
+                {'\u2022'} 100% - Maximum recommended exposure{'\n'}
+                {'\u2022'} Above 100% - Significantly elevated seizure risk
+              </Text>
+              <Text style={[styles.infoHeading, { color: colors.primary }]}>Recovery:</Text>
+              <Text style={[styles.infoText, { color: colors.textSecondary }]}>
+                CNS % decreases during surface intervals. A 90-minute surface interval reduces CNS by approximately 50%.
+              </Text>
+            </ScrollView>
+            <TouchableOpacity style={[styles.infoButton, { backgroundColor: colors.primary }]} onPress={() => setShowCnsInfo(false)}>
+              <Text style={styles.infoButtonText}>Got it</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* IBCD Info Modal */}
+      <Modal visible={showIbcdInfo} animationType="fade" transparent>
+        <View style={styles.infoModalOverlay}>
+          <View style={[styles.infoModalContent, { backgroundColor: colors.card }]}>
+            <View style={styles.infoModalHeader}>
+              <Text style={[styles.infoModalTitle, { color: colors.text }]}>Isobaric Counter-Diffusion (IBCD)</Text>
+              <TouchableOpacity onPress={() => setShowIbcdInfo(false)}>
+                <Feather name="x" size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={{ maxHeight: 400 }}>
+              <Text style={[styles.infoText, { color: colors.text }]}>
+                IBCD occurs when switching between gases with different helium/nitrogen ratios, causing one gas to enter tissues faster than the other leaves.
+              </Text>
+              <Text style={[styles.infoHeading, { color: colors.primary }]}>Why it matters:</Text>
+              <Text style={[styles.infoText, { color: colors.textSecondary }]}>
+                Helium diffuses much faster than nitrogen. When switching from a helium-rich mix to a nitrogen-rich mix, nitrogen floods in faster than helium can leave - potentially causing bubble formation even at constant pressure.
+              </Text>
+              <Text style={[styles.infoHeading, { color: colors.primary }]}>The thresholds:</Text>
+              <Text style={[styles.infoText, { color: colors.textSecondary }]}>
+                {'\u2022'} IBCD N2: Maximum ppN2 increase during gas switch{'\n'}
+                {'\u2022'} IBCD He: Minimum ppHe decrease during gas switch{'\n'}
+                {'\u2022'} Common limit: 0.3-0.5 ATA change
+              </Text>
+              <Text style={[styles.infoHeading, { color: colors.primary }]}>Prevention:</Text>
+              <Text style={[styles.infoText, { color: colors.textSecondary }]}>
+                {'\u2022'} Plan gradual gas transitions{'\n'}
+                {'\u2022'} Avoid large ppN2 increases when switching from trimix{'\n'}
+                {'\u2022'} Consider intermediate mixes for deep switches
+              </Text>
+            </ScrollView>
+            <TouchableOpacity style={[styles.infoButton, { backgroundColor: colors.primary }]} onPress={() => setShowIbcdInfo(false)}>
               <Text style={styles.infoButtonText}>Got it</Text>
             </TouchableOpacity>
           </View>
@@ -2745,5 +2967,9 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontSize: 16,
     fontWeight: '600',
+  },
+  monitorRowWithInfo: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
   },
 });
