@@ -2345,7 +2345,7 @@ export default function DivePlanningScreen() {
               
               <Text style={[styles.infoHeading, { color: colors.primary }]}>Why it matters:</Text>
               <Text style={[styles.infoText, { color: colors.textSecondary }]}>
-                At higher elevations, the surface pressure is lower than at sea level. This means your body is already at a relative "depth" compared to sea level, which affects nitrogen loading and off-gassing.
+                The air pressure at altitude is lower than at sea level. When you surface from a dive at altitude, the reduced pressure means nitrogen leaves your body more slowly, increasing your decompression stress.
               </Text>
               
               <Text style={[styles.infoHeading, { color: colors.primary }]}>Key effects:</Text>
