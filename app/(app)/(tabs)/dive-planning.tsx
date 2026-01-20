@@ -510,8 +510,11 @@ export default function DivePlanningScreen() {
       tissues.forEach((tissue, i) => {
         const mValue = calculateMValueAtPressure(tissue, i, Pamb);
         const gf = calculateGFAtDepth(currentDepth, firstStopDepth, appliedSettings.gfLow, appliedSettings.gfHigh, appliedSettings.waterType || 'salt');
-        const ceiling = (tissue.ppInert - Pamb * gf / 100) / (1 - gf / 100);
-        if (ceiling > maxCeiling) maxCeiling = ceiling;
+        const denominator = 1 - gf / 100;
+        if (Math.abs(denominator) > 0.001) {
+          const ceiling = (tissue.ppInert - Pamb * gf / 100) / denominator;
+          if (ceiling > maxCeiling) maxCeiling = ceiling;
+        }
       });
       ceilingDepth = Math.max(0, (maxCeiling - 1) / (appliedSettings.waterType === 'fresh' ? 0.097 : 0.1));
     }
@@ -528,10 +531,13 @@ export default function DivePlanningScreen() {
       let maxGf99 = 0;
       tissues.forEach((tissue, i) => {
         const mValue = calculateMValueAtPressure(tissue, i, Pamb);
-        const gfActual = 100 * (tissue.ppInert - Pamb) / (mValue - Pamb);
-        if (gfActual > maxGf99) maxGf99 = gfActual;
+        const denominator = mValue - Pamb;
+        if (denominator > 0.001) {
+          const gfActual = 100 * (tissue.ppInert - Pamb) / denominator;
+          if (gfActual > maxGf99) maxGf99 = gfActual;
+        }
       });
-      gf99 = Math.round(Math.max(0, maxGf99));
+      gf99 = Math.round(Math.max(0, Math.min(999, maxGf99)));
     }
     
     return {
@@ -593,36 +599,48 @@ export default function DivePlanningScreen() {
       currentTime += seg.duration;
     });
 
-    const tissueLines = currentResult.tissueHistory.length > 1 ? 
-      Array.from({ length: 16 }, (_, tissueIdx) => {
-        let pathD = '';
-        const historyStep = Math.max(1, Math.floor(currentResult.tissueHistory.length / 50));
-        const maxPpInert = Math.max(...currentResult.tissueHistory.flatMap(h => h.map(t => t.ppInert)), 1);
-        
-        for (let i = 0; i < currentResult.tissueHistory.length; i += historyStep) {
-          const tissue = currentResult.tissueHistory[i][tissueIdx];
-          const x = (i / (currentResult.tissueHistory.length - 1)) * chartW;
-          const normalizedLoading = tissue.ppInert / maxPpInert;
-          const y = chartH - (normalizedLoading * chartH * 0.5);
-          
-          if (i === 0) {
-            pathD += `M ${x} ${y}`;
-          } else {
-            pathD += ` L ${x} ${y}`;
-          }
-        }
-        
-        return (
-          <Path
-            key={tissueIdx}
-            d={pathD}
-            stroke={tissueColors[tissueIdx]}
-            strokeWidth={1}
-            strokeOpacity={0.6}
-            fill="none"
-          />
-        );
-      }) : [];
+    // Calculate metric lines (CNS, OTU, Gas Density, Deco Ceiling) over time
+    const numPoints = 50;
+    const timeStep = totalTime / numPoints;
+    
+    let cnsPathD = '';
+    let otuPathD = '';
+    let densityPathD = '';
+    let ceilingPathD = '';
+    
+    // Max values for scaling
+    const maxCns = Math.max(currentResult.cns, 100);
+    const maxOtu = Math.max(currentResult.otu, 300);
+    const maxDensity = 8; // g/L - typical max for display
+    
+    for (let i = 0; i <= numPoints; i++) {
+      const time = i * timeStep;
+      const values = getValuesAtTime(time);
+      if (!values) continue;
+      
+      const x = (time / totalTime) * chartW;
+      
+      // CNS line (0-100% scaled to chart height, from bottom)
+      const cnsY = chartH - (Math.min(values.cns || 0, maxCns) / maxCns) * chartH * 0.3;
+      if (cnsPathD === '') cnsPathD += `M ${x} ${cnsY}`;
+      else cnsPathD += ` L ${x} ${cnsY}`;
+      
+      // OTU line (from bottom)
+      const otuY = chartH - (Math.min(values.otu || 0, maxOtu) / maxOtu) * chartH * 0.3;
+      if (otuPathD === '') otuPathD += `M ${x} ${otuY}`;
+      else otuPathD += ` L ${x} ${otuY}`;
+      
+      // Gas density line (from bottom)
+      const density = values.gasDensity || 0;
+      const densityY = chartH - (Math.min(density, maxDensity) / maxDensity) * chartH * 0.25;
+      if (densityPathD === '') densityPathD += `M ${x} ${densityY}`;
+      else densityPathD += ` L ${x} ${densityY}`;
+      
+      // Deco ceiling line (from top, same as depth)
+      const ceilingY = ((values.ceiling || 0) / maxDepth) * chartH;
+      if (ceilingPathD === '') ceilingPathD += `M ${x} ${ceilingY}`;
+      else ceilingPathD += ` L ${x} ${ceilingY}`;
+    }
 
     const decoStopMarkers = currentResult.decoStops.map((stop, i) => {
       const segTime = currentResult.segments.find(s => s.type === 'deco_stop' && s.startDepth === stop.depth);
@@ -775,7 +793,10 @@ export default function DivePlanningScreen() {
             {depthGridLines}
             {timeLabels}
             <G transform={`translate(${padding.left}, ${padding.top})`}>
-              {tissueLines}
+              {ceilingPathD && <Path d={ceilingPathD} stroke={colors.warning} strokeWidth={1.5} fill="none" strokeOpacity={0.8} />}
+              {densityPathD && <Path d={densityPathD} stroke={colors.success} strokeWidth={1.5} fill="none" strokeOpacity={0.7} />}
+              {cnsPathD && <Path d={cnsPathD} stroke="#FF9500" strokeWidth={1.5} fill="none" strokeOpacity={0.8} />}
+              {otuPathD && <Path d={otuPathD} stroke={colors.accent} strokeWidth={1.5} fill="none" strokeOpacity={0.7} />}
               <Path d={depthPathD} stroke={colors.primary} strokeWidth={2.5} fill="none" />
               {decoStopMarkers}
             </G>
@@ -832,9 +853,28 @@ export default function DivePlanningScreen() {
           </Svg>
         </View>
         
-        <Text style={[styles.chartSubtitle, { color: colors.textSecondary }]}>
-          Drag scrubber to see values at any point
-        </Text>
+        <View style={styles.chartLegend}>
+          <View style={styles.legendItem}>
+            <View style={[styles.legendLine, { backgroundColor: colors.primary }]} />
+            <Text style={[styles.legendText, { color: colors.textSecondary }]}>Depth</Text>
+          </View>
+          <View style={styles.legendItem}>
+            <View style={[styles.legendLine, { backgroundColor: colors.warning }]} />
+            <Text style={[styles.legendText, { color: colors.textSecondary }]}>Ceiling</Text>
+          </View>
+          <View style={styles.legendItem}>
+            <View style={[styles.legendLine, { backgroundColor: '#FF9500' }]} />
+            <Text style={[styles.legendText, { color: colors.textSecondary }]}>CNS</Text>
+          </View>
+          <View style={styles.legendItem}>
+            <View style={[styles.legendLine, { backgroundColor: colors.accent }]} />
+            <Text style={[styles.legendText, { color: colors.textSecondary }]}>OTU</Text>
+          </View>
+          <View style={styles.legendItem}>
+            <View style={[styles.legendLine, { backgroundColor: colors.success }]} />
+            <Text style={[styles.legendText, { color: colors.textSecondary }]}>Density</Text>
+          </View>
+        </View>
       </View>
     );
   };
@@ -2749,6 +2789,10 @@ const styles = StyleSheet.create({
   scrubberDataItem: { flex: 1, alignItems: 'center' },
   scrubberDataLabel: { fontSize: 10, marginBottom: 2 },
   scrubberDataValue: { fontSize: 13, fontWeight: '600' },
+  chartLegend: { flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap', gap: 12, marginTop: 8 },
+  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  legendLine: { width: 16, height: 3, borderRadius: 2 },
+  legendText: { fontSize: 10 },
   emptyChart: {
     height: CHART_HEIGHT - 40,
     justifyContent: 'center',
