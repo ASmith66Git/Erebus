@@ -1555,6 +1555,47 @@ export default function DivePlanningScreen() {
         )}
       </View>
 
+      {/* Gradient Factors */}
+      <View style={[styles.section, { backgroundColor: colors.card }]}>
+        <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>Gradient Factors</Text>
+        
+        {renderSlider('GF Low', ps.gfLow, 10, 100, 5, (v) => setPs({ gfLow: v }), '%')}
+        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>
+          Conservatism at depth - lower values = more conservative
+        </Text>
+        
+        {renderSlider('GF High', ps.gfHigh, 10, 100, 5, (v) => setPs({ gfHigh: v }), '%')}
+        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>
+          Conservatism at surface - lower values = more conservative
+        </Text>
+        
+        <View style={[styles.gfPresetRow, { borderTopColor: colors.border }]}>
+          <Text style={[styles.gfPresetLabel, { color: colors.textSecondary }]}>Presets:</Text>
+          {[
+            { label: '30/70', low: 30, high: 70 },
+            { label: '35/75', low: 35, high: 75 },
+            { label: '40/85', low: 40, high: 85 },
+            { label: '45/95', low: 45, high: 95 },
+          ].map(preset => (
+            <TouchableOpacity
+              key={preset.label}
+              style={[
+                styles.gfPresetButton,
+                { backgroundColor: ps.gfLow === preset.low && ps.gfHigh === preset.high ? colors.primary : colors.border }
+              ]}
+              onPress={() => setPs({ gfLow: preset.low, gfHigh: preset.high })}
+            >
+              <Text style={[
+                styles.gfPresetButtonText,
+                { color: ps.gfLow === preset.low && ps.gfHigh === preset.high ? '#FFF' : colors.text }
+              ]}>
+                {preset.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+
       {/* Units & Environment */}
       <View style={[styles.section, { backgroundColor: colors.card }]}>
         <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>Feet / Meter / Units</Text>
@@ -2516,5 +2557,27 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  gfPresetRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  gfPresetLabel: {
+    fontSize: 13,
+    marginRight: 4,
+  },
+  gfPresetButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  gfPresetButtonText: {
+    fontSize: 13,
+    fontWeight: '500',
   },
 });
