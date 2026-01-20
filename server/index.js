@@ -1139,7 +1139,7 @@ app.post('/api/auth/reset-password', async (req, res) => {
 app.get('/api/auth/me', authenticateToken, async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT id, email, first_name, last_name, age, sex, role, created_at FROM users WHERE id = $1',
+      'SELECT id, email, first_name, last_name, age, sex, role, profile_image, created_at FROM users WHERE id = $1',
       [req.user.id]
     );
     
@@ -1148,6 +1148,37 @@ app.get('/api/auth/me', authenticateToken, async (req, res) => {
     }
     
     const user = result.rows[0];
+    
+    let profileImageUrl = null;
+    if (user.profile_image) {
+      try {
+        const REPLIT_SIDECAR = 'http://127.0.0.1:1106';
+        let path = user.profile_image;
+        if (!path.startsWith('/')) path = `/${path}`;
+        const pathParts = path.split('/');
+        if (pathParts.length >= 3) {
+          const bucketName = pathParts[1];
+          const objectName = pathParts.slice(2).join('/');
+          const signResponse = await fetch(`${REPLIT_SIDECAR}/object-storage/signed-object-url`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              bucket_name: bucketName,
+              object_name: objectName,
+              method: 'GET',
+              expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+            }),
+          });
+          if (signResponse.ok) {
+            const { signed_url } = await signResponse.json();
+            profileImageUrl = signed_url;
+          }
+        }
+      } catch (err) {
+        console.error('Error signing profile image in /api/auth/me:', err);
+      }
+    }
+    
     res.json({
       id: user.id,
       email: user.email,
@@ -1156,6 +1187,7 @@ app.get('/api/auth/me', authenticateToken, async (req, res) => {
       age: user.age,
       sex: user.sex,
       role: user.role,
+      profileImage: profileImageUrl,
       createdAt: user.created_at
     });
   } catch (error) {
@@ -1781,6 +1813,17 @@ app.get('/api/user/profile', authenticateToken, async (req, res) => {
     }
     
     const user = result.rows[0];
+    
+    let profileImageUrl = null;
+    if (user.profile_image) {
+      try {
+        const { bucketName, objectName } = parseObjectPath(user.profile_image);
+        profileImageUrl = await signObjectURL({ bucketName, objectName, method: 'GET', ttlSec: 3600 });
+      } catch (err) {
+        console.error('Error signing profile image URL:', err);
+      }
+    }
+    
     res.json({
       id: user.id,
       email: user.email,
@@ -1789,7 +1832,7 @@ app.get('/api/user/profile', authenticateToken, async (req, res) => {
       age: user.age,
       sex: user.sex,
       role: user.role,
-      profileImage: user.profile_image,
+      profileImage: profileImageUrl,
       createdAt: user.created_at
     });
   } catch (error) {

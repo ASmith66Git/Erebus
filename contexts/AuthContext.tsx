@@ -23,6 +23,7 @@ interface User {
   age: number | null;
   sex: 'male' | 'female' | 'other' | 'prefer_not_to_say' | null;
   role: 'user' | 'admin';
+  profileImage: string | null;
 }
 
 interface CachedSession {

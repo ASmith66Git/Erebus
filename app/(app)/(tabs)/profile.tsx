@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Switch, Modal, ActivityIndicator, Platform, RefreshControl, TextInput, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Switch, Modal, ActivityIndicator, Platform, RefreshControl, TextInput, Alert, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { getApiUrl } from '@/utils/apiConfig';
@@ -59,6 +60,7 @@ export default function ProfileScreen() {
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [editLoading, setEditLoading] = useState(false);
   const [showSexPicker, setShowSexPicker] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [editFormData, setEditFormData] = useState({
     firstName: '',
     lastName: '',
@@ -194,6 +196,75 @@ export default function ProfileScreen() {
     saveDiveComputer(null, null);
   };
 
+  const pickProfilePhoto = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission Required', 'Please grant access to your photo library.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      await uploadProfilePhoto(result.assets[0].uri);
+    }
+  };
+
+  const uploadProfilePhoto = async (uri: string) => {
+    setUploadingPhoto(true);
+    try {
+      const urlRes = await fetch(`${getApiUrl()}/api/uploads/request-url`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          name: `profile-${user?.id}-${Date.now()}.jpg`,
+          size: 0,
+          contentType: 'image/jpeg',
+        }),
+      });
+
+      if (!urlRes.ok) throw new Error('Failed to get upload URL');
+      const { uploadURL, objectPath } = await urlRes.json();
+
+      const imageRes = await fetch(uri);
+      const blob = await imageRes.blob();
+
+      await fetch(uploadURL, {
+        method: 'PUT',
+        body: blob,
+        headers: { 'Content-Type': 'image/jpeg' },
+      });
+
+      const saveRes = await fetch(`${getApiUrl()}/api/user/profile`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ profileImage: objectPath }),
+      });
+
+      if (saveRes.ok) {
+        await refreshUser();
+      } else {
+        throw new Error('Failed to save profile image');
+      }
+    } catch (error) {
+      console.error('Upload profile photo error:', error);
+      Alert.alert('Error', 'Failed to upload photo. Please try again.');
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
   const getDisplayName = () => {
     if (capabilities) {
       return `${capabilities.brand.name} ${capabilities.model.name}`;
@@ -289,11 +360,26 @@ export default function ProfileScreen() {
         <Pressable style={styles.editProfileButton} onPress={openEditProfile}>
           <Ionicons name="pencil" size={18} color={colors.primary} />
         </Pressable>
-        <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
-          <Text style={styles.avatarText}>
-            {user?.firstName?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'D'}
-          </Text>
-        </View>
+        <Pressable onPress={pickProfilePhoto} disabled={uploadingPhoto} style={styles.avatarContainer}>
+          {user?.profileImage ? (
+            <Image source={{ uri: user.profileImage }} style={styles.avatarImage} />
+          ) : (
+            <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
+              <Text style={styles.avatarText}>
+                {user?.firstName?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'D'}
+              </Text>
+            </View>
+          )}
+          {uploadingPhoto ? (
+            <View style={styles.avatarOverlay}>
+              <ActivityIndicator color="#FFF" size="small" />
+            </View>
+          ) : (
+            <View style={[styles.cameraIconContainer, { backgroundColor: colors.primary }]}>
+              <Ionicons name="camera" size={14} color="#FFF" />
+            </View>
+          )}
+        </Pressable>
         <Text style={[styles.userName, { color: colors.text }]}>
           {user?.firstName && user?.lastName
             ? `${user.firstName} ${user.lastName}`
@@ -711,13 +797,46 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     marginBottom: 16,
   },
+  avatarContainer: {
+    position: 'relative',
+    marginBottom: 12,
+  },
   avatar: {
     width: 80,
     height: 80,
     borderRadius: 40,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
+  },
+  avatarImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+  },
+  avatarOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cameraIconContainer: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
   },
   avatarText: {
     fontSize: 32,
