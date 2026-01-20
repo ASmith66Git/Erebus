@@ -897,14 +897,15 @@ export default function DivePlanningScreen() {
     // Find first stop depth for GF interpolation
     const firstStopDepth = findFirstStop(tissues, appliedSettings.gfLow, appliedSettings.decoStopInterval || 3, appliedSettings.waterType || 'salt');
     
-    const padding = { top: 24, right: 40, bottom: 12, left: 24 };
-    const chartW = Math.max(tissueChartWidth - padding.left - padding.right, 100);
+    const padding = { top: 24, right: 20, bottom: 12, left: 50 };
+    const chartW = Math.max(chartWidth - 32 - padding.left - padding.right, 100);
     const barHeight = 6;
     const barGap = 2;
     const chartH = 16 * (barHeight + barGap);
 
-    // Max bar width (leave space for percentage text)
-    const maxBarWidth = chartW * 0.7;
+    // Max bar width (leave space for percentage text - reserve 45px for labels)
+    const labelGutter = 45;
+    const maxBarWidth = chartW - labelGutter;
     
     // Horizontal bars showing tissue saturation relative to GF ceiling
     // 0% = surface equilibrium, 100% = at GF-limited M-value ceiling
