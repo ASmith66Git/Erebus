@@ -121,6 +121,10 @@ async function initDatabase() {
     `).catch(() => {});
     
     await client.query(`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_image VARCHAR(500);
+    `).catch(() => {});
+    
+    await client.query(`
       CREATE TABLE IF NOT EXISTS dive_sites (
         id SERIAL PRIMARY KEY,
         user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
