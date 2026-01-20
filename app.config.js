@@ -2,7 +2,8 @@ module.exports = {
   expo: {
     name: "Erebus",
     slug: "erebus-dive-app",
-    version: "1.1.12",
+    version: "1.1.13",
+    runtimeVersion: "1.1.13",
     orientation: "default",
     icon: "./assets/images/icon.png",
     scheme: "myapp",
@@ -17,7 +18,7 @@ module.exports = {
       }
     },
     android: {
-      versionCode: 18,
+      versionCode: 19,
       adaptiveIcon: {
         foregroundImage: "./assets/images/adaptive-icon.png",
         backgroundColor: "#000000"
