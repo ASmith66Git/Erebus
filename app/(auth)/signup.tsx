@@ -181,7 +181,10 @@ export default function SignupScreen() {
                 secureTextEntry={!showPassword}
                 autoCapitalize="none"
               />
-              <Pressable onPress={() => setShowPassword(!showPassword)}>
+              <Pressable 
+                onPress={() => setShowPassword(!showPassword)}
+                style={styles.eyeButton}
+              >
                 <Ionicons
                   name={showPassword ? 'eye-off-outline' : 'eye-outline'}
                   size={20}
@@ -269,7 +272,7 @@ export default function SignupScreen() {
                 I have read and accept the{' '}
                 <Text 
                   style={{ color: colors.primary, textDecorationLine: 'underline' }}
-                  onPress={() => router.push('/(app)/privacy' as any)}
+                  onPress={() => router.push('/(auth)/privacy' as any)}
                 >
                   Privacy Policy
                 </Text>
@@ -287,7 +290,7 @@ export default function SignupScreen() {
                 I have read and accept the{' '}
                 <Text 
                   style={{ color: colors.primary, textDecorationLine: 'underline' }}
-                  onPress={() => router.push('/(app)/terms' as any)}
+                  onPress={() => router.push('/(auth)/terms' as any)}
                 >
                   Terms & Conditions
                 </Text>
@@ -405,6 +408,11 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     height: '100%',
+  },
+  eyeButton: {
+    padding: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   signupButton: {
     height: 52,
