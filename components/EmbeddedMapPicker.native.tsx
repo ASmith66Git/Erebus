@@ -49,10 +49,17 @@ class MapErrorBoundary extends Component<MapErrorBoundaryProps, MapErrorBoundary
   }
 }
 
+interface PlaceData {
+  country?: string;
+  region?: string;
+  formattedAddress?: string;
+}
+
 interface EmbeddedMapPickerProps {
   latitude: number;
   longitude: number;
   onCoordinatesChange: (lat: number, lng: number) => void;
+  onPlaceSelect?: (placeData: PlaceData) => void;
   colors: {
     background: string;
     surface: string;
@@ -61,6 +68,7 @@ interface EmbeddedMapPickerProps {
     border: string;
     primary: string;
   };
+  readOnly?: boolean;
 }
 
 function loadMapsModule() {
@@ -79,7 +87,9 @@ export default function EmbeddedMapPicker({
   latitude,
   longitude,
   onCoordinatesChange,
+  onPlaceSelect,
   colors,
+  readOnly = false,
 }: EmbeddedMapPickerProps) {
   const [searchText, setSearchText] = useState('');
   const [markerPosition, setMarkerPosition] = useState({ latitude, longitude });
@@ -154,6 +164,30 @@ export default function EmbeddedMapPicker({
       setMarkerPosition({ latitude: lat, longitude: lng });
       onCoordinatesChange(lat, lng);
       
+      if (onPlaceSelect && details.address_components) {
+        let country: string | undefined;
+        let region: string | undefined;
+        
+        for (const component of details.address_components) {
+          const types = component.types || [];
+          if (types.includes('country')) {
+            country = component.long_name;
+          }
+          if (types.includes('administrative_area_level_1')) {
+            region = component.long_name;
+          }
+          if (!region && types.includes('administrative_area_level_2')) {
+            region = component.long_name;
+          }
+        }
+        
+        onPlaceSelect({
+          country,
+          region,
+          formattedAddress: details.formatted_address,
+        });
+      }
+      
       if (mapRef.current) {
         mapRef.current.animateToRegion({
           latitude: lat,
@@ -164,7 +198,7 @@ export default function EmbeddedMapPicker({
       }
       Keyboard.dismiss();
     }
-  }, [onCoordinatesChange]);
+  }, [onCoordinatesChange, onPlaceSelect]);
 
   const getCurrentLocation = async () => {
     setGettingLocation(true);

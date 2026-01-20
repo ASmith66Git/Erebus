@@ -967,6 +967,14 @@ export default function DiveSiteDetailScreen() {
                   updateField('latitude', lat);
                   updateField('longitude', lng);
                 }}
+                onPlaceSelect={(placeData) => {
+                  if (placeData.country) {
+                    updateField('country', placeData.country);
+                  }
+                  if (placeData.region) {
+                    updateField('region', placeData.region);
+                  }
+                }}
                 colors={colors}
               />
             )}

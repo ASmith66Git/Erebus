@@ -10,10 +10,17 @@ import { Feather } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import Constants from 'expo-constants';
 
+interface PlaceData {
+  country?: string;
+  region?: string;
+  formattedAddress?: string;
+}
+
 interface EmbeddedMapPickerProps {
   latitude: number;
   longitude: number;
   onCoordinatesChange: (lat: number, lng: number) => void;
+  onPlaceSelect?: (placeData: PlaceData) => void;
   colors: {
     background: string;
     surface: string;
@@ -29,6 +36,7 @@ export default function EmbeddedMapPicker({
   latitude,
   longitude,
   onCoordinatesChange,
+  onPlaceSelect,
   colors,
   readOnly = false,
 }: EmbeddedMapPickerProps) {
@@ -210,7 +218,7 @@ export default function EmbeddedMapPicker({
             try {
               const autocomplete = new placesGoogle.maps.places.Autocomplete(searchInput, {
                 types: ['geocode', 'establishment'],
-                fields: ['geometry', 'formatted_address', 'name'],
+                fields: ['geometry', 'formatted_address', 'name', 'address_components'],
               });
               autocompleteRef.current = autocomplete;
               
@@ -229,6 +237,30 @@ export default function EmbeddedMapPicker({
                   marker.setPosition({ lat, lng });
                   handleMarkerChange(lat, lng);
                   setSearchText(place.formatted_address || place.name || '');
+                  
+                  if (onPlaceSelect && place.address_components) {
+                    let country: string | undefined;
+                    let region: string | undefined;
+                    
+                    for (const component of place.address_components) {
+                      const types = component.types || [];
+                      if (types.includes('country')) {
+                        country = component.long_name;
+                      }
+                      if (types.includes('administrative_area_level_1')) {
+                        region = component.long_name;
+                      }
+                      if (!region && types.includes('administrative_area_level_2')) {
+                        region = component.long_name;
+                      }
+                    }
+                    
+                    onPlaceSelect({
+                      country,
+                      region,
+                      formattedAddress: place.formatted_address,
+                    });
+                  }
                 }
               });
             } catch (e) {
