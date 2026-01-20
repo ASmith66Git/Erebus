@@ -261,41 +261,43 @@ export default function SignupScreen() {
           )}
 
           <View style={styles.consentContainer}>
-            <Pressable 
-              style={styles.checkboxRow}
-              onPress={() => setPrivacyAccepted(!privacyAccepted)}
-            >
-              <View style={[styles.checkbox, { borderColor: 'rgba(255,255,255,0.5)' }, privacyAccepted && { backgroundColor: colors.primary, borderColor: colors.primary }]}>
-                {privacyAccepted && <Ionicons name="checkmark" size={16} color="#FFFFFF" />}
-              </View>
+            <View style={styles.checkboxRow}>
+              <Pressable 
+                onPress={() => setPrivacyAccepted(!privacyAccepted)}
+                style={styles.checkboxTouchable}
+              >
+                <View style={[styles.checkbox, { borderColor: 'rgba(255,255,255,0.5)' }, privacyAccepted && { backgroundColor: colors.primary, borderColor: colors.primary }]}>
+                  {privacyAccepted && <Ionicons name="checkmark" size={16} color="#FFFFFF" />}
+                </View>
+              </Pressable>
               <Text style={[styles.consentText, { color: 'rgba(255,255,255,0.8)' }]}>
                 I have read and accept the{' '}
-                <Text 
-                  style={{ color: colors.primary, textDecorationLine: 'underline' }}
-                  onPress={() => router.push('/(auth)/privacy' as any)}
-                >
+              </Text>
+              <Pressable onPress={() => router.push('/(auth)/privacy' as any)}>
+                <Text style={{ color: colors.primary, textDecorationLine: 'underline', fontSize: 14 }}>
                   Privacy Policy
                 </Text>
-              </Text>
-            </Pressable>
+              </Pressable>
+            </View>
 
-            <Pressable 
-              style={styles.checkboxRow}
-              onPress={() => setTermsAccepted(!termsAccepted)}
-            >
-              <View style={[styles.checkbox, { borderColor: 'rgba(255,255,255,0.5)' }, termsAccepted && { backgroundColor: colors.primary, borderColor: colors.primary }]}>
-                {termsAccepted && <Ionicons name="checkmark" size={16} color="#FFFFFF" />}
-              </View>
+            <View style={styles.checkboxRow}>
+              <Pressable 
+                onPress={() => setTermsAccepted(!termsAccepted)}
+                style={styles.checkboxTouchable}
+              >
+                <View style={[styles.checkbox, { borderColor: 'rgba(255,255,255,0.5)' }, termsAccepted && { backgroundColor: colors.primary, borderColor: colors.primary }]}>
+                  {termsAccepted && <Ionicons name="checkmark" size={16} color="#FFFFFF" />}
+                </View>
+              </Pressable>
               <Text style={[styles.consentText, { color: 'rgba(255,255,255,0.8)' }]}>
                 I have read and accept the{' '}
-                <Text 
-                  style={{ color: colors.primary, textDecorationLine: 'underline' }}
-                  onPress={() => router.push('/(auth)/terms' as any)}
-                >
+              </Text>
+              <Pressable onPress={() => router.push('/(auth)/terms' as any)}>
+                <Text style={{ color: colors.primary, textDecorationLine: 'underline', fontSize: 14 }}>
                   Terms & Conditions
                 </Text>
-              </Text>
-            </Pressable>
+              </Pressable>
+            </View>
           </View>
 
           <Pressable
@@ -460,7 +462,11 @@ const styles = StyleSheet.create({
   checkboxRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    flexWrap: 'wrap',
+    gap: 4,
+  },
+  checkboxTouchable: {
+    marginRight: 8,
   },
   checkbox: {
     width: 24,
