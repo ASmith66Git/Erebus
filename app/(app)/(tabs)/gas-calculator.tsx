@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput,
-  Modal, FlatList
+  Modal, FlatList, Alert
 } from 'react-native';
 import Slider from '@react-native-community/slider';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -582,7 +582,28 @@ export default function GasCalculatorScreen() {
       </View>
 
       <View style={[styles.card, { backgroundColor: colors.card }]}>
-        <Text style={[styles.cardTitle, { color: colors.text }]}>Real Gas Correction</Text>
+        <View style={styles.cardTitleRow}>
+          <Text style={[styles.cardTitle, { color: colors.text }]}>Real Gas Correction</Text>
+          <TouchableOpacity
+            onPress={() => Alert.alert(
+              'Z-Factor (Compressibility)',
+              'The Z-factor (compressibility factor) corrects for non-ideal gas behavior at high pressures.\n\n' +
+              'Why it matters:\n' +
+              'The Ideal Gas Law (PV=nRT) assumes gas molecules have no volume and no intermolecular forces. At dive cylinder pressures (200-300 bar), these assumptions break down.\n\n' +
+              'How it works:\n' +
+              'Real gases compress less than ideal gases predict. A Z-factor of 0.85 means the gas only compresses to 85% of what ideal calculations predict.\n\n' +
+              'Z-factors used:\n' +
+              '• Oxygen: ~0.87 at 200 bar\n' +
+              '• Nitrogen: ~0.93 at 200 bar\n' +
+              '• Helium: ~1.05 at 200 bar (actually expands slightly!)\n\n' +
+              'This calculator uses NIST REFPROP v10 reference data with 2D inverse distance weighting interpolation for accurate real-gas calculations at pressures up to 300 bar.',
+              [{ text: 'Got it', style: 'default' }]
+            )}
+            style={styles.infoIconButton}
+          >
+            <Feather name="info" size={18} color={colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
         <View style={styles.switchRow}>
           <Text style={[styles.inputLabel, { color: colors.text }]}>Van der Waals (Z-factor)</Text>
           <TouchableOpacity
@@ -1011,6 +1032,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 12,
+  },
+  cardTitleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  infoIconButton: {
+    padding: 4,
   },
   resultsCard: {
     borderRadius: 12,
