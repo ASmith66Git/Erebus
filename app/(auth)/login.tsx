@@ -146,13 +146,13 @@ export default function LoginScreen() {
             keyboardShouldPersistTaps="handled"
           >
         <Pressable style={styles.backButton} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color={colors.text} />
+          <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
         </Pressable>
 
         <View style={styles.header}>
           <Logo size={80} primaryColor={colors.primary} />
-          <Text style={[styles.title, { color: colors.text }]}>Welcome Back</Text>
-          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+          <Text style={[styles.title, { color: '#FFFFFF' }]}>Welcome Back</Text>
+          <Text style={[styles.subtitle, { color: 'rgba(255,255,255,0.7)' }]}>
             Sign in to continue managing your dives
           </Text>
         </View>
@@ -166,13 +166,13 @@ export default function LoginScreen() {
           ) : null}
 
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: colors.text }]}>Email</Text>
-            <View style={[styles.inputContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Text style={[styles.label, { color: '#FFFFFF' }]}>Email</Text>
+            <View style={[styles.inputContainer, { backgroundColor: 'rgba(0,0,0,0.5)', borderColor: 'rgba(255,255,255,0.3)' }]}>
               <Ionicons name="mail-outline" size={20} color={colors.primary} />
               <TextInput
-                style={[styles.input, { color: colors.text }]}
+                style={[styles.input, { color: '#FFFFFF' }]}
                 placeholder="Enter your email"
-                placeholderTextColor={colors.textSecondary}
+                placeholderTextColor="rgba(255,255,255,0.5)"
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
@@ -183,13 +183,13 @@ export default function LoginScreen() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: colors.text }]}>Password</Text>
-            <View style={[styles.inputContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Text style={[styles.label, { color: '#FFFFFF' }]}>Password</Text>
+            <View style={[styles.inputContainer, { backgroundColor: 'rgba(0,0,0,0.5)', borderColor: 'rgba(255,255,255,0.3)' }]}>
               <Ionicons name="lock-closed-outline" size={20} color={colors.primary} />
               <TextInput
-                style={[styles.input, { color: colors.text }]}
+                style={[styles.input, { color: '#FFFFFF' }]}
                 placeholder="Enter your password"
-                placeholderTextColor={colors.textSecondary}
+                placeholderTextColor="rgba(255,255,255,0.5)"
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
@@ -223,7 +223,7 @@ export default function LoginScreen() {
 
           {canUseBiometric && (
             <Pressable
-              style={[styles.biometricButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
+              style={[styles.biometricButton, { backgroundColor: 'rgba(0,0,0,0.5)', borderColor: 'rgba(255,255,255,0.3)' }]}
               onPress={handleBiometricLogin}
               disabled={biometricLoading}
             >
@@ -236,7 +236,7 @@ export default function LoginScreen() {
                     size={24} 
                     color={colors.primary} 
                   />
-                  <Text style={[styles.biometricButtonText, { color: colors.text }]}>
+                  <Text style={[styles.biometricButtonText, { color: '#FFFFFF' }]}>
                     Login with {biometricCapability?.biometricTypeName || 'Biometric'}
                   </Text>
                 </>
@@ -245,7 +245,7 @@ export default function LoginScreen() {
           )}
 
           <View style={styles.signupContainer}>
-            <Text style={[styles.signupText, { color: colors.textSecondary }]}>
+            <Text style={[styles.signupText, { color: 'rgba(255,255,255,0.7)' }]}>
               Don't have an account?{' '}
             </Text>
             <Pressable onPress={() => router.push('/(auth)/signup')}>

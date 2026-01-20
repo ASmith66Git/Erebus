@@ -80,13 +80,13 @@ export default function SignupScreen() {
             keyboardShouldPersistTaps="handled"
           >
         <Pressable style={styles.backButton} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color={colors.text} />
+          <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
         </Pressable>
 
         <View style={styles.header}>
           <Logo size={80} primaryColor={colors.primary} />
-          <Text style={[styles.title, { color: colors.text }]}>Create Account</Text>
-          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+          <Text style={[styles.title, { color: '#FFFFFF' }]}>Create Account</Text>
+          <Text style={[styles.subtitle, { color: 'rgba(255,255,255,0.7)' }]}>
             Join Erebus and start tracking your dives
           </Text>
         </View>
@@ -101,12 +101,12 @@ export default function SignupScreen() {
 
           <View style={styles.nameRow}>
             <View style={[styles.inputGroup, { flex: 1 }]}>
-              <Text style={[styles.label, { color: colors.text }]}>First Name</Text>
-              <View style={[styles.inputContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <Text style={[styles.label, { color: '#FFFFFF' }]}>First Name</Text>
+              <View style={[styles.inputContainer, { backgroundColor: 'rgba(0,0,0,0.5)', borderColor: 'rgba(255,255,255,0.3)' }]}>
                 <TextInput
-                  style={[styles.input, { color: colors.text }]}
+                  style={[styles.input, { color: '#FFFFFF' }]}
                   placeholder="First"
-                  placeholderTextColor={colors.textSecondary}
+                  placeholderTextColor="rgba(255,255,255,0.5)"
                   value={firstName}
                   onChangeText={setFirstName}
                   autoCapitalize="words"
@@ -115,12 +115,12 @@ export default function SignupScreen() {
             </View>
 
             <View style={[styles.inputGroup, { flex: 1 }]}>
-              <Text style={[styles.label, { color: colors.text }]}>Last Name</Text>
-              <View style={[styles.inputContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <Text style={[styles.label, { color: '#FFFFFF' }]}>Last Name</Text>
+              <View style={[styles.inputContainer, { backgroundColor: 'rgba(0,0,0,0.5)', borderColor: 'rgba(255,255,255,0.3)' }]}>
                 <TextInput
-                  style={[styles.input, { color: colors.text }]}
+                  style={[styles.input, { color: '#FFFFFF' }]}
                   placeholder="Last"
-                  placeholderTextColor={colors.textSecondary}
+                  placeholderTextColor="rgba(255,255,255,0.5)"
                   value={lastName}
                   onChangeText={setLastName}
                   autoCapitalize="words"
@@ -130,13 +130,13 @@ export default function SignupScreen() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: colors.text }]}>Email</Text>
-            <View style={[styles.inputContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Text style={[styles.label, { color: '#FFFFFF' }]}>Email</Text>
+            <View style={[styles.inputContainer, { backgroundColor: 'rgba(0,0,0,0.5)', borderColor: 'rgba(255,255,255,0.3)' }]}>
               <Ionicons name="mail-outline" size={20} color={colors.primary} />
               <TextInput
-                style={[styles.input, { color: colors.text }]}
+                style={[styles.input, { color: '#FFFFFF' }]}
                 placeholder="Enter your email"
-                placeholderTextColor={colors.textSecondary}
+                placeholderTextColor="rgba(255,255,255,0.5)"
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
@@ -147,13 +147,13 @@ export default function SignupScreen() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: colors.text }]}>Password</Text>
-            <View style={[styles.inputContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Text style={[styles.label, { color: '#FFFFFF' }]}>Password</Text>
+            <View style={[styles.inputContainer, { backgroundColor: 'rgba(0,0,0,0.5)', borderColor: 'rgba(255,255,255,0.3)' }]}>
               <Ionicons name="lock-closed-outline" size={20} color={colors.primary} />
               <TextInput
-                style={[styles.input, { color: colors.text }]}
+                style={[styles.input, { color: '#FFFFFF' }]}
                 placeholder="Create a password"
-                placeholderTextColor={colors.textSecondary}
+                placeholderTextColor="rgba(255,255,255,0.5)"
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
@@ -170,13 +170,13 @@ export default function SignupScreen() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: colors.text }]}>Confirm Password</Text>
-            <View style={[styles.inputContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Text style={[styles.label, { color: '#FFFFFF' }]}>Confirm Password</Text>
+            <View style={[styles.inputContainer, { backgroundColor: 'rgba(0,0,0,0.5)', borderColor: 'rgba(255,255,255,0.3)' }]}>
               <Ionicons name="lock-closed-outline" size={20} color={colors.primary} />
               <TextInput
-                style={[styles.input, { color: colors.text }]}
+                style={[styles.input, { color: '#FFFFFF' }]}
                 placeholder="Confirm your password"
-                placeholderTextColor={colors.textSecondary}
+                placeholderTextColor="rgba(255,255,255,0.5)"
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
                 secureTextEntry={!showPassword}
@@ -198,7 +198,7 @@ export default function SignupScreen() {
           </Pressable>
 
           <View style={styles.loginContainer}>
-            <Text style={[styles.loginText, { color: colors.textSecondary }]}>
+            <Text style={[styles.loginText, { color: 'rgba(255,255,255,0.7)' }]}>
               Already have an account?{' '}
             </Text>
             <Pressable onPress={() => router.push('/(auth)/login')}>

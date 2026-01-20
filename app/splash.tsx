@@ -32,25 +32,25 @@ export default function SplashScreen() {
           <View style={styles.logoContainer}>
             <Logo size={88} primaryColor={colors.primary} />
           </View>
-          <Text style={[styles.title, { color: colors.text }]}>Erebus</Text>
+          <Text style={[styles.title, { color: '#FFFFFF' }]}>Erebus</Text>
         </View>
 
         <View style={styles.features}>
           <View style={styles.featureItem}>
             <Ionicons name="analytics-outline" size={20} color={colors.primary} />
-            <Text style={[styles.featureText, { color: colors.text }]}>Track your dives</Text>
+            <Text style={[styles.featureText, { color: '#FFFFFF' }]}>Track your dives</Text>
           </View>
           <View style={styles.featureItem}>
             <Ionicons name="calendar-outline" size={20} color={colors.primary} />
-            <Text style={[styles.featureText, { color: colors.text }]}>Plan your dives</Text>
+            <Text style={[styles.featureText, { color: '#FFFFFF' }]}>Plan your dives</Text>
           </View>
           <View style={styles.featureItem}>
             <Ionicons name="people-outline" size={20} color={colors.primary} />
-            <Text style={[styles.featureText, { color: colors.text }]}>Connect with divers</Text>
+            <Text style={[styles.featureText, { color: '#FFFFFF' }]}>Connect with divers</Text>
           </View>
           <View style={styles.featureItem}>
             <Ionicons name="ellipsis-horizontal-outline" size={20} color={colors.primary} />
-            <Text style={[styles.featureText, { color: colors.text }]}>And much more</Text>
+            <Text style={[styles.featureText, { color: '#FFFFFF' }]}>And much more</Text>
           </View>
         </View>
 
@@ -67,7 +67,7 @@ export default function SplashScreen() {
           </Pressable>
 
           <Pressable onPress={() => router.push('/(auth)/login' as any)}>
-            <Text style={[styles.loginLink, { color: colors.textSecondary }]}>Already have an account? Log in</Text>
+            <Text style={[styles.loginLink, { color: 'rgba(255,255,255,0.7)' }]}>Already have an account? Log in</Text>
           </Pressable>
         </View>
         </View>
