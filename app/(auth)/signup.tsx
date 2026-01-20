@@ -10,12 +10,15 @@ import {
   ScrollView,
   ActivityIndicator,
   ImageBackground,
+  Linking,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import Logo from '@/components/Logo';
+
+const SEX_OPTIONS = ['Male', 'Female', 'Other', 'Prefer not to say'];
 
 const darkCoralBackground = require('@/assets/images/coral-background-dark.jpg');
 
@@ -29,6 +32,11 @@ export default function SignupScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [age, setAge] = useState('');
+  const [sex, setSex] = useState('');
+  const [showSexPicker, setShowSexPicker] = useState(false);
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -50,15 +58,29 @@ export default function SignupScreen() {
       setError('Passwords do not match');
       return;
     }
+    if (!privacyAccepted) {
+      setError('Please accept the Privacy Policy');
+      return;
+    }
+    if (!termsAccepted) {
+      setError('Please accept the Terms & Conditions');
+      return;
+    }
 
     setError('');
     setIsLoading(true);
 
+    const ageNum = age ? parseInt(age, 10) : undefined;
+    
     const result = await signup(
       email.trim(),
       password,
       firstName.trim() || undefined,
-      lastName.trim() || undefined
+      lastName.trim() || undefined,
+      ageNum,
+      sex || undefined,
+      privacyAccepted,
+      termsAccepted
     );
 
     setIsLoading(false);
@@ -183,6 +205,94 @@ export default function SignupScreen() {
                 autoCapitalize="none"
               />
             </View>
+          </View>
+
+          <View style={styles.nameRow}>
+            <View style={[styles.inputGroup, { flex: 1 }]}>
+              <Text style={[styles.label, { color: '#FFFFFF' }]}>Age (Optional)</Text>
+              <View style={[styles.inputContainer, { backgroundColor: 'rgba(0,0,0,0.5)', borderColor: 'rgba(255,255,255,0.3)' }]}>
+                <Ionicons name="calendar-outline" size={20} color={colors.primary} />
+                <TextInput
+                  style={[styles.input, { color: '#FFFFFF' }]}
+                  placeholder="Age"
+                  placeholderTextColor="rgba(255,255,255,0.5)"
+                  value={age}
+                  onChangeText={(text) => setAge(text.replace(/[^0-9]/g, ''))}
+                  keyboardType="number-pad"
+                  maxLength={3}
+                />
+              </View>
+            </View>
+
+            <View style={[styles.inputGroup, { flex: 1 }]}>
+              <Text style={[styles.label, { color: '#FFFFFF' }]}>Sex (Optional)</Text>
+              <Pressable 
+                style={[styles.inputContainer, { backgroundColor: 'rgba(0,0,0,0.5)', borderColor: 'rgba(255,255,255,0.3)' }]}
+                onPress={() => setShowSexPicker(!showSexPicker)}
+              >
+                <Ionicons name="person-outline" size={20} color={colors.primary} />
+                <Text style={[styles.input, { color: sex ? '#FFFFFF' : 'rgba(255,255,255,0.5)', paddingTop: 14 }]}>
+                  {sex || 'Select'}
+                </Text>
+                <Ionicons name="chevron-down" size={20} color={colors.primary} />
+              </Pressable>
+            </View>
+          </View>
+
+          {showSexPicker && (
+            <View style={[styles.pickerContainer, { backgroundColor: 'rgba(0,0,0,0.7)', borderColor: 'rgba(255,255,255,0.3)' }]}>
+              {SEX_OPTIONS.map((option) => (
+                <Pressable
+                  key={option}
+                  style={[styles.pickerOption, sex === option && { backgroundColor: colors.primary + '30' }]}
+                  onPress={() => {
+                    setSex(option);
+                    setShowSexPicker(false);
+                  }}
+                >
+                  <Text style={[styles.pickerOptionText, { color: '#FFFFFF' }]}>{option}</Text>
+                  {sex === option && <Ionicons name="checkmark" size={18} color={colors.primary} />}
+                </Pressable>
+              ))}
+            </View>
+          )}
+
+          <View style={styles.consentContainer}>
+            <Pressable 
+              style={styles.checkboxRow}
+              onPress={() => setPrivacyAccepted(!privacyAccepted)}
+            >
+              <View style={[styles.checkbox, { borderColor: 'rgba(255,255,255,0.5)' }, privacyAccepted && { backgroundColor: colors.primary, borderColor: colors.primary }]}>
+                {privacyAccepted && <Ionicons name="checkmark" size={16} color="#FFFFFF" />}
+              </View>
+              <Text style={[styles.consentText, { color: 'rgba(255,255,255,0.8)' }]}>
+                I have read and accept the{' '}
+                <Text 
+                  style={{ color: colors.primary, textDecorationLine: 'underline' }}
+                  onPress={() => router.push('/(app)/privacy' as any)}
+                >
+                  Privacy Policy
+                </Text>
+              </Text>
+            </Pressable>
+
+            <Pressable 
+              style={styles.checkboxRow}
+              onPress={() => setTermsAccepted(!termsAccepted)}
+            >
+              <View style={[styles.checkbox, { borderColor: 'rgba(255,255,255,0.5)' }, termsAccepted && { backgroundColor: colors.primary, borderColor: colors.primary }]}>
+                {termsAccepted && <Ionicons name="checkmark" size={16} color="#FFFFFF" />}
+              </View>
+              <Text style={[styles.consentText, { color: 'rgba(255,255,255,0.8)' }]}>
+                I have read and accept the{' '}
+                <Text 
+                  style={{ color: colors.primary, textDecorationLine: 'underline' }}
+                  onPress={() => router.push('/(app)/terms' as any)}
+                >
+                  Terms & Conditions
+                </Text>
+              </Text>
+            </Pressable>
           </View>
 
           <Pressable
@@ -319,5 +429,42 @@ const styles = StyleSheet.create({
   loginLink: {
     fontSize: 14,
     fontWeight: '600',
+  },
+  pickerContainer: {
+    borderWidth: 1,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  pickerOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  pickerOptionText: {
+    fontSize: 16,
+  },
+  consentContainer: {
+    gap: 12,
+    marginTop: 8,
+  },
+  checkboxRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderWidth: 2,
+    borderRadius: 6,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  consentText: {
+    flex: 1,
+    fontSize: 14,
+    lineHeight: 20,
   },
 });

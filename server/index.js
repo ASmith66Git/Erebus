@@ -974,7 +974,7 @@ function requireAdmin(req, res, next) {
 }
 
 app.post('/api/auth/signup', async (req, res) => {
-  const { email, password, firstName, lastName } = req.body;
+  const { email, password, firstName, lastName, age, sex, privacyAccepted, termsAccepted } = req.body;
   
   if (!email || !password) {
     return res.status(400).json({ error: 'Email and password are required' });
@@ -984,6 +984,10 @@ app.post('/api/auth/signup', async (req, res) => {
     return res.status(400).json({ error: 'Password must be at least 6 characters' });
   }
   
+  if (!privacyAccepted || !termsAccepted) {
+    return res.status(400).json({ error: 'You must accept the Privacy Policy and Terms & Conditions' });
+  }
+  
   try {
     const existingUser = await pool.query('SELECT id FROM users WHERE email = $1', [email.toLowerCase()]);
     if (existingUser.rows.length > 0) {
@@ -991,10 +995,11 @@ app.post('/api/auth/signup', async (req, res) => {
     }
     
     const hashedPassword = await bcrypt.hash(password, 10);
+    const now = new Date();
     
     const result = await pool.query(
-      'INSERT INTO users (email, password, first_name, last_name) VALUES ($1, $2, $3, $4) RETURNING id, email, first_name, last_name, role',
-      [email.toLowerCase(), hashedPassword, firstName || null, lastName || null]
+      'INSERT INTO users (email, password, first_name, last_name, age, sex, privacy_accepted_at, terms_accepted_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, email, first_name, last_name, role, age, sex',
+      [email.toLowerCase(), hashedPassword, firstName || null, lastName || null, age || null, sex || null, now, now]
     );
     
     const user = result.rows[0];

@@ -44,7 +44,7 @@ interface AuthContextType {
   isBiometricEnabled: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   loginWithBiometric: () => Promise<{ success: boolean; error?: string }>;
-  signup: (email: string, password: string, firstName?: string, lastName?: string) => Promise<{ success: boolean; error?: string }>;
+  signup: (email: string, password: string, firstName?: string, lastName?: string, age?: number, sex?: string, privacyAccepted?: boolean, termsAccepted?: boolean) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
   setBiometricEnabled: (enabled: boolean) => Promise<void>;
@@ -351,7 +351,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     email: string, 
     password: string, 
     firstName?: string, 
-    lastName?: string
+    lastName?: string,
+    age?: number,
+    sex?: string,
+    privacyAccepted?: boolean,
+    termsAccepted?: boolean
   ): Promise<{ success: boolean; error?: string }> {
     try {
       const controller = new AbortController();
@@ -362,7 +366,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, password, firstName, lastName }),
+        body: JSON.stringify({ email, password, firstName, lastName, age, sex, privacyAccepted, termsAccepted }),
         signal: controller.signal,
       });
       
