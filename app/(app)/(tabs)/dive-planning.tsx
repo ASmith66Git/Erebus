@@ -733,7 +733,7 @@ export default function DivePlanningScreen() {
               </View>
               <View style={styles.scrubberDataItem}>
                 <Text style={[styles.scrubberDataLabel, { color: colors.textSecondary }]}>Depth</Text>
-                <Text style={[styles.scrubberDataValue, { color: colors.primary }]}>{scrubberValues.depth}{depthUnit}</Text>
+                <Text style={[styles.scrubberDataValue, { color: '#007AFF' }]}>{scrubberValues.depth}{depthUnit}</Text>
               </View>
               <View style={styles.scrubberDataItem}>
                 <Text style={[styles.scrubberDataLabel, { color: colors.textSecondary }]}>Gas</Text>
@@ -741,7 +741,7 @@ export default function DivePlanningScreen() {
               </View>
               <View style={styles.scrubberDataItem}>
                 <Text style={[styles.scrubberDataLabel, { color: colors.textSecondary }]}>CNS</Text>
-                <Text style={[styles.scrubberDataValue, { color: scrubberValues.cns > 80 ? colors.danger : colors.warning }]}>{scrubberValues.cns}%</Text>
+                <Text style={[styles.scrubberDataValue, { color: scrubberValues.cns > 80 ? colors.danger : '#FF9500' }]}>{scrubberValues.cns}%</Text>
               </View>
             </View>
             <View style={styles.scrubberDataRow}>
@@ -755,7 +755,7 @@ export default function DivePlanningScreen() {
               </View>
               <View style={styles.scrubberDataItem}>
                 <Text style={[styles.scrubberDataLabel, { color: colors.textSecondary }]}>Ceiling</Text>
-                <Text style={[styles.scrubberDataValue, { color: colors.warning }]}>{scrubberValues.ceiling}{depthUnit}</Text>
+                <Text style={[styles.scrubberDataValue, { color: colors.danger }]}>{scrubberValues.ceiling}{depthUnit}</Text>
               </View>
               <View style={styles.scrubberDataItem}>
                 <Text style={[styles.scrubberDataLabel, { color: colors.textSecondary }]}>GF99</Text>
