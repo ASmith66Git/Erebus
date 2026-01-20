@@ -194,7 +194,7 @@ export default function GasCalculatorScreen() {
             onPress={() => setActiveTab(tab)}
           >
             <Text style={[styles.tabText, { color: activeTab === tab ? colors.primary : colors.textSecondary }]}>
-              {tab === 'mix' ? 'Mix' : 'Best Mix'}
+              {tab === 'mix' ? 'Blender' : 'Best Mix'}
             </Text>
           </TouchableOpacity>
         ))}
