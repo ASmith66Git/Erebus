@@ -623,6 +623,9 @@ export function calculateDecoSchedule(
   let currentTissues = tissues.map(t => ({ ...t }));
   let depth = currentDepth;
   
+  // Determine last stop depth based on circuit type
+  const lastStopDepth = settings.circuit === 'ccr' ? settings.lastCcrStopDepth : settings.lastOcStopDepth;
+  
   const firstStopDepth = findFirstStop(currentTissues, settings.gfLow, settings.decoStopInterval, settings.waterType);
   
   const sortedGases = [...gases].sort((a, b) => (b.switchDepth || Infinity) - (a.switchDepth || Infinity));
@@ -639,7 +642,8 @@ export function calculateDecoSchedule(
   let iterations = 0;
   const maxIterations = 500;
   
-  while (depth > 0 && iterations < maxIterations) {
+  // Continue until we reach the last stop depth (not 0)
+  while (depth >= lastStopDepth && iterations < maxIterations) {
     iterations++;
     const gas = getGasForDepth(depth);
     
@@ -655,7 +659,7 @@ export function calculateDecoSchedule(
     
     const nextStopDepth = Math.ceil(ceiling / settings.decoStopInterval) * settings.decoStopInterval;
     
-    if (nextStopDepth >= depth && depth > 0) {
+    if (nextStopDepth >= depth && depth >= lastStopDepth) {
       currentTissues = calculateTissueLoadingConstantDepth(currentTissues, depth, 1, gas, settings.waterType, settings.circuit, settings.ccrSetpoint);
       tissueHistory.push(currentTissues.map(t => ({ ...t })));
       
@@ -665,9 +669,19 @@ export function calculateDecoSchedule(
       } else {
         stops.push({ depth, duration: 1, gasMix: gas, ceiling });
       }
+      
+      // If we're at the last stop and ceiling allows surfacing, we're done
+      if (depth === lastStopDepth && ceiling <= 0) {
+        break;
+      }
     } else {
-      const nextDepth = Math.max(0, depth - settings.decoStopInterval);
-      const ascentTime = settings.decoStopInterval / settings.ascentRate;
+      // Don't go below the last stop depth
+      const nextDepth = Math.max(lastStopDepth, depth - settings.decoStopInterval);
+      if (nextDepth === depth) {
+        // We're stuck at last stop, need to wait for offgassing
+        break;
+      }
+      const ascentTime = (depth - nextDepth) / settings.ascentRate;
       currentTissues = calculateTissueLoadingSchreiner(currentTissues, depth, nextDepth, ascentTime, gas, settings.waterType, settings.circuit, settings.ccrSetpoint);
       tissueHistory.push(currentTissues.map(t => ({ ...t })));
       depth = nextDepth;
