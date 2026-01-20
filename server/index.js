@@ -3811,7 +3811,8 @@ app.get('/api/dive-logs/stats', authenticateToken, async (req, res) => {
         MAX(max_depth_meters) as deepest_dive_meters,
         AVG(max_depth_meters) as avg_max_depth_meters,
         MIN(min_temperature_celsius) as coldest_temp,
-        MAX(max_temperature_celsius) as warmest_temp
+        MAX(max_temperature_celsius) as warmest_temp,
+        COUNT(DISTINCT dive_site_id) as sites_visited
       FROM dive_logs
       WHERE user_id = $1 AND deleted_at IS NULL
     `, [req.user.id]);
@@ -3823,7 +3824,8 @@ app.get('/api/dive-logs/stats', authenticateToken, async (req, res) => {
       deepestDiveMeters: stats.deepest_dive_meters ? parseFloat(stats.deepest_dive_meters) : null,
       avgMaxDepthMeters: stats.avg_max_depth_meters ? parseFloat(stats.avg_max_depth_meters) : null,
       coldestTemp: stats.coldest_temp ? parseFloat(stats.coldest_temp) : null,
-      warmestTemp: stats.warmest_temp ? parseFloat(stats.warmest_temp) : null
+      warmestTemp: stats.warmest_temp ? parseFloat(stats.warmest_temp) : null,
+      sitesVisited: parseInt(stats.sites_visited) || 0
     });
   } catch (error) {
     console.error('Get dive stats error:', error);
