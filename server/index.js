@@ -263,6 +263,7 @@ async function initDatabase() {
     await client.query(`ALTER TABLE dive_logs ADD COLUMN IF NOT EXISTS gas_pressures JSONB DEFAULT '[]';`).catch(() => {});
     await client.query(`ALTER TABLE dive_logs ADD COLUMN IF NOT EXISTS equipment_issues JSONB DEFAULT '[]';`).catch(() => {});
     await client.query(`ALTER TABLE dive_logs ADD COLUMN IF NOT EXISTS skills_practiced JSONB DEFAULT '[]';`).catch(() => {});
+    await client.query(`ALTER TABLE dive_logs ADD COLUMN IF NOT EXISTS skills_notes TEXT;`).catch(() => {});
     await client.query(`ALTER TABLE dive_logs ADD COLUMN IF NOT EXISTS buddy TEXT;`).catch(() => {});
     await client.query(`ALTER TABLE dive_logs ADD COLUMN IF NOT EXISTS decompression_symptoms BOOLEAN DEFAULT FALSE;`).catch(() => {});
     await client.query(`ALTER TABLE dive_logs ADD COLUMN IF NOT EXISTS problem_notes TEXT;`).catch(() => {});
@@ -3889,6 +3890,7 @@ app.get('/api/dive-logs/:id', authenticateToken, async (req, res) => {
       gasPressures: row.gas_pressures || [],
       equipmentIssues: row.equipment_issues || [],
       skillsPracticed: row.skills_practiced || [],
+      skillsNotes: row.skills_notes,
       buddy: row.buddy,
       decompressionSymptoms: row.decompression_symptoms,
       problemNotes: row.problem_notes,
@@ -4094,6 +4096,7 @@ app.get('/api/dive-logs/:id/detailed', authenticateToken, async (req, res) => {
       gasPressures: diveLog.gas_pressures || [],
       equipmentIssues: diveLog.equipment_issues || [],
       skillsPracticed: diveLog.skills_practiced || [],
+      skillsNotes: diveLog.skills_notes,
       detailedSamples: diveLog.detailed_samples,
       detailedGases: diveLog.detailed_gases,
       events: diveLog.events,
@@ -4238,7 +4241,8 @@ app.put('/api/dive-logs/:id', authenticateToken, async (req, res) => {
     const { id } = req.params;
     const {
       diveSiteId, diveDateTime, durationSeconds, maxDepthMeters, avgDepthMeters,
-      minTemperatureCelsius, maxTemperatureCelsius, notes, rating, gearProfileId, gasMixes
+      minTemperatureCelsius, maxTemperatureCelsius, notes, rating, gearProfileId, gasMixes,
+      skillsNotes
     } = req.body;
 
     const existingResult = await pool.query(
@@ -4272,8 +4276,9 @@ app.put('/api/dive-logs/:id', authenticateToken, async (req, res) => {
         notes = COALESCE($8, notes),
         rating = COALESCE($9, rating),
         gear_profile_id = $10,
-        gas_mixes = COALESCE($11, gas_mixes)
-      WHERE id = $12 AND user_id = $13
+        gas_mixes = COALESCE($11, gas_mixes),
+        skills_notes = COALESCE($12, skills_notes)
+      WHERE id = $13 AND user_id = $14
       RETURNING *
     `;
     const updateParams = [
@@ -4281,6 +4286,7 @@ app.put('/api/dive-logs/:id', authenticateToken, async (req, res) => {
       minTemperatureCelsius, maxTemperatureCelsius, notes, rating,
       gearProfileId !== undefined ? gearProfileId : null,
       gasMixes ? JSON.stringify(gasMixes) : null,
+      skillsNotes,
       id, req.user.id
     ];
     

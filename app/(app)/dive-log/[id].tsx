@@ -30,11 +30,6 @@ const EQUIPMENT_OPTIONS = [
   'Fins', 'Masks', 'CCR O2', 'CCR Dil', 'CCR CO2', 'Dive Computer', 'Other'
 ];
 
-const SKILLS_OPTIONS = [
-  'Bailout', 'Gas switch', 'SMB launch', 'Mask clearing', 'Backward manoeuvring',
-  'Buoyancy', 'Breathing', 'Gas Shut down', 'High PO2', 'Low PO2',
-  'Manual PO2', 'Line laying with markers'
-];
 
 interface DiveLog {
   id: number;
@@ -67,6 +62,7 @@ interface DiveLog {
   gasPressures: GasPressure[] | null;
   equipmentIssues: string[] | null;
   skillsPracticed: string[] | null;
+  skillsNotes: string | null;
   buddy: string | null;
   decompressionSymptoms: boolean | null;
   problemNotes: string | null;
@@ -1030,27 +1026,87 @@ function GasTab({ diveLog, colors, gearCylinders }: { diveLog: DiveLog; colors: 
   );
 }
 
-function SkillsTab({ diveLog, colors }: { diveLog: DiveLog; colors: any }) {
+function SkillsTab({ diveLog, colors, token, onRefresh }: { diveLog: DiveLog; colors: any; token: string | null; onRefresh: () => void }) {
+  const [editing, setEditing] = useState(false);
+  const [skillsNotes, setSkillsNotes] = useState(diveLog.skillsNotes || '');
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    if (!token) return;
+    setSaving(true);
+    try {
+      const response = await fetch(`${getApiUrl()}/api/dive-logs/${diveLog.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ skillsNotes }),
+      });
+      if (response.ok) {
+        setEditing(false);
+        onRefresh();
+      }
+    } catch (error) {
+      console.error('Error saving skills notes:', error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const placeholderText = `Record the skills you practised on this dive, for example:
+• Buoyancy control and trim
+• SMB deployment
+• Mask clearing
+• Gas switching procedures
+• Backwards finning
+• Line laying with markers
+• Emergency drills (bailout, valve shutdown)`;
+
   return (
     <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
       <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <View style={styles.fieldRow}>
-          <Feather name="award" size={16} color={colors.primary} />
-          <Text style={[styles.cardTitle, { color: colors.text }]}>Skills Practised</Text>
+        <View style={[styles.fieldRow, { justifyContent: 'space-between' }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Feather name="award" size={16} color={colors.primary} />
+            <Text style={[styles.cardTitle, { color: colors.text }]}>Skills Practised</Text>
+          </View>
+          {editing ? (
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              <Pressable onPress={() => { setEditing(false); setSkillsNotes(diveLog.skillsNotes || ''); }}>
+                <Text style={{ color: colors.textSecondary }}>Cancel</Text>
+              </Pressable>
+              <Pressable onPress={handleSave} disabled={saving}>
+                <Text style={{ color: colors.primary, fontWeight: '600' }}>{saving ? 'Saving...' : 'Save'}</Text>
+              </Pressable>
+            </View>
+          ) : (
+            <Pressable onPress={() => setEditing(true)}>
+              <Feather name="edit-2" size={16} color={colors.primary} />
+            </Pressable>
+          )}
         </View>
-        <View style={styles.checkboxGrid}>
-          {SKILLS_OPTIONS.map((skill) => {
-            const isChecked = diveLog.skillsPracticed?.includes(skill);
-            return (
-              <View key={skill} style={styles.checkboxItem}>
-                <View style={[styles.checkbox, { borderColor: colors.border, backgroundColor: isChecked ? colors.primary + '20' : 'transparent' }]}>
-                  {isChecked && <Feather name="check" size={12} color={colors.primary} />}
-                </View>
-                <Text style={[styles.checkboxLabel, { color: colors.text }]}>{skill}</Text>
-              </View>
-            );
-          })}
-        </View>
+        {editing ? (
+          <TextInput
+            style={[styles.skillsTextInput, { 
+              color: colors.text, 
+              backgroundColor: colors.background, 
+              borderColor: colors.border 
+            }]}
+            value={skillsNotes}
+            onChangeText={setSkillsNotes}
+            multiline
+            placeholder={placeholderText}
+            placeholderTextColor={colors.textSecondary}
+            textAlignVertical="top"
+          />
+        ) : (
+          <View style={[styles.textArea, { backgroundColor: colors.background, borderColor: colors.border, minHeight: 150 }]}>
+            <Text style={[styles.textAreaText, { color: diveLog.skillsNotes ? colors.text : colors.textSecondary }]}>
+              {diveLog.skillsNotes || placeholderText}
+            </Text>
+          </View>
+        )}
       </View>
 
       <View style={{ height: 100 }} />
@@ -1598,7 +1654,7 @@ export default function DiveLogDetailScreen() {
       case 'Problems':
         return <ProblemsTab diveLog={diveLog} colors={colors} />;
       case 'Skills':
-        return <SkillsTab diveLog={diveLog} colors={colors} />;
+        return <SkillsTab diveLog={diveLog} colors={colors} token={token} onRefresh={fetchDiveLog} />;
       case 'Team':
         return <TeamTab diveLog={diveLog} colors={colors} token={token} onRefresh={fetchDiveLog} />;
       case 'Notes':
@@ -1828,6 +1884,14 @@ const styles = StyleSheet.create({
   textAreaText: {
     fontSize: 14,
     lineHeight: 20,
+  },
+  skillsTextInput: {
+    borderRadius: 8,
+    borderWidth: 1,
+    padding: 12,
+    fontSize: 14,
+    lineHeight: 20,
+    minHeight: 200,
   },
   checkboxGrid: {
     flexDirection: 'row',
