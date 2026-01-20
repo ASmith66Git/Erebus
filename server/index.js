@@ -383,6 +383,16 @@ async function initDatabase() {
       CREATE INDEX IF NOT EXISTS idx_gear_profiles_user_id ON gear_profiles(user_id);
     `).catch(() => {});
     
+    // Add status column to gear_profiles (live/archived) to replace is_template
+    await client.query(`
+      ALTER TABLE gear_profiles ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'live';
+    `).catch(() => {});
+    
+    // Migrate existing is_template to status - templates become 'live', non-templates become 'live'
+    await client.query(`
+      UPDATE gear_profiles SET status = 'live' WHERE status IS NULL;
+    `).catch(() => {});
+    
     await client.query(`
       CREATE INDEX IF NOT EXISTS idx_gear_cylinders_profile_id ON gear_cylinders(gear_profile_id);
     `).catch(() => {});
@@ -4612,7 +4622,7 @@ app.get('/api/gear-profiles', authenticateToken, async (req, res) => {
       bootsThickness: row.boots_thickness,
       bcdType: row.bcd_type,
       notes: row.notes,
-      isTemplate: row.is_template,
+      status: row.status || 'live',
       plannedDepth: row.planned_depth ? parseFloat(row.planned_depth) : null,
       plannedBottomTime: row.planned_bottom_time,
       cylinderCount: parseInt(row.cylinder_count) || 0,
@@ -4678,7 +4688,7 @@ app.get('/api/gear-profiles/:id', authenticateToken, async (req, res) => {
       finsNickname: row.fins_nickname,
       maskNickname: row.mask_nickname,
       notes: row.notes,
-      isTemplate: row.is_template,
+      status: row.status || 'live',
       plannedDepth: row.planned_depth ? parseFloat(row.planned_depth) : null,
       plannedBottomTime: row.planned_bottom_time,
       createdAt: row.created_at,
@@ -4721,7 +4731,7 @@ app.post('/api/gear-profiles', authenticateToken, async (req, res) => {
       name, configType, suitType, suitThickness, undersuit, suitNickname,
       glovesType, glovesThickness, glovesNickname, bootsType, bootsThickness, bootsNickname,
       hoodType, hoodThickness, hoodNickname, bcdType, bcdNickname,
-      finsType, finsNickname, maskNickname, notes, isTemplate,
+      finsType, finsNickname, maskNickname, notes, status,
       plannedDepth, plannedBottomTime, cylinders, weights
     } = req.body;
 
@@ -4734,7 +4744,7 @@ app.post('/api/gear-profiles', authenticateToken, async (req, res) => {
         user_id, name, config_type, suit_type, suit_thickness, undersuit, suit_nickname,
         gloves_type, gloves_thickness, gloves_nickname, boots_type, boots_thickness, boots_nickname,
         hood_type, hood_thickness, hood_nickname, bcd_type, bcd_nickname,
-        fins_type, fins_nickname, mask_nickname, notes, is_template, planned_depth, planned_bottom_time
+        fins_type, fins_nickname, mask_nickname, notes, status, planned_depth, planned_bottom_time
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25)
       RETURNING *
     `, [
@@ -4743,7 +4753,7 @@ app.post('/api/gear-profiles', authenticateToken, async (req, res) => {
       bootsType || null, bootsThickness || null, bootsNickname || null,
       hoodType || null, hoodThickness || null, hoodNickname || null,
       bcdType || null, bcdNickname || null, finsType || null, finsNickname || null, maskNickname || null,
-      notes || null, isTemplate !== false, plannedDepth || null, plannedBottomTime || null
+      notes || null, status || 'live', plannedDepth || null, plannedBottomTime || null
     ]);
 
     const profileId = profileResult.rows[0].id;
@@ -4799,7 +4809,7 @@ app.put('/api/gear-profiles/:id', authenticateToken, async (req, res) => {
       name, configType, suitType, suitThickness, undersuit, suitNickname,
       glovesType, glovesThickness, glovesNickname, bootsType, bootsThickness, bootsNickname,
       hoodType, hoodThickness, hoodNickname, bcdType, bcdNickname,
-      finsType, finsNickname, maskNickname, notes, isTemplate,
+      finsType, finsNickname, maskNickname, notes, status,
       plannedDepth, plannedBottomTime, cylinders, weights
     } = req.body;
 
@@ -4836,7 +4846,7 @@ app.put('/api/gear-profiles/:id', authenticateToken, async (req, res) => {
         fins_nickname = $19,
         mask_nickname = $20,
         notes = $21,
-        is_template = COALESCE($22, is_template),
+        status = COALESCE($22, status),
         planned_depth = $23,
         planned_bottom_time = $24
       WHERE id = $25 AND user_id = $26
@@ -4846,7 +4856,7 @@ app.put('/api/gear-profiles/:id', authenticateToken, async (req, res) => {
       bootsType || null, bootsThickness || null, bootsNickname || null,
       hoodType || null, hoodThickness || null, hoodNickname || null,
       bcdType || null, bcdNickname || null, finsType || null, finsNickname || null, maskNickname || null,
-      notes || null, isTemplate, plannedDepth || null, plannedBottomTime || null,
+      notes || null, status, plannedDepth || null, plannedBottomTime || null,
       id, req.user.id
     ]);
 
@@ -4913,14 +4923,14 @@ app.delete('/api/gear-profiles/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// Duplicate gear profile (for creating instance from template)
+// Duplicate gear profile
 app.post('/api/gear-profiles/:id/duplicate', authenticateToken, async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
 
     const { id } = req.params;
-    const { name, isTemplate } = req.body;
+    const { name } = req.body;
 
     // Get original profile
     const originalResult = await client.query(
@@ -4934,13 +4944,13 @@ app.post('/api/gear-profiles/:id/duplicate', authenticateToken, async (req, res)
 
     const original = originalResult.rows[0];
 
-    // Create duplicate
+    // Create duplicate with 'live' status
     const newProfileResult = await client.query(`
       INSERT INTO gear_profiles (
         user_id, name, config_type, suit_type, suit_thickness, undersuit, suit_nickname,
         gloves_type, gloves_thickness, gloves_nickname, boots_type, boots_thickness, boots_nickname,
         hood_type, hood_thickness, hood_nickname, bcd_type, bcd_nickname,
-        fins_type, fins_nickname, mask_nickname, notes, is_template, planned_depth, planned_bottom_time
+        fins_type, fins_nickname, mask_nickname, notes, status, planned_depth, planned_bottom_time
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25)
       RETURNING id
     `, [
@@ -4950,7 +4960,7 @@ app.post('/api/gear-profiles/:id/duplicate', authenticateToken, async (req, res)
       original.boots_type, original.boots_thickness, original.boots_nickname,
       original.hood_type, original.hood_thickness, original.hood_nickname,
       original.bcd_type, original.bcd_nickname, original.fins_type, original.fins_nickname, original.mask_nickname,
-      original.notes, isTemplate !== undefined ? isTemplate : original.is_template,
+      original.notes, 'live',
       original.planned_depth, original.planned_bottom_time
     ]);
 
