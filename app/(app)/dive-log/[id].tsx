@@ -1550,6 +1550,7 @@ export default function DiveLogDetailScreen() {
     };
     
     const handleViewerScroll = (event: any) => {
+      if (!event?.nativeEvent?.contentOffset) return;
       const x = event.nativeEvent.contentOffset.x;
       const newIndex = Math.round(x / screenWidth);
       if (newIndex !== photoViewerIndex && newIndex >= 0 && newIndex < photos.length) {

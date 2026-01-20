@@ -531,7 +531,9 @@ export default function PhotosScreen() {
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.thumbnailContainer}
               onScroll={(e) => {
-                thumbnailScrollPosition.current = e.nativeEvent.contentOffset.x;
+                if (e?.nativeEvent?.contentOffset) {
+                  thumbnailScrollPosition.current = e.nativeEvent.contentOffset.x;
+                }
               }}
               scrollEventThrottle={16}
             >
