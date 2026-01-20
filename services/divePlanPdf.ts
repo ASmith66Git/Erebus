@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { DivePlanResult, DivePlanSettings, GasMix, TissueState, calculateMValueAtPressure, depthToPressure } from './divePlanner';
+import { calculateGasDensity } from './gasMath';
 
 interface DivePlanPdfInput {
   result: DivePlanResult;
@@ -10,6 +11,30 @@ interface DivePlanPdfInput {
   gases: GasMix[];
   userName?: string;
   themeColor?: string;
+}
+
+const RHO_O2 = 1.429;
+const RHO_N2 = 1.251;
+const RHO_HE = 0.179;
+
+function calculateCNS(ppo2: number, durationMinutes: number): number {
+  if (ppo2 <= 0.5) return 0;
+  const CNS_LIMITS: [number, number][] = [
+    [0.60, 720], [0.70, 570], [0.80, 450], [0.90, 360], [1.00, 300],
+    [1.10, 240], [1.20, 210], [1.30, 180], [1.40, 150], [1.50, 120],
+    [1.60, 45], [1.70, 20], [1.80, 10], [1.90, 8], [2.00, 5]
+  ];
+  let limit = 720;
+  for (const [threshold, minutes] of CNS_LIMITS) {
+    if (ppo2 <= threshold) { limit = minutes; break; }
+    limit = minutes;
+  }
+  return (durationMinutes / limit) * 100;
+}
+
+function calculateOTU(ppo2: number, durationMinutes: number): number {
+  if (ppo2 <= 0.5) return 0;
+  return durationMinutes * Math.pow((0.5 / (ppo2 - 0.5)), -5/6);
 }
 
 function colorToRgb(color: string): [number, number, number] {
@@ -44,14 +69,13 @@ function formatGas(gas: GasMix): string {
   }
 }
 
-const TISSUE_COLORS = [
-  '#F44336', '#FF5722', '#FF9800', '#FFC107', 
-  '#CDDC39', '#8BC34A', '#4CAF50', '#009688',
-  '#00BCD4', '#03A9F4', '#2196F3', '#3F51B5',
-  '#673AB7', '#9C27B0', '#E91E63', '#F44336'
-];
+const DEPTH_LINE_COLOR: [number, number, number] = [0, 122, 255]; // #007AFF blue
+const CEILING_LINE_COLOR: [number, number, number] = [255, 59, 48]; // Red
+const CNS_LINE_COLOR: [number, number, number] = [255, 149, 0]; // Orange
+const OTU_LINE_COLOR: [number, number, number] = [175, 82, 222]; // Purple
+const DENSITY_LINE_COLOR: [number, number, number] = [52, 199, 89]; // Green
 
-function drawDiveProfileWithTissues(
+function drawDiveProfileWithMetrics(
   doc: jsPDF, 
   result: DivePlanResult, 
   settings: DivePlanSettings,
@@ -66,9 +90,10 @@ function drawDiveProfileWithTissues(
   
   const maxDepth = Math.max(...segments.map(s => Math.max(s.startDepth, s.endDepth)));
   const totalTime = segments[segments.length - 1].runTime;
+  const waterFactor = settings.waterType === 'salt' ? 10 : 10.3;
   
-  const profileHeight = 55;
-  const padding = { top: 12, right: 10, bottom: 15, left: 25 };
+  const profileHeight = 65;
+  const padding = { top: 12, right: 10, bottom: 18, left: 25 };
   const chartW = width - padding.left - padding.right;
   const chartH = profileHeight - padding.top - padding.bottom;
   const depthUnit = settings.units === 'metric' ? 'm' : 'ft';
@@ -91,61 +116,117 @@ function drawDiveProfileWithTissues(
     doc.line(lineX, y + padding.top, lineX, y + padding.top + chartH);
   }
   
-  if (result.tissueHistory && result.tissueHistory.length > 1) {
-    const baselinePpInert = 0.74;
-    const numSamples = Math.min(result.tissueHistory.length, 100);
-    const sampleInterval = Math.max(1, Math.floor(result.tissueHistory.length / numSamples));
+  const numSamples = 50;
+  const samplePoints: { time: number; depth: number; cns: number; otu: number; density: number; ceiling: number }[] = [];
+  let cumulativeCNS = 0;
+  let cumulativeOTU = 0;
+  
+  for (let i = 0; i <= numSamples; i++) {
+    const sampleTime = (i / numSamples) * totalTime;
+    let currentDepth = 0;
+    let currentGas = segments[0]?.gasMix;
+    let runningCNS = 0;
+    let runningOTU = 0;
     
-    let maxLoading = 0;
-    for (let h = 0; h < result.tissueHistory.length; h += sampleInterval) {
-      const tissues = result.tissueHistory[h];
-      if (!tissues) continue;
-      for (let t = 0; t < 16; t++) {
-        if (tissues[t]) {
-          const Pamb = 1.0;
-          const mValue = calculateMValueAtPressure(tissues[t], t, Pamb);
-          const loading = (tissues[t].ppInert - baselinePpInert) / (mValue - baselinePpInert);
-          if (loading > maxLoading) maxLoading = loading;
-        }
+    for (const seg of segments) {
+      const segStart = seg.runTime - seg.duration;
+      const segEnd = seg.runTime;
+      if (sampleTime >= segStart && sampleTime <= segEnd) {
+        const t = seg.duration > 0 ? (sampleTime - segStart) / seg.duration : 1;
+        currentDepth = seg.startDepth + t * (seg.endDepth - seg.startDepth);
+        currentGas = seg.gasMix;
+        break;
+      } else if (sampleTime > segEnd) {
+        currentDepth = seg.endDepth;
+        currentGas = seg.gasMix;
       }
     }
-    maxLoading = Math.max(maxLoading, 1);
     
-    for (let tissueIdx = 0; tissueIdx < 16; tissueIdx++) {
-      const color = colorToRgb(TISSUE_COLORS[tissueIdx]);
-      doc.setDrawColor(color[0], color[1], color[2]);
-      doc.setLineWidth(0.4);
-      
-      let prevTissueX = x + padding.left;
-      let prevTissueY = y + padding.top + chartH;
-      let firstPoint = true;
-      
-      for (let h = 0; h < result.tissueHistory.length; h += sampleInterval) {
-        const tissues = result.tissueHistory[h];
-        if (!tissues || !tissues[tissueIdx]) continue;
-        
-        const tissue = tissues[tissueIdx];
-        const timeRatio = h / (result.tissueHistory.length - 1);
-        const tissueX = x + padding.left + timeRatio * chartW;
-        
-        const Pamb = 1.0;
-        const mValue = calculateMValueAtPressure(tissue, tissueIdx, Pamb);
-        const loading = Math.max(0, (tissue.ppInert - baselinePpInert) / (mValue - baselinePpInert));
-        const normalizedLoading = Math.min(loading / maxLoading, 1);
-        const tissueY = y + padding.top + chartH - normalizedLoading * chartH;
-        
-        if (!firstPoint) {
-          doc.line(prevTissueX, prevTissueY, tissueX, tissueY);
-        }
-        prevTissueX = tissueX;
-        prevTissueY = tissueY;
-        firstPoint = false;
+    for (const seg of segments) {
+      const segEnd = seg.runTime;
+      if (segEnd <= sampleTime) {
+        const avgDepth = (seg.startDepth + seg.endDepth) / 2;
+        const pressure = 1 + avgDepth / waterFactor;
+        const ppo2 = (seg.gasMix.o2Percent / 100) * pressure;
+        runningCNS += calculateCNS(ppo2, seg.duration);
+        runningOTU += calculateOTU(ppo2, seg.duration);
       }
     }
+    
+    const pressure = 1 + currentDepth / waterFactor;
+    const o2Frac = (currentGas?.o2Percent || 21) / 100;
+    const heFrac = (currentGas?.hePercent || 0) / 100;
+    const n2Frac = 1 - o2Frac - heFrac;
+    const surfaceDensity = (o2Frac * RHO_O2) + (n2Frac * RHO_N2) + (heFrac * RHO_HE);
+    const density = surfaceDensity * pressure;
+    
+    let ceiling = 0;
+    if (result.tissueHistory && result.tissueHistory.length > 0) {
+      const historyIndex = Math.min(Math.floor((sampleTime / totalTime) * (result.tissueHistory.length - 1)), result.tissueHistory.length - 1);
+      const tissues = result.tissueHistory[historyIndex];
+      if (tissues) {
+        tissues.forEach(t => { if (t.ceiling > ceiling) ceiling = t.ceiling; });
+      }
+    }
+    
+    samplePoints.push({ time: sampleTime, depth: currentDepth, cns: runningCNS, otu: runningOTU, density, ceiling });
   }
   
-  doc.setDrawColor(themeRgb[0], themeRgb[1], themeRgb[2]);
-  doc.setLineWidth(1);
+  const maxCNS = Math.max(100, ...samplePoints.map(p => p.cns));
+  const maxOTU = Math.max(100, ...samplePoints.map(p => p.otu));
+  const maxDensity = Math.max(6.2, ...samplePoints.map(p => p.density));
+  
+  doc.setDrawColor(CEILING_LINE_COLOR[0], CEILING_LINE_COLOR[1], CEILING_LINE_COLOR[2]);
+  doc.setLineWidth(0.5);
+  for (let i = 1; i < samplePoints.length; i++) {
+    const prev = samplePoints[i - 1];
+    const curr = samplePoints[i];
+    if (prev.ceiling <= 0 && curr.ceiling <= 0) continue;
+    const x1 = x + padding.left + (prev.time / totalTime) * chartW;
+    const y1 = y + padding.top + (prev.ceiling / maxDepth) * chartH;
+    const x2 = x + padding.left + (curr.time / totalTime) * chartW;
+    const y2 = y + padding.top + (curr.ceiling / maxDepth) * chartH;
+    doc.line(x1, y1, x2, y2);
+  }
+  
+  doc.setDrawColor(DENSITY_LINE_COLOR[0], DENSITY_LINE_COLOR[1], DENSITY_LINE_COLOR[2]);
+  doc.setLineWidth(0.4);
+  for (let i = 1; i < samplePoints.length; i++) {
+    const prev = samplePoints[i - 1];
+    const curr = samplePoints[i];
+    const x1 = x + padding.left + (prev.time / totalTime) * chartW;
+    const y1 = y + padding.top + chartH - (prev.density / maxDensity) * chartH;
+    const x2 = x + padding.left + (curr.time / totalTime) * chartW;
+    const y2 = y + padding.top + chartH - (curr.density / maxDensity) * chartH;
+    doc.line(x1, y1, x2, y2);
+  }
+  
+  doc.setDrawColor(CNS_LINE_COLOR[0], CNS_LINE_COLOR[1], CNS_LINE_COLOR[2]);
+  doc.setLineWidth(0.4);
+  for (let i = 1; i < samplePoints.length; i++) {
+    const prev = samplePoints[i - 1];
+    const curr = samplePoints[i];
+    const x1 = x + padding.left + (prev.time / totalTime) * chartW;
+    const y1 = y + padding.top + chartH - (Math.min(prev.cns, maxCNS) / maxCNS) * chartH;
+    const x2 = x + padding.left + (curr.time / totalTime) * chartW;
+    const y2 = y + padding.top + chartH - (Math.min(curr.cns, maxCNS) / maxCNS) * chartH;
+    doc.line(x1, y1, x2, y2);
+  }
+  
+  doc.setDrawColor(OTU_LINE_COLOR[0], OTU_LINE_COLOR[1], OTU_LINE_COLOR[2]);
+  doc.setLineWidth(0.4);
+  for (let i = 1; i < samplePoints.length; i++) {
+    const prev = samplePoints[i - 1];
+    const curr = samplePoints[i];
+    const x1 = x + padding.left + (prev.time / totalTime) * chartW;
+    const y1 = y + padding.top + chartH - (Math.min(prev.otu, maxOTU) / maxOTU) * chartH;
+    const x2 = x + padding.left + (curr.time / totalTime) * chartW;
+    const y2 = y + padding.top + chartH - (Math.min(curr.otu, maxOTU) / maxOTU) * chartH;
+    doc.line(x1, y1, x2, y2);
+  }
+  
+  doc.setDrawColor(DEPTH_LINE_COLOR[0], DEPTH_LINE_COLOR[1], DEPTH_LINE_COLOR[2]);
+  doc.setLineWidth(1.2);
   
   let prevX = x + padding.left;
   let prevY = y + padding.top;
@@ -204,60 +285,29 @@ function drawDiveProfileWithTissues(
   }
   
   doc.setFontSize(7);
-  doc.text('Time (min)', x + padding.left + chartW / 2, y + profileHeight - 2, { align: 'center' });
+  doc.text('Time (min)', x + padding.left + chartW / 2, y + profileHeight - 5, { align: 'center' });
   
-  let currentY = y + profileHeight + 5;
-  const finalTissues = result.tissueHistory[result.tissueHistory.length - 1];
+  let currentY = y + profileHeight + 3;
   
-  if (finalTissues && finalTissues.length > 0) {
-    doc.setFontSize(7);
-    doc.setTextColor(60);
-    doc.text('Tissue Compartment Saturation (End of Dive)', x + padding.left, currentY);
-    currentY += 5;
-    
-    const numCols = 2;
-    const compartmentsPerCol = 8;
-    const colWidth = (chartW - 10) / numCols;
-    const barHeight = 2.5;
-    const barGap = 1.5;
-    const maxBarWidth = colWidth * 0.55;
-    const baselinePpInert = 0.74;
-    
-    finalTissues.forEach((tissue, i) => {
-      const col = Math.floor(i / compartmentsPerCol);
-      const row = i % compartmentsPerCol;
-      const colX = x + padding.left + col * colWidth;
-      const barY = currentY + row * (barHeight + barGap);
-      
-      const Pamb = 1.0;
-      const mValue = calculateMValueAtPressure(tissue, i, Pamb);
-      const Plimit = mValue;
-      
-      const current = tissue.ppInert;
-      const numerator = current - baselinePpInert;
-      const denominator = Plimit - baselinePpInert;
-      const percent = denominator > 0 ? (numerator / denominator) * 100 : 0;
-      const clampedPercent = Math.max(0, Math.min(percent, 100));
-      
-      const barWidth = (clampedPercent / 100) * maxBarWidth;
-      
-      doc.setFontSize(5);
-      doc.setTextColor(100);
-      doc.text(`${i + 1}`, colX + 6, barY + barHeight - 0.3, { align: 'right' });
-      
-      doc.setFillColor(230, 230, 230);
-      doc.rect(colX + 8, barY, maxBarWidth, barHeight, 'F');
-      
-      const color = colorToRgb(TISSUE_COLORS[i]);
-      doc.setFillColor(color[0], color[1], color[2]);
-      doc.rect(colX + 8, barY, Math.max(barWidth, 0.5), barHeight, 'F');
-      
-      doc.setTextColor(60);
-      doc.text(`${Math.round(percent)}%`, colX + 8 + maxBarWidth + 2, barY + barHeight - 0.3);
-    });
-    
-    currentY += compartmentsPerCol * (barHeight + barGap) + 3;
-  }
+  doc.setFontSize(6);
+  const legendItems = [
+    { color: DEPTH_LINE_COLOR, label: 'Depth' },
+    { color: CEILING_LINE_COLOR, label: 'Ceiling' },
+    { color: CNS_LINE_COLOR, label: 'CNS' },
+    { color: OTU_LINE_COLOR, label: 'OTU' },
+    { color: DENSITY_LINE_COLOR, label: 'Density' },
+  ];
+  let legendX = x + padding.left;
+  legendItems.forEach(item => {
+    doc.setDrawColor(item.color[0], item.color[1], item.color[2]);
+    doc.setLineWidth(1);
+    doc.line(legendX, currentY, legendX + 8, currentY);
+    doc.setTextColor(80);
+    doc.text(item.label, legendX + 10, currentY + 1);
+    legendX += 28;
+  });
+  
+  currentY += 8;
   
   return currentY - y;
 }
@@ -334,10 +384,10 @@ export function generateDivePlanPdf(input: DivePlanPdfInput): void {
   doc.setTextColor(themeRgb[0], themeRgb[1], themeRgb[2]);
   doc.setFontSize(12);
   doc.setFont('helvetica', 'bold');
-  doc.text('DIVE PROFILE & TISSUE LOADING', margin, yPos);
+  doc.text('DIVE PROFILE CHART', margin, yPos);
   yPos += 5;
   
-  const chartHeight = drawDiveProfileWithTissues(doc, result, settings, margin, yPos, contentWidth, 100, themeRgb);
+  const chartHeight = drawDiveProfileWithMetrics(doc, result, settings, margin, yPos, contentWidth, 100, themeRgb);
   yPos += chartHeight + 8;
   
   const filteredSegments = result.segments.filter(s => s.type !== 'surface_interval');
@@ -345,7 +395,7 @@ export function generateDivePlanPdf(input: DivePlanPdfInput): void {
     doc.setTextColor(themeRgb[0], themeRgb[1], themeRgb[2]);
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
-    doc.text('DIVE PROFILE', margin, yPos);
+    doc.text('DIVE PROFILE TABLE', margin, yPos);
     yPos += 5;
     
     const waterFactor = settings.waterType === 'salt' ? 10 : 10.3;
@@ -360,40 +410,78 @@ export function generateDivePlanPdf(input: DivePlanPdfInput): void {
       }
     };
     
-    const profileData = filteredSegments.map(seg => {
+    let cumulativeCNS = 0;
+    let cumulativeOTU = 0;
+    
+    const profileData = filteredSegments.map((seg, idx) => {
       const segDepth = seg.type === 'descent' || seg.type === 'ascent' ? seg.endDepth : seg.startDepth;
+      const avgDepth = (seg.startDepth + seg.endDepth) / 2;
       const pressure = 1 + segDepth / waterFactor;
+      const avgPressure = 1 + avgDepth / waterFactor;
       const po2 = (seg.gasMix.o2Percent / 100) * pressure;
-      const fN2 = (100 - seg.gasMix.o2Percent - (seg.gasMix.hePercent || 0)) / 100;
-      const ead = fN2 > 0 ? Math.round(((pressure * fN2) - 0.79) / 0.79 * waterFactor) : 0;
+      const avgPo2 = (seg.gasMix.o2Percent / 100) * avgPressure;
+      
+      cumulativeCNS += calculateCNS(avgPo2, seg.duration);
+      cumulativeOTU += calculateOTU(avgPo2, seg.duration);
+      
+      const o2Frac = seg.gasMix.o2Percent / 100;
+      const heFrac = (seg.gasMix.hePercent || 0) / 100;
+      const n2Frac = 1 - o2Frac - heFrac;
+      const surfaceDensity = (o2Frac * RHO_O2) + (n2Frac * RHO_N2) + (heFrac * RHO_HE);
+      const density = surfaceDensity * pressure;
+      
+      let gf99 = 0;
+      if (result.tissueHistory && result.tissueHistory.length > 0) {
+        const historyIndex = Math.min(
+          Math.floor((seg.runTime / result.totalRunTime) * (result.tissueHistory.length - 1)),
+          result.tissueHistory.length - 1
+        );
+        const tissues = result.tissueHistory[historyIndex];
+        if (tissues) {
+          const Pamb = 1 + segDepth / waterFactor;
+          let maxGf = 0;
+          tissues.forEach((tissue, ti) => {
+            const mValue = calculateMValueAtPressure(tissue, ti, Pamb);
+            const gf = ((tissue.ppInert - Pamb) / (mValue - Pamb)) * 100;
+            if (gf > maxGf) maxGf = gf;
+          });
+          gf99 = Math.max(0, Math.round(maxGf));
+        }
+      }
       
       return [
         getPhaseSymbol(seg.type),
-        `${segDepth}${depthUnit}`,
+        `${segDepth}`,
         formatDuration(seg.duration),
         formatDuration(seg.runTime),
         seg.gasMix.name || formatGas(seg.gasMix),
         po2.toFixed(2),
-        ead > 0 ? `${ead}` : '-'
+        `${Math.round(cumulativeCNS)}`,
+        `${Math.round(cumulativeOTU)}`,
+        `${gf99}`,
+        density.toFixed(1)
       ];
     });
     
     autoTable(doc, {
       startY: yPos,
-      head: [['', 'Depth', 'Stop', 'Run', 'Gas', 'PO2', 'EAD']],
+      head: [['', 'Depth', 'Stop', 'Run', 'Gas', 'PO2', 'CNS%', 'OTU', 'GF99', 'g/L']],
       body: profileData,
       theme: 'striped',
       margin: { left: margin, right: margin },
-      headStyles: { fillColor: themeRgb, fontSize: 8 },
-      styles: { fontSize: 8, cellPadding: 2 },
+      headStyles: { fillColor: themeRgb, fontSize: 7 },
+      styles: { fontSize: 7, cellPadding: 1.5 },
       columnStyles: {
-        0: { cellWidth: 8, halign: 'center' },
-        1: { cellWidth: 22 },
-        2: { cellWidth: 22 },
-        3: { cellWidth: 22 },
-        4: { cellWidth: 35 },
-        5: { cellWidth: 18 },
-        6: { cellWidth: 18 }
+        0: { cellWidth: 7, halign: 'center' },
+        1: { cellWidth: 14 },
+        2: { cellWidth: 14 },
+        3: { cellWidth: 14 },
+        4: { cellWidth: 28 },
+        5: { cellWidth: 14 },
+        6: { cellWidth: 14 },
+        7: { cellWidth: 14 },
+        8: { cellWidth: 14 },
+        9: { cellWidth: 14 }
       },
       didParseCell: function(data) {
         if (data.column.index === 5 && data.section === 'body') {
@@ -401,6 +489,30 @@ export function generateDivePlanPdf(input: DivePlanPdfInput): void {
           if (po2Val > 1.6) {
             data.cell.styles.textColor = [200, 0, 0];
           } else if (po2Val > 1.4) {
+            data.cell.styles.textColor = [255, 152, 0];
+          }
+        }
+        if (data.column.index === 6 && data.section === 'body') {
+          const cnsVal = parseInt(data.cell.raw as string);
+          if (cnsVal > 100) {
+            data.cell.styles.textColor = [200, 0, 0];
+          } else if (cnsVal > 80) {
+            data.cell.styles.textColor = [255, 152, 0];
+          }
+        }
+        if (data.column.index === 8 && data.section === 'body') {
+          const gfVal = parseInt(data.cell.raw as string);
+          if (gfVal > settings.gfHigh) {
+            data.cell.styles.textColor = [200, 0, 0];
+          } else if (gfVal > settings.gfLow) {
+            data.cell.styles.textColor = [255, 152, 0];
+          }
+        }
+        if (data.column.index === 9 && data.section === 'body') {
+          const densityVal = parseFloat(data.cell.raw as string);
+          if (densityVal > 6.2) {
+            data.cell.styles.textColor = [200, 0, 0];
+          } else if (densityVal > 5.7) {
             data.cell.styles.textColor = [255, 152, 0];
           }
         }
