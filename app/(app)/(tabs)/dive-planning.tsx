@@ -1848,8 +1848,6 @@ export default function DivePlanningScreen() {
           (v) => setPs({ descentRate: v }), ` ${rateUnit}`)}
         <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Descent rates throughout the plan</Text>
 
-        {renderSlider(`Surface`, ps.surfaceRate, 3, 18, 1,
-          (v) => setPs({ surfaceRate: v }), ` ${rateUnit}`)}
         {renderSlider(`Deco`, ps.decoRate, 3, 15, 1,
           (v) => setPs({ decoRate: v }), ` ${rateUnit}`)}
         {renderSlider(`Ascent`, ps.ascentRate, 3, 18, 1,

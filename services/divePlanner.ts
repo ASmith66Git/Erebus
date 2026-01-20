@@ -108,8 +108,7 @@ export interface DivePlanSettings {
   addTimeToStop: boolean;
   allMixChanges: boolean;
   o2WindowEffect: boolean;
-  // Separate ascent rates
-  surfaceRate: number;
+  // Ascent rates
   decoRate: number;
   // Altitude diving
   elevation: number;
@@ -1146,8 +1145,7 @@ export const DEFAULT_SETTINGS: DivePlanSettings = {
   addTimeToStop: false,
   allMixChanges: false,
   o2WindowEffect: false,
-  // Separate ascent rates
-  surfaceRate: 8,
+  // Ascent rates
   decoRate: 8,
   // Altitude diving
   elevation: 0,
