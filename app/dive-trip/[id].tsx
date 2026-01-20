@@ -871,11 +871,13 @@ export default function DiveTripScreen() {
           numColumns={3}
           contentContainerStyle={styles.photoGrid}
           renderItem={({ item }) => (
-            <Image
-              source={{ uri: getImageUrl(item.image_url)! }}
-              style={[styles.photoThumbnail, { backgroundColor: colors.surface }]}
-              resizeMode="cover"
-            />
+            <Pressable onPress={() => router.push(`/photo/${item.id}` as any)}>
+              <Image
+                source={{ uri: getImageUrl(item.image_url)! }}
+                style={[styles.photoThumbnail, { backgroundColor: colors.surface }]}
+                resizeMode="cover"
+              />
+            </Pressable>
           )}
         />
       )}
