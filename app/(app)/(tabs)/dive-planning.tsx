@@ -14,6 +14,7 @@ import {
   CircuitType, DecoModel, WaterType, UnitSystem, calculateCNS, calculateOTU, GasConsumption,
   calculateMValueAtPressure, depthToPressure, calculateGFAtDepth, findFirstStop
 } from '@/services/divePlanner';
+import { calculateGasDensity } from '@/services/gasMath';
 import { CYLINDER_PRESETS_LEGACY as CYLINDER_PRESETS } from '@/services/cylinderCatalog';
 import PageHeader from '@/components/PageHeader';
 import ThemedBackground from '@/components/ThemedBackground';
@@ -234,7 +235,6 @@ export default function DivePlanningScreen() {
   const [showScrubberModal, setShowScrubberModal] = useState(false);
   const [scrubberElapsed, setScrubberElapsed] = useState(0);
   const [chartScrubberTime, setChartScrubberTime] = useState<number>(0);
-  const [showChartPopup, setShowChartPopup] = useState(false);
 
   const gasMixes = useMemo(() => {
     return gases.map(g => {
@@ -464,7 +464,7 @@ export default function DivePlanningScreen() {
     </View>
   );
 
-  // Get values at a specific time point for the chart scrubber popup
+  // Get values at a specific time point for the chart scrubber
   const getValuesAtTime = useCallback((time: number) => {
     if (!currentResult || currentResult.segments.length === 0) return null;
     
@@ -501,29 +501,59 @@ export default function DivePlanningScreen() {
     const cnsAtTime = Math.round(currentResult.cns * progress);
     const otuAtTime = Math.round(currentResult.otu * progress);
     
-    // Calculate ceiling at this depth
-    const maxTissueM = Math.max(...tissues.map(t => t.ppInert - t.mValue), 0);
-    const ceilingDepth = Math.max(0, maxTissueM);
+    // Calculate ceiling at this depth using proper GF interpolation
+    const firstStopDepth = findFirstStop(tissues, appliedSettings.gfLow, appliedSettings.decoStopInterval || 3, appliedSettings.waterType || 'salt');
+    let ceilingDepth = 0;
+    if (tissues.length > 0) {
+      const Pamb = depthToPressure(currentDepth, appliedSettings.waterType || 'salt');
+      let maxCeiling = 0;
+      tissues.forEach((tissue, i) => {
+        const mValue = calculateMValueAtPressure(tissue, i, Pamb);
+        const gf = calculateGFAtDepth(currentDepth, firstStopDepth, appliedSettings.gfLow, appliedSettings.gfHigh, appliedSettings.waterType || 'salt');
+        const ceiling = (tissue.ppInert - Pamb * gf / 100) / (1 - gf / 100);
+        if (ceiling > maxCeiling) maxCeiling = ceiling;
+      });
+      ceilingDepth = Math.max(0, (maxCeiling - 1) / (appliedSettings.waterType === 'fresh' ? 0.097 : 0.1));
+    }
+    
+    // Calculate gas density at current depth
+    const o2Pct = currentGas?.o2Percent || 21;
+    const hePct = currentGas?.hePercent || 0;
+    const densityResult = calculateGasDensity({ o2Percent: o2Pct, hePercent: hePct }, currentDepth);
+    
+    // Calculate GF99 (current tissue loading as percentage of M-value)
+    let gf99 = 0;
+    if (tissues.length > 0) {
+      const Pamb = depthToPressure(currentDepth, appliedSettings.waterType || 'salt');
+      let maxGf99 = 0;
+      tissues.forEach((tissue, i) => {
+        const mValue = calculateMValueAtPressure(tissue, i, Pamb);
+        const gfActual = 100 * (tissue.ppInert - Pamb) / (mValue - Pamb);
+        if (gfActual > maxGf99) maxGf99 = gfActual;
+      });
+      gf99 = Math.round(Math.max(0, maxGf99));
+    }
     
     return {
       time: Math.round(time * 10) / 10,
       depth: Math.round(currentDepth * 10) / 10,
       gas: currentGas?.name || 'Unknown',
-      o2Percent: currentGas?.o2Percent || 21,
-      hePercent: currentGas?.hePercent || 0,
+      o2Percent: o2Pct,
+      hePercent: hePct,
       segmentType,
       cns: cnsAtTime,
       otu: otuAtTime,
       tissues,
       ceiling: Math.round(ceilingDepth * 10) / 10,
+      gasDensity: densityResult.depthDensity,
+      gf99,
     };
-  }, [currentResult]);
+  }, [currentResult, appliedSettings]);
 
   const handleChartTouch = useCallback((event: any, chartW: number, padding: { left: number }, totalTime: number) => {
     const locationX = event.nativeEvent.locationX - padding.left;
     const time = Math.max(0, Math.min((locationX / chartW) * totalTime, totalTime));
     setChartScrubberTime(time);
-    setShowChartPopup(true);
   }, []);
 
   const renderDiveProfileChart = () => {
@@ -674,25 +704,53 @@ export default function DivePlanningScreen() {
         style={[styles.chartContainer, { backgroundColor: colors.card }]}
         onLayout={(e) => setChartWidth(e.nativeEvent.layout.width - 32)}
       >
-        <View style={styles.chartHeaderRow}>
-          <Text style={[styles.chartTitle, { color: colors.text }]}>Dive Profile</Text>
-          <View style={styles.chartStatsRow}>
-            <View style={[styles.chartStatBadge, { backgroundColor: colors.warning + '20' }]}>
-              <Text style={[styles.chartStatLabel, { color: colors.warning }]}>CNS</Text>
-              <Text style={[styles.chartStatValue, { color: colors.warning }]}>{currentResult.cns}%</Text>
+        <Text style={[styles.chartTitle, { color: colors.text }]}>Dive Profile</Text>
+        
+        {scrubberValues && (
+          <View style={styles.scrubberDataDisplay}>
+            <View style={styles.scrubberDataRow}>
+              <View style={styles.scrubberDataItem}>
+                <Text style={[styles.scrubberDataLabel, { color: colors.textSecondary }]}>Time</Text>
+                <Text style={[styles.scrubberDataValue, { color: colors.text }]}>{scrubberValues.time} min</Text>
+              </View>
+              <View style={styles.scrubberDataItem}>
+                <Text style={[styles.scrubberDataLabel, { color: colors.textSecondary }]}>Depth</Text>
+                <Text style={[styles.scrubberDataValue, { color: colors.primary }]}>{scrubberValues.depth}{depthUnit}</Text>
+              </View>
+              <View style={styles.scrubberDataItem}>
+                <Text style={[styles.scrubberDataLabel, { color: colors.textSecondary }]}>Gas</Text>
+                <Text style={[styles.scrubberDataValue, { color: colors.text }]}>{scrubberValues.gas}</Text>
+              </View>
+              <View style={styles.scrubberDataItem}>
+                <Text style={[styles.scrubberDataLabel, { color: colors.textSecondary }]}>CNS</Text>
+                <Text style={[styles.scrubberDataValue, { color: scrubberValues.cns > 80 ? colors.danger : colors.warning }]}>{scrubberValues.cns}%</Text>
+              </View>
             </View>
-            <View style={[styles.chartStatBadge, { backgroundColor: colors.accent + '20' }]}>
-              <Text style={[styles.chartStatLabel, { color: colors.accent }]}>OTU</Text>
-              <Text style={[styles.chartStatValue, { color: colors.accent }]}>{currentResult.otu}</Text>
+            <View style={styles.scrubberDataRow}>
+              <View style={styles.scrubberDataItem}>
+                <Text style={[styles.scrubberDataLabel, { color: colors.textSecondary }]}>OTU</Text>
+                <Text style={[styles.scrubberDataValue, { color: colors.accent }]}>{scrubberValues.otu}</Text>
+              </View>
+              <View style={styles.scrubberDataItem}>
+                <Text style={[styles.scrubberDataLabel, { color: colors.textSecondary }]}>Density</Text>
+                <Text style={[styles.scrubberDataValue, { color: scrubberValues.gasDensity > 5.2 ? colors.danger : colors.success }]}>{scrubberValues.gasDensity.toFixed(2)} g/L</Text>
+              </View>
+              <View style={styles.scrubberDataItem}>
+                <Text style={[styles.scrubberDataLabel, { color: colors.textSecondary }]}>Ceiling</Text>
+                <Text style={[styles.scrubberDataValue, { color: colors.warning }]}>{scrubberValues.ceiling}{depthUnit}</Text>
+              </View>
+              <View style={styles.scrubberDataItem}>
+                <Text style={[styles.scrubberDataLabel, { color: colors.textSecondary }]}>GF99</Text>
+                <Text style={[styles.scrubberDataValue, { color: scrubberValues.gf99 > appliedSettings.gfHigh ? colors.danger : colors.success }]}>{scrubberValues.gf99}%</Text>
+              </View>
             </View>
           </View>
-        </View>
+        )}
         
         <View 
           style={{ position: 'relative', cursor: 'crosshair' } as any}
           onTouchStart={(e) => handleChartTouch(e, chartW, padding, totalTime)}
           onTouchMove={(e) => handleChartTouch(e, chartW, padding, totalTime)}
-          onTouchEnd={() => setShowChartPopup(false)}
           onStartShouldSetResponder={() => true}
           onMoveShouldSetResponder={() => true}
           {...(Platform.OS === 'web' ? {
@@ -701,7 +759,6 @@ export default function DivePlanningScreen() {
               const locationX = e.clientX - rect.left - padding.left;
               const time = Math.max(0, Math.min((locationX / chartW) * totalTime, totalTime));
               setChartScrubberTime(time);
-              setShowChartPopup(true);
             },
             onMouseMove: (e: any) => {
               if (e.buttons === 1) {
@@ -709,11 +766,8 @@ export default function DivePlanningScreen() {
                 const locationX = e.clientX - rect.left - padding.left;
                 const time = Math.max(0, Math.min((locationX / chartW) * totalTime, totalTime));
                 setChartScrubberTime(time);
-                setShowChartPopup(true);
               }
             },
-            onMouseUp: () => setShowChartPopup(false),
-            onMouseLeave: () => setShowChartPopup(false),
           } : {})}
         >
           <Svg width={chartWidth} height={CHART_HEIGHT}>
@@ -738,14 +792,14 @@ export default function DivePlanningScreen() {
               y1={padding.top} 
               x2={scrubberX} 
               y2={padding.top + chartH} 
-              stroke={showChartPopup ? colors.accent : colors.accent + '60'} 
-              strokeWidth={showChartPopup ? 2 : 1.5} 
-              strokeDasharray={showChartPopup ? "4,2" : "6,3"}
+              stroke={colors.accent} 
+              strokeWidth={2} 
+              strokeDasharray="4,2"
             />
             <Circle 
               cx={scrubberX} 
               cy={scrubberDepthY} 
-              r={showChartPopup ? 6 : 5} 
+              r={6} 
               fill={colors.primary} 
               stroke="#FFF" 
               strokeWidth={2} 
@@ -755,7 +809,7 @@ export default function DivePlanningScreen() {
               cx={scrubberX} 
               cy={padding.top - 8} 
               r={8} 
-              fill={showChartPopup ? colors.accent : colors.accent + '80'} 
+              fill={colors.accent} 
               stroke="#FFF" 
               strokeWidth={1.5} 
             />
@@ -776,53 +830,10 @@ export default function DivePlanningScreen() {
               strokeWidth={1} 
             />
           </Svg>
-          
-          {/* Popup with values */}
-          {showChartPopup && scrubberValues && (
-            <View 
-              style={[
-                styles.scrubberPopup, 
-                { 
-                  backgroundColor: isDark ? '#2C2C2E' : '#FFFFFF',
-                  borderColor: colors.border,
-                  left: Math.min(Math.max(scrubberX - 90, 10), chartWidth - 190),
-                  top: 10,
-                }
-              ]}
-            >
-              <View style={styles.popupRow}>
-                <Text style={[styles.popupLabel, { color: colors.textSecondary }]}>Time</Text>
-                <Text style={[styles.popupValue, { color: colors.text }]}>{scrubberValues.time} min</Text>
-              </View>
-              <View style={styles.popupRow}>
-                <Text style={[styles.popupLabel, { color: colors.textSecondary }]}>Depth</Text>
-                <Text style={[styles.popupValue, { color: colors.primary }]}>{scrubberValues.depth}{depthUnit}</Text>
-              </View>
-              <View style={styles.popupRow}>
-                <Text style={[styles.popupLabel, { color: colors.textSecondary }]}>Gas</Text>
-                <Text style={[styles.popupValue, { color: colors.text }]}>{scrubberValues.gas}</Text>
-              </View>
-              <View style={styles.popupDivider} />
-              <View style={styles.popupRow}>
-                <Text style={[styles.popupLabel, { color: colors.textSecondary }]}>CNS</Text>
-                <Text style={[styles.popupValue, { color: scrubberValues.cns > 80 ? colors.danger : colors.warning }]}>{scrubberValues.cns}%</Text>
-              </View>
-              <View style={styles.popupRow}>
-                <Text style={[styles.popupLabel, { color: colors.textSecondary }]}>OTU</Text>
-                <Text style={[styles.popupValue, { color: colors.accent }]}>{scrubberValues.otu}</Text>
-              </View>
-              <View style={styles.popupRow}>
-                <Text style={[styles.popupLabel, { color: colors.textSecondary }]}>Phase</Text>
-                <Text style={[styles.popupValue, { color: colors.textSecondary }]}>
-                  {scrubberValues.segmentType.replace('_', ' ')}
-                </Text>
-              </View>
-            </View>
-          )}
         </View>
         
         <Text style={[styles.chartSubtitle, { color: colors.textSecondary }]}>
-          Touch and drag to see values at any point
+          Drag scrubber to see values at any point
         </Text>
       </View>
     );
@@ -2731,8 +2742,13 @@ const styles = StyleSheet.create({
   },
   addGasText: { fontSize: 14, fontWeight: '500' },
   chartContainer: { borderRadius: 12, padding: 16, marginBottom: 16, overflow: 'hidden' },
-  chartTitle: { fontSize: 16, fontWeight: '600', marginBottom: 12 },
+  chartTitle: { fontSize: 16, fontWeight: '600', marginBottom: 8 },
   chartSubtitle: { fontSize: 11, marginTop: 8, textAlign: 'center' as const, fontStyle: 'italic' as const },
+  scrubberDataDisplay: { marginBottom: 12 },
+  scrubberDataRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
+  scrubberDataItem: { flex: 1, alignItems: 'center' },
+  scrubberDataLabel: { fontSize: 10, marginBottom: 2 },
+  scrubberDataValue: { fontSize: 13, fontWeight: '600' },
   emptyChart: {
     height: CHART_HEIGHT - 40,
     justifyContent: 'center',
