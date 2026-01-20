@@ -24,7 +24,6 @@ interface DiveSite {
   longitude?: number;
   site_type?: string;
   max_depth?: number;
-  difficulty?: string;
 }
 
 export default function DiveSitesMap() {

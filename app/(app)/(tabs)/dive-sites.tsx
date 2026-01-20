@@ -31,7 +31,6 @@ interface DiveSite {
   waterType: string;
   depthMin: number | null;
   depthMax: number | null;
-  difficulty: string;
   imageUrl: string | null;
   ratingAvg: number;
   ratingsCount: number;
@@ -52,13 +51,6 @@ const siteTypeIcons: { [key: string]: string } = {
   other: 'map-pin',
 };
 
-const difficultyColors: { [key: string]: string } = {
-  beginner: '#28A745',
-  intermediate: '#FFC107',
-  advanced: '#FD7E14',
-  technical: '#DC3545',
-};
-
 function getImageUrl(imageUrl: string): string {
   if (imageUrl.startsWith('/objects/')) {
     const apiUrl = getApiUrl();
@@ -69,7 +61,6 @@ function getImageUrl(imageUrl: string): string {
 
 function DiveSiteCard({ site, onPress, colors }: { site: DiveSite; onPress: () => void; colors: any }) {
   const iconName = siteTypeIcons[site.siteType] || 'map-pin';
-  const difficultyColor = difficultyColors[site.difficulty] || colors.textSecondary;
   const displayImageUrl = site.imageUrl ? getImageUrl(site.imageUrl) : null;
 
   return (
@@ -117,12 +108,6 @@ function DiveSiteCard({ site, onPress, colors }: { site: DiveSite; onPress: () =
               </Text>
             </View>
           )}
-          <View style={styles.statItem}>
-            <View style={[styles.difficultyDot, { backgroundColor: difficultyColor }]} />
-            <Text style={[styles.statText, { color: colors.textSecondary }]}>
-              {site.difficulty.charAt(0).toUpperCase() + site.difficulty.slice(1)}
-            </Text>
-          </View>
           {site.ratingAvg > 0 && (
             <View style={styles.statItem}>
               <Feather name="star" size={14} color="#FFC107" />
@@ -380,11 +365,6 @@ const styles = StyleSheet.create({
   },
   statText: {
     fontSize: 12,
-  },
-  difficultyDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
   },
   emptyState: {
     flex: 1,

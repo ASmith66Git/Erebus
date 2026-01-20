@@ -53,7 +53,6 @@ interface DiveSite {
   depthMax: number | null;
   visibilityMin: number | null;
   visibilityMax: number | null;
-  difficulty: string;
   currentStrength: string | null;
   accessNotes: string | null;
   facilities: string[];
@@ -160,13 +159,6 @@ const siteTypeLabels: { [key: string]: string } = {
   other: 'Other',
 };
 
-const difficultyLabels: { [key: string]: string } = {
-  beginner: 'Beginner',
-  intermediate: 'Intermediate',
-  advanced: 'Advanced',
-  technical: 'Technical',
-};
-
 const waterTypeOptions = [
   { value: 'marine', label: 'Marine (Saltwater)' },
   { value: 'inland', label: 'Normal (Freshwater)' },
@@ -193,7 +185,6 @@ const bestSeasonOptions = [
 ];
 
 const siteTypeOptions = Object.entries(siteTypeLabels).map(([value, label]) => ({ value, label }));
-const difficultyOptions = Object.entries(difficultyLabels).map(([value, label]) => ({ value, label }));
 
 function StarRating({ rating, onRatingChange, editable, colors, size = 28 }: { rating: number; onRatingChange?: (rating: number) => void; editable: boolean; colors: any; size?: number }) {
   return (
@@ -843,16 +834,6 @@ export default function DiveSiteDetailScreen() {
           </View>
 
           <View style={styles.formRow}>
-            <View style={{ flex: 1 }}>
-              <PickerDropdown
-                label="Difficulty"
-                value={editedSite.difficulty}
-                options={difficultyOptions}
-                onValueChange={(v) => updateField('difficulty', v)}
-                colors={colors}
-                placeholder="Select difficulty..."
-              />
-            </View>
             <View style={[styles.formGroup, { flex: 1 }]}>
               <Text style={[styles.formLabel, { color: colors.text }]}>Max Depth (m)</Text>
               <TextInput
@@ -864,9 +845,6 @@ export default function DiveSiteDetailScreen() {
                 keyboardType="numeric"
               />
             </View>
-          </View>
-
-          <View style={styles.formRow}>
             <View style={{ flex: 1 }}>
               <PickerDropdown
                 label="Current Strength"
@@ -877,7 +855,6 @@ export default function DiveSiteDetailScreen() {
                 placeholder="Select..."
               />
             </View>
-            <View style={{ flex: 1 }} />
           </View>
 
           <View style={styles.formRow}>
@@ -1010,16 +987,6 @@ export default function DiveSiteDetailScreen() {
               <Text style={[styles.detailRowLabel, { color: colors.textSecondary }]}>Type</Text>
               <Text style={[styles.detailRowValue, { color: colors.text }]}>
                 {siteTypeLabels[displaySite?.siteType || ''] || displaySite?.siteType}
-              </Text>
-            </View>
-            <View style={[styles.detailRowDivider, { backgroundColor: colors.border }]} />
-            <View style={styles.detailRow}>
-              <View style={styles.detailRowIcon}>
-                <Feather name="activity" size={18} color={colors.primary} />
-              </View>
-              <Text style={[styles.detailRowLabel, { color: colors.textSecondary }]}>Difficulty</Text>
-              <Text style={[styles.detailRowValue, { color: colors.text }]}>
-                {difficultyLabels[displaySite?.difficulty || ''] || displaySite?.difficulty}
               </Text>
             </View>
             <View style={[styles.detailRowDivider, { backgroundColor: colors.border }]} />
