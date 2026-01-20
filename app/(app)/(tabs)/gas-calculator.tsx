@@ -753,9 +753,9 @@ export default function GasCalculatorScreen() {
       <Text style={[styles.sectionSubtitle, { color: colors.textSecondary }]}>Calculate optimal gas mix for a target depth</Text>
 
       <View style={[styles.card, { backgroundColor: colors.card }]}>
-        {renderSliderInput('Target Depth', bestmixDepth, setBestmixDepth, units === 'imperial' ? 'ft' : 'm', 10, units === 'imperial' ? 500 : 150, 1)}
+        {renderSliderInput('Target Depth', bestmixDepth, setBestmixDepth, units === 'imperial' ? 'ft' : 'm', 10, units === 'imperial' ? 984 : 300, 1)}
         {renderInput('Max PPO2', bestmixPpo2, setBestmixPpo2, 'bar')}
-        {renderSliderInput('Target END (optional)', bestmixTargetEnd, setBestmixTargetEnd, units === 'imperial' ? 'ft' : 'm', 0, units === 'imperial' ? 130 : 40, 1)}
+        {renderSliderInput('Target END (optional)', bestmixTargetEnd, setBestmixTargetEnd, units === 'imperial' ? 'ft' : 'm', 0, units === 'imperial' ? 197 : 60, 1)}
         
         <View style={styles.switchRow}>
           <Text style={[styles.inputLabel, { color: colors.text }]}>O2 is Narcotic</Text>
