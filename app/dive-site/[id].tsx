@@ -150,11 +150,10 @@ const siteTypeLabels: { [key: string]: string } = {
   cave: 'Cave',
   wall: 'Wall',
   drift: 'Drift',
-  shore: 'Shore',
   quarry: 'Quarry',
   lake: 'Lake',
   river: 'River',
-  cenote: 'Cenote',
+  sinkhole: 'Sink Hole',
   artificial: 'Artificial Reef',
   other: 'Other',
 };

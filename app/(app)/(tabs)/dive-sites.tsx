@@ -42,11 +42,10 @@ const siteTypeIcons: { [key: string]: string } = {
   cave: 'moon',
   wall: 'sidebar',
   drift: 'wind',
-  shore: 'sun',
   quarry: 'square',
   lake: 'droplet',
   river: 'navigation',
-  cenote: 'circle',
+  sinkhole: 'circle',
   artificial: 'box',
   other: 'map-pin',
 };
