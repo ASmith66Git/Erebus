@@ -718,15 +718,19 @@ async function initDatabase() {
       const agencies = [
         { name: 'PADI', full_name: 'Professional Association of Diving Instructors', website: 'https://www.padi.com', founded_year: 1966, headquarters: 'Rancho Santa Margarita, CA, USA' },
         { name: 'SSI', full_name: 'Scuba Schools International', website: 'https://www.divessi.com', founded_year: 1970, headquarters: 'Fort Collins, CO, USA' },
-        { name: 'NAUI', full_name: 'National Association of Underwater Instructors', website: 'https://www.naui.org', founded_year: 1959, headquarters: 'Tampa, FL, USA' },
-        { name: 'BSAC', full_name: 'British Sub-Aqua Club', website: 'https://www.bsac.com', founded_year: 1953, headquarters: 'Ellesmere Port, UK' },
         { name: 'SDI', full_name: 'Scuba Diving International', website: 'https://www.tdisdi.com', founded_year: 1998, headquarters: 'Stuart, FL, USA' },
         { name: 'TDI', full_name: 'Technical Diving International', website: 'https://www.tdisdi.com', founded_year: 1994, headquarters: 'Stuart, FL, USA' },
-        { name: 'GUE', full_name: 'Global Underwater Explorers', website: 'https://www.gue.com', founded_year: 1998, headquarters: 'High Springs, FL, USA' },
+        { name: 'NAUI', full_name: 'National Association of Underwater Instructors', website: 'https://www.naui.org', founded_year: 1959, headquarters: 'Tampa, FL, USA' },
         { name: 'IANTD', full_name: 'International Association of Nitrox and Technical Divers', website: 'https://www.iantd.com', founded_year: 1985, headquarters: 'Miami, FL, USA' },
+        { name: 'PSAI', full_name: 'Professional Scuba Association International', website: 'https://www.psai.com', founded_year: 1962, headquarters: 'Jacksonville, FL, USA' },
+        { name: 'GUE', full_name: 'Global Underwater Explorers', website: 'https://www.gue.com', founded_year: 1998, headquarters: 'High Springs, FL, USA' },
         { name: 'RAID', full_name: 'Rebreather Association of International Divers', website: 'https://www.diveraid.com', founded_year: 2007, headquarters: 'Sweden' },
+        { name: 'BSAC', full_name: 'British Sub-Aqua Club', website: 'https://www.bsac.com', founded_year: 1953, headquarters: 'Ellesmere Port, UK' },
         { name: 'CMAS', full_name: 'Confederation Mondiale des Activites Subaquatiques', website: 'https://www.cmas.org', founded_year: 1959, headquarters: 'Rome, Italy' },
         { name: 'ANDI', full_name: 'American Nitrox Divers International', website: 'https://www.andihq.com', founded_year: 1988, headquarters: 'Freeport, NY, USA' },
+        { name: 'SNSI', full_name: 'Scuba and Nitrox Safety International', website: 'https://www.snsi.eu', founded_year: 2010, headquarters: 'Italy' },
+        { name: 'IDEA', full_name: 'International Diving Educators Association', website: 'https://www.idea-hq.com', founded_year: 1952, headquarters: 'Jacksonville, FL, USA' },
+        { name: 'ACUC', full_name: 'American Canadian Underwater Certifications', website: 'https://www.acuc.es', founded_year: 1969, headquarters: 'Canada' },
       ];
       
       const agencyIds = {};
@@ -741,135 +745,102 @@ async function initDatabase() {
       
       const courses = [
         // PADI Courses
-        { agency: 'PADI', name: 'Open Water Diver', level: 'recreational', category: 'Entry', sort_order: 1 },
-        { agency: 'PADI', name: 'Advanced Open Water Diver', level: 'recreational', category: 'Continuing Education', sort_order: 2 },
-        { agency: 'PADI', name: 'Rescue Diver', level: 'recreational', category: 'Continuing Education', sort_order: 3 },
-        { agency: 'PADI', name: 'Master Scuba Diver', level: 'recreational', category: 'Continuing Education', sort_order: 4 },
-        { agency: 'PADI', name: 'Divemaster', level: 'professional', category: 'Professional', sort_order: 5 },
-        { agency: 'PADI', name: 'Open Water Scuba Instructor', level: 'professional', category: 'Professional', sort_order: 6 },
-        { agency: 'PADI', name: 'Enriched Air Diver', level: 'recreational', category: 'Specialty', sort_order: 10 },
+        { agency: 'PADI', name: 'Scuba Diver', level: 'recreational', category: 'Recreational', sort_order: 1 },
+        { agency: 'PADI', name: 'Open Water Diver', level: 'recreational', category: 'Recreational', sort_order: 2 },
+        { agency: 'PADI', name: 'Adventure Diver', level: 'recreational', category: 'Recreational', sort_order: 3 },
+        { agency: 'PADI', name: 'Advanced Open Water Diver', level: 'recreational', category: 'Recreational', sort_order: 4 },
+        { agency: 'PADI', name: 'Rescue Diver', level: 'recreational', category: 'Recreational', sort_order: 5 },
+        { agency: 'PADI', name: 'Master Scuba Diver', level: 'recreational', category: 'Recreational', sort_order: 6 },
+        { agency: 'PADI', name: 'Enriched Air (Nitrox)', level: 'recreational', category: 'Specialty', sort_order: 10 },
         { agency: 'PADI', name: 'Deep Diver', level: 'recreational', category: 'Specialty', sort_order: 11 },
         { agency: 'PADI', name: 'Wreck Diver', level: 'recreational', category: 'Specialty', sort_order: 12 },
-        { agency: 'PADI', name: 'Night Diver', level: 'recreational', category: 'Specialty', sort_order: 13 },
-        { agency: 'PADI', name: 'Dry Suit Diver', level: 'recreational', category: 'Specialty', sort_order: 14 },
-        { agency: 'PADI', name: 'Sidemount Diver', level: 'recreational', category: 'Specialty', sort_order: 15 },
-        { agency: 'PADI', name: 'Tec 40', level: 'technical', category: 'Technical', sort_order: 20 },
-        { agency: 'PADI', name: 'Tec 45', level: 'technical', category: 'Technical', sort_order: 21 },
-        { agency: 'PADI', name: 'Tec 50', level: 'technical', category: 'Technical', sort_order: 22 },
-        { agency: 'PADI', name: 'Tec Trimix 65', level: 'technical', category: 'Technical', sort_order: 23 },
-        { agency: 'PADI', name: 'Tec Trimix Diver', level: 'technical', category: 'Technical', sort_order: 24 },
-        { agency: 'PADI', name: 'Rebreather Diver', level: 'technical', category: 'Technical', sort_order: 25 },
+        { agency: 'PADI', name: 'Sidemount Diver', level: 'recreational', category: 'Specialty', sort_order: 13 },
+        { agency: 'PADI', name: 'Divemaster', level: 'professional', category: 'Professional', sort_order: 20 },
+        { agency: 'PADI', name: 'Open Water Scuba Instructor', level: 'professional', category: 'Professional', sort_order: 21 },
+        { agency: 'PADI', name: 'Tec 40 / 45 / 50', level: 'technical', category: 'Technical', sort_order: 30 },
+        { agency: 'PADI', name: 'Tec 65 / Trimix Diver', level: 'technical', category: 'Technical', sort_order: 31 },
         
         // SSI Courses
-        { agency: 'SSI', name: 'Open Water Diver', level: 'recreational', category: 'Entry', sort_order: 1 },
-        { agency: 'SSI', name: 'Advanced Adventurer', level: 'recreational', category: 'Continuing Education', sort_order: 2 },
-        { agency: 'SSI', name: 'Diver Stress & Rescue', level: 'recreational', category: 'Continuing Education', sort_order: 3 },
-        { agency: 'SSI', name: 'Master Diver', level: 'recreational', category: 'Continuing Education', sort_order: 4 },
-        { agency: 'SSI', name: 'Dive Guide', level: 'professional', category: 'Professional', sort_order: 5 },
-        { agency: 'SSI', name: 'Open Water Instructor', level: 'professional', category: 'Professional', sort_order: 6 },
-        { agency: 'SSI', name: 'Enriched Air Nitrox', level: 'recreational', category: 'Specialty', sort_order: 10 },
-        { agency: 'SSI', name: 'Deep Diving', level: 'recreational', category: 'Specialty', sort_order: 11 },
-        { agency: 'SSI', name: 'Wreck Diving', level: 'recreational', category: 'Specialty', sort_order: 12 },
-        { agency: 'SSI', name: 'Extended Range', level: 'technical', category: 'Technical', sort_order: 20 },
-        { agency: 'SSI', name: 'Technical Extended Range', level: 'technical', category: 'Technical', sort_order: 21 },
-        { agency: 'SSI', name: 'Hypoxic Trimix', level: 'technical', category: 'Technical', sort_order: 22 },
-        { agency: 'SSI', name: 'CCR Diving', level: 'technical', category: 'Technical', sort_order: 23 },
-        
-        // TDI Courses
-        { agency: 'TDI', name: 'Intro to Tech', level: 'technical', category: 'Entry', sort_order: 1 },
-        { agency: 'TDI', name: 'Nitrox Diver', level: 'recreational', category: 'Specialty', sort_order: 2 },
-        { agency: 'TDI', name: 'Advanced Nitrox', level: 'technical', category: 'Technical', sort_order: 3 },
-        { agency: 'TDI', name: 'Decompression Procedures', level: 'technical', category: 'Technical', sort_order: 4 },
-        { agency: 'TDI', name: 'Extended Range', level: 'technical', category: 'Technical', sort_order: 5 },
-        { agency: 'TDI', name: 'Trimix Diver', level: 'technical', category: 'Technical', sort_order: 6 },
-        { agency: 'TDI', name: 'Advanced Trimix', level: 'technical', category: 'Technical', sort_order: 7 },
-        { agency: 'TDI', name: 'Sidemount Diver', level: 'technical', category: 'Specialty', sort_order: 10 },
-        { agency: 'TDI', name: 'Intro to Cave', level: 'technical', category: 'Cave', sort_order: 15 },
-        { agency: 'TDI', name: 'Full Cave Diver', level: 'technical', category: 'Cave', sort_order: 16 },
-        { agency: 'TDI', name: 'Advanced Wreck', level: 'technical', category: 'Wreck', sort_order: 17 },
-        { agency: 'TDI', name: 'CCR Air Diluent', level: 'technical', category: 'Rebreather', sort_order: 20 },
-        { agency: 'TDI', name: 'CCR Mixed Gas Diluent', level: 'technical', category: 'Rebreather', sort_order: 21 },
-        { agency: 'TDI', name: 'CCR Advanced Mixed Gas', level: 'technical', category: 'Rebreather', sort_order: 22 },
-        
-        // GUE Courses
-        { agency: 'GUE', name: 'Recreational Diver 1', level: 'recreational', category: 'Entry', sort_order: 1 },
-        { agency: 'GUE', name: 'Recreational Diver 2', level: 'recreational', category: 'Continuing Education', sort_order: 2 },
-        { agency: 'GUE', name: 'Recreational Diver 3', level: 'recreational', category: 'Continuing Education', sort_order: 3 },
-        { agency: 'GUE', name: 'Fundamentals', level: 'recreational', category: 'Foundational', sort_order: 4 },
-        { agency: 'GUE', name: 'Doubles Diver', level: 'recreational', category: 'Specialty', sort_order: 5 },
-        { agency: 'GUE', name: 'Drysuit Diver', level: 'recreational', category: 'Specialty', sort_order: 6 },
-        { agency: 'GUE', name: 'Tech 1', level: 'technical', category: 'Technical', sort_order: 10 },
-        { agency: 'GUE', name: 'Tech 2', level: 'technical', category: 'Technical', sort_order: 11 },
-        { agency: 'GUE', name: 'Cave 1', level: 'technical', category: 'Cave', sort_order: 15 },
-        { agency: 'GUE', name: 'Cave 2', level: 'technical', category: 'Cave', sort_order: 16 },
-        { agency: 'GUE', name: 'CCR 1', level: 'technical', category: 'Rebreather', sort_order: 20 },
-        { agency: 'GUE', name: 'CCR 2', level: 'technical', category: 'Rebreather', sort_order: 21 },
-        
-        // NAUI Courses
-        { agency: 'NAUI', name: 'Scuba Diver', level: 'recreational', category: 'Entry', sort_order: 1 },
-        { agency: 'NAUI', name: 'Advanced Scuba Diver', level: 'recreational', category: 'Continuing Education', sort_order: 2 },
-        { agency: 'NAUI', name: 'Rescue Diver', level: 'recreational', category: 'Continuing Education', sort_order: 3 },
-        { agency: 'NAUI', name: 'Master Scuba Diver', level: 'recreational', category: 'Continuing Education', sort_order: 4 },
-        { agency: 'NAUI', name: 'Divemaster', level: 'professional', category: 'Professional', sort_order: 5 },
-        { agency: 'NAUI', name: 'Instructor', level: 'professional', category: 'Professional', sort_order: 6 },
-        { agency: 'NAUI', name: 'Enriched Air Nitrox', level: 'recreational', category: 'Specialty', sort_order: 10 },
-        { agency: 'NAUI', name: 'Deep Diver', level: 'recreational', category: 'Specialty', sort_order: 11 },
-        { agency: 'NAUI', name: 'Wreck Diver', level: 'recreational', category: 'Specialty', sort_order: 12 },
-        { agency: 'NAUI', name: 'Technical Decompression', level: 'technical', category: 'Technical', sort_order: 20 },
-        { agency: 'NAUI', name: 'Technical Trimix', level: 'technical', category: 'Technical', sort_order: 21 },
-        
-        // BSAC Courses
-        { agency: 'BSAC', name: 'Ocean Diver', level: 'recreational', category: 'Entry', sort_order: 1 },
-        { agency: 'BSAC', name: 'Sports Diver', level: 'recreational', category: 'Continuing Education', sort_order: 2 },
-        { agency: 'BSAC', name: 'Dive Leader', level: 'recreational', category: 'Continuing Education', sort_order: 3 },
-        { agency: 'BSAC', name: 'Advanced Diver', level: 'recreational', category: 'Continuing Education', sort_order: 4 },
-        { agency: 'BSAC', name: 'First Class Diver', level: 'recreational', category: 'Continuing Education', sort_order: 5 },
-        { agency: 'BSAC', name: 'Open Water Instructor', level: 'professional', category: 'Professional', sort_order: 6 },
-        { agency: 'BSAC', name: 'Nitrox Diver', level: 'recreational', category: 'Specialty', sort_order: 10 },
-        { agency: 'BSAC', name: 'Accelerated Decompression Procedures', level: 'technical', category: 'Technical', sort_order: 20 },
-        
-        // IANTD Courses
-        { agency: 'IANTD', name: 'Open Water Diver', level: 'recreational', category: 'Entry', sort_order: 1 },
-        { agency: 'IANTD', name: 'Advanced Open Water', level: 'recreational', category: 'Continuing Education', sort_order: 2 },
-        { agency: 'IANTD', name: 'EANx Diver', level: 'recreational', category: 'Specialty', sort_order: 3 },
-        { agency: 'IANTD', name: 'Advanced EANx', level: 'technical', category: 'Technical', sort_order: 10 },
-        { agency: 'IANTD', name: 'Technical Diver', level: 'technical', category: 'Technical', sort_order: 11 },
-        { agency: 'IANTD', name: 'Trimix Diver', level: 'technical', category: 'Technical', sort_order: 12 },
-        { agency: 'IANTD', name: 'Advanced Trimix', level: 'technical', category: 'Technical', sort_order: 13 },
-        { agency: 'IANTD', name: 'Cave Diver', level: 'technical', category: 'Cave', sort_order: 15 },
-        { agency: 'IANTD', name: 'Full Cave Diver', level: 'technical', category: 'Cave', sort_order: 16 },
-        { agency: 'IANTD', name: 'CCR Diver', level: 'technical', category: 'Rebreather', sort_order: 20 },
+        { agency: 'SSI', name: 'Basic Diver', level: 'recreational', category: 'Recreational', sort_order: 1 },
+        { agency: 'SSI', name: 'Open Water Diver', level: 'recreational', category: 'Recreational', sort_order: 2 },
+        { agency: 'SSI', name: 'Advanced Adventurer', level: 'recreational', category: 'Recreational', sort_order: 3 },
+        { agency: 'SSI', name: 'Diver Stress & Rescue', level: 'recreational', category: 'Recreational', sort_order: 4 },
+        { agency: 'SSI', name: 'Science of Diving', level: 'recreational', category: 'Specialty', sort_order: 10 },
+        { agency: 'SSI', name: 'Perfect Buoyancy', level: 'recreational', category: 'Specialty', sort_order: 11 },
+        { agency: 'SSI', name: 'Dive Guide', level: 'professional', category: 'Professional', sort_order: 20 },
+        { agency: 'SSI', name: 'Extended Range (XR)', level: 'technical', category: 'Technical', sort_order: 30 },
+        { agency: 'SSI', name: 'Technical Extended Range', level: 'technical', category: 'Technical', sort_order: 31 },
         
         // SDI Courses
-        { agency: 'SDI', name: 'Open Water Scuba Diver', level: 'recreational', category: 'Entry', sort_order: 1 },
-        { agency: 'SDI', name: 'Advanced Adventure Diver', level: 'recreational', category: 'Continuing Education', sort_order: 2 },
-        { agency: 'SDI', name: 'Rescue Diver', level: 'recreational', category: 'Continuing Education', sort_order: 3 },
-        { agency: 'SDI', name: 'Master Diver', level: 'recreational', category: 'Continuing Education', sort_order: 4 },
-        { agency: 'SDI', name: 'Divemaster', level: 'professional', category: 'Professional', sort_order: 5 },
+        { agency: 'SDI', name: 'Open Water Scuba Diver', level: 'recreational', category: 'Recreational', sort_order: 1 },
+        { agency: 'SDI', name: 'Advanced Adventure Diver', level: 'recreational', category: 'Recreational', sort_order: 2 },
         { agency: 'SDI', name: 'Solo Diver', level: 'recreational', category: 'Specialty', sort_order: 10 },
-        { agency: 'SDI', name: 'Computer Nitrox', level: 'recreational', category: 'Specialty', sort_order: 11 },
+        
+        // TDI Courses
+        { agency: 'TDI', name: 'Intro to Tech', level: 'technical', category: 'Technical', sort_order: 1 },
+        { agency: 'TDI', name: 'Advanced Nitrox', level: 'technical', category: 'Technical', sort_order: 2 },
+        { agency: 'TDI', name: 'Decompression Procedures', level: 'technical', category: 'Technical', sort_order: 3 },
+        { agency: 'TDI', name: 'Extended Range', level: 'technical', category: 'Technical', sort_order: 4 },
+        { agency: 'TDI', name: 'Trimix / Advanced Trimix', level: 'technical', category: 'Technical', sort_order: 5 },
+        { agency: 'TDI', name: 'Cavern / Intro to Cave / Full Cave', level: 'technical', category: 'Overhead', sort_order: 10 },
+        
+        // NAUI Courses
+        { agency: 'NAUI', name: 'Scuba Diver', level: 'recreational', category: 'Recreational', sort_order: 1 },
+        { agency: 'NAUI', name: 'Master Scuba Diver', level: 'recreational', category: 'Recreational', sort_order: 2 },
+        { agency: 'NAUI', name: 'Helitrox Diver', level: 'technical', category: 'Technical', sort_order: 10 },
+        { agency: 'NAUI', name: 'Extreme Exposure Diver', level: 'technical', category: 'Technical', sort_order: 11 },
+        
+        // IANTD Courses
+        { agency: 'IANTD', name: 'Open Water EANx Diver', level: 'recreational', category: 'Open Circuit', sort_order: 1 },
+        { agency: 'IANTD', name: 'Advanced Recreational Trimix', level: 'recreational', category: 'Open Circuit', sort_order: 2 },
+        { agency: 'IANTD', name: 'Technical Diver', level: 'technical', category: 'Technical', sort_order: 10 },
+        { agency: 'IANTD', name: 'Normoxic Trimix', level: 'technical', category: 'Technical', sort_order: 11 },
+        { agency: 'IANTD', name: 'Expedition Trimix', level: 'technical', category: 'Technical', sort_order: 12 },
+        
+        // PSAI Courses
+        { agency: 'PSAI', name: 'Open Water Sport Diver', level: 'recreational', category: 'Recreational', sort_order: 1 },
+        { agency: 'PSAI', name: 'Narcosis Management (Levels 1-7)', level: 'technical', category: 'Technical', sort_order: 10 },
+        { agency: 'PSAI', name: 'Advanced Wreck Penetration', level: 'technical', category: 'Technical', sort_order: 11 },
+        { agency: 'PSAI', name: 'Trimix Fundamentals (Level I)', level: 'technical', category: 'Technical', sort_order: 12 },
+        { agency: 'PSAI', name: 'Explorer Trimix (Level III)', level: 'technical', category: 'Technical', sort_order: 13 },
+        
+        // GUE Courses
+        { agency: 'GUE', name: 'GUE Fundamentals (Fundies)', level: 'recreational', category: 'Foundational', sort_order: 1 },
+        { agency: 'GUE', name: 'Recreational 1 / 2 / 3', level: 'recreational', category: 'Recreational', sort_order: 2 },
+        { agency: 'GUE', name: 'Technical 1 / 2 / 3', level: 'technical', category: 'Technical', sort_order: 10 },
+        { agency: 'GUE', name: 'Cave 1 / 2 / 3', level: 'technical', category: 'Cave', sort_order: 20 },
         
         // RAID Courses
-        { agency: 'RAID', name: 'Open Water 20', level: 'recreational', category: 'Entry', sort_order: 1 },
-        { agency: 'RAID', name: 'Advanced 35', level: 'recreational', category: 'Continuing Education', sort_order: 2 },
-        { agency: 'RAID', name: 'Rescue Diver', level: 'recreational', category: 'Continuing Education', sort_order: 3 },
-        { agency: 'RAID', name: 'Master Diver', level: 'recreational', category: 'Continuing Education', sort_order: 4 },
-        { agency: 'RAID', name: 'Deco 40', level: 'technical', category: 'Technical', sort_order: 10 },
-        { agency: 'RAID', name: 'Deco 50', level: 'technical', category: 'Technical', sort_order: 11 },
-        { agency: 'RAID', name: 'Trimix Normoxic', level: 'technical', category: 'Technical', sort_order: 12 },
-        { agency: 'RAID', name: 'Trimix Hypoxic', level: 'technical', category: 'Technical', sort_order: 13 },
-        { agency: 'RAID', name: 'CCR Mod 1', level: 'technical', category: 'Rebreather', sort_order: 20 },
-        { agency: 'RAID', name: 'CCR Mod 2', level: 'technical', category: 'Rebreather', sort_order: 21 },
+        { agency: 'RAID', name: 'Open Water 20', level: 'recreational', category: 'Core', sort_order: 1 },
+        { agency: 'RAID', name: 'Explorer 30', level: 'recreational', category: 'Core', sort_order: 2 },
+        { agency: 'RAID', name: 'Advanced 35', level: 'recreational', category: 'Core', sort_order: 3 },
+        { agency: 'RAID', name: 'Deco 40 / 50 / 60', level: 'technical', category: 'Technical', sort_order: 10 },
+        
+        // BSAC Courses
+        { agency: 'BSAC', name: 'Ocean Diver', level: 'recreational', category: 'Grades', sort_order: 1 },
+        { agency: 'BSAC', name: 'Sports Diver', level: 'recreational', category: 'Grades', sort_order: 2 },
+        { agency: 'BSAC', name: 'Dive Leader', level: 'recreational', category: 'Grades', sort_order: 3 },
+        { agency: 'BSAC', name: 'Advanced Diver', level: 'recreational', category: 'Grades', sort_order: 4 },
+        
+        // CMAS Courses
+        { agency: 'CMAS', name: '1-Star Diver', level: 'recreational', category: 'Diver', sort_order: 1 },
+        { agency: 'CMAS', name: '2-Star Diver', level: 'recreational', category: 'Diver', sort_order: 2 },
+        { agency: 'CMAS', name: '3-Star Diver', level: 'recreational', category: 'Diver', sort_order: 3 },
         
         // ANDI Courses
-        { agency: 'ANDI', name: 'Open Water Diver', level: 'recreational', category: 'Entry', sort_order: 1 },
-        { agency: 'ANDI', name: 'Advanced Open Water', level: 'recreational', category: 'Continuing Education', sort_order: 2 },
-        { agency: 'ANDI', name: 'Rescue Diver', level: 'recreational', category: 'Continuing Education', sort_order: 3 },
-        { agency: 'ANDI', name: 'SafeAir (Nitrox)', level: 'recreational', category: 'Specialty', sort_order: 10 },
-        { agency: 'ANDI', name: 'Technical SafeAir', level: 'technical', category: 'Technical', sort_order: 11 },
-        { agency: 'ANDI', name: 'Technical Diver', level: 'technical', category: 'Technical', sort_order: 12 },
-        { agency: 'ANDI', name: 'Trimix Diver', level: 'technical', category: 'Technical', sort_order: 13 },
-        { agency: 'ANDI', name: 'CCR Diver', level: 'technical', category: 'Rebreather', sort_order: 20 },
+        { agency: 'ANDI', name: 'Limited SafeAir User (LSU)', level: 'recreational', category: 'SafeAir', sort_order: 1 },
+        { agency: 'ANDI', name: 'Complete SafeAir User (CSU)', level: 'recreational', category: 'SafeAir', sort_order: 2 },
+        { agency: 'ANDI', name: 'Technical SafeAir Diver', level: 'technical', category: 'Technical', sort_order: 10 },
+        
+        // SNSI Courses
+        { agency: 'SNSI', name: 'Open Water Diver', level: 'recreational', category: 'Recreational', sort_order: 1 },
+        { agency: 'SNSI', name: 'Master Buoyancy & Trim', level: 'recreational', category: 'Specialty', sort_order: 10 },
+        
+        // IDEA Courses
+        { agency: 'IDEA', name: 'Open Water Pro Diver', level: 'recreational', category: 'Recreational', sort_order: 1 },
+        
+        // ACUC Courses
+        { agency: 'ACUC', name: 'Open Water Diver', level: 'recreational', category: 'Core', sort_order: 1 },
       ];
       
       for (const course of courses) {
