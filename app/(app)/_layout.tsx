@@ -115,9 +115,9 @@ function CustomDrawerContent(props: any) {
             label="Logout"
             onPress={handleLogout}
             icon={() => (
-              <Ionicons name="log-out-outline" size={22} color={colors.error} />
+              <Ionicons name="log-out-outline" size={22} color={colors.primary} />
             )}
-            labelStyle={{ color: colors.error }}
+            labelStyle={{ color: colors.primary }}
             style={styles.drawerItem}
           />
         </View>
