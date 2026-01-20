@@ -248,9 +248,7 @@ export default function LoginScreen() {
           )}
 
           <View style={styles.signupContainer}>
-            <Text style={[styles.signupText, { color: 'rgba(255,255,255,0.7)' }]}>
-              Don't have an account?{' '}
-            </Text>
+            <Text style={[styles.signupText, { color: 'rgba(255,255,255,0.7)' }]}>Don't have an account? </Text>
             <Pressable onPress={() => router.push('/(auth)/signup')}>
               <Text style={[styles.signupLink, { color: colors.primary }]}>Sign Up</Text>
             </Pressable>
