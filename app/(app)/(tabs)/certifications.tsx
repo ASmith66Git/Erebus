@@ -528,7 +528,7 @@ export default function CertificationsScreen() {
     
     // Fallback to expo-image-picker (works on web and when scanner not available)
     const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsEditing: true,
       aspect: [16, 10],
       quality: 0.8,
@@ -563,7 +563,7 @@ export default function CertificationsScreen() {
     
     // Fallback to expo-image-picker
     const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsEditing: true,
       aspect: [16, 10],
       quality: 0.8,
