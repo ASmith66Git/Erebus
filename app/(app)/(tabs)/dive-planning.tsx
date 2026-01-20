@@ -898,14 +898,13 @@ export default function DivePlanningScreen() {
     const firstStopDepth = findFirstStop(tissues, appliedSettings.gfLow, appliedSettings.decoStopInterval || 3, appliedSettings.waterType || 'salt');
     
     const padding = { top: 24, right: 20, bottom: 12, left: 50 };
-    const chartW = Math.max(chartWidth - 32 - padding.left - padding.right, 100);
+    const chartW = Math.max(chartWidth - padding.left - padding.right, 100);
     const barHeight = 6;
     const barGap = 2;
     const chartH = 16 * (barHeight + barGap);
 
-    // Max bar width (leave space for percentage text - reserve 45px for labels)
-    const labelGutter = 45;
-    const maxBarWidth = chartW - labelGutter;
+    // Bar width matches the profile chart's drawing area
+    const maxBarWidth = chartW;
     
     // Horizontal bars showing tissue saturation relative to GF ceiling
     // 0% = surface equilibrium, 100% = at GF-limited M-value ceiling
@@ -958,13 +957,13 @@ export default function DivePlanningScreen() {
           >
             {i + 1}
           </SvgText>
-          {/* Percentage value */}
+          {/* Percentage value - positioned at right edge of bar area */}
           <SvgText
-            x={x + maxBarWidth + 6}
+            x={x + maxBarWidth - 4}
             y={y + barHeight / 2 + 3}
             fontSize={7}
             fill={percent > 100 ? colors.error : percent > 80 ? '#FF9800' : colors.text}
-            textAnchor="start"
+            textAnchor="end"
           >
             {Math.round(percent)}%
           </SvgText>
@@ -1008,7 +1007,6 @@ export default function DivePlanningScreen() {
     return (
       <View 
         style={[styles.chartContainer, { backgroundColor: colors.card }]}
-        onLayout={(e) => setTissueChartWidth(e.nativeEvent.layout.width - 32)}
       >
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
           <Text style={[styles.chartTitle, { color: colors.text, marginBottom: 0 }]}>Tissue Saturation</Text>
@@ -1016,7 +1014,7 @@ export default function DivePlanningScreen() {
             @ {formatTime(chartScrubberTime)}
           </Text>
         </View>
-        <Svg width={tissueChartWidth} height={chartH + padding.top + padding.bottom}>
+        <Svg width={chartWidth} height={chartH + padding.top + padding.bottom}>
           {gridLines}
           {bars}
         </Svg>
