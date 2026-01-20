@@ -231,7 +231,19 @@ function CircularGauge({
   );
 }
 
-function DiveProfileChart({ samples, colors, showTemp, showNdl, showGf99, showPpo2, showCns }: { 
+interface ScrubberData {
+  time: number;
+  depth: number;
+  temp: number | null;
+  ndl: number | null;
+  gf99: number | null;
+  ppo2: number | null;
+  cns: number | null;
+  tts: number | null;
+  ceiling: number | null;
+}
+
+function DiveProfileChart({ samples, colors, showTemp, showNdl, showGf99, showPpo2, showCns, onScrubberChange }: { 
   samples: Sample[]; 
   colors: any;
   showTemp: boolean;
@@ -239,6 +251,7 @@ function DiveProfileChart({ samples, colors, showTemp, showNdl, showGf99, showPp
   showGf99: boolean;
   showPpo2: boolean;
   showCns: boolean;
+  onScrubberChange?: (data: ScrubberData) => void;
 }) {
   const chartHeight = 200;
   const padding = 30;
@@ -254,11 +267,59 @@ function DiveProfileChart({ samples, colors, showTemp, showNdl, showGf99, showPp
   const [scrubberSample, setScrubberSample] = useState<Sample | null>(getDefaultSample());
   
   useEffect(() => {
-    if (samples.length > 0 && !scrubberSample) {
+    if (samples.length > 0) {
+      const defaultSample = samples[Math.floor(samples.length / 2)];
       setScrubberX(getDefaultScrubberX());
-      setScrubberSample(getDefaultSample());
+      setScrubberSample(defaultSample);
     }
-  }, [samples]);
+  }, [samples.length]);
+  
+  const notifyParentRef = useRef(false);
+  useEffect(() => {
+    if (samples.length > 0 && scrubberSample && onScrubberChange && !notifyParentRef.current) {
+      notifyParentRef.current = true;
+      const t = scrubberSample.time_seconds;
+      const tempSamplesList = samples.filter(s => s.temperature_celsius != null);
+      const ndlSamplesList = samples.filter(s => (s.ndl_minutes ?? s.ndl_min ?? (s.ndl_seconds != null ? s.ndl_seconds / 60 : null)) != null);
+      const gf99SamplesList = samples.filter(s => (s.gf99_percent ?? s.gf99_pct) != null);
+      const ppo2SamplesList = samples.filter(s => s.ppo2_bar != null);
+      const cnsSamplesList = samples.filter(s => (s.cns_pct ?? s.cns_percent) != null);
+      const ttsSamplesList = samples.filter(s => (s.tts_minutes ?? s.tts_min ?? (s.tts_seconds != null ? s.tts_seconds / 60 : null)) != null);
+      const ceilingSamplesList = samples.filter(s => (s.ceiling_meters ?? s.ceiling_m) != null);
+      
+      const findVal = <T,>(list: Sample[], getter: (s: Sample) => T | null | undefined): T | null => {
+        let lastVal: T | null = null;
+        for (const s of list) {
+          if (s.time_seconds <= t) {
+            const v = getter(s);
+            if (v != null) lastVal = v;
+          } else break;
+        }
+        return lastVal;
+      };
+      
+      const getNdlVal = (s: Sample) => s.ndl_minutes ?? s.ndl_min ?? (s.ndl_seconds != null ? s.ndl_seconds / 60 : null);
+      const getGf99Val = (s: Sample) => s.gf99_percent ?? s.gf99_pct ?? null;
+      const getTtsVal = (s: Sample) => s.tts_minutes ?? s.tts_min ?? (s.tts_seconds != null ? s.tts_seconds / 60 : null);
+      const getCeilingVal = (s: Sample) => s.ceiling_meters ?? s.ceiling_m ?? null;
+      const getCnsVal = (s: Sample) => {
+        const val = s.cns_pct ?? s.cns_percent;
+        return val != null ? val / 100 : null;
+      };
+      
+      onScrubberChange({
+        time: t,
+        depth: scrubberSample.depth_meters,
+        temp: findVal(tempSamplesList, s => s.temperature_celsius),
+        ndl: findVal(ndlSamplesList, getNdlVal),
+        gf99: findVal(gf99SamplesList, getGf99Val),
+        ppo2: findVal(ppo2SamplesList, s => s.ppo2_bar),
+        cns: findVal(cnsSamplesList, getCnsVal),
+        tts: findVal(ttsSamplesList, getTtsVal),
+        ceiling: findVal(ceilingSamplesList, getCeilingVal),
+      });
+    }
+  }, [samples.length, scrubberSample, onScrubberChange]);
   
   if (!samples || samples.length === 0) return null;
   
@@ -361,6 +422,21 @@ function DiveProfileChart({ samples, colors, showTemp, showNdl, showGf99, showPp
     
     setScrubberX(clampedX);
     setScrubberSample(closest);
+    
+    if (onScrubberChange && closest) {
+      const t = closest.time_seconds;
+      onScrubberChange({
+        time: t,
+        depth: closest.depth_meters,
+        temp: findLastValueAtTime(tempSamples, t, s => s.temperature_celsius),
+        ndl: findLastValueAtTime(ndlSamples, t, getNdl),
+        gf99: findLastValueAtTime(gf99Samples, t, getGf99),
+        ppo2: findLastValueAtTime(ppo2Samples, t, s => s.ppo2_bar),
+        cns: findLastValueAtTime(cnsSamples, t, getCns),
+        tts: findLastValueAtTime(ttsSamples, t, getTts),
+        ceiling: findLastValueAtTime(ceilingSamples, t, getCeiling),
+      });
+    }
   };
 
   const handleTouch = (event: GestureResponderEvent) => {
@@ -410,79 +486,6 @@ function DiveProfileChart({ samples, colors, showTemp, showNdl, showGf99, showPp
           {Math.round(maxTime / 60)} min
         </Text>
       </View>
-      
-      {scrubberSample && (() => {
-        const t = scrubberSample.time_seconds;
-        const tempVal = findLastValueAtTime(tempSamples, t, s => s.temperature_celsius);
-        const ndlVal = findLastValueAtTime(ndlSamples, t, getNdl);
-        const gf99Val = findLastValueAtTime(gf99Samples, t, getGf99);
-        const ppo2Val = findLastValueAtTime(ppo2Samples, t, s => s.ppo2_bar);
-        const ttsVal = findLastValueAtTime(ttsSamples, t, getTts);
-        const ceilingVal = findLastValueAtTime(ceilingSamples, t, getCeiling);
-        const cnsVal = findLastValueAtTime(cnsSamples, t, getCns);
-        const decoSample = decoSamples.filter(s => s.time_seconds <= t).pop();
-        
-        return (
-          <View style={{ 
-            flexDirection: 'row', 
-            flexWrap: 'wrap',
-            gap: 8, 
-            marginBottom: 8,
-            padding: 8,
-            backgroundColor: colors.surface,
-            borderRadius: 8,
-            borderWidth: 1,
-            borderColor: colors.border,
-          }}>
-            <Text style={{ fontSize: 12, color: colors.primary, fontWeight: '600' }}>
-              {Math.floor(t / 60)}:{String(Math.floor(t % 60)).padStart(2, '0')}
-            </Text>
-            <Text style={{ fontSize: 12, color: '#2196F3' }}>
-              Depth: {scrubberSample.depth_meters.toFixed(1)}m
-            </Text>
-            {tempVal != null && showTemp && (
-              <Text style={{ fontSize: 12, color: '#4CAF50' }}>
-                Temp: {tempVal.toFixed(1)}°C
-              </Text>
-            )}
-            {ndlVal != null && showNdl && (
-              <Text style={{ fontSize: 12, color: '#FFC107' }}>
-                NDL: {Math.round(ndlVal)} min
-              </Text>
-            )}
-            {gf99Val != null && showGf99 && (
-              <Text style={{ fontSize: 12, color: '#9C27B0' }}>
-                GF99: {Math.round(gf99Val)}%
-              </Text>
-            )}
-            {ppo2Val != null && showPpo2 && (
-              <Text style={{ fontSize: 12, color: '#FF5722' }}>
-                PPO2: {ppo2Val.toFixed(2)} bar
-              </Text>
-            )}
-            {ttsVal != null && (
-              <Text style={{ fontSize: 12, color: '#00BCD4' }}>
-                TTS: {Math.round(ttsVal)} min
-              </Text>
-            )}
-            {ceilingVal != null && ceilingVal > 0 && (
-              <Text style={{ fontSize: 12, color: '#E91E63' }}>
-                Ceiling: {ceilingVal.toFixed(1)}m
-              </Text>
-            )}
-            {cnsVal != null && showCns && (
-              <Text style={{ fontSize: 12, color: '#795548' }}>
-                CNS: {Math.round(cnsVal)}%
-              </Text>
-            )}
-            {decoSample && decoSample.stop_depth_m != null && decoSample.stop_time_min != null && (
-              <Text style={{ fontSize: 12, color: '#E91E63' }}>
-                Deco: {decoSample.stop_depth_m}m @ {decoSample.stop_time_min}min
-              </Text>
-            )}
-          </View>
-        );
-      })()}
       
       <View 
         style={{ 
@@ -641,6 +644,7 @@ function DiveTab({ diveLog, colors, gearProfileName, gearProfileId }: { diveLog:
   const [showGf99, setShowGf99] = useState(true);
   const [showPpo2, setShowPpo2] = useState(true);
   const [showCns, setShowCns] = useState(true);
+  const [scrubberData, setScrubberData] = useState<ScrubberData | null>(null);
 
   const samples = diveLog.samples || [];
   const hasTemp = samples.some(s => s.temperature_celsius != null);
@@ -649,13 +653,11 @@ function DiveTab({ diveLog, colors, gearProfileName, gearProfileId }: { diveLog:
   const hasPpo2 = samples.some(s => s.ppo2_bar != null);
   const hasCns = samples.some(s => (s.cns_percent ?? s.cns_pct) != null);
 
-  const minNdl = hasNdl ? Math.min(...samples.filter(s => {
-    const v = s.ndl_minutes ?? s.ndl_min ?? (s.ndl_seconds != null ? s.ndl_seconds / 60 : null);
-    return v != null;
-  }).map(s => s.ndl_minutes ?? s.ndl_min ?? (s.ndl_seconds! / 60))) : null;
-  const maxGf99 = hasGf99 ? Math.max(...samples.filter(s => (s.gf99_percent ?? s.gf99_pct) != null).map(s => s.gf99_percent ?? s.gf99_pct!)) : null;
-  const maxPpo2 = hasPpo2 ? Math.max(...samples.filter(s => s.ppo2_bar != null).map(s => s.ppo2_bar!)) : null;
-  const maxCns = hasCns ? Math.max(...samples.filter(s => (s.cns_percent ?? s.cns_pct) != null).map(s => s.cns_percent ?? s.cns_pct!)) : null;
+  const formatScrubberTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${String(secs).padStart(2, '0')}`;
+  };
 
   const renderMetricCard = (
     label: string,
@@ -686,6 +688,22 @@ function DiveTab({ diveLog, colors, gearProfileName, gearProfileId }: { diveLog:
     );
   };
 
+  const renderTimeDepthCard = () => {
+    if (!scrubberData) return null;
+    return (
+      <View style={[styles.timeDepthCard, { backgroundColor: colors.primary + '15', borderColor: colors.primary }]}>
+        <View style={styles.timeDepthRow}>
+          <Text style={[styles.timeDepthTime, { color: colors.primary }]}>
+            {formatScrubberTime(scrubberData.time)}
+          </Text>
+          <Text style={[styles.timeDepthDepth, { color: '#2196F3' }]}>
+            {scrubberData.depth.toFixed(1)}m
+          </Text>
+        </View>
+      </View>
+    );
+  };
+
   return (
     <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
       {samples.length > 0 && (
@@ -700,14 +718,16 @@ function DiveTab({ diveLog, colors, gearProfileName, gearProfileId }: { diveLog:
             showGf99={showGf99}
             showPpo2={showPpo2}
             showCns={showCns}
+            onScrubberChange={setScrubberData}
           />
 
           <View style={styles.metricCardsRow}>
-            {renderMetricCard('Min Temp', diveLog.minTemperatureCelsius ? `${diveLog.minTemperatureCelsius.toFixed(0)}°C` : '--', showTemp, () => setShowTemp(!showTemp), '#4CAF50', hasTemp)}
-            {renderMetricCard('Min NDL', minNdl != null ? `${Math.round(minNdl)} min` : '--', showNdl, () => setShowNdl(!showNdl), '#FFC107', hasNdl)}
-            {renderMetricCard('Max GF99', maxGf99 != null ? `${Math.round(maxGf99)}%` : '--', showGf99, () => setShowGf99(!showGf99), '#9C27B0', hasGf99)}
-            {renderMetricCard('Max PPO2', maxPpo2 != null ? `${maxPpo2.toFixed(2)} bar` : '--', showPpo2, () => setShowPpo2(!showPpo2), '#FF5722', hasPpo2)}
-            {renderMetricCard('Max CNS', maxCns != null ? `${Math.round(maxCns)}%` : '--', showCns, () => setShowCns(!showCns), '#E91E63', hasCns)}
+            {renderTimeDepthCard()}
+            {renderMetricCard('Temp', scrubberData?.temp != null ? `${scrubberData.temp.toFixed(1)}°C` : '--', showTemp, () => setShowTemp(!showTemp), '#4CAF50', hasTemp)}
+            {renderMetricCard('NDL', scrubberData?.ndl != null ? `${Math.round(scrubberData.ndl)} min` : '--', showNdl, () => setShowNdl(!showNdl), '#FFC107', hasNdl)}
+            {renderMetricCard('GF99', scrubberData?.gf99 != null ? `${Math.round(scrubberData.gf99)}%` : '--', showGf99, () => setShowGf99(!showGf99), '#9C27B0', hasGf99)}
+            {renderMetricCard('PPO2', scrubberData?.ppo2 != null ? `${scrubberData.ppo2.toFixed(2)}` : '--', showPpo2, () => setShowPpo2(!showPpo2), '#FF5722', hasPpo2)}
+            {renderMetricCard('CNS', scrubberData?.cns != null ? `${Math.round(scrubberData.cns * 100)}%` : '--', showCns, () => setShowCns(!showCns), '#E91E63', hasCns)}
           </View>
         </View>
       )}
@@ -2065,6 +2085,27 @@ const styles = StyleSheet.create({
   metricValue: {
     fontSize: 14,
     fontWeight: '700',
+  },
+  timeDepthCard: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    minWidth: 90,
+  },
+  timeDepthRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  timeDepthTime: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  timeDepthDepth: {
+    fontSize: 14,
+    fontWeight: '600',
   },
   noDataContainer: {
     alignItems: 'center',
