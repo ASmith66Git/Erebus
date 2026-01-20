@@ -793,11 +793,11 @@ export default function DivePlanningScreen() {
             {depthGridLines}
             {timeLabels}
             <G transform={`translate(${padding.left}, ${padding.top})`}>
-              {ceilingPathD && <Path d={ceilingPathD} stroke={colors.warning} strokeWidth={1.5} fill="none" strokeOpacity={0.8} />}
+              {ceilingPathD && <Path d={ceilingPathD} stroke={colors.danger} strokeWidth={1.5} fill="none" strokeOpacity={0.8} />}
               {densityPathD && <Path d={densityPathD} stroke={colors.success} strokeWidth={1.5} fill="none" strokeOpacity={0.7} />}
               {cnsPathD && <Path d={cnsPathD} stroke="#FF9500" strokeWidth={1.5} fill="none" strokeOpacity={0.8} />}
               {otuPathD && <Path d={otuPathD} stroke={colors.accent} strokeWidth={1.5} fill="none" strokeOpacity={0.7} />}
-              <Path d={depthPathD} stroke={colors.primary} strokeWidth={2.5} fill="none" />
+              <Path d={depthPathD} stroke="#007AFF" strokeWidth={3.5} fill="none" />
               {decoStopMarkers}
             </G>
             {depthLabels}
@@ -821,7 +821,7 @@ export default function DivePlanningScreen() {
               cx={scrubberX} 
               cy={scrubberDepthY} 
               r={6} 
-              fill={colors.primary} 
+              fill="#007AFF" 
               stroke="#FFF" 
               strokeWidth={2} 
             />
@@ -855,11 +855,11 @@ export default function DivePlanningScreen() {
         
         <View style={styles.chartLegend}>
           <View style={styles.legendItem}>
-            <View style={[styles.legendLine, { backgroundColor: colors.primary }]} />
+            <View style={[styles.legendLine, { backgroundColor: '#007AFF', height: 4 }]} />
             <Text style={[styles.legendText, { color: colors.textSecondary }]}>Depth</Text>
           </View>
           <View style={styles.legendItem}>
-            <View style={[styles.legendLine, { backgroundColor: colors.warning }]} />
+            <View style={[styles.legendLine, { backgroundColor: colors.danger }]} />
             <Text style={[styles.legendText, { color: colors.textSecondary }]}>Ceiling</Text>
           </View>
           <View style={styles.legendItem}>
