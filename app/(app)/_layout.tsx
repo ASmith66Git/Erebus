@@ -1,6 +1,6 @@
 import React from 'react';
 import { Drawer } from 'expo-router/drawer';
-import { View, Text, StyleSheet, SafeAreaView, Alert } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, Alert, Image } from 'react-native';
 import { DrawerContentScrollView, DrawerItem } from '@react-navigation/drawer';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
@@ -58,9 +58,16 @@ function CustomDrawerContent(props: any) {
     <View style={[styles.drawerContainer, { backgroundColor: colors.surface }]}>
       <SafeAreaView style={styles.drawerContent}>
         <View style={styles.drawerHeader}>
-          <View style={[styles.avatarPlaceholder, { backgroundColor: colors.primary }]}>
-            <Ionicons name="person" size={32} color="#FFFFFF" />
-          </View>
+          {user?.profileImage ? (
+            <Image 
+              source={{ uri: user.profileImage }} 
+              style={styles.avatarImage}
+            />
+          ) : (
+            <View style={[styles.avatarPlaceholder, { backgroundColor: colors.primary }]}>
+              <Ionicons name="person" size={32} color="#FFFFFF" />
+            </View>
+          )}
           <Text style={[styles.userName, { color: colors.text }]}>
             {user?.firstName || user?.email?.split('@')[0] || 'Diver'}
           </Text>
@@ -170,6 +177,12 @@ const styles = StyleSheet.create({
     borderRadius: 40,
     justifyContent: 'center',
     alignItems: 'center',
+    marginBottom: 12,
+  },
+  avatarImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     marginBottom: 12,
   },
   userName: {
