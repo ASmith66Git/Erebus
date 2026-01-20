@@ -17,7 +17,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { getApiUrl } from '@/utils/apiConfig';
 import ThemedBackground from '@/components/ThemedBackground';
 
-const TABS = ['Dive', 'Profile', 'Computer', 'Notes', 'Team'] as const;
+const TABS = ['Dive', 'Gas', 'Problems', 'Skills', 'Team', 'Notes'] as const;
 type TabType = typeof TABS[number];
 
 interface DiveSite {
@@ -83,6 +83,8 @@ export default function ManualDiveEntryScreen() {
   
   const [selectedBuddyIds, setSelectedBuddyIds] = useState<number[]>([]);
   const [buddyNotes, setBuddyNotes] = useState('');
+  const [equipmentIssues, setEquipmentIssues] = useState('');
+  const [skillsNotes, setSkillsNotes] = useState('');
 
   useEffect(() => {
     loadDiveSites();
@@ -384,24 +386,7 @@ export default function ManualDiveEntryScreen() {
     </ScrollView>
   );
 
-  const renderProfileTab = () => (
-    <ScrollView style={styles.tabContent} contentContainerStyle={styles.tabContentContainer}>
-      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <View style={styles.emptyState}>
-          <Feather name="activity" size={48} color={colors.textSecondary} />
-          <Text style={[styles.emptyStateTitle, { color: colors.text }]}>No Depth Profile</Text>
-          <Text style={[styles.emptyStateText, { color: colors.textSecondary }]}>
-            Depth profiles are only available for dives imported from a dive computer.
-          </Text>
-          <Text style={[styles.emptyStateText, { color: colors.textSecondary, marginTop: 8 }]}>
-            For manually logged dives, the basic dive statistics you enter will be used.
-          </Text>
-        </View>
-      </View>
-    </ScrollView>
-  );
-
-  const renderComputerTab = () => (
+  const renderGasTab = () => (
     <ScrollView style={styles.tabContent} contentContainerStyle={styles.tabContentContainer}>
       <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
         <Text style={[styles.cardTitle, { color: colors.text }]}>Dive Mode</Text>
@@ -486,6 +471,59 @@ export default function ManualDiveEntryScreen() {
             />
           </View>
         </View>
+      </View>
+    </ScrollView>
+  );
+
+  const renderProblemsTab = () => (
+    <ScrollView style={styles.tabContent} contentContainerStyle={styles.tabContentContainer}>
+      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <View style={styles.fieldRow}>
+          <Feather name="alert-triangle" size={16} color={colors.primary} />
+          <Text style={[styles.cardTitle, { color: colors.text }]}>Equipment Issues</Text>
+        </View>
+        <TextInput
+          style={[styles.textArea, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text, minHeight: 150 }]}
+          value={equipmentIssues}
+          onChangeText={setEquipmentIssues}
+          placeholder={`Record any equipment problems during the dive, for example:
+• Regulator free-flow
+• Mask leaking
+• BCD inflator sticking
+• Computer malfunction
+• Torch failure
+• Drysuit leak`}
+          placeholderTextColor={colors.textSecondary}
+          multiline
+          textAlignVertical="top"
+        />
+      </View>
+    </ScrollView>
+  );
+
+  const renderSkillsTab = () => (
+    <ScrollView style={styles.tabContent} contentContainerStyle={styles.tabContentContainer}>
+      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <View style={styles.fieldRow}>
+          <Feather name="award" size={16} color={colors.primary} />
+          <Text style={[styles.cardTitle, { color: colors.text }]}>Skills Practised</Text>
+        </View>
+        <TextInput
+          style={[styles.textArea, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text, minHeight: 150 }]}
+          value={skillsNotes}
+          onChangeText={setSkillsNotes}
+          placeholder={`Record the skills you practised on this dive, for example:
+• Buoyancy control and trim
+• SMB deployment
+• Mask clearing
+• Gas switching procedures
+• Backwards finning
+• Line laying with markers
+• Emergency drills (bailout, valve shutdown)`}
+          placeholderTextColor={colors.textSecondary}
+          multiline
+          textAlignVertical="top"
+        />
       </View>
     </ScrollView>
   );
@@ -585,14 +623,16 @@ export default function ManualDiveEntryScreen() {
     switch (activeTab) {
       case 'Dive':
         return renderDiveTab();
-      case 'Profile':
-        return renderProfileTab();
-      case 'Computer':
-        return renderComputerTab();
-      case 'Notes':
-        return renderNotesTab();
+      case 'Gas':
+        return renderGasTab();
+      case 'Problems':
+        return renderProblemsTab();
+      case 'Skills':
+        return renderSkillsTab();
       case 'Team':
         return renderTeamTab();
+      case 'Notes':
+        return renderNotesTab();
       default:
         return null;
     }
@@ -619,25 +659,31 @@ export default function ManualDiveEntryScreen() {
       </View>
 
       <View style={[styles.tabBar, { borderBottomColor: colors.border }]}>
-        {TABS.map((tab) => (
-          <Pressable
-            key={tab}
-            style={[
-              styles.tabItem,
-              activeTab === tab && { borderBottomColor: colors.primary, borderBottomWidth: 2 },
-            ]}
-            onPress={() => setActiveTab(tab)}
-          >
-            <Text
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.tabScrollContent}
+        >
+          {TABS.map((tab) => (
+            <Pressable
+              key={tab}
               style={[
-                styles.tabText,
-                { color: activeTab === tab ? colors.primary : colors.textSecondary },
+                styles.tabItem,
+                activeTab === tab && { borderBottomColor: colors.primary, borderBottomWidth: 2 },
               ]}
+              onPress={() => setActiveTab(tab)}
             >
-              {tab}
-            </Text>
-          </Pressable>
-        ))}
+              <Text
+                style={[
+                  styles.tabText,
+                  { color: activeTab === tab ? colors.primary : colors.textSecondary },
+                ]}
+              >
+                {tab}
+              </Text>
+            </Pressable>
+          ))}
+        </ScrollView>
       </View>
 
       {renderTabContent()}
@@ -678,18 +724,27 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   tabBar: {
-    flexDirection: 'row',
     borderBottomWidth: 1,
-    paddingHorizontal: 8,
+  },
+  tabScrollContent: {
+    paddingHorizontal: 12,
+    gap: 4,
   },
   tabItem: {
-    flex: 1,
     paddingVertical: 12,
+    paddingHorizontal: 12,
     alignItems: 'center',
+    minWidth: 48,
   },
   tabText: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '500',
+  },
+  fieldRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
   },
   tabContent: {
     flex: 1,
