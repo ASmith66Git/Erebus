@@ -1648,25 +1648,31 @@ export default function DiveLogDetailScreen() {
       </View>
 
       <View style={[styles.tabBar, { borderBottomColor: colors.border }]}>
-        {TABS.map((tab) => (
-          <Pressable
-            key={tab}
-            style={[
-              styles.tabItem,
-              activeTab === tab && { borderBottomColor: colors.primary, borderBottomWidth: 2 },
-            ]}
-            onPress={() => setActiveTab(tab)}
-          >
-            <Text
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.tabScrollContent}
+        >
+          {TABS.map((tab) => (
+            <Pressable
+              key={tab}
               style={[
-                styles.tabText,
-                { color: activeTab === tab ? colors.primary : colors.textSecondary },
+                styles.tabItem,
+                activeTab === tab && { borderBottomColor: colors.primary, borderBottomWidth: 2 },
               ]}
+              onPress={() => setActiveTab(tab)}
             >
-              {tab}
-            </Text>
-          </Pressable>
-        ))}
+              <Text
+                style={[
+                  styles.tabText,
+                  { color: activeTab === tab ? colors.primary : colors.textSecondary },
+                ]}
+              >
+                {tab}
+              </Text>
+            </Pressable>
+          ))}
+        </ScrollView>
       </View>
 
       {renderTabContent()}
@@ -1743,17 +1749,20 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   tabBar: {
-    flexDirection: 'row',
     borderBottomWidth: 1,
-    paddingHorizontal: 8,
+  },
+  tabScrollContent: {
+    paddingHorizontal: 12,
+    gap: 4,
   },
   tabItem: {
-    flex: 1,
     paddingVertical: 12,
+    paddingHorizontal: 12,
     alignItems: 'center',
+    minWidth: 48,
   },
   tabText: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '500',
   },
   tabContent: {
