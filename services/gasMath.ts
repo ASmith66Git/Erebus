@@ -589,7 +589,8 @@ export function calculateBestMix(
   const absolutePressure = 1 + (depthM * pressurePerMeter);
   
   let o2Frac = ppo2Max / absolutePressure;
-  o2Frac = Math.min(1.0, Math.max(0.21, o2Frac));
+  // Minimum 10% O2 for hypoxic trimix, max 100%
+  o2Frac = Math.min(1.0, Math.max(0.10, o2Frac));
   
   let heFrac = 0;
   let n2Frac = 1 - o2Frac;
@@ -642,7 +643,8 @@ export function calculateBestMix(
     mixName = `Tx${o2Percent}/${hePercent}`;
   }
   
-  const isValidMix = o2Percent >= 18 && o2Percent <= 100 && hePercent >= 0 && n2Percent >= 0;
+  // Valid mix: minimum 10% O2 for hypoxic trimix, all percentages non-negative
+  const isValidMix = o2Percent >= 10 && o2Percent <= 100 && hePercent >= 0 && n2Percent >= 0;
   
   return {
     o2Percent,
