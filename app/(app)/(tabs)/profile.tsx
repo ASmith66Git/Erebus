@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Switch, Modal, ActivityIndicator, Platform, RefreshControl, TextInput, Alert, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import { router } from 'expo-router';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { getApiUrl } from '@/utils/apiConfig';
@@ -341,10 +342,10 @@ export default function ProfileScreen() {
   };
 
   const menuItems = [
-    { icon: 'notifications-outline', title: 'Notifications', description: 'Manage your alerts' },
-    { icon: 'shield-checkmark-outline', title: 'Privacy', description: 'Control your data' },
-    { icon: 'help-circle-outline', title: 'Help & Support', description: 'Get assistance' },
-    { icon: 'document-text-outline', title: 'Terms & Conditions', description: 'Legal information' },
+    { icon: 'notifications-outline', title: 'Notifications', description: 'Manage your alerts', route: null },
+    { icon: 'shield-checkmark-outline', title: 'Privacy', description: 'Control your data', route: '/privacy' },
+    { icon: 'help-circle-outline', title: 'Help & Support', description: 'Get assistance', route: null },
+    { icon: 'document-text-outline', title: 'Terms & Conditions', description: 'Legal information', route: '/terms' },
   ];
 
   return (
@@ -552,6 +553,7 @@ export default function ProfileScreen() {
           <Pressable 
             key={index} 
             style={styles.menuRow}
+            onPress={() => item.route && router.push(item.route as any)}
           >
             <View style={[styles.menuIcon, { backgroundColor: colors.primary + '20' }]}>
               <Ionicons name={item.icon as any} size={20} color={colors.primary} />
