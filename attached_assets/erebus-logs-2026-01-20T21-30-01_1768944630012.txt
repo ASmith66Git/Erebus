@@ -1,0 +1,24 @@
+{
+  "deviceInfo": {
+    "platform": "android",
+    "version": 35,
+    "timestamp": "2026-01-20T21:30:01.444Z"
+  },
+  "logs": [
+    {
+      "id": "1768944520765-5inig8w6x",
+      "timestamp": "2026-01-20T21:28:40.765Z",
+      "level": "error",
+      "message": "TypeError: Cannot read property 'contentOffset' of null\nTypeError: Cannot read property 'contentOffset' of null\n    at anonymous (address at index.android.bundle:1:2625750)",
+      "source": "console.error"
+    },
+    {
+      "id": "1768944520765-fzpypb7l8",
+      "timestamp": "2026-01-20T21:28:40.765Z",
+      "level": "error",
+      "message": "FATAL: Cannot read property 'contentOffset' of null",
+      "source": "GlobalErrorHandler",
+      "details": "TypeError: Cannot read property 'contentOffset' of null\n    at anonymous (address at index.android.bundle:1:2625750)"
+    }
+  ]
+}
