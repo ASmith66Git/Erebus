@@ -688,18 +688,11 @@ function DiveTab({ diveLog, colors, gearProfileName, gearProfileId }: { diveLog:
     );
   };
 
-  const renderTimeDepthCard = () => {
-    if (!scrubberData) return null;
+  const renderStaticCard = (label: string, value: string, lineColor: string) => {
     return (
-      <View style={[styles.timeDepthCard, { backgroundColor: colors.primary + '15', borderColor: colors.primary }]}>
-        <View style={styles.timeDepthRow}>
-          <Text style={[styles.timeDepthTime, { color: colors.primary }]}>
-            {formatScrubberTime(scrubberData.time)}
-          </Text>
-          <Text style={[styles.timeDepthDepth, { color: '#2196F3' }]}>
-            {scrubberData.depth.toFixed(1)}m
-          </Text>
-        </View>
+      <View style={[styles.metricCard, { backgroundColor: lineColor + '15', borderColor: lineColor }]}>
+        <Text style={[styles.metricLabel, { color: lineColor }]}>{label}</Text>
+        <Text style={[styles.metricValue, { color: colors.text }]}>{value}</Text>
       </View>
     );
   };
@@ -722,7 +715,8 @@ function DiveTab({ diveLog, colors, gearProfileName, gearProfileId }: { diveLog:
           />
 
           <View style={styles.metricCardsRow}>
-            {renderTimeDepthCard()}
+            {renderStaticCard('Time', scrubberData ? formatScrubberTime(scrubberData.time) : '--:--', colors.primary)}
+            {renderStaticCard('Depth', scrubberData ? `${scrubberData.depth.toFixed(1)}m` : '--', '#2196F3')}
             {renderMetricCard('Temp', scrubberData?.temp != null ? `${scrubberData.temp.toFixed(1)}°C` : '--', showTemp, () => setShowTemp(!showTemp), '#4CAF50', hasTemp)}
             {renderMetricCard('NDL', scrubberData?.ndl != null ? `${Math.round(scrubberData.ndl)} min` : '--', showNdl, () => setShowNdl(!showNdl), '#FFC107', hasNdl)}
             {renderMetricCard('GF99', scrubberData?.gf99 != null ? `${Math.round(scrubberData.gf99)}%` : '--', showGf99, () => setShowGf99(!showGf99), '#9C27B0', hasGf99)}
@@ -2085,27 +2079,6 @@ const styles = StyleSheet.create({
   metricValue: {
     fontSize: 14,
     fontWeight: '700',
-  },
-  timeDepthCard: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 10,
-    borderWidth: 1.5,
-    alignItems: 'center',
-    minWidth: 90,
-  },
-  timeDepthRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  timeDepthTime: {
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  timeDepthDepth: {
-    fontSize: 14,
-    fontWeight: '600',
   },
   noDataContainer: {
     alignItems: 'center',
