@@ -903,8 +903,9 @@ export default function DivePlanningScreen() {
     const barGap = 2;
     const chartH = 16 * (barHeight + barGap);
 
-    // Bar width matches the profile chart's drawing area
-    const maxBarWidth = chartW;
+    // Reserve space for percentage labels on the right
+    const labelWidth = 36;
+    const maxBarWidth = chartW - labelWidth;
     
     // Horizontal bars showing tissue saturation relative to GF ceiling
     // 0% = surface equilibrium, 100% = at GF-limited M-value ceiling
@@ -957,13 +958,13 @@ export default function DivePlanningScreen() {
           >
             {i + 1}
           </SvgText>
-          {/* Percentage value - positioned at right edge of bar area */}
+          {/* Percentage value - positioned after bar area */}
           <SvgText
-            x={x + maxBarWidth - 4}
+            x={x + maxBarWidth + 4}
             y={y + barHeight / 2 + 3}
             fontSize={7}
             fill={percent > 100 ? colors.error : percent > 80 ? '#FF9800' : colors.text}
-            textAnchor="end"
+            textAnchor="start"
           >
             {Math.round(percent)}%
           </SvgText>
