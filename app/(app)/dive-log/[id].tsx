@@ -302,10 +302,7 @@ function DiveProfileChart({ samples, colors, showTemp, showNdl, showGf99, showPp
       const getGf99Val = (s: Sample) => s.gf99_percent ?? s.gf99_pct ?? null;
       const getTtsVal = (s: Sample) => s.tts_minutes ?? s.tts_min ?? (s.tts_seconds != null ? s.tts_seconds / 60 : null);
       const getCeilingVal = (s: Sample) => s.ceiling_meters ?? s.ceiling_m ?? null;
-      const getCnsVal = (s: Sample) => {
-        const val = s.cns_pct ?? s.cns_percent;
-        return val != null ? val / 100 : null;
-      };
+      const getCnsVal = (s: Sample) => s.cns_pct ?? s.cns_percent ?? null;
       
       onScrubberChange({
         time: t,
@@ -343,14 +340,11 @@ function DiveProfileChart({ samples, colors, showTemp, showNdl, showGf99, showPp
   const getGf99 = (s: Sample) => s.gf99_percent ?? s.gf99_pct ?? null;
   const getTts = (s: Sample) => s.tts_minutes ?? s.tts_min ?? (s.tts_seconds != null ? s.tts_seconds / 60 : null);
   const getCeiling = (s: Sample) => s.ceiling_meters ?? s.ceiling_m ?? null;
-  const getCns = (s: Sample) => {
-    const val = s.cns_pct ?? s.cns_percent;
-    return val != null ? val / 100 : null;
-  };
+  const getCns = (s: Sample) => s.cns_pct ?? s.cns_percent ?? null;
   const maxNdl = ndlSamples.length > 0 ? Math.max(...ndlSamples.map(s => getNdl(s) || 0)) : 99;
   const maxGf99 = 100;
   const maxPpo2 = 1.6;
-  const maxCns = Math.max(100, cnsSamples.length > 0 ? Math.max(...cnsSamples.map(s => (s.cns_pct ?? s.cns_percent ?? 0) / 100)) : 100);
+  const maxCns = Math.max(100, cnsSamples.length > 0 ? Math.max(...cnsSamples.map(s => s.cns_pct ?? s.cns_percent ?? 0)) : 100);
   
   const findLastValueAtTime = <T,>(
     sparseList: Sample[],
@@ -721,7 +715,7 @@ function DiveTab({ diveLog, colors, gearProfileName, gearProfileId }: { diveLog:
             {renderMetricCard('NDL', scrubberData?.ndl != null ? `${Math.round(scrubberData.ndl)} min` : '--', showNdl, () => setShowNdl(!showNdl), '#FFC107', hasNdl)}
             {renderMetricCard('GF99', scrubberData?.gf99 != null ? `${Math.round(scrubberData.gf99)}%` : '--', showGf99, () => setShowGf99(!showGf99), '#9C27B0', hasGf99)}
             {renderMetricCard('PPO2', scrubberData?.ppo2 != null ? `${scrubberData.ppo2.toFixed(2)}` : '--', showPpo2, () => setShowPpo2(!showPpo2), '#FF5722', hasPpo2)}
-            {renderMetricCard('CNS', scrubberData?.cns != null ? `${Math.round(scrubberData.cns * 100)}%` : '--', showCns, () => setShowCns(!showCns), '#E91E63', hasCns)}
+            {renderMetricCard('CNS', scrubberData?.cns != null ? `${Math.round(scrubberData.cns)}%` : '--', showCns, () => setShowCns(!showCns), '#E91E63', hasCns)}
           </View>
         </View>
       )}
