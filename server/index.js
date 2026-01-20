@@ -6271,6 +6271,10 @@ app.get('/api/dive-logs/:logId/buddies', authenticateToken, async (req, res) => 
 
 const distPath = path.join(__dirname, '..', 'dist');
 
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
 if (process.env.NODE_ENV === 'production' || process.env.PORT) {
   app.use(express.static(distPath));
   
