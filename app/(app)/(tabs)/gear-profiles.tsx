@@ -184,13 +184,19 @@ export default function GearProfilesScreen() {
           <View style={styles.cardActions}>
             <Pressable
               style={[styles.actionButton, { backgroundColor: colors.primary + '20' }]}
-              onPress={() => handleDuplicate(profile)}
+              onPress={(e) => {
+                e.stopPropagation();
+                handleDuplicate(profile);
+              }}
             >
               <Feather name="copy" size={16} color={colors.primary} />
             </Pressable>
             <Pressable
               style={[styles.actionButton, { backgroundColor: colors.error + '20' }]}
-              onPress={() => handleDelete(profile)}
+              onPress={(e) => {
+                e.stopPropagation();
+                handleDelete(profile);
+              }}
             >
               <Feather name="trash-2" size={16} color={colors.error} />
             </Pressable>
