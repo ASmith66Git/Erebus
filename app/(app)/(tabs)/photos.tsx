@@ -474,7 +474,10 @@ export default function PhotosScreen() {
                 clearTimeout(scrollTimeoutRef.current);
               }
               scrollTimeoutRef.current = setTimeout(() => {
-                const newIndex = Math.round(e.nativeEvent.contentOffset.x / screenWidth);
+                // Web uses scrollLeft, native uses contentOffset.x
+                const scrollX = e.nativeEvent.contentOffset?.x ?? (e.nativeEvent.target as any)?.scrollLeft ?? 0;
+                const viewWidth = e.nativeEvent.layoutMeasurement?.width ?? (e.nativeEvent.target as any)?.clientWidth ?? screenWidth;
+                const newIndex = Math.round(scrollX / viewWidth);
                 if (newIndex >= 0 && newIndex < photos.length && newIndex !== viewerIndex) {
                   setViewerIndex(newIndex);
                   setSelectedPhoto(photos[newIndex]);
@@ -485,7 +488,9 @@ export default function PhotosScreen() {
             scrollEventThrottle={16}
             onMomentumScrollEnd={(e) => {
               // Also handle momentum scroll end for native
-              const newIndex = Math.round(e.nativeEvent.contentOffset.x / screenWidth);
+              const scrollX = e.nativeEvent.contentOffset?.x ?? (e.nativeEvent.target as any)?.scrollLeft ?? 0;
+              const viewWidth = e.nativeEvent.layoutMeasurement?.width ?? (e.nativeEvent.target as any)?.clientWidth ?? screenWidth;
+              const newIndex = Math.round(scrollX / viewWidth);
               if (newIndex >= 0 && newIndex < photos.length) {
                 setViewerIndex(newIndex);
                 setSelectedPhoto(photos[newIndex]);
