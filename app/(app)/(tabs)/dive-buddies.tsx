@@ -40,6 +40,11 @@ interface SearchUser {
   email: string;
 }
 
+const resolvePhotoUrl = (url: string | null): string | null => {
+  if (!url) return null;
+  return url.startsWith('/') ? `${getApiUrl()}${url}` : url;
+};
+
 export default function DiveBuddiesScreen() {
   const { colors } = useTheme();
   const { token, isLoading: authLoading } = useAuth();
@@ -234,30 +239,30 @@ export default function DiveBuddiesScreen() {
   const uploadPhoto = async (uri: string) => {
     setUploading(true);
     try {
-      const fileName = uri.split('/').pop() || 'photo.jpg';
-      const urlRes = await fetch(`${getApiUrl()}/api/dive-buddies/upload-url`, {
+      const name = uri.split('/').pop() || 'photo.jpg';
+      const urlRes = await fetch(`${getApiUrl()}/api/uploads/request-url`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ fileName, contentType: 'image/jpeg' }),
+        body: JSON.stringify({ name, contentType: 'image/jpeg' }),
       });
 
       if (!urlRes.ok) throw new Error('Failed to get upload URL');
       
-      const { uploadUrl, publicUrl } = await urlRes.json();
+      const { uploadURL, objectPath } = await urlRes.json();
 
       const imageRes = await fetch(uri);
       const blob = await imageRes.blob();
 
-      await fetch(uploadUrl, {
+      await fetch(uploadURL, {
         method: 'PUT',
         body: blob,
         headers: { 'Content-Type': 'image/jpeg' },
       });
 
-      setFormData({ ...formData, photo_url: publicUrl });
+      setFormData({ ...formData, photo_url: objectPath });
     } catch (error) {
       console.error('Upload photo error:', error);
       Alert.alert('Error', 'Failed to upload photo');
@@ -320,7 +325,7 @@ export default function DiveBuddiesScreen() {
     >
       <View style={styles.buddyCardContent}>
         {buddy.photo_url ? (
-          <Image source={{ uri: buddy.photo_url }} style={styles.buddyAvatar} />
+          <Image source={{ uri: resolvePhotoUrl(buddy.photo_url)! }} style={styles.buddyAvatar} />
         ) : (
           <View style={[styles.buddyAvatarPlaceholder, { backgroundColor: colors.primary + '20' }]}>
             <Feather name="user" size={24} color={colors.primary} />
@@ -412,7 +417,7 @@ export default function DiveBuddiesScreen() {
               <View style={styles.photoSection}>
                 {formData.photo_url ? (
                   <Pressable onPress={pickImage}>
-                    <Image source={{ uri: formData.photo_url }} style={styles.photoPreview} />
+                    <Image source={{ uri: resolvePhotoUrl(formData.photo_url)! }} style={styles.photoPreview} />
                     {uploading && (
                       <View style={styles.uploadingOverlay}>
                         <ActivityIndicator color="#FFF" />
@@ -532,7 +537,7 @@ export default function DiveBuddiesScreen() {
               <ScrollView style={styles.modalBody}>
                 <View style={styles.detailHeader}>
                   {selectedBuddy.photo_url ? (
-                    <Image source={{ uri: selectedBuddy.photo_url }} style={styles.detailAvatar} />
+                    <Image source={{ uri: resolvePhotoUrl(selectedBuddy.photo_url)! }} style={styles.detailAvatar} />
                   ) : (
                     <View style={[styles.detailAvatarPlaceholder, { backgroundColor: colors.primary + '20' }]}>
                       <Feather name="user" size={48} color={colors.primary} />

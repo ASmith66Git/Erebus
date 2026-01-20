@@ -6247,29 +6247,6 @@ app.get('/api/dive-logs/:logId/buddies', authenticateToken, async (req, res) => 
   }
 });
 
-// Get presigned URL for buddy photo upload
-app.post('/api/dive-buddies/upload-url', authenticateToken, async (req, res) => {
-  try {
-    const { fileName, contentType } = req.body;
-    if (!fileName) {
-      return res.status(400).json({ error: 'fileName is required' });
-    }
-    
-    const ext = fileName.split('.').pop() || 'jpg';
-    const key = `buddy-photos/${req.user.id}/${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
-    
-    const { uploadUrl, publicUrl } = await objectStorage.createPresignedUploadUrl(key, {
-      contentType: contentType || 'image/jpeg',
-      expiresIn: 3600
-    });
-    
-    res.json({ uploadUrl, publicUrl, key });
-  } catch (error) {
-    console.error('Buddy photo upload URL error:', error);
-    res.status(500).json({ error: 'Failed to generate upload URL' });
-  }
-});
-
 const distPath = path.join(__dirname, '..', 'dist');
 
 if (process.env.NODE_ENV === 'production' || process.env.PORT) {
