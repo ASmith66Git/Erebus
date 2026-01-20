@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSettings } from '@/contexts/SettingsContext';
 import { useRouter } from 'expo-router';
 import PageHeader from '@/components/PageHeader';
 import { getApiUrl } from '@/utils/apiConfig';
@@ -77,6 +78,7 @@ function generateColorShades(baseColor: string): string[][] {
 export default function HomeScreen() {
   const { colors, isDark } = useTheme();
   const { user, token } = useAuth();
+  const { getSelectedQuickActions } = useSettings();
   const router = useRouter();
   const [stats, setStats] = useState({
     totalDives: 0,
@@ -146,11 +148,13 @@ export default function HomeScreen() {
     { icon: 'location', label: 'Dive Sites', value: stats.sitesVisited.toString(), gradient: colorShades[2] },
   ];
 
-  const quickActions = [
-    { icon: 'add-circle', label: 'Log Dive', route: '/(app)/dive-logs', gradient: colorShades[3] },
-    { icon: 'compass', label: 'Explore Sites', route: '/(app)/(tabs)/explore', gradient: colorShades[4] },
-    { icon: 'airplane', label: 'Plan Trip', route: '/(app)/(tabs)/dive-trips', gradient: colorShades[5] },
-  ];
+  const selectedActions = getSelectedQuickActions();
+  const quickActions = selectedActions.map((action, index) => ({
+    icon: action.icon,
+    label: action.label,
+    route: action.route,
+    gradient: colorShades[3 + (index % 3)],
+  }));
 
   return (
     <ThemedBackground>

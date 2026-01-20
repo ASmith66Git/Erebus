@@ -6,6 +6,30 @@ type DateFormat = 'YMD' | 'DMY' | 'MDY';
 type Language = 'en' | 'es' | 'fr' | 'de' | 'it' | 'pt' | 'nl' | 'ja' | 'zh';
 type ThemeColor = string;
 
+interface QuickActionOption {
+  id: string;
+  icon: string;
+  label: string;
+  route: string;
+}
+
+const QUICK_ACTION_OPTIONS: QuickActionOption[] = [
+  { id: 'home', icon: 'home', label: 'Home', route: '/(app)/(tabs)' },
+  { id: 'dive-logs', icon: 'journal', label: 'Dive Logs', route: '/(app)/(tabs)/dive-logs' },
+  { id: 'dive-sites', icon: 'location', label: 'Dive Sites', route: '/(app)/(tabs)/dive-sites' },
+  { id: 'gear-profiles', icon: 'build', label: 'Gear Profiles', route: '/(app)/(tabs)/gear-profiles' },
+  { id: 'dive-buddies', icon: 'people', label: 'Dive Buddies', route: '/(app)/(tabs)/dive-buddies' },
+  { id: 'dive-planning', icon: 'analytics', label: 'Dive Planning', route: '/(app)/(tabs)/dive-planning' },
+  { id: 'gas-calculator', icon: 'flask', label: 'Gas Calculator', route: '/(app)/(tabs)/gas-calculator' },
+  { id: 'photos', icon: 'images', label: 'Photos', route: '/(app)/(tabs)/photos' },
+  { id: 'certifications', icon: 'ribbon', label: 'Certifications', route: '/(app)/(tabs)/certifications' },
+  { id: 'dive-trips', icon: 'airplane', label: 'Dive Trips', route: '/(app)/(tabs)/dive-trips' },
+  { id: 'explore', icon: 'compass', label: 'Explore Sites', route: '/(app)/(tabs)/explore' },
+  { id: 'manual-dive', icon: 'add-circle', label: 'Log Dive', route: '/(app)/(tabs)/manual-dive-entry' },
+];
+
+const DEFAULT_QUICK_ACTIONS = ['manual-dive', 'explore', 'dive-trips'];
+
 interface SettingsContextType {
   units: UnitSystem;
   setUnits: (units: UnitSystem) => void;
@@ -15,6 +39,10 @@ interface SettingsContextType {
   setLanguage: (lang: Language) => void;
   themeColor: ThemeColor;
   setThemeColor: (color: ThemeColor) => void;
+  quickActions: string[];
+  setQuickActions: (actions: string[]) => void;
+  getQuickActionOptions: () => QuickActionOption[];
+  getSelectedQuickActions: () => QuickActionOption[];
   formatDepth: (meters: number | null) => string;
   formatTemperature: (celsius: number | null) => string;
   formatDate: (date: Date | string) => string;
@@ -60,8 +88,8 @@ const themeColorOptions: { value: ThemeColor; label: string }[] = [
 
 const DEFAULT_THEME_COLOR = '#D22F00';
 
-export { languageOptions, themeColorOptions, DEFAULT_THEME_COLOR };
-export type { UnitSystem, DateFormat, Language, ThemeColor };
+export { languageOptions, themeColorOptions, DEFAULT_THEME_COLOR, QUICK_ACTION_OPTIONS, DEFAULT_QUICK_ACTIONS };
+export type { UnitSystem, DateFormat, Language, ThemeColor, QuickActionOption };
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
@@ -70,6 +98,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const [dateFormat, setDateFormatState] = useState<DateFormat>('DMY');
   const [language, setLanguageState] = useState<Language>('en');
   const [themeColor, setThemeColorState] = useState<ThemeColor>(DEFAULT_THEME_COLOR);
+  const [quickActions, setQuickActionsState] = useState<string[]>(DEFAULT_QUICK_ACTIONS);
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
@@ -85,6 +114,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         if (settings.dateFormat) setDateFormatState(settings.dateFormat);
         if (settings.language) setLanguageState(settings.language);
         if (settings.themeColor) setThemeColorState(settings.themeColor);
+        if (settings.quickActions) setQuickActionsState(settings.quickActions);
       }
     } catch (error) {
       console.error('Error loading settings:', error);
@@ -93,9 +123,9 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const saveSettings = async (newSettings: Partial<{ units: UnitSystem; dateFormat: DateFormat; language: Language; themeColor: ThemeColor }>) => {
+  const saveSettings = async (newSettings: Partial<{ units: UnitSystem; dateFormat: DateFormat; language: Language; themeColor: ThemeColor; quickActions: string[] }>) => {
     try {
-      const current = { units, dateFormat, language, themeColor, ...newSettings };
+      const current = { units, dateFormat, language, themeColor, quickActions, ...newSettings };
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(current));
     } catch (error) {
       console.error('Error saving settings:', error);
@@ -120,6 +150,21 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const setThemeColor = (newColor: ThemeColor) => {
     setThemeColorState(newColor);
     saveSettings({ themeColor: newColor });
+  };
+
+  const setQuickActions = (newActions: string[]) => {
+    setQuickActionsState(newActions);
+    saveSettings({ quickActions: newActions });
+  };
+
+  const getQuickActionOptions = (): QuickActionOption[] => {
+    return QUICK_ACTION_OPTIONS;
+  };
+
+  const getSelectedQuickActions = (): QuickActionOption[] => {
+    return quickActions
+      .map(id => QUICK_ACTION_OPTIONS.find(opt => opt.id === id))
+      .filter((opt): opt is QuickActionOption => opt !== undefined);
   };
 
   const formatDepth = (meters: number | null): string => {
@@ -244,6 +289,10 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         setLanguage,
         themeColor,
         setThemeColor,
+        quickActions,
+        setQuickActions,
+        getQuickActionOptions,
+        getSelectedQuickActions,
         formatDepth,
         formatTemperature,
         formatDate,

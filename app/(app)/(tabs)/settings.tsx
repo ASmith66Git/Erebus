@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Modal, FlatList } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
-import { useSettings, languageOptions, themeColorOptions, UnitSystem, DateFormat, Language } from '@/contexts/SettingsContext';
+import { useSettings, languageOptions, themeColorOptions, QUICK_ACTION_OPTIONS, UnitSystem, DateFormat, Language } from '@/contexts/SettingsContext';
 import PageHeader from '@/components/PageHeader';
 import ThemedBackground from '@/components/ThemedBackground';
 
@@ -14,10 +14,22 @@ const dateFormatOptions: { value: DateFormat; label: string; example: string }[]
 
 export default function SettingsScreen() {
   const { colors } = useTheme();
-  const { units, setUnits, dateFormat, setDateFormat, language, setLanguage, themeColor, setThemeColor } = useSettings();
+  const { units, setUnits, dateFormat, setDateFormat, language, setLanguage, themeColor, setThemeColor, quickActions, setQuickActions } = useSettings();
   const [showLanguagePicker, setShowLanguagePicker] = useState(false);
 
   const selectedLanguage = languageOptions.find(l => l.value === language);
+
+  const toggleQuickAction = (actionId: string) => {
+    if (quickActions.includes(actionId)) {
+      if (quickActions.length > 1) {
+        setQuickActions(quickActions.filter(id => id !== actionId));
+      }
+    } else {
+      if (quickActions.length < 5) {
+        setQuickActions([...quickActions, actionId]);
+      }
+    }
+  };
 
   return (
     <ThemedBackground>
@@ -134,6 +146,52 @@ export default function SettingsScreen() {
           </View>
           <Text style={[styles.colorLabel, { color: colors.textSecondary }]}>
             {themeColorOptions.find(c => c.value === themeColor)?.label || 'Red'}
+          </Text>
+        </View>
+
+        <View style={[styles.section, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Quick Actions</Text>
+          <Text style={[styles.sectionDescription, { color: colors.textSecondary }]}>
+            Choose up to 5 shortcuts for your home screen
+          </Text>
+          <View style={styles.quickActionsGrid}>
+            {QUICK_ACTION_OPTIONS.map((option) => {
+              const isSelected = quickActions.includes(option.id);
+              return (
+                <Pressable
+                  key={option.id}
+                  style={[
+                    styles.quickActionOption,
+                    { borderColor: colors.border },
+                    isSelected && { backgroundColor: colors.primary + '20', borderColor: colors.primary },
+                  ]}
+                  onPress={() => toggleQuickAction(option.id)}
+                >
+                  <Ionicons 
+                    name={option.icon as any} 
+                    size={20} 
+                    color={isSelected ? colors.primary : colors.textSecondary} 
+                  />
+                  <Text 
+                    style={[
+                      styles.quickActionLabel, 
+                      { color: isSelected ? colors.primary : colors.text }
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {option.label}
+                  </Text>
+                  {isSelected && (
+                    <View style={[styles.quickActionCheck, { backgroundColor: colors.primary }]}>
+                      <Ionicons name="checkmark" size={12} color="#FFF" />
+                    </View>
+                  )}
+                </Pressable>
+              );
+            })}
+          </View>
+          <Text style={[styles.quickActionHint, { color: colors.textSecondary }]}>
+            {quickActions.length}/5 selected
           </Text>
         </View>
 
@@ -332,6 +390,40 @@ const styles = StyleSheet.create({
   },
   colorLabel: {
     fontSize: 14,
+    marginTop: 12,
+    textAlign: 'center',
+  },
+  quickActionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  quickActionOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    position: 'relative',
+  },
+  quickActionLabel: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  quickActionCheck: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  quickActionHint: {
+    fontSize: 12,
     marginTop: 12,
     textAlign: 'center',
   },
