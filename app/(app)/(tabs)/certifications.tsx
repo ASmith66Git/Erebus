@@ -313,20 +313,34 @@ export default function CertificationsScreen() {
         });
         
         if (response.ok) {
-          Alert.alert('Success', 'Certification deleted');
+          if (Platform.OS === 'web') {
+            window.alert('Certification deleted');
+          } else {
+            Alert.alert('Success', 'Certification deleted');
+          }
           setShowDetailModal(false);
           fetchData();
         }
       } catch (error) {
         console.error('Error deleting certification:', error);
-        Alert.alert('Error', 'Failed to delete certification');
+        if (Platform.OS === 'web') {
+          window.alert('Failed to delete certification');
+        } else {
+          Alert.alert('Error', 'Failed to delete certification');
+        }
       }
     };
     
-    Alert.alert('Delete Certification', 'Are you sure you want to delete this certification?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: doDelete },
-    ]);
+    if (Platform.OS === 'web') {
+      if (window.confirm('Are you sure you want to delete this certification?')) {
+        doDelete();
+      }
+    } else {
+      Alert.alert('Delete Certification', 'Are you sure you want to delete this certification?', [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: doDelete },
+      ]);
+    }
   };
 
   const handleAddToWishlist = async () => {
@@ -733,10 +747,22 @@ export default function CertificationsScreen() {
         <View style={styles.certCardAgency}>
           <Text style={[styles.agencyName, { color: colors.primary }]}>{cert.agency_name || 'Unknown Agency'}</Text>
         </View>
-        <View style={[styles.levelBadge, { backgroundColor: getLevelColor(cert.course_level || '') + '20' }]}>
-          <Text style={[styles.levelBadgeText, { color: getLevelColor(cert.course_level || '') }]}>
-            {cert.course_level?.charAt(0).toUpperCase() + cert.course_level?.slice(1) || 'N/A'}
-          </Text>
+        <View style={styles.certCardHeaderRight}>
+          <View style={[styles.levelBadge, { backgroundColor: getLevelColor(cert.course_level || '') + '20' }]}>
+            <Text style={[styles.levelBadgeText, { color: getLevelColor(cert.course_level || '') }]}>
+              {cert.course_level?.charAt(0).toUpperCase() + cert.course_level?.slice(1) || 'N/A'}
+            </Text>
+          </View>
+          <Pressable
+            style={styles.cardDeleteBtn}
+            onPress={(e) => {
+              e.stopPropagation();
+              handleDeleteCertification(cert.id);
+            }}
+            hitSlop={8}
+          >
+            <Feather name="trash-2" size={16} color={colors.textSecondary} />
+          </Pressable>
         </View>
       </View>
       
@@ -1628,6 +1654,8 @@ const styles = StyleSheet.create({
   emptyStateBtnText: { color: '#FFF', fontSize: 16, fontWeight: '500' },
   certCard: { borderRadius: 12, padding: 16, marginBottom: 12, borderWidth: 1 },
   certCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  certCardHeaderRight: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  cardDeleteBtn: { padding: 4 },
   certCardAgency: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   agencyName: { fontSize: 14, fontWeight: '600' },
   levelBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
