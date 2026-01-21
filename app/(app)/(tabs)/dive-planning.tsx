@@ -261,6 +261,13 @@ export default function DivePlanningScreen() {
 
   const currentResult = planResults[selectedDiveIndex] || null;
 
+  // Set scrubber to middle of dive when result changes
+  useEffect(() => {
+    if (currentResult && currentResult.totalRunTime > 0) {
+      setChartScrubberTime(Math.round(currentResult.totalRunTime / 2));
+    }
+  }, [currentResult?.totalRunTime, selectedDiveIndex]);
+
   const addDive = () => {
     const newId = String(Date.now());
     setDives([...dives, { id: newId, depth: 20, bottomTime: 30, surfaceInterval: 60 }]);
@@ -559,7 +566,9 @@ export default function DivePlanningScreen() {
 
   const handleChartTouch = useCallback((event: any, chartW: number, padding: { left: number }, totalTime: number) => {
     const locationX = event.nativeEvent.locationX - padding.left;
-    const time = Math.max(0, Math.min((locationX / chartW) * totalTime, totalTime));
+    const rawTime = Math.max(0, Math.min((locationX / chartW) * totalTime, totalTime));
+    // Round to nearest 0.5 minute for smoother scrubbing
+    const time = Math.round(rawTime * 2) / 2;
     setChartScrubberTime(time);
   }, []);
 
@@ -776,14 +785,16 @@ export default function DivePlanningScreen() {
             onMouseDown: (e: any) => {
               const rect = e.currentTarget.getBoundingClientRect();
               const locationX = e.clientX - rect.left - padding.left;
-              const time = Math.max(0, Math.min((locationX / chartW) * totalTime, totalTime));
+              const rawTime = Math.max(0, Math.min((locationX / chartW) * totalTime, totalTime));
+              const time = Math.round(rawTime * 2) / 2;
               setChartScrubberTime(time);
             },
             onMouseMove: (e: any) => {
               if (e.buttons === 1) {
                 const rect = e.currentTarget.getBoundingClientRect();
                 const locationX = e.clientX - rect.left - padding.left;
-                const time = Math.max(0, Math.min((locationX / chartW) * totalTime, totalTime));
+                const rawTime = Math.max(0, Math.min((locationX / chartW) * totalTime, totalTime));
+                const time = Math.round(rawTime * 2) / 2;
                 setChartScrubberTime(time);
               }
             },
