@@ -1574,10 +1574,9 @@ export default function DiveLogDetailScreen() {
     
     const handleViewerScroll = (event: any) => {
       if (!event?.nativeEvent) return;
-      // Web uses scrollLeft, native uses contentOffset.x
-      const x = event.nativeEvent.contentOffset?.x ?? (event.nativeEvent.target as any)?.scrollLeft ?? 0;
+      const x = event.nativeEvent.contentOffset?.x ?? 0;
       const newIndex = Math.round(x / screenWidth);
-      if (newIndex !== photoViewerIndex && newIndex >= 0 && newIndex < photos.length) {
+      if (newIndex >= 0 && newIndex < photos.length) {
         setPhotoViewerIndex(newIndex);
       }
     };
@@ -1646,6 +1645,8 @@ export default function DiveLogDetailScreen() {
               pagingEnabled
               showsHorizontalScrollIndicator={false}
               onMomentumScrollEnd={handleViewerScroll}
+              onScroll={handleViewerScroll}
+              scrollEventThrottle={100}
               style={{ flex: 1 }}
             >
               {photos.map((photo) => (
