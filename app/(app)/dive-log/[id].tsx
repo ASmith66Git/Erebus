@@ -399,6 +399,7 @@ function DiveProfileChart({ samples, colors, showTemp, showNdl, showGf99, showPp
   }))) : '';
 
   const isDraggingRef = useRef(false);
+  const pendingUpdate = useRef<number | null>(null);
   
   const calculateScrubberPosition = (locationX: number) => {
     const clampedX = Math.max(padding, Math.min(locationX, chartWidth - padding));
@@ -433,12 +434,34 @@ function DiveProfileChart({ samples, colors, showTemp, showNdl, showGf99, showPp
     }
   };
 
-  const handleTouch = (event: GestureResponderEvent) => {
+  const handleTouch = (event: GestureResponderEvent, isEndEvent: boolean = false) => {
     const { locationX } = event.nativeEvent;
-    calculateScrubberPosition(locationX);
+    
+    if (isEndEvent || Platform.OS === 'web') {
+      if (pendingUpdate.current !== null) {
+        cancelAnimationFrame(pendingUpdate.current);
+        pendingUpdate.current = null;
+      }
+      calculateScrubberPosition(locationX);
+    } else {
+      if (pendingUpdate.current === null) {
+        pendingUpdate.current = requestAnimationFrame(() => {
+          pendingUpdate.current = null;
+          calculateScrubberPosition(locationX);
+        });
+      }
+    }
   };
 
-  const handleTouchEnd = () => {
+  const handleTouchEnd = (event?: GestureResponderEvent) => {
+    if (event) {
+      const { locationX } = event.nativeEvent;
+      if (pendingUpdate.current !== null) {
+        cancelAnimationFrame(pendingUpdate.current);
+        pendingUpdate.current = null;
+      }
+      calculateScrubberPosition(locationX);
+    }
     isDraggingRef.current = false;
   };
 
@@ -493,10 +516,10 @@ function DiveProfileChart({ samples, colors, showTemp, showNdl, showGf99, showPp
         } as any}
         onStartShouldSetResponder={() => true}
         onMoveShouldSetResponder={() => true}
-        onResponderGrant={handleTouch}
-        onResponderMove={handleTouch}
-        onResponderRelease={handleTouchEnd}
-        onResponderTerminate={handleTouchEnd}
+        onResponderGrant={(e) => handleTouch(e, true)}
+        onResponderMove={(e) => handleTouch(e, false)}
+        onResponderRelease={(e) => handleTouchEnd(e)}
+        onResponderTerminate={() => handleTouchEnd()}
         {...(Platform.OS === 'web' ? {
           onMouseDown: handleMouseDown,
           onMouseMove: handleMouseMove,
