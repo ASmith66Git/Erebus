@@ -515,7 +515,7 @@ export default function ProfileScreen() {
     { icon: 'notifications-outline', title: 'Notifications', description: 'Manage your alerts', route: null },
     { icon: 'shield-checkmark-outline', title: 'Privacy', description: 'Control your data', route: '/privacy' },
     { icon: 'download-outline', title: 'Export Data', description: 'Download your dive data', route: 'export' },
-    { icon: 'help-circle-outline', title: 'Help & Support', description: 'Get assistance', route: null },
+    { icon: 'help-circle-outline', title: 'Help & Support', description: 'Get assistance', route: '/(app)/(tabs)/help-support' },
     { icon: 'document-text-outline', title: 'Terms & Conditions', description: 'Legal information', route: '/terms' },
   ];
 
