@@ -1,54 +1,33 @@
 import React from 'react';
-import Svg, { Path, G, Circle } from 'react-native-svg';
+import Svg, { Path, G, Rect } from 'react-native-svg';
 
 interface LogoProps {
   size?: number;
   primaryColor?: string;
-  highlightColor?: string;
 }
 
 export default function Logo({ 
   size = 44, 
   primaryColor = '#D22F00',
-  highlightColor = '#FFFFFF'
 }: LogoProps) {
-  const viewBoxSize = 106;
-  
-  const arcRadius = 46;
-  const arcCenter = { x: 50, y: 54 };
-  const circumference = 2 * Math.PI * arcRadius;
-  const arcPercent = 0.70;
-  const dashLength = circumference * arcPercent;
-  const gapLength = circumference * (1 - arcPercent);
-  
   return (
-    <Svg width={size} height={size} viewBox="-3 -3 106 106">
-      <G>
-        {/* Arc using circle with stroke-dasharray - gap on left side, rotated counter-clockwise 20deg */}
-        <Circle
-          cx={arcCenter.x}
-          cy={arcCenter.y}
-          r={arcRadius}
-          fill="none"
-          stroke={primaryColor}
-          strokeWidth={5}
-          strokeLinecap="round"
-          strokeDasharray={`${dashLength} ${gapLength}`}
-          strokeDashoffset={-circumference * 0.15}
-          transform={`rotate(-130 ${arcCenter.x} ${arcCenter.y})`}
-        />
-        
-        {/* Water droplet shape */}
-        <Path
-          d="M 50 18 C 50 18, 30 48, 30 64 C 30 80, 39 88, 50 88 C 61 88, 70 80, 70 64 C 70 48, 50 18, 50 18 Z"
+    <Svg width={size} height={size * 1.414} viewBox="0 0 2481 3508">
+      <G transform="matrix(1.189257,0,0,1.189257,-574.649112,-14.141488)">
+        <Path 
+          d="M1523.898,756.002C1524.598,756.001 1525.299,756 1526,756C2005.614,756 2395,1145.386 2395,1625C2395,2104.614 2005.614,2494 1526,2494C1061.785,2494 682.098,2129.218 658.194,1670.91L732.793,1670.91C756.608,2088.085 1102.905,2419.514 1526,2419.514C1964.504,2419.514 2320.514,2063.504 2320.514,1625C2320.514,1186.496 1964.504,830.486 1526,830.486C1525.299,830.486 1524.598,830.487 1523.898,830.488L1523.898,756.002Z" 
           fill={primaryColor}
         />
-        
-        {/* White crescent highlight on bottom-right of droplet */}
-        <Path
-          d="M 52 74 Q 58 70, 55 64 Q 60 70, 56 78 Q 54 80, 52 74 Z"
-          fill={highlightColor}
-          opacity={0.95}
+      </G>
+      <G transform="matrix(0.923698,0,0,0.973426,-206.049807,85.441296)">
+        <Path 
+          d="M1554.5,1205C1554.5,1205 2034,1818.55 2034,2081.5C2034,2346.143 1819.143,2561 1554.5,2561C1289.857,2561 1075,2346.143 1075,2081.5C1075,1818.55 1554.5,1205 1554.5,1205ZM1955.685,2129L1865.687,2129C1847.786,2256.822 1747.921,2366.736 1621,2387.398L1621,2481.535C1800.953,2458.977 1942.336,2311.644 1955.685,2129Z" 
+          fill={primaryColor}
+        />
+      </G>
+      <G transform="matrix(0.492639,0,0,0.51916,464.031807,648.403696)">
+        <Path 
+          d="M1554.5,1205C1554.5,1205 2034,1818.55 2034,2081.5C2034,2346.143 1819.143,2561 1554.5,2561C1289.857,2561 1075,2346.143 1075,2081.5C1075,1818.55 1554.5,1205 1554.5,1205ZM1955.685,2129L1865.687,2129C1847.786,2256.822 1747.921,2358.518 1621,2379.179L1621,2481.535C1800.953,2458.977 1942.336,2311.644 1955.685,2129Z" 
+          fill={primaryColor}
         />
       </G>
     </Svg>
