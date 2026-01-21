@@ -152,7 +152,6 @@ export default function DatePickerField({
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 16,
   },
   label: {
     fontSize: 14,

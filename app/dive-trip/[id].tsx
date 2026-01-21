@@ -567,8 +567,8 @@ export default function DiveTripScreen() {
             </View>
           </View>
 
-          <View style={styles.formRow}>
-            <View style={[styles.formGroup, { flex: 1 }]}>
+          <View style={[styles.formRow, { marginBottom: 20 }]}>
+            <View style={styles.formRowDateGroup}>
               <DatePickerField
                 label="Start Date"
                 value={formData.startDate}
@@ -576,7 +576,7 @@ export default function DiveTripScreen() {
                 placeholder="Select date"
               />
             </View>
-            <View style={[styles.formGroup, { flex: 1 }]}>
+            <View style={styles.formRowDateGroup}>
               <DatePickerField
                 label="End Date"
                 value={formData.endDate}
@@ -962,7 +962,8 @@ const styles = StyleSheet.create({
   tabContent: { flex: 1 },
   tabContentContainer: { padding: 16, paddingBottom: 40 },
   formGroup: { marginBottom: 20 },
-  formRow: { flexDirection: 'row', gap: 12 },
+  formRow: { flexDirection: 'row', gap: 12, flexWrap: 'nowrap' },
+  formRowDateGroup: { flex: 1, marginBottom: 0 },
   formLabel: { fontSize: 14, fontWeight: '500', marginBottom: 8 },
   formInput: {
     borderWidth: 1,
