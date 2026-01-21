@@ -17,7 +17,8 @@ The application is built using Expo React Native, targeting both iOS and Android
 
 ### Technical Implementations
 - **User Authentication**: JWT-based session management with secure offline caching and background token refresh. Users can edit their profile (first name, last name, age, sex) from the profile screen. Profile photo upload with image picker and object storage integration.
-- **Admin Panel**: Provides user management, a development log, and dive message management for administrators.
+- **Admin Panel**: Provides user management, support message management, a development log, and dive message management for administrators.
+- **Support Messaging**: User-to-admin messaging system for in-app support. Users can create support tickets from their profile, and admins can manage and respond to conversations. Features status tracking (open, in progress, resolved, closed), priority levels, and unread message badges.
 - **Dynamic Dive Messages**: Admin-managed tips and taglines displayed dynamically on the home screen. Includes a database table for storing messages with type (tip/tagline), active/inactive status, and CRUD admin interface.
 - **Offline Capabilities**: Utilizes `expo-sqlite` for local data storage and implements an offline-first synchronization flow with incremental updates and pending mutation queues. Network connectivity detection enables automatic data syncing on reconnection.
 - **In-App Debugging**: Incorporates an error logging service with persistent storage, capturing various error types, accessible via an admin-only debug log screen.
