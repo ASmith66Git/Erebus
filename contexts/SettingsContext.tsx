@@ -20,10 +20,11 @@ const QUICK_ACTION_OPTIONS: QuickActionOption[] = [
   { id: 'gear-profiles', icon: 'build', label: 'Gear Profiles', route: '/(app)/(tabs)/gear-profiles' },
   { id: 'dive-buddies', icon: 'people', label: 'Dive Buddies', route: '/(app)/(tabs)/dive-buddies' },
   { id: 'dive-planning', icon: 'analytics', label: 'Dive Planning', route: '/(app)/(tabs)/dive-planning' },
-  { id: 'gas-calculator', icon: 'flask', label: 'Gas Calculator', route: '/(app)/(tabs)/gas-calculator' },
+  { id: 'gas-calculator', icon: 'flask', label: 'Gas', route: '/(app)/(tabs)/gas-calculator' },
   { id: 'photos', icon: 'images', label: 'Photos', route: '/(app)/(tabs)/photos' },
   { id: 'certifications', icon: 'ribbon', label: 'Certifications', route: '/(app)/(tabs)/certifications' },
   { id: 'dive-trips', icon: 'airplane', label: 'Dive Trips', route: '/(app)/(tabs)/dive-trips' },
+  { id: 'profile', icon: 'person', label: 'Profile', route: '/(app)/(tabs)/profile' },
   { id: 'explore', icon: 'compass', label: 'Explore Sites', route: '/(app)/(tabs)/explore' },
   { id: 'manual-dive', icon: 'add-circle', label: 'Log Dive', route: '/(app)/(tabs)/manual-dive-entry' },
 ];
