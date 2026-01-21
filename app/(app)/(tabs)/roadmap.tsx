@@ -88,7 +88,7 @@ export default function RoadmapScreen() {
   if (isLoading && features.length === 0) {
     return (
       <ThemedBackground style={styles.container}>
-        <PageHeader title="Roadmap" showBack />
+        <PageHeader title="Roadmap" />
         <View style={styles.centered}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
@@ -98,7 +98,7 @@ export default function RoadmapScreen() {
 
   return (
     <ThemedBackground style={styles.container}>
-      <PageHeader title="Roadmap" showBack />
+      <PageHeader title="Roadmap" />
 
       <ScrollView 
         style={styles.content}

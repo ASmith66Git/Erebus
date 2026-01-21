@@ -221,7 +221,7 @@ export default function RoadmapAdminScreen() {
   if (isLoading && features.length === 0) {
     return (
       <ThemedBackground style={styles.container}>
-        <PageHeader title="Roadmap Management" showBack />
+        <PageHeader title="Roadmap Management" />
         <View style={styles.centered}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
@@ -233,11 +233,11 @@ export default function RoadmapAdminScreen() {
     <ThemedBackground style={styles.container}>
       <PageHeader 
         title="Roadmap Management" 
-        showBack
-        rightAction={{
-          icon: 'add-circle-outline',
-          onPress: openAddModal,
-        }}
+        rightAction={
+          <Pressable onPress={openAddModal} style={{ padding: 8 }}>
+            <Ionicons name="add-circle-outline" size={24} color={colors.primary} />
+          </Pressable>
+        }
       />
 
       <View style={[styles.filterBar, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
