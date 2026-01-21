@@ -32,7 +32,7 @@ export const Colors = {
     tabIconDefault: '#888888',
     tabIconSelected: primaryDark,
     border: '#2A2A2A',
-    error: '#FF4D6A',
+    error: '#D22F00',
     success: '#4CAF50',
     headerBackground: '#0A0A0A',
     cardBackground: '#0F0F0F',
