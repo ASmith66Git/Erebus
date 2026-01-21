@@ -93,6 +93,7 @@
     "react-native-worklets": "0.5.1",
     "resend": "^6.6.0",
     "serve": "^14.2.5",
+    "sharp": "^0.34.5",
     "xlsx": "^0.18.5",
     "xml2js": "^0.6.2"
   },
