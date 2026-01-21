@@ -111,7 +111,7 @@ export default function PhotoDetailScreen() {
   }, [id]);
 
   useEffect(() => {
-    if (tripPhotos.length > 0 && scrubListRef.current) {
+    if (tripPhotos.length > 0) {
       const idx = tripPhotos.findIndex(p => p.id === parseInt(id, 10));
       if (idx >= 0) {
         setCurrentPhotoIndex(idx);
@@ -120,6 +120,10 @@ export default function PhotoDetailScreen() {
             index: idx, 
             animated: false,
             viewPosition: 0.5 
+          });
+          mainPhotoListRef.current?.scrollToIndex({
+            index: idx,
+            animated: false,
           });
         }, 100);
       }
