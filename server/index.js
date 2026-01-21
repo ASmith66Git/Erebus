@@ -1728,6 +1728,61 @@ app.delete('/api/admin/dev-log/:id', authenticateToken, requireAdmin, async (req
   }
 });
 
+// Admin Statistics
+app.get('/api/admin/stats', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const [
+      usersResult,
+      diveLogsResult,
+      buddiesResult,
+      gearProfilesResult,
+      diveSitesResult,
+      photosResult,
+      certificationsResult,
+      diveTripsResult,
+      usersByMonthResult
+    ] = await Promise.all([
+      pool.query('SELECT COUNT(*) as count FROM users'),
+      pool.query('SELECT COUNT(*) as count FROM dive_logs'),
+      pool.query('SELECT COUNT(*) as count FROM dive_buddies'),
+      pool.query('SELECT COUNT(*) as count FROM gear_profiles'),
+      pool.query('SELECT COUNT(*) as count FROM dive_sites WHERE is_deleted = false'),
+      pool.query('SELECT COUNT(*) as count FROM photos'),
+      pool.query('SELECT COUNT(*) as count FROM certifications'),
+      pool.query('SELECT COUNT(*) as count FROM dive_trips'),
+      pool.query(`
+        SELECT 
+          TO_CHAR(created_at, 'YYYY-MM') as month,
+          COUNT(*) as count
+        FROM users
+        WHERE created_at >= NOW() - INTERVAL '12 months'
+        GROUP BY TO_CHAR(created_at, 'YYYY-MM')
+        ORDER BY month ASC
+      `)
+    ]);
+
+    res.json({
+      totals: {
+        users: parseInt(usersResult.rows[0].count),
+        diveLogs: parseInt(diveLogsResult.rows[0].count),
+        buddies: parseInt(buddiesResult.rows[0].count),
+        gearProfiles: parseInt(gearProfilesResult.rows[0].count),
+        diveSites: parseInt(diveSitesResult.rows[0].count),
+        photos: parseInt(photosResult.rows[0].count),
+        certifications: parseInt(certificationsResult.rows[0].count),
+        diveTrips: parseInt(diveTripsResult.rows[0].count)
+      },
+      usersByMonth: usersByMonthResult.rows.map(r => ({
+        month: r.month,
+        count: parseInt(r.count)
+      }))
+    });
+  } catch (error) {
+    console.error('Get admin stats error:', error);
+    res.status(500).json({ error: 'Failed to fetch statistics' });
+  }
+});
+
 // Dive Messages - Admin CRUD
 app.get('/api/admin/dive-messages', authenticateToken, requireAdmin, async (req, res) => {
   const { type } = req.query;

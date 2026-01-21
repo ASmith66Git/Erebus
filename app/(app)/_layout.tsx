@@ -47,6 +47,7 @@ function CustomDrawerContent(props: any) {
   ];
 
   const adminItems = [
+    { icon: 'stats-chart-outline', label: 'Stats', action: () => handleNavigation('/(app)/(tabs)/admin-stats') },
     { icon: 'people-outline', label: 'User Management', action: () => handleNavigation('/(app)/(tabs)/admin') },
     { icon: 'mail-outline', label: 'Support Messages', action: () => handleNavigation('/(app)/(tabs)/support-admin') },
     { icon: 'chatbox-ellipses-outline', label: 'Dive Messages', action: () => handleNavigation('/(app)/(tabs)/dive-messages') },
