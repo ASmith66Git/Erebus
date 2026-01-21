@@ -6432,7 +6432,7 @@ app.get('/api/export/dive-data', authenticateToken, async (req, res) => {
       [cylinders, weights, gearEquipment] = await Promise.all([
         pool.query('SELECT * FROM gear_cylinders WHERE gear_profile_id = ANY($1)', [gearProfileIds]),
         pool.query('SELECT * FROM gear_weights WHERE gear_profile_id = ANY($1)', [gearProfileIds]),
-        pool.query('SELECT gpe.*, ei.friendly_name, ei.type as equipment_type FROM gear_profile_equipment gpe LEFT JOIN equipment_inventory ei ON gpe.equipment_id = ei.id WHERE gpe.gear_profile_id = ANY($1)', [gearProfileIds])
+        pool.query('SELECT gpe.*, ei.name as equipment_name, ei.equipment_type FROM gear_profile_equipment gpe LEFT JOIN equipment_inventory ei ON gpe.equipment_id = ei.id WHERE gpe.gear_profile_id = ANY($1)', [gearProfileIds])
       ]);
     }
 
