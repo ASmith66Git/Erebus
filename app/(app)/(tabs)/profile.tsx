@@ -272,16 +272,49 @@ export default function ProfileScreen() {
         XLSX.utils.book_append_sheet(workbook, equipSheet, 'Equipment');
       }
       
-      if (data.diveLogSamples?.length > 0) {
-        const samplesSheet = XLSX.utils.json_to_sheet(data.diveLogSamples.map((s: any) => ({
-          'Dive Log ID': s.dive_log_id,
-          'Time (s)': s.time_seconds,
-          'Depth (m)': s.depth,
-          'Temp (C)': s.temperature,
-          'NDL (min)': s.ndl,
-          'Ceiling (m)': s.ceiling,
-        })));
+      // Extract dive profile samples from dive logs' embedded JSON
+      const allSamples: any[] = [];
+      const allGasMixes: any[] = [];
+      
+      data.diveLogs?.forEach((log: any) => {
+        if (log.samples && Array.isArray(log.samples)) {
+          log.samples.forEach((s: any) => {
+            allSamples.push({
+              'Dive #': log.dive_number,
+              'Dive Log ID': log.id,
+              'Time (s)': s.time ?? s.time_seconds ?? s.t ?? '',
+              'Depth (m)': s.depth ?? s.depth_meters ?? s.d ?? '',
+              'Temp (C)': s.temperature ?? s.temp ?? s.temperature_celsius ?? '',
+              'NDL (min)': s.ndl ?? s.ndl_time ?? '',
+              'Ceiling (m)': s.ceiling ?? s.deco_ceiling ?? '',
+              'TTS (min)': s.tts ?? '',
+              'CNS %': s.cns ?? '',
+            });
+          });
+        }
+        if (log.gas_mixes && Array.isArray(log.gas_mixes)) {
+          log.gas_mixes.forEach((g: any, idx: number) => {
+            allGasMixes.push({
+              'Dive #': log.dive_number,
+              'Dive Log ID': log.id,
+              'Gas #': idx + 1,
+              'O2 %': g.o2 ?? g.o2_percent ?? g.oxygen ?? '',
+              'He %': g.he ?? g.he_percent ?? g.helium ?? '',
+              'N2 %': g.n2 ?? g.n2_percent ?? g.nitrogen ?? '',
+              'Name': g.name ?? '',
+            });
+          });
+        }
+      });
+      
+      if (allSamples.length > 0) {
+        const samplesSheet = XLSX.utils.json_to_sheet(allSamples);
         XLSX.utils.book_append_sheet(workbook, samplesSheet, 'Dive Samples');
+      }
+      
+      if (allGasMixes.length > 0) {
+        const gasSheet = XLSX.utils.json_to_sheet(allGasMixes);
+        XLSX.utils.book_append_sheet(workbook, gasSheet, 'Dive Gas Mixes');
       }
       
       const wbout = XLSX.write(workbook, { type: 'base64', bookType: 'xlsx' });
