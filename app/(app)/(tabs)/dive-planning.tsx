@@ -24,6 +24,50 @@ import { useAuth } from '@/contexts/AuthContext';
 const CHART_HEIGHT = 280;
 const TISSUE_CHART_HEIGHT = 180;
 
+// Slider component with local state to prevent bouncing on web
+const SliderWithLocalState = ({ 
+  label, value, min, max, step, onChange, unit, colors, styles 
+}: { 
+  label: string; value: number; min: number; max: number; step: number; 
+  onChange: (v: number) => void; unit: string; colors: any; styles: any;
+}) => {
+  const [localValue, setLocalValue] = useState(value);
+  const isDragging = useRef(false);
+  
+  useEffect(() => {
+    if (!isDragging.current) {
+      setLocalValue(value);
+    }
+  }, [value]);
+  
+  return (
+    <View style={styles.sliderContainer}>
+      <View style={styles.sliderHeader}>
+        <Text style={[styles.sliderLabel, { color: colors.text }]}>{label}</Text>
+        <Text style={[styles.sliderValue, { color: colors.primary }]}>{localValue}{unit}</Text>
+      </View>
+      <Slider
+        style={styles.touchSlider}
+        minimumValue={min}
+        maximumValue={max}
+        step={step}
+        value={localValue}
+        onValueChange={(v) => {
+          isDragging.current = true;
+          setLocalValue(v);
+        }}
+        onSlidingComplete={(v) => {
+          isDragging.current = false;
+          onChange(v);
+        }}
+        minimumTrackTintColor={colors.primary}
+        maximumTrackTintColor={colors.border}
+        thumbTintColor={colors.primary}
+      />
+    </View>
+  );
+};
+
 // Numeric input component that allows clearing and editing easily
 interface NumericInputProps {
   value: number;
@@ -392,49 +436,6 @@ export default function DivePlanningScreen() {
     </View>
   );
 
-  const SliderWithState = ({ 
-    label, value, min, max, step, onChange, unit, colors 
-  }: { 
-    label: string; value: number; min: number; max: number; step: number; 
-    onChange: (v: number) => void; unit: string; colors: any;
-  }) => {
-    const [localValue, setLocalValue] = useState(value);
-    const isDragging = useRef(false);
-    
-    useEffect(() => {
-      if (!isDragging.current) {
-        setLocalValue(value);
-      }
-    }, [value]);
-    
-    return (
-      <View style={styles.sliderContainer}>
-        <View style={styles.sliderHeader}>
-          <Text style={[styles.sliderLabel, { color: colors.text }]}>{label}</Text>
-          <Text style={[styles.sliderValue, { color: colors.primary }]}>{localValue}{unit}</Text>
-        </View>
-        <Slider
-          style={styles.touchSlider}
-          minimumValue={min}
-          maximumValue={max}
-          step={step}
-          value={localValue}
-          onValueChange={(v) => {
-            isDragging.current = true;
-            setLocalValue(v);
-          }}
-          onSlidingComplete={(v) => {
-            isDragging.current = false;
-            onChange(v);
-          }}
-          minimumTrackTintColor={colors.primary}
-          maximumTrackTintColor={colors.border}
-          thumbTintColor={colors.primary}
-        />
-      </View>
-    );
-  };
-
   const renderSlider = (
     label: string,
     value: number,
@@ -445,7 +446,7 @@ export default function DivePlanningScreen() {
     unit: string = ''
   ) => {
     return (
-      <SliderWithState
+      <SliderWithLocalState
         label={label}
         value={value}
         min={min}
@@ -454,6 +455,7 @@ export default function DivePlanningScreen() {
         onChange={onChange}
         unit={unit}
         colors={colors}
+        styles={styles}
       />
     );
   };
