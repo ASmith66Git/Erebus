@@ -441,6 +441,12 @@ export default function PhotosScreen() {
           </View>
         )}
         
+        {photo.tripId && (
+          <View style={[styles.tripIndicator, { backgroundColor: colors.primary }]}>
+            <Ionicons name="airplane" size={10} color="#FFF" />
+          </View>
+        )}
+        
         {selectionMode && (
           <View style={[styles.selectionOverlay, isSelected && styles.selectedOverlay]}>
             <View style={[styles.checkbox, isSelected && { backgroundColor: colors.primary, borderColor: colors.primary }]}>
@@ -1003,6 +1009,16 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 6,
     left: 6,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  tripIndicator: {
+    position: 'absolute',
+    bottom: 6,
+    right: 6,
     width: 18,
     height: 18,
     borderRadius: 9,

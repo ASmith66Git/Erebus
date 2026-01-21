@@ -3115,10 +3115,11 @@ app.get('/api/photos', authenticateToken, async (req, res) => {
   
   try {
     let query = `
-      SELECT p.*, dl.dive_number, dl.dive_datetime, ds.name as dive_site_name
+      SELECT p.*, dl.dive_number, dl.dive_datetime, ds.name as dive_site_name, dt.name as trip_name
       FROM dive_photos p
       LEFT JOIN dive_logs dl ON p.dive_log_id = dl.id
       LEFT JOIN dive_sites ds ON dl.dive_site_id = ds.id
+      LEFT JOIN dive_trips dt ON p.trip_id = dt.id
       WHERE p.user_id = $1 AND p.deleted_at IS NULL
     `;
     const params = [req.user.id];
@@ -3150,6 +3151,8 @@ app.get('/api/photos', authenticateToken, async (req, res) => {
         diveNumber: row.dive_number,
         diveDate: row.dive_datetime,
         diveSiteName: row.dive_site_name,
+        tripId: row.trip_id,
+        tripName: row.trip_name,
         imageUrl: row.image_url,
         thumbnailUrl: row.thumbnail_url,
         caption: row.caption,
