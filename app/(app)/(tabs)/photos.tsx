@@ -28,6 +28,8 @@ interface Photo {
   diveNumber: number | null;
   diveDate: string | null;
   diveSiteName: string | null;
+  tripId: number | null;
+  tripName: string | null;
   imageUrl: string;
   thumbnailUrl: string | null;
   caption: string | null;
@@ -40,6 +42,13 @@ interface Photo {
   isFavorite: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+interface DiveTrip {
+  id: number;
+  name: string;
+  startDate: string;
+  endDate: string | null;
 }
 
 const NUM_COLUMNS = 3;
@@ -69,7 +78,9 @@ export default function PhotosScreen() {
   const [showLinkModal, setShowLinkModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [diveLogs, setDiveLogs] = useState<{id: number; diveDateTime: string; diveSiteName: string | null}[]>([]);
+  const [diveTrips, setDiveTrips] = useState<DiveTrip[]>([]);
   const [linking, setLinking] = useState(false);
+  const [linkTab, setLinkTab] = useState<'logs' | 'trips'>('logs');
   const viewerScrollRef = useRef<ScrollView>(null);
   const thumbnailScrollRef = useRef<ScrollView>(null);
   const thumbnailScrollPosition = useRef(0);
@@ -154,7 +165,21 @@ export default function PhotosScreen() {
     }
   };
 
-  const linkSelectedPhotos = async (diveLogId: number | null) => {
+  const fetchDiveTrips = async () => {
+    try {
+      const response = await fetch(`${getApiUrl()}/api/dive-trips`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setDiveTrips(data.trips || []);
+      }
+    } catch (error) {
+      console.error('Error fetching dive trips:', error);
+    }
+  };
+
+  const linkSelectedPhotos = async (diveLogId: number | null, tripId: number | null = null) => {
     setLinking(true);
     try {
       const selectedPhotoIds = Array.from(selectedIds);
@@ -165,7 +190,7 @@ export default function PhotosScreen() {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ diveLogId }),
+          body: JSON.stringify({ diveLogId, tripId }),
         });
       }
       setShowLinkModal(false);
@@ -174,7 +199,12 @@ export default function PhotosScreen() {
       fetchPhotos();
     } catch (error) {
       console.error('Error linking photos:', error);
-      Alert.alert('Error', 'Failed to link photos to dive');
+      if (Platform.OS === 'web') {
+        window.alert('Failed to link photos');
+      } else {
+        const { Alert } = require('react-native');
+        Alert.alert('Error', 'Failed to link photos');
+      }
     } finally {
       setLinking(false);
     }
@@ -642,7 +672,7 @@ export default function PhotosScreen() {
             <Text style={[styles.toolbarTitle, { color: colors.text }]}>{selectedIds.size} selected</Text>
             <View style={{ flexDirection: 'row', gap: 16 }}>
               <Pressable 
-                onPress={() => { fetchDiveLogs(); setShowLinkModal(true); }}
+                onPress={() => { fetchDiveLogs(); fetchDiveTrips(); setLinkTab('logs'); setShowLinkModal(true); }}
                 disabled={selectedIds.size === 0}
               >
                 <Ionicons name="link" size={24} color={selectedIds.size > 0 ? colors.primary : colors.textSecondary} />
@@ -738,48 +768,111 @@ export default function PhotosScreen() {
         <View style={styles.modalOverlay}>
           <View style={[styles.linkModal, { backgroundColor: colors.surface }]}>
             <View style={styles.linkModalHeader}>
-              <Text style={[styles.linkModalTitle, { color: colors.text }]}>Link to Dive</Text>
+              <Text style={[styles.linkModalTitle, { color: colors.text }]}>Link Photos</Text>
               <Pressable onPress={() => setShowLinkModal(false)}>
                 <Ionicons name="close" size={24} color={colors.textSecondary} />
               </Pressable>
             </View>
             <Text style={[styles.linkModalSubtitle, { color: colors.textSecondary }]}>
-              Link {selectedIds.size} photo{selectedIds.size !== 1 ? 's' : ''} to a dive log
+              Link {selectedIds.size} photo{selectedIds.size !== 1 ? 's' : ''} to a dive log or trip
             </Text>
             
-            <ScrollView style={styles.diveLogsList}>
+            <View style={[styles.linkTabsContainer, { borderBottomColor: colors.border }]}>
               <Pressable
-                style={[styles.diveLogItem, { borderBottomColor: colors.border }]}
-                onPress={() => linkSelectedPhotos(null)}
+                style={[
+                  styles.linkTab,
+                  linkTab === 'logs' && { borderBottomColor: colors.primary, borderBottomWidth: 2 }
+                ]}
+                onPress={() => setLinkTab('logs')}
               >
-                <View style={styles.diveLogItemContent}>
-                  <Ionicons name="close-circle-outline" size={24} color={colors.textSecondary} />
-                  <Text style={[styles.diveLogItemText, { color: colors.textSecondary }]}>Unlink from dive</Text>
-                </View>
+                <Text style={[styles.linkTabText, { color: linkTab === 'logs' ? colors.primary : colors.textSecondary }]}>
+                  Dive Logs
+                </Text>
               </Pressable>
-              
-              {diveLogs.map((log) => (
-                <Pressable
-                  key={log.id}
-                  style={[styles.diveLogItem, { borderBottomColor: colors.border }]}
-                  onPress={() => linkSelectedPhotos(log.id)}
-                >
-                  <View style={styles.diveLogItemContent}>
-                    <Ionicons name="water" size={24} color={colors.primary} />
-                    <View>
-                      <Text style={[styles.diveLogItemText, { color: colors.text }]}>
-                        {new Date(log.diveDateTime).toLocaleDateString()}
-                      </Text>
-                      {log.diveSiteName && (
-                        <Text style={[styles.diveLogItemSubtext, { color: colors.textSecondary }]}>
-                          {log.diveSiteName}
-                        </Text>
-                      )}
+              <Pressable
+                style={[
+                  styles.linkTab,
+                  linkTab === 'trips' && { borderBottomColor: colors.primary, borderBottomWidth: 2 }
+                ]}
+                onPress={() => setLinkTab('trips')}
+              >
+                <Text style={[styles.linkTabText, { color: linkTab === 'trips' ? colors.primary : colors.textSecondary }]}>
+                  Dive Trips
+                </Text>
+              </Pressable>
+            </View>
+            
+            <ScrollView style={styles.diveLogsList}>
+              {linkTab === 'logs' ? (
+                <>
+                  <Pressable
+                    style={[styles.diveLogItem, { borderBottomColor: colors.border }]}
+                    onPress={() => linkSelectedPhotos(null, null)}
+                  >
+                    <View style={styles.diveLogItemContent}>
+                      <Ionicons name="close-circle-outline" size={24} color={colors.textSecondary} />
+                      <Text style={[styles.diveLogItemText, { color: colors.textSecondary }]}>Unlink from dive log</Text>
                     </View>
-                  </View>
-                  <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
-                </Pressable>
-              ))}
+                  </Pressable>
+                  
+                  {diveLogs.map((log) => (
+                    <Pressable
+                      key={log.id}
+                      style={[styles.diveLogItem, { borderBottomColor: colors.border }]}
+                      onPress={() => linkSelectedPhotos(log.id, null)}
+                    >
+                      <View style={styles.diveLogItemContent}>
+                        <Ionicons name="water" size={24} color={colors.primary} />
+                        <View>
+                          <Text style={[styles.diveLogItemText, { color: colors.text }]}>
+                            {new Date(log.diveDateTime).toLocaleDateString()}
+                          </Text>
+                          {log.diveSiteName && (
+                            <Text style={[styles.diveLogItemSubtext, { color: colors.textSecondary }]}>
+                              {log.diveSiteName}
+                            </Text>
+                          )}
+                        </View>
+                      </View>
+                      <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+                    </Pressable>
+                  ))}
+                </>
+              ) : (
+                <>
+                  <Pressable
+                    style={[styles.diveLogItem, { borderBottomColor: colors.border }]}
+                    onPress={() => linkSelectedPhotos(null, null)}
+                  >
+                    <View style={styles.diveLogItemContent}>
+                      <Ionicons name="close-circle-outline" size={24} color={colors.textSecondary} />
+                      <Text style={[styles.diveLogItemText, { color: colors.textSecondary }]}>Unlink from dive trip</Text>
+                    </View>
+                  </Pressable>
+                  
+                  {diveTrips.map((trip) => (
+                    <Pressable
+                      key={trip.id}
+                      style={[styles.diveLogItem, { borderBottomColor: colors.border }]}
+                      onPress={() => linkSelectedPhotos(null, trip.id)}
+                    >
+                      <View style={styles.diveLogItemContent}>
+                        <Ionicons name="airplane" size={24} color={colors.primary} />
+                        <View>
+                          <Text style={[styles.diveLogItemText, { color: colors.text }]}>
+                            {trip.name}
+                          </Text>
+                          <Text style={[styles.diveLogItemSubtext, { color: colors.textSecondary }]}>
+                            {new Date(trip.startDate).toLocaleDateString()}
+                            {trip.endDate && ` - ${new Date(trip.endDate).toLocaleDateString()}`}
+                          </Text>
+                        </View>
+                      </View>
+                      <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+                    </Pressable>
+                  ))}
+                </>
+              )}
             </ScrollView>
             
             {linking && (
@@ -1116,6 +1209,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
     paddingHorizontal: 16,
     paddingVertical: 12,
+  },
+  linkTabsContainer: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    marginHorizontal: 16,
+    marginBottom: 8,
+  },
+  linkTab: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  linkTabText: {
+    fontSize: 15,
+    fontWeight: '600',
   },
   diveLogsList: {
     maxHeight: 400,
