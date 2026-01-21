@@ -1383,6 +1383,9 @@ export default function DiveLogDetailScreen() {
   const [showPhotoViewer, setShowPhotoViewer] = useState(false);
   const [photoViewerIndex, setPhotoViewerIndex] = useState(0);
   const photoViewerScrollRef = useRef<ScrollView>(null);
+  const tabScrollRef = useRef<ScrollView>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
 
   const fetchDiveLog = useCallback(async () => {
     if (!id || !token) return;
@@ -1734,9 +1737,19 @@ export default function DiveLogDetailScreen() {
 
       <View style={[styles.tabBar, { borderBottomColor: colors.border }]}>
         <ScrollView 
+          ref={tabScrollRef}
           horizontal 
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.tabScrollContent}
+          onScroll={(e) => {
+            if (!e?.nativeEvent) return;
+            const scrollX = e.nativeEvent.contentOffset?.x ?? (e.nativeEvent.target as any)?.scrollLeft ?? 0;
+            const contentWidth = e.nativeEvent.contentSize?.width ?? (e.nativeEvent.target as any)?.scrollWidth ?? 0;
+            const viewWidth = e.nativeEvent.layoutMeasurement?.width ?? (e.nativeEvent.target as any)?.clientWidth ?? 0;
+            setCanScrollLeft(scrollX > 5);
+            setCanScrollRight(scrollX < contentWidth - viewWidth - 5);
+          }}
+          scrollEventThrottle={16}
         >
           {TABS.map((tab) => (
             <Pressable
@@ -1758,6 +1771,16 @@ export default function DiveLogDetailScreen() {
             </Pressable>
           ))}
         </ScrollView>
+        {canScrollLeft && (
+          <View style={[styles.scrollIndicator, styles.scrollIndicatorLeft, { backgroundColor: colors.surface }]} pointerEvents="none">
+            <Feather name="chevron-left" size={16} color={colors.textSecondary} />
+          </View>
+        )}
+        {canScrollRight && (
+          <View style={[styles.scrollIndicator, styles.scrollIndicatorRight, { backgroundColor: colors.surface }]} pointerEvents="none">
+            <Feather name="chevron-right" size={16} color={colors.textSecondary} />
+          </View>
+        )}
       </View>
 
       {renderTabContent()}
@@ -1849,6 +1872,25 @@ const styles = StyleSheet.create({
   tabText: {
     fontSize: 14,
     fontWeight: '500',
+  },
+  scrollIndicator: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    width: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  scrollIndicatorLeft: {
+    left: 0,
+    borderTopRightRadius: 8,
+    borderBottomRightRadius: 8,
+  },
+  scrollIndicatorRight: {
+    right: 0,
+    borderTopLeftRadius: 8,
+    borderBottomLeftRadius: 8,
   },
   tabContent: {
     flex: 1,
