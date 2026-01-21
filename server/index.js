@@ -6278,6 +6278,95 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Roadmap Features API (Admin)
+app.get('/api/admin/roadmap', authenticateToken, async (req, res) => {
+  try {
+    if (!req.user.isAdmin) {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+    const result = await pool.query(
+      'SELECT * FROM roadmap_features ORDER BY priority DESC, created_at DESC'
+    );
+    res.json({ features: result.rows });
+  } catch (error) {
+    console.error('Get roadmap features error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.post('/api/admin/roadmap', authenticateToken, async (req, res) => {
+  try {
+    if (!req.user.isAdmin) {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+    const { title, description, status, priority, predicted_go_live, is_published } = req.body;
+    const result = await pool.query(
+      `INSERT INTO roadmap_features (title, description, status, priority, predicted_go_live, is_published)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING *`,
+      [title, description, status || 'planned', priority || 0, predicted_go_live, is_published || false]
+    );
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Create roadmap feature error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.put('/api/admin/roadmap/:id', authenticateToken, async (req, res) => {
+  try {
+    if (!req.user.isAdmin) {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+    const { id } = req.params;
+    const { title, description, status, priority, predicted_go_live, is_published } = req.body;
+    const result = await pool.query(
+      `UPDATE roadmap_features 
+       SET title = $1, description = $2, status = $3, priority = $4, predicted_go_live = $5, is_published = $6, updated_at = CURRENT_TIMESTAMP
+       WHERE id = $7
+       RETURNING *`,
+      [title, description, status, priority, predicted_go_live, is_published, id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Feature not found' });
+    }
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Update roadmap feature error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.delete('/api/admin/roadmap/:id', authenticateToken, async (req, res) => {
+  try {
+    if (!req.user.isAdmin) {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+    const { id } = req.params;
+    await pool.query('DELETE FROM roadmap_features WHERE id = $1', [id]);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Delete roadmap feature error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Public Roadmap API (for users - only published items)
+app.get('/api/roadmap', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT id, title, description, status, predicted_go_live 
+       FROM roadmap_features 
+       WHERE is_published = true 
+       ORDER BY priority DESC, predicted_go_live ASC NULLS LAST`
+    );
+    res.json({ features: result.rows });
+  } catch (error) {
+    console.error('Get public roadmap error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 if (process.env.NODE_ENV === 'production' || process.env.PORT) {
   app.use(express.static(distPath));
   
