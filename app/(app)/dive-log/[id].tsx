@@ -1285,30 +1285,35 @@ function TeamTab({ diveLog, colors, token, onRefresh }: { diveLog: DiveLog; colo
           </View>
         ) : (
           <View style={styles.buddyList}>
-            {linkedBuddies.map(buddy => (
-              <View key={buddy.id} style={[styles.buddyCard, { backgroundColor: colors.background, borderColor: colors.border }]}>
-                <View style={[styles.buddyAvatar, { backgroundColor: colors.primary + '20' }]}>
-                  {buddy.photo_url ? (
-                    <View style={styles.buddyPhotoContainer}>
-                      <View style={[styles.buddyPhoto, { backgroundColor: colors.primary + '20' }]}>
-                        <Feather name="user" size={20} color={colors.primary} />
-                      </View>
-                    </View>
-                  ) : (
-                    <Feather name="user" size={20} color={colors.primary} />
-                  )}
+            {linkedBuddies.map(buddy => {
+              const photoUrl = buddy.photo_url 
+                ? (buddy.photo_url.startsWith('/') ? `${getApiUrl()}${buddy.photo_url}` : buddy.photo_url)
+                : null;
+              return (
+                <View key={buddy.id} style={[styles.buddyCard, { backgroundColor: colors.background, borderColor: colors.border }]}>
+                  <View style={[styles.buddyAvatar, { backgroundColor: colors.primary + '20', overflow: 'hidden' }]}>
+                    {photoUrl ? (
+                      <Image 
+                        source={{ uri: photoUrl }} 
+                        style={{ width: 40, height: 40, borderRadius: 20 }} 
+                        resizeMode="cover"
+                      />
+                    ) : (
+                      <Feather name="user" size={20} color={colors.primary} />
+                    )}
+                  </View>
+                  <View style={styles.buddyInfo}>
+                    <Text style={[styles.buddyName, { color: colors.text }]}>{buddy.name}</Text>
+                    {buddy.linked_user_id && (
+                      <Text style={[styles.buddyConnected, { color: colors.primary }]}>Erebus User</Text>
+                    )}
+                  </View>
+                  <Pressable onPress={() => removeBuddy(buddy.id)} hitSlop={10}>
+                    <Feather name="x-circle" size={20} color={colors.error} />
+                  </Pressable>
                 </View>
-                <View style={styles.buddyInfo}>
-                  <Text style={[styles.buddyName, { color: colors.text }]}>{buddy.name}</Text>
-                  {buddy.linked_user_id && (
-                    <Text style={[styles.buddyConnected, { color: colors.primary }]}>Erebus User</Text>
-                  )}
-                </View>
-                <Pressable onPress={() => removeBuddy(buddy.id)} hitSlop={10}>
-                  <Feather name="x-circle" size={20} color={colors.error} />
-                </Pressable>
-              </View>
-            ))}
+              );
+            })}
           </View>
         )}
       </View>
@@ -1345,19 +1350,32 @@ function TeamTab({ diveLog, colors, token, onRefresh }: { diveLog: DiveLog; colo
                   </Text>
                 </View>
               ) : (
-                availableBuddies.map(buddy => (
-                  <Pressable
-                    key={buddy.id}
-                    style={[styles.buddySelectItem, { borderBottomColor: colors.border }]}
-                    onPress={() => addBuddy(buddy.id)}
-                  >
-                    <View style={[styles.buddyAvatar, { backgroundColor: colors.primary + '20' }]}>
-                      <Feather name="user" size={18} color={colors.primary} />
-                    </View>
-                    <Text style={[styles.buddySelectName, { color: colors.text }]}>{buddy.name}</Text>
-                    <Feather name="plus-circle" size={22} color={colors.primary} />
-                  </Pressable>
-                ))
+                availableBuddies.map(buddy => {
+                  const photoUrl = buddy.photo_url 
+                    ? (buddy.photo_url.startsWith('/') ? `${getApiUrl()}${buddy.photo_url}` : buddy.photo_url)
+                    : null;
+                  return (
+                    <Pressable
+                      key={buddy.id}
+                      style={[styles.buddySelectItem, { borderBottomColor: colors.border }]}
+                      onPress={() => addBuddy(buddy.id)}
+                    >
+                      <View style={[styles.buddyAvatar, { backgroundColor: colors.primary + '20', overflow: 'hidden' }]}>
+                        {photoUrl ? (
+                          <Image 
+                            source={{ uri: photoUrl }} 
+                            style={{ width: 36, height: 36, borderRadius: 18 }} 
+                            resizeMode="cover"
+                          />
+                        ) : (
+                          <Feather name="user" size={18} color={colors.primary} />
+                        )}
+                      </View>
+                      <Text style={[styles.buddySelectName, { color: colors.text }]}>{buddy.name}</Text>
+                      <Feather name="plus-circle" size={22} color={colors.primary} />
+                    </Pressable>
+                  );
+                })
               )}
             </ScrollView>
           </View>
