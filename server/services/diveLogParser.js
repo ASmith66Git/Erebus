@@ -205,7 +205,7 @@ class DiveLogParser {
       if (s.$.gfline) sample.gf99_pct = parseFloat(s.$.gfline);
       if (s.$.po2) sample.ppo2_bar = parseFloat(s.$.po2);
       if (s.$.pressure) sample.tank_pressure_bar = this.parsePressure(s.$.pressure);
-      if (s.$.cns) sample.cns_pct = parseFloat(s.$.cns);
+      if (s.$.cns) sample.cns_pct = parseFloat(s.$.cns) * 100;
       
       return sample;
     }).filter(s => s.time_seconds !== null && s.depth_meters !== null);

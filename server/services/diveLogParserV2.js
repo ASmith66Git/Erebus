@@ -399,7 +399,7 @@ class SubsurfaceAdapter extends BaseAdapter {
       if (s.$.tts) metrics.tts_min = this.parseDuration(s.$.tts) / 60;
       if (s.$.stopdepth) metrics.stop_depth_m = this.parseDepth(s.$.stopdepth);
       if (s.$.stoptime) metrics.stop_time_min = this.parseDuration(s.$.stoptime) / 60;
-      if (s.$.cns) metrics.cns_pct = parseFloat(s.$.cns);
+      if (s.$.cns) metrics.cns_pct = parseFloat(s.$.cns) * 100;
       if (s.$.po2) metrics.ppo2_bar = parseFloat(s.$.po2);
       if (s.$.setpoint) metrics.setpoint_bar = parseFloat(s.$.setpoint);
       if (s.$.heartbeat) metrics.heart_rate_bpm = parseInt(s.$.heartbeat);
