@@ -25,7 +25,7 @@ export default function PageHeader({ title, rightAction }: PageHeaderProps) {
       </Pressable>
       <View style={styles.headerCenter}>
         <View style={styles.logoWrapper}>
-          <Logo size={36} primaryColor={colors.primary} />
+          <Logo size={28} primaryColor={colors.primary} />
         </View>
         <Text style={[styles.headerTitle, { color: colors.text }]}>{title}</Text>
       </View>
@@ -45,8 +45,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingTop: 50,
-    paddingBottom: 12,
+    paddingTop: 44,
+    paddingBottom: 8,
     borderBottomWidth: 1,
   },
   menuButton: {
@@ -60,10 +60,10 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   logoWrapper: {
-    marginBottom: 4,
+    marginBottom: 2,
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
   },
   rightActions: {
