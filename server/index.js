@@ -6415,10 +6415,10 @@ app.get('/api/export/dive-data', authenticateToken, async (req, res) => {
     
     if (diveLogIds.length > 0) {
       [samples, gases, events, tankPressures] = await Promise.all([
-        pool.query('SELECT * FROM dive_log_samples WHERE dive_log_id = ANY($1) ORDER BY dive_log_id, time_seconds', [diveLogIds]),
-        pool.query('SELECT * FROM dive_log_gases WHERE dive_log_id = ANY($1) ORDER BY dive_log_id, switch_time_seconds', [diveLogIds]),
-        pool.query('SELECT * FROM dive_log_events WHERE dive_log_id = ANY($1) ORDER BY dive_log_id, time_seconds', [diveLogIds]),
-        pool.query('SELECT * FROM dive_log_tank_pressures WHERE dive_log_id = ANY($1) ORDER BY dive_log_id, time_seconds', [diveLogIds])
+        pool.query('SELECT * FROM dive_log_samples WHERE dive_log_id = ANY($1) ORDER BY dive_log_id, sample_time_seconds', [diveLogIds]),
+        pool.query('SELECT * FROM dive_log_gases WHERE dive_log_id = ANY($1) ORDER BY dive_log_id, gas_slot', [diveLogIds]),
+        pool.query('SELECT * FROM dive_log_events WHERE dive_log_id = ANY($1) ORDER BY dive_log_id, event_time_seconds', [diveLogIds]),
+        pool.query('SELECT * FROM dive_log_tank_pressures WHERE dive_log_id = ANY($1) ORDER BY dive_log_id, sample_time_seconds', [diveLogIds])
       ]);
     }
 
