@@ -1,7 +1,8 @@
 import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView, Pressable } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { DrawerActions, useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/contexts/ThemeContext';
 import Logo from './Logo';
 
@@ -13,13 +14,23 @@ interface PageHeaderProps {
 export default function PageHeader({ title, rightAction }: PageHeaderProps) {
   const { colors, isDark, toggleTheme } = useTheme();
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
 
   const openDrawer = () => {
     navigation.dispatch(DrawerActions.openDrawer());
   };
 
   return (
-    <SafeAreaView style={[styles.header, { backgroundColor: colors.headerBackground, borderBottomColor: colors.border }]}>
+    <View 
+      style={[
+        styles.header, 
+        { 
+          backgroundColor: colors.headerBackground, 
+          borderBottomColor: colors.border,
+          paddingTop: Math.max(insets.top, 8) + 8,
+        }
+      ]}
+    >
       <Pressable onPress={openDrawer} style={styles.menuButton}>
         <Ionicons name="menu-outline" size={24} color={colors.text} />
       </Pressable>
@@ -35,7 +46,7 @@ export default function PageHeader({ title, rightAction }: PageHeaderProps) {
           <Ionicons name={isDark ? 'sunny-outline' : 'moon-outline'} size={22} color={colors.text} />
         </Pressable>
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -45,7 +56,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingTop: 8,
     paddingBottom: 6,
     borderBottomWidth: 1,
   },
