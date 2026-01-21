@@ -1051,6 +1051,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 8,
+    flexWrap: 'nowrap',
   },
   sliderValueWrapper: {
     flexDirection: 'row',
@@ -1156,6 +1157,7 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 14,
     marginBottom: 6,
+    flexShrink: 0,
   },
   inputWrapper: {
     flexDirection: 'row',
