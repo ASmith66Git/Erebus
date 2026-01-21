@@ -969,15 +969,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   tab: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
   },
   tabFlex: {
     flex: 1,
     alignItems: 'center',
   },
   tabText: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '500',
   },
   tabContent: {
