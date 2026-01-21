@@ -705,8 +705,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 8,
-    paddingTop: Platform.OS === 'ios' ? 50 : 20,
-    paddingBottom: 12,
+    paddingTop: Platform.OS === 'ios' ? 44 : 12,
+    paddingBottom: 8,
     borderBottomWidth: 1,
   },
   headerButton: {
