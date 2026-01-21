@@ -366,6 +366,7 @@ export default function PhotoDetailScreen() {
         pagingEnabled
         showsHorizontalScrollIndicator={false}
         initialScrollIndex={currentPhotoIndex}
+        style={styles.swipeablePhotosList}
         getItemLayout={(data, index) => ({
           length: SCREEN_WIDTH,
           offset: SCREEN_WIDTH * index,
@@ -732,6 +733,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   viewModeContainer: {
+    flex: 1,
+  },
+  swipeablePhotosList: {
     flex: 1,
   },
   fullImageContainer: {
