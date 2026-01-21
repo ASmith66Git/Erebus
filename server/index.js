@@ -1413,7 +1413,7 @@ app.get('/api/auth/me', authenticateToken, async (req, res) => {
 app.get('/api/admin/users', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT id, email, first_name, last_name, role, is_blocked, created_at FROM users ORDER BY created_at DESC'
+      'SELECT id, email, first_name, last_name, role, is_blocked, is_archived, created_at FROM users ORDER BY created_at DESC'
     );
     
     res.json(result.rows.map(user => ({
@@ -1423,6 +1423,7 @@ app.get('/api/admin/users', authenticateToken, requireAdmin, async (req, res) =>
       lastName: user.last_name,
       role: user.role,
       isBlocked: user.is_blocked || false,
+      isArchived: user.is_archived || false,
       createdAt: user.created_at
     })));
   } catch (error) {
@@ -1579,6 +1580,99 @@ app.delete('/api/admin/users/:id', authenticateToken, requireAdmin, async (req, 
     res.json({ message: 'User deleted successfully' });
   } catch (error) {
     console.error('Delete user error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Get user stats for admin detail view
+app.get('/api/admin/users/:id/stats', authenticateToken, requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  
+  try {
+    // Get user info
+    const userResult = await pool.query(
+      'SELECT id, email, first_name, last_name, role, is_blocked, is_archived, created_at, last_login_at FROM users WHERE id = $1',
+      [id]
+    );
+    
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    const user = userResult.rows[0];
+    
+    // Get counts for all user data
+    const [diveLogs, diveSites, diveTrips, gearProfiles, equipment, photos, certifications, buddies] = await Promise.all([
+      pool.query('SELECT COUNT(*) FROM dive_logs WHERE user_id = $1', [id]),
+      pool.query('SELECT COUNT(*) FROM dive_sites WHERE user_id = $1 AND is_archived = FALSE', [id]),
+      pool.query('SELECT COUNT(*) FROM dive_trips WHERE user_id = $1', [id]),
+      pool.query('SELECT COUNT(*) FROM gear_profiles WHERE user_id = $1', [id]),
+      pool.query('SELECT COUNT(*) FROM equipment_inventory WHERE user_id = $1', [id]),
+      pool.query('SELECT COUNT(*) FROM dive_photos WHERE user_id = $1', [id]),
+      pool.query('SELECT COUNT(*) FROM user_certifications WHERE user_id = $1', [id]),
+      pool.query('SELECT COUNT(*) FROM dive_buddies WHERE user_id = $1', [id])
+    ]);
+    
+    res.json({
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.first_name,
+        lastName: user.last_name,
+        role: user.role,
+        isBlocked: user.is_blocked || false,
+        isArchived: user.is_archived || false,
+        createdAt: user.created_at,
+        lastLoginAt: user.last_login_at
+      },
+      stats: {
+        diveLogs: parseInt(diveLogs.rows[0].count),
+        diveSites: parseInt(diveSites.rows[0].count),
+        diveTrips: parseInt(diveTrips.rows[0].count),
+        gearProfiles: parseInt(gearProfiles.rows[0].count),
+        equipment: parseInt(equipment.rows[0].count),
+        photos: parseInt(photos.rows[0].count),
+        certifications: parseInt(certifications.rows[0].count),
+        buddies: parseInt(buddies.rows[0].count)
+      }
+    });
+  } catch (error) {
+    console.error('Get user stats error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Archive/unarchive user
+app.put('/api/admin/users/:id/archive', authenticateToken, requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  const { archived } = req.body;
+  
+  if (parseInt(id) === req.user.id) {
+    return res.status(400).json({ error: 'Cannot archive your own account' });
+  }
+  
+  try {
+    const result = await pool.query(
+      'UPDATE users SET is_archived = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING id, email, first_name, last_name, role, is_blocked, is_archived',
+      [archived, id]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    const user = result.rows[0];
+    res.json({
+      id: user.id,
+      email: user.email,
+      firstName: user.first_name,
+      lastName: user.last_name,
+      role: user.role,
+      isBlocked: user.is_blocked,
+      isArchived: user.is_archived
+    });
+  } catch (error) {
+    console.error('Archive user error:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });
