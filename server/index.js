@@ -6413,12 +6413,17 @@ app.get('/api/export/dive-data', authenticateToken, async (req, res) => {
     let events = { rows: [] };
     let tankPressures = { rows: [] };
     
+    let diveLogBuddies = { rows: [] };
+    let diveTripLogs = { rows: [] };
+    
     if (diveLogIds.length > 0) {
-      [samples, gases, events, tankPressures] = await Promise.all([
+      [samples, gases, events, tankPressures, diveLogBuddies, diveTripLogs] = await Promise.all([
         pool.query('SELECT * FROM dive_log_samples WHERE dive_log_id = ANY($1) ORDER BY dive_log_id, sample_time_seconds', [diveLogIds]),
         pool.query('SELECT * FROM dive_log_gases WHERE dive_log_id = ANY($1) ORDER BY dive_log_id, gas_slot', [diveLogIds]),
         pool.query('SELECT * FROM dive_log_events WHERE dive_log_id = ANY($1) ORDER BY dive_log_id, event_time_seconds', [diveLogIds]),
-        pool.query('SELECT * FROM dive_log_tank_pressures WHERE dive_log_id = ANY($1) ORDER BY dive_log_id, sample_time_seconds', [diveLogIds])
+        pool.query('SELECT * FROM dive_log_tank_pressures WHERE dive_log_id = ANY($1) ORDER BY dive_log_id, sample_time_seconds', [diveLogIds]),
+        pool.query('SELECT dlb.*, db.name as buddy_name FROM dive_log_buddies dlb LEFT JOIN dive_buddies db ON dlb.buddy_id = db.id WHERE dlb.dive_log_id = ANY($1)', [diveLogIds]),
+        pool.query('SELECT * FROM dive_trip_logs WHERE dive_log_id = ANY($1)', [diveLogIds])
       ]);
     }
 
@@ -6436,6 +6441,19 @@ app.get('/api/export/dive-data', authenticateToken, async (req, res) => {
       ]);
     }
 
+    // Fetch dive plans
+    const divePlans = await pool.query('SELECT * FROM dive_plans WHERE user_id = $1 ORDER BY created_at DESC', [userId]);
+    const divePlanIds = divePlans.rows.map(p => p.id);
+    let divePlanDives = { rows: [] };
+    let divePlanGases = { rows: [] };
+    
+    if (divePlanIds.length > 0) {
+      [divePlanDives, divePlanGases] = await Promise.all([
+        pool.query('SELECT * FROM dive_plan_dives WHERE dive_plan_id = ANY($1) ORDER BY dive_plan_id, dive_number', [divePlanIds]),
+        pool.query('SELECT * FROM dive_plan_gases WHERE dive_plan_id = ANY($1) ORDER BY dive_plan_id, gas_number', [divePlanIds])
+      ]);
+    }
+
     res.json({
       exportDate: new Date().toISOString(),
       diveLogs: diveLogs.rows,
@@ -6443,8 +6461,13 @@ app.get('/api/export/dive-data', authenticateToken, async (req, res) => {
       diveLogGases: gases.rows,
       diveLogEvents: events.rows,
       diveLogTankPressures: tankPressures.rows,
+      diveLogBuddies: diveLogBuddies.rows,
+      diveTripLogs: diveTripLogs.rows,
       diveSites: diveSites.rows,
       diveTrips: diveTrips.rows,
+      divePlans: divePlans.rows,
+      divePlanDives: divePlanDives.rows,
+      divePlanGases: divePlanGases.rows,
       gearProfiles: gearProfiles.rows,
       gearCylinders: cylinders.rows,
       gearWeights: weights.rows,
