@@ -1426,7 +1426,7 @@ export default function GearProfileScreen() {
             style={styles.backButton}
             onPress={() => setIsEditing(true)}
           >
-            <Feather name="edit-2" size={20} color={colors.text} />
+            <Feather name="edit-2" size={20} color={colors.primary} />
           </Pressable>
         )}
       </View>

@@ -1728,7 +1728,7 @@ export default function DiveLogDetailScreen() {
         <Text style={[styles.headerTitle, { color: colors.text }]}>Dive Details</Text>
         <View style={styles.headerActions}>
           <Pressable style={styles.headerButton} onPress={() => router.push(`/dive-log/${id}/edit`)}>
-            <Feather name="edit-2" size={18} color={colors.text} />
+            <Feather name="edit-2" size={18} color={colors.primary} />
           </Pressable>
           <Pressable style={styles.headerButton} onPress={handleDelete}>
             <Feather name="trash-2" size={18} color={colors.error || '#D22F00'} />
