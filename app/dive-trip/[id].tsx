@@ -24,8 +24,7 @@ import EmbeddedMapPicker from '@/components/EmbeddedMapPicker';
 import StaticMapView from '@/components/StaticMapView';
 import * as ImagePicker from 'expo-image-picker';
 
-const DatePickerField = Platform.OS === 'android' ? null : require('@/components/DatePickerField').default;
-const DEBUG_DISABLE_DATEPICKER = Platform.OS === 'android';
+import DatePickerField from '@/components/DatePickerField';
 
 type TabType = 'details' | 'dives' | 'photos';
 
@@ -570,40 +569,22 @@ export default function DiveTripScreen() {
 
           <View style={styles.formRow}>
             <View style={[styles.formGroup, { flex: 1 }]}>
-              <Text style={[styles.formLabel, { color: colors.text }]}>Start Date</Text>
-              {!DEBUG_DISABLE_DATEPICKER && DatePickerField ? (
-                <DatePickerField
-                  value={formData.startDate}
-                  onChange={(date: string) => setFormData({ ...formData, startDate: date })}
-                  placeholder="Select date"
-                />
-              ) : (
-                <TextInput
-                  style={[styles.formInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
-                  value={formData.startDate}
-                  onChangeText={(v) => setFormData({ ...formData, startDate: v })}
-                  placeholder="YYYY-MM-DD"
-                  placeholderTextColor={colors.textSecondary}
-                />
-              )}
+              <DatePickerField
+                label="Start Date"
+                value={formData.startDate}
+                onChange={(date: string) => setFormData({ ...formData, startDate: date })}
+                placeholder="Select date"
+              />
             </View>
             <View style={[styles.formGroup, { flex: 1 }]}>
-              <Text style={[styles.formLabel, { color: colors.text }]}>End Date</Text>
-              {!DEBUG_DISABLE_DATEPICKER && DatePickerField ? (
-                <DatePickerField
-                  value={formData.endDate}
-                  onChange={(date: string) => setFormData({ ...formData, endDate: date })}
-                  placeholder="Select date"
-                />
-              ) : (
-                <TextInput
-                  style={[styles.formInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
-                  value={formData.endDate}
-                  onChangeText={(v) => setFormData({ ...formData, endDate: v })}
-                  placeholder="YYYY-MM-DD"
-                  placeholderTextColor={colors.textSecondary}
-                />
-              )}
+              <DatePickerField
+                label="End Date"
+                value={formData.endDate}
+                onChange={(date: string) => setFormData({ ...formData, endDate: date })}
+                placeholder="Select date"
+                initialDisplayDate={formData.startDate}
+                minDate={formData.startDate ? new Date(formData.startDate) : undefined}
+              />
             </View>
           </View>
 
