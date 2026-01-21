@@ -42,7 +42,6 @@ function CustomDrawerContent(props: any) {
     { icon: 'images-outline', label: 'Photos', action: () => handleNavigation('/(app)/(tabs)/photos') },
     { icon: 'ribbon-outline', label: 'Certifications', action: () => handleNavigation('/(app)/(tabs)/certifications') },
     { icon: 'airplane-outline', label: 'Dive Trips', action: () => handleNavigation('/(app)/(tabs)/dive-trips') },
-    { icon: 'diamond-outline', label: 'Subscription', action: () => handleNavigation('/(app)/(tabs)/subscription') },
     { icon: 'person-outline', label: 'Profile', action: () => handleNavigation('/(app)/(tabs)/profile') },
     { icon: 'settings-outline', label: 'Settings', action: () => handleNavigation('/(app)/(tabs)/settings') },
   ];
