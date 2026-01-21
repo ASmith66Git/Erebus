@@ -281,6 +281,8 @@ export default function DivePlanningScreen() {
   const [chartScrubberTime, setChartScrubberTime] = useState<number>(0);
   const [isPdfLoading, setIsPdfLoading] = useState(false);
   const lastScrubberUpdate = useRef<number>(0);
+  const pendingScrubberTime = useRef<number | null>(null);
+  const rafId = useRef<number | null>(null);
 
   const gasMixes = useMemo(() => {
     return gases.map(g => {
@@ -603,14 +605,27 @@ export default function DivePlanningScreen() {
     };
   }, [currentResult, appliedSettings]);
 
-  const handleChartTouch = useCallback((event: any, chartW: number, padding: { left: number }, totalTime: number) => {
-    const now = Date.now();
-    if (now - lastScrubberUpdate.current < 32) return;
-    lastScrubberUpdate.current = now;
+  const handleChartTouch = useCallback((event: any, chartW: number, padding: { left: number }, totalTime: number, isEnd: boolean = false) => {
     const locationX = event.nativeEvent.locationX - padding.left;
     const rawTime = Math.max(0, Math.min((locationX / chartW) * totalTime, totalTime));
     const time = Math.round(rawTime * 2) / 2;
-    setChartScrubberTime(time);
+    
+    if (isEnd || Platform.OS === 'web') {
+      setChartScrubberTime(time);
+      return;
+    }
+    
+    pendingScrubberTime.current = time;
+    
+    if (rafId.current === null) {
+      rafId.current = requestAnimationFrame(() => {
+        if (pendingScrubberTime.current !== null) {
+          setChartScrubberTime(pendingScrubberTime.current);
+          pendingScrubberTime.current = null;
+        }
+        rafId.current = null;
+      });
+    }
   }, []);
 
   const renderDiveProfileChart = () => {
@@ -818,8 +833,9 @@ export default function DivePlanningScreen() {
         
         <View 
           style={{ position: 'relative', cursor: 'crosshair' } as any}
-          onTouchStart={(e) => handleChartTouch(e, chartW, padding, totalTime)}
-          onTouchMove={(e) => handleChartTouch(e, chartW, padding, totalTime)}
+          onTouchStart={(e) => handleChartTouch(e, chartW, padding, totalTime, true)}
+          onTouchMove={(e) => handleChartTouch(e, chartW, padding, totalTime, false)}
+          onTouchEnd={(e) => handleChartTouch(e, chartW, padding, totalTime, true)}
           onStartShouldSetResponder={() => true}
           onMoveShouldSetResponder={() => true}
           {...(Platform.OS === 'web' ? {
