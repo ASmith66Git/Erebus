@@ -6281,7 +6281,7 @@ app.get('/health', (req, res) => {
 // Roadmap Features API (Admin)
 app.get('/api/admin/roadmap', authenticateToken, async (req, res) => {
   try {
-    if (!req.user.isAdmin) {
+    if (req.user.role !== 'admin') {
       return res.status(403).json({ error: 'Admin access required' });
     }
     const result = await pool.query(
@@ -6296,7 +6296,7 @@ app.get('/api/admin/roadmap', authenticateToken, async (req, res) => {
 
 app.post('/api/admin/roadmap', authenticateToken, async (req, res) => {
   try {
-    if (!req.user.isAdmin) {
+    if (req.user.role !== 'admin') {
       return res.status(403).json({ error: 'Admin access required' });
     }
     const { title, description, status, priority, predicted_go_live, is_published } = req.body;
@@ -6315,7 +6315,7 @@ app.post('/api/admin/roadmap', authenticateToken, async (req, res) => {
 
 app.put('/api/admin/roadmap/:id', authenticateToken, async (req, res) => {
   try {
-    if (!req.user.isAdmin) {
+    if (req.user.role !== 'admin') {
       return res.status(403).json({ error: 'Admin access required' });
     }
     const { id } = req.params;
@@ -6339,7 +6339,7 @@ app.put('/api/admin/roadmap/:id', authenticateToken, async (req, res) => {
 
 app.delete('/api/admin/roadmap/:id', authenticateToken, async (req, res) => {
   try {
-    if (!req.user.isAdmin) {
+    if (req.user.role !== 'admin') {
       return res.status(403).json({ error: 'Admin access required' });
     }
     const { id } = req.params;
