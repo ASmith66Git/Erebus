@@ -1550,8 +1550,9 @@ export default function DiveLogDetailScreen() {
     };
     
     const handleViewerScroll = (event: any) => {
-      if (!event?.nativeEvent?.contentOffset) return;
-      const x = event.nativeEvent.contentOffset.x;
+      if (!event?.nativeEvent) return;
+      // Web uses scrollLeft, native uses contentOffset.x
+      const x = event.nativeEvent.contentOffset?.x ?? (event.nativeEvent.target as any)?.scrollLeft ?? 0;
       const newIndex = Math.round(x / screenWidth);
       if (newIndex !== photoViewerIndex && newIndex >= 0 && newIndex < photos.length) {
         setPhotoViewerIndex(newIndex);
