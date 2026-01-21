@@ -1025,6 +1025,14 @@ export default function CertificationsScreen() {
                       longitude: lng,
                     });
                   }}
+                  onPlaceSelect={(placeData) => {
+                    if (placeData.formattedAddress) {
+                      setFormData((prev) => ({
+                        ...prev,
+                        location: placeData.formattedAddress || prev.location,
+                      }));
+                    }
+                  }}
                   colors={{
                     background: colors.background,
                     surface: colors.surface,
