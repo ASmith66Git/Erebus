@@ -30,7 +30,6 @@
       }
     },
     "production": {
-      "autoIncrement": true
     }
   },
   "submit": {
