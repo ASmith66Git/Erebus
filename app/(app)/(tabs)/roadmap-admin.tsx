@@ -231,14 +231,7 @@ export default function RoadmapAdminScreen() {
 
   return (
     <ThemedBackground style={styles.container}>
-      <PageHeader 
-        title="Roadmap Management" 
-        rightAction={
-          <Pressable onPress={openAddModal} style={{ padding: 8 }}>
-            <Ionicons name="add-circle-outline" size={24} color={colors.primary} />
-          </Pressable>
-        }
-      />
+      <PageHeader title="Roadmap Management" />
 
       <View style={[styles.filterBar, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterContent}>
@@ -440,6 +433,13 @@ export default function RoadmapAdminScreen() {
           </View>
         </View>
       </Modal>
+
+      <Pressable
+        style={[styles.fab, { backgroundColor: colors.primary }]}
+        onPress={openAddModal}
+      >
+        <Ionicons name="add" size={28} color="#FFF" />
+      </Pressable>
     </ThemedBackground>
   );
 }
@@ -651,5 +651,20 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontSize: 16,
     fontWeight: '600',
+  },
+  fab: {
+    position: 'absolute',
+    bottom: 24,
+    right: 24,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
   },
 });
