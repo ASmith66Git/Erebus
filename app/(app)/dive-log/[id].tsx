@@ -1594,18 +1594,20 @@ export default function DiveLogDetailScreen() {
             </View>
             
             {photos.length > 0 ? (
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -4 }}>
                 {photos.map((photo, index) => (
                   <Pressable 
                     key={photo.id}
                     onPress={() => openPhotoViewer(index)}
-                    style={{ width: 100, height: 100, borderRadius: 8, overflow: 'hidden' }}
+                    style={{ width: '33.33%', aspectRatio: 1, padding: 4 }}
                   >
-                    <Image 
-                      source={{ uri: getPhotoUrl(photo.imageUrl) }} 
-                      style={{ width: '100%', height: '100%' }} 
-                      resizeMode="cover" 
-                    />
+                    <View style={{ flex: 1, borderRadius: 8, overflow: 'hidden' }}>
+                      <Image 
+                        source={{ uri: getPhotoUrl(photo.imageUrl) }} 
+                        style={{ width: '100%', height: '100%' }} 
+                        resizeMode="cover" 
+                      />
+                    </View>
                   </Pressable>
                 ))}
               </View>
