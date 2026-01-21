@@ -6460,6 +6460,357 @@ app.get('/api/export/dive-data', authenticateToken, async (req, res) => {
   }
 });
 
+// ============================================
+// SUPPORT MESSAGING ENDPOINTS
+// ============================================
+
+// Get user's support conversations
+app.get('/api/support/conversations', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const result = await pool.query(`
+      SELECT sc.*, 
+        (SELECT COUNT(*) FROM support_messages sm WHERE sm.conversation_id = sc.id AND sm.is_admin_reply = true AND sm.read_at IS NULL) as unread_count,
+        (SELECT sm.message FROM support_messages sm WHERE sm.conversation_id = sc.id ORDER BY sm.created_at DESC LIMIT 1) as last_message,
+        (SELECT sm.created_at FROM support_messages sm WHERE sm.conversation_id = sc.id ORDER BY sm.created_at DESC LIMIT 1) as last_message_at
+      FROM support_conversations sc
+      WHERE sc.user_id = $1
+      ORDER BY sc.updated_at DESC
+    `, [userId]);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Get support conversations error:', error);
+    res.status(500).json({ error: 'Failed to fetch conversations' });
+  }
+});
+
+// Create new support conversation
+app.post('/api/support/conversations', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { subject, message, priority } = req.body;
+    
+    if (!subject || !message) {
+      return res.status(400).json({ error: 'Subject and message are required' });
+    }
+    
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      
+      const convResult = await client.query(`
+        INSERT INTO support_conversations (user_id, subject, priority)
+        VALUES ($1, $2, $3)
+        RETURNING *
+      `, [userId, subject, priority || 'normal']);
+      
+      const conversation = convResult.rows[0];
+      
+      await client.query(`
+        INSERT INTO support_messages (conversation_id, sender_id, is_admin_reply, message)
+        VALUES ($1, $2, false, $3)
+      `, [conversation.id, userId, message]);
+      
+      await client.query('COMMIT');
+      res.status(201).json(conversation);
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    console.error('Create support conversation error:', error);
+    res.status(500).json({ error: 'Failed to create conversation' });
+  }
+});
+
+// Get messages in a conversation
+app.get('/api/support/conversations/:id/messages', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const conversationId = req.params.id;
+    
+    const convCheck = await pool.query(
+      'SELECT * FROM support_conversations WHERE id = $1 AND user_id = $2',
+      [conversationId, userId]
+    );
+    
+    if (convCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Conversation not found' });
+    }
+    
+    await pool.query(`
+      UPDATE support_messages 
+      SET read_at = CURRENT_TIMESTAMP 
+      WHERE conversation_id = $1 AND is_admin_reply = true AND read_at IS NULL
+    `, [conversationId]);
+    
+    const messages = await pool.query(`
+      SELECT sm.*, u.first_name, u.last_name, u.email
+      FROM support_messages sm
+      JOIN users u ON sm.sender_id = u.id
+      WHERE sm.conversation_id = $1
+      ORDER BY sm.created_at ASC
+    `, [conversationId]);
+    
+    res.json({
+      conversation: convCheck.rows[0],
+      messages: messages.rows
+    });
+  } catch (error) {
+    console.error('Get support messages error:', error);
+    res.status(500).json({ error: 'Failed to fetch messages' });
+  }
+});
+
+// Send message in conversation (user)
+app.post('/api/support/conversations/:id/messages', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const conversationId = req.params.id;
+    const { message } = req.body;
+    
+    if (!message) {
+      return res.status(400).json({ error: 'Message is required' });
+    }
+    
+    const convCheck = await pool.query(
+      'SELECT * FROM support_conversations WHERE id = $1 AND user_id = $2',
+      [conversationId, userId]
+    );
+    
+    if (convCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Conversation not found' });
+    }
+    
+    const result = await pool.query(`
+      INSERT INTO support_messages (conversation_id, sender_id, is_admin_reply, message)
+      VALUES ($1, $2, false, $3)
+      RETURNING *
+    `, [conversationId, userId, message]);
+    
+    await pool.query(
+      'UPDATE support_conversations SET updated_at = CURRENT_TIMESTAMP, status = $1 WHERE id = $2',
+      ['open', conversationId]
+    );
+    
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('Send support message error:', error);
+    res.status(500).json({ error: 'Failed to send message' });
+  }
+});
+
+// Get user's unread message count
+app.get('/api/support/unread-count', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const result = await pool.query(`
+      SELECT COUNT(*) as count
+      FROM support_messages sm
+      JOIN support_conversations sc ON sm.conversation_id = sc.id
+      WHERE sc.user_id = $1 AND sm.is_admin_reply = true AND sm.read_at IS NULL
+    `, [userId]);
+    res.json({ count: parseInt(result.rows[0].count) });
+  } catch (error) {
+    console.error('Get unread count error:', error);
+    res.status(500).json({ error: 'Failed to fetch unread count' });
+  }
+});
+
+// ============================================
+// ADMIN SUPPORT MESSAGING ENDPOINTS
+// ============================================
+
+// Get all support conversations (admin)
+app.get('/api/admin/support/conversations', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+    
+    const { status } = req.query;
+    let query = `
+      SELECT sc.*, 
+        u.first_name, u.last_name, u.email,
+        (SELECT COUNT(*) FROM support_messages sm WHERE sm.conversation_id = sc.id AND sm.is_admin_reply = false AND sm.read_at IS NULL) as unread_count,
+        (SELECT sm.message FROM support_messages sm WHERE sm.conversation_id = sc.id ORDER BY sm.created_at DESC LIMIT 1) as last_message,
+        (SELECT sm.created_at FROM support_messages sm WHERE sm.conversation_id = sc.id ORDER BY sm.created_at DESC LIMIT 1) as last_message_at
+      FROM support_conversations sc
+      JOIN users u ON sc.user_id = u.id
+    `;
+    const params = [];
+    
+    if (status) {
+      query += ' WHERE sc.status = $1';
+      params.push(status);
+    }
+    
+    query += ' ORDER BY sc.updated_at DESC';
+    
+    const result = await pool.query(query, params);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Admin get conversations error:', error);
+    res.status(500).json({ error: 'Failed to fetch conversations' });
+  }
+});
+
+// Get messages in a conversation (admin)
+app.get('/api/admin/support/conversations/:id/messages', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+    
+    const conversationId = req.params.id;
+    
+    const convResult = await pool.query(`
+      SELECT sc.*, u.first_name, u.last_name, u.email
+      FROM support_conversations sc
+      JOIN users u ON sc.user_id = u.id
+      WHERE sc.id = $1
+    `, [conversationId]);
+    
+    if (convResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Conversation not found' });
+    }
+    
+    await pool.query(`
+      UPDATE support_messages 
+      SET read_at = CURRENT_TIMESTAMP 
+      WHERE conversation_id = $1 AND is_admin_reply = false AND read_at IS NULL
+    `, [conversationId]);
+    
+    const messages = await pool.query(`
+      SELECT sm.*, u.first_name, u.last_name, u.email
+      FROM support_messages sm
+      JOIN users u ON sm.sender_id = u.id
+      WHERE sm.conversation_id = $1
+      ORDER BY sm.created_at ASC
+    `, [conversationId]);
+    
+    res.json({
+      conversation: convResult.rows[0],
+      messages: messages.rows
+    });
+  } catch (error) {
+    console.error('Admin get messages error:', error);
+    res.status(500).json({ error: 'Failed to fetch messages' });
+  }
+});
+
+// Send admin reply
+app.post('/api/admin/support/conversations/:id/messages', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+    
+    const conversationId = req.params.id;
+    const adminId = req.user.id;
+    const { message } = req.body;
+    
+    if (!message) {
+      return res.status(400).json({ error: 'Message is required' });
+    }
+    
+    const convCheck = await pool.query(
+      'SELECT * FROM support_conversations WHERE id = $1',
+      [conversationId]
+    );
+    
+    if (convCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Conversation not found' });
+    }
+    
+    const result = await pool.query(`
+      INSERT INTO support_messages (conversation_id, sender_id, is_admin_reply, message)
+      VALUES ($1, $2, true, $3)
+      RETURNING *
+    `, [conversationId, adminId, message]);
+    
+    await pool.query(
+      'UPDATE support_conversations SET updated_at = CURRENT_TIMESTAMP, status = $1 WHERE id = $2',
+      ['in_progress', conversationId]
+    );
+    
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('Admin send message error:', error);
+    res.status(500).json({ error: 'Failed to send message' });
+  }
+});
+
+// Update conversation status (admin)
+app.put('/api/admin/support/conversations/:id', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+    
+    const conversationId = req.params.id;
+    const { status, priority } = req.body;
+    
+    const updates = [];
+    const values = [];
+    let paramIndex = 1;
+    
+    if (status) {
+      updates.push(`status = $${paramIndex++}`);
+      values.push(status);
+    }
+    if (priority) {
+      updates.push(`priority = $${paramIndex++}`);
+      values.push(priority);
+    }
+    
+    if (updates.length === 0) {
+      return res.status(400).json({ error: 'No updates provided' });
+    }
+    
+    updates.push(`updated_at = CURRENT_TIMESTAMP`);
+    values.push(conversationId);
+    
+    const result = await pool.query(`
+      UPDATE support_conversations 
+      SET ${updates.join(', ')}
+      WHERE id = $${paramIndex}
+      RETURNING *
+    `, values);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Conversation not found' });
+    }
+    
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Admin update conversation error:', error);
+    res.status(500).json({ error: 'Failed to update conversation' });
+  }
+});
+
+// Get admin unread message count
+app.get('/api/admin/support/unread-count', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+    
+    const result = await pool.query(`
+      SELECT COUNT(*) as count
+      FROM support_messages sm
+      JOIN support_conversations sc ON sm.conversation_id = sc.id
+      WHERE sm.is_admin_reply = false AND sm.read_at IS NULL
+    `);
+    res.json({ count: parseInt(result.rows[0].count) });
+  } catch (error) {
+    console.error('Admin get unread count error:', error);
+    res.status(500).json({ error: 'Failed to fetch unread count' });
+  }
+});
+
 if (process.env.NODE_ENV === 'production' || process.env.PORT) {
   app.use(express.static(distPath));
   
