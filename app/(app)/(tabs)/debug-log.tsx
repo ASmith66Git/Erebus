@@ -43,22 +43,29 @@ export default function DebugLogScreen() {
     return unsubscribe;
   }, [loadLogs]);
 
-  const handleClear = () => {
-    Alert.alert(
-      'Clear Logs',
-      'Are you sure you want to clear all logs?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Clear',
-          style: 'destructive',
-          onPress: async () => {
-            await errorLogger.clearLogs();
-            setLogs([]);
+  const handleClear = async () => {
+    if (Platform.OS === 'web') {
+      if (window.confirm('Are you sure you want to clear all logs?')) {
+        await errorLogger.clearLogs();
+        setLogs([]);
+      }
+    } else {
+      Alert.alert(
+        'Clear Logs',
+        'Are you sure you want to clear all logs?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Clear',
+            style: 'destructive',
+            onPress: async () => {
+              await errorLogger.clearLogs();
+              setLogs([]);
+            },
           },
-        },
-      ]
-    );
+        ]
+      );
+    }
   };
 
   const handleShare = async () => {
