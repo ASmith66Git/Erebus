@@ -36,12 +36,18 @@ export default function AdminStatsScreen() {
 
   const fetchStats = async () => {
     try {
+      console.log('Fetching stats from:', `${getApiUrl()}/api/admin/stats`);
       const response = await fetch(`${getApiUrl()}/api/admin/stats`, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      console.log('Stats response status:', response.status);
       if (response.ok) {
         const data = await response.json();
+        console.log('Stats data:', data);
         setStats(data);
+      } else {
+        const errorText = await response.text();
+        console.error('Stats error response:', errorText);
       }
     } catch (error) {
       console.error('Error fetching stats:', error);
