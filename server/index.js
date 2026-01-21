@@ -6403,7 +6403,7 @@ app.get('/api/export/dive-data', authenticateToken, async (req, res) => {
       `, [userId]),
       pool.query('SELECT * FROM dive_buddies WHERE user_id = $1 ORDER BY name', [userId]),
       pool.query('SELECT * FROM equipment_inventory WHERE user_id = $1 ORDER BY equipment_type, name', [userId]),
-      pool.query('SELECT id, filename, dive_log_id, trip_id, is_favorite, notes, created_at FROM dive_photos WHERE user_id = $1 ORDER BY created_at DESC', [userId])
+      pool.query('SELECT id, image_url, thumbnail_url, dive_log_id, trip_id, is_favorite, caption, created_at FROM dive_photos WHERE user_id = $1 AND deleted_at IS NULL ORDER BY created_at DESC', [userId])
     ]);
 
     // Fetch dive log details (samples, gases, events) for each dive
