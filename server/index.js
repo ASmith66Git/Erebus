@@ -1283,23 +1283,52 @@ app.post('/api/auth/forgot-password', async (req, res) => {
   try {
     const result = await pool.query('SELECT id, email FROM users WHERE email = $1', [email.toLowerCase()]);
     
+    // Always return success message to prevent email enumeration
     if (result.rows.length === 0) {
       return res.json({ message: 'If an account exists with this email, password reset instructions have been sent.' });
     }
     
+    const user = result.rows[0];
     const resetToken = crypto.randomBytes(32).toString('hex');
-    const resetExpires = new Date(Date.now() + 3600000);
+    const resetExpires = new Date(Date.now() + 3600000); // 1 hour
     
     await pool.query(
       'UPDATE users SET password_reset_token = $1, password_reset_expires = $2 WHERE email = $3',
       [resetToken, resetExpires, email.toLowerCase()]
     );
     
-    console.log(`Password reset requested for ${email}. In production, email would be sent with reset link.`);
+    // Send password reset email via Resend
+    const baseUrl = req.headers.origin || `https://${req.headers.host}`;
+    const resetLink = `${baseUrl}/reset-password?token=${resetToken}`;
     
-    res.json({ 
-      message: 'If an account exists with this email, password reset instructions have been sent. Please contact an administrator to reset your password.'
-    });
+    try {
+      const { client, fromEmail } = await getUncachableResendClient();
+      
+      await client.emails.send({
+        from: fromEmail || 'noreply@resend.dev',
+        to: user.email,
+        subject: 'Erebus - Password Reset Request',
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #D22F00;">Password Reset Request</h2>
+            <p>You requested to reset your password for your Erebus account.</p>
+            <p>Click the button below to reset your password. This link will expire in 1 hour.</p>
+            <p style="margin: 24px 0;">
+              <a href="${resetLink}" style="background-color: #D22F00; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Reset Password</a>
+            </p>
+            <p style="color: #666; font-size: 14px;">If you didn't request this, you can safely ignore this email.</p>
+            <p style="color: #666; font-size: 12px; margin-top: 32px;">- The Erebus Team</p>
+          </div>
+        `
+      });
+      
+      console.log(`Password reset email sent to ${user.email}`);
+    } catch (emailError) {
+      console.error('Failed to send password reset email:', emailError);
+      // Still return success to prevent email enumeration, but log the error
+    }
+    
+    res.json({ message: 'If an account exists with this email, password reset instructions have been sent.' });
   } catch (error) {
     console.error('Forgot password error:', error);
     res.status(500).json({ error: 'Server error' });
