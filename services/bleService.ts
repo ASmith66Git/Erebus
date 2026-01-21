@@ -177,6 +177,7 @@ class BleService {
         const device = await this.manager.connectToDevice(deviceId, {
           timeout: 20000, // Increased timeout for Android 15 on foldables
           requestMTU: 512,
+          refreshGatt: 'OnConnected', // Force GATT cache refresh on Android 15
         });
         console.log('BLE: Connected, waiting 3000ms before discovery (Android 15 GATT stability)...');
         
