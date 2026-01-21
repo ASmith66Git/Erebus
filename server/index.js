@@ -1303,8 +1303,9 @@ app.post('/api/auth/forgot-password', async (req, res) => {
     
     try {
       const { client, fromEmail } = await getUncachableResendClient();
+      console.log(`Sending password reset email from: ${fromEmail || 'noreply@resend.dev'} to: ${user.email}`);
       
-      await client.emails.send({
+      const emailResult = await client.emails.send({
         from: fromEmail || 'noreply@resend.dev',
         to: user.email,
         subject: 'Erebus - Password Reset Request',
@@ -1322,9 +1323,9 @@ app.post('/api/auth/forgot-password', async (req, res) => {
         `
       });
       
-      console.log(`Password reset email sent to ${user.email}`);
+      console.log(`Password reset email result:`, JSON.stringify(emailResult));
     } catch (emailError) {
-      console.error('Failed to send password reset email:', emailError);
+      console.error('Failed to send password reset email:', emailError.message || emailError);
       // Still return success to prevent email enumeration, but log the error
     }
     
@@ -1556,19 +1557,20 @@ app.post('/api/admin/users/:id/reset-password', authenticateToken, requireAdmin,
     
     try {
       const { client, fromEmail } = await getUncachableResendClient();
+      console.log(`Admin sending password reset from: ${fromEmail || 'noreply@resend.dev'} to: ${user.email}`);
       
-      await client.emails.send({
+      const emailResult = await client.emails.send({
         from: fromEmail || 'noreply@resend.dev',
         to: user.email,
         subject: 'Erebus - Password Reset Request',
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #E31837;">Password Reset Request</h2>
+            <h2 style="color: #D22F00;">Password Reset Request</h2>
             <p>Hello ${user.first_name || 'there'},</p>
             <p>An administrator has initiated a password reset for your Erebus account.</p>
             <p>Click the button below to set a new password:</p>
             <div style="text-align: center; margin: 30px 0;">
-              <a href="${resetLink}" style="background-color: #E31837; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Reset Password</a>
+              <a href="${resetLink}" style="background-color: #D22F00; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Reset Password</a>
             </div>
             <p>Or copy and paste this link into your browser:</p>
             <p style="color: #666; word-break: break-all;">${resetLink}</p>
@@ -1580,10 +1582,10 @@ app.post('/api/admin/users/:id/reset-password', authenticateToken, requireAdmin,
         `
       });
       
-      console.log(`Password reset email sent to ${user.email}`);
+      console.log(`Admin password reset email result:`, JSON.stringify(emailResult));
       res.json({ message: 'Password reset email sent successfully' });
     } catch (emailError) {
-      console.error('Email send error:', emailError);
+      console.error('Email send error:', emailError.message || emailError);
       res.status(500).json({ error: 'Failed to send password reset email. Please check email configuration.' });
     }
   } catch (error) {
