@@ -1746,7 +1746,7 @@ app.get('/api/admin/stats', authenticateToken, requireAdmin, async (req, res) =>
       pool.query('SELECT COUNT(*) as count FROM dive_logs'),
       pool.query('SELECT COUNT(*) as count FROM dive_buddies'),
       pool.query('SELECT COUNT(*) as count FROM gear_profiles'),
-      pool.query('SELECT COUNT(*) as count FROM dive_sites WHERE is_deleted = false'),
+      pool.query('SELECT COUNT(*) as count FROM dive_sites WHERE deleted_at IS NULL'),
       pool.query('SELECT COUNT(*) as count FROM dive_photos'),
       pool.query('SELECT COUNT(*) as count FROM user_certifications'),
       pool.query('SELECT COUNT(*) as count FROM dive_trips'),
