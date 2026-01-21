@@ -371,11 +371,19 @@ export default function PhotoDetailScreen() {
         showsHorizontalScrollIndicator={false}
         initialScrollIndex={currentPhotoIndex}
         style={styles.swipeablePhotosList}
+        contentContainerStyle={{ flexGrow: 1 }}
         getItemLayout={(data, index) => ({
           length: SCREEN_WIDTH,
           offset: SCREEN_WIDTH * index,
           index,
         })}
+        onScroll={(e) => {
+          const newIndex = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH);
+          if (newIndex >= 0 && newIndex < tripPhotos.length) {
+            setCurrentPhotoIndex(newIndex);
+          }
+        }}
+        scrollEventThrottle={100}
         onMomentumScrollEnd={(e) => {
           const newIndex = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH);
           if (newIndex !== currentPhotoIndex && newIndex >= 0 && newIndex < tripPhotos.length) {
@@ -384,10 +392,10 @@ export default function PhotoDetailScreen() {
         }}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
-          <View style={[styles.fullImageContainer, { width: SCREEN_WIDTH }]}>
+          <View style={[styles.fullImageContainer, { width: SCREEN_WIDTH, height: SCREEN_HEIGHT }]}>
             <Image
               source={{ uri: getImageUrl(item.image_url) }}
-              style={styles.fullImage}
+              style={[styles.fullImage, { height: SCREEN_HEIGHT * 0.7 }]}
               resizeMode="contain"
             />
           </View>
