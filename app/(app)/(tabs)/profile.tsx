@@ -181,15 +181,17 @@ export default function ProfileScreen() {
       if (data.diveLogs?.length > 0) {
         const logsSheet = XLSX.utils.json_to_sheet(data.diveLogs.map((log: any) => ({
           'Dive #': log.dive_number,
-          'Date': log.date,
-          'Site': log.site_name || log.location || '',
-          'Max Depth (m)': log.max_depth,
-          'Duration (min)': log.duration,
-          'Water Temp (C)': log.water_temp,
-          'Visibility (m)': log.visibility,
-          'Entry': log.entry_type,
-          'Weight (kg)': log.weight_used,
-          'CNS %': log.cns_percent,
+          'Date': log.dive_datetime,
+          'Site': log.site_name || '',
+          'Max Depth (m)': log.max_depth_meters,
+          'Avg Depth (m)': log.avg_depth_meters,
+          'Duration (min)': log.duration_seconds ? Math.round(log.duration_seconds / 60) : '',
+          'Min Temp (C)': log.min_temperature_celsius,
+          'Max Temp (C)': log.max_temperature_celsius,
+          'Dive Mode': log.dive_mode,
+          'Rating': log.rating,
+          'Surface Conditions': log.surface_conditions,
+          'Weather': log.weather_conditions,
           'Notes': log.notes,
         })));
         XLSX.utils.book_append_sheet(workbook, logsSheet, 'Dive Logs');

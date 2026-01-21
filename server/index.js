@@ -6388,7 +6388,7 @@ app.get('/api/export/dive-data', authenticateToken, async (req, res) => {
         FROM dive_logs dl 
         LEFT JOIN dive_sites ds ON dl.dive_site_id = ds.id 
         WHERE dl.user_id = $1 
-        ORDER BY dl.date DESC
+        ORDER BY dl.dive_datetime DESC
       `, [userId]),
       pool.query('SELECT * FROM dive_sites WHERE user_id = $1 ORDER BY name', [userId]),
       pool.query('SELECT * FROM dive_trips WHERE user_id = $1 ORDER BY start_date DESC', [userId]),
