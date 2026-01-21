@@ -379,8 +379,13 @@ export default function PhotoDetailScreen() {
         })}
         onScroll={(e) => {
           const newIndex = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH);
-          if (newIndex >= 0 && newIndex < tripPhotos.length) {
+          if (newIndex >= 0 && newIndex < tripPhotos.length && newIndex !== currentPhotoIndex) {
             setCurrentPhotoIndex(newIndex);
+            scrubListRef.current?.scrollToIndex({
+              index: newIndex,
+              animated: true,
+              viewPosition: 0.5,
+            });
           }
         }}
         scrollEventThrottle={100}
@@ -636,13 +641,14 @@ export default function PhotoDetailScreen() {
           showsHorizontalScrollIndicator={false}
           keyExtractor={(item) => item.id.toString()}
           contentContainerStyle={styles.scrubBarContent}
+          extraData={currentPhotoIndex}
           getItemLayout={(data, index) => ({
             length: SCRUB_THUMB_SIZE + 8,
             offset: (SCRUB_THUMB_SIZE + 8) * index,
             index,
           })}
           renderItem={({ item, index }) => {
-            const isActive = item.id === parseInt(id, 10);
+            const isActive = index === currentPhotoIndex;
             return (
               <Pressable
                 onPress={() => navigateToPhoto(item.id, index)}
