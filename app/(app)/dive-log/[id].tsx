@@ -516,6 +516,7 @@ function DiveProfileChart({ samples, colors, showTemp, showNdl, showGf99, showPp
         } as any}
         onStartShouldSetResponder={() => true}
         onMoveShouldSetResponder={() => true}
+        onResponderTerminationRequest={() => false}
         onResponderGrant={(e) => handleTouch(e, true)}
         onResponderMove={(e) => handleTouch(e, false)}
         onResponderRelease={(e) => handleTouchEnd(e)}

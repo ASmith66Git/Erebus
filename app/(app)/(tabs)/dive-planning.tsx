@@ -838,6 +838,7 @@ export default function DivePlanningScreen() {
           onTouchEnd={(e) => handleChartTouch(e, chartW, padding, totalTime, true)}
           onStartShouldSetResponder={() => true}
           onMoveShouldSetResponder={() => true}
+          onResponderTerminationRequest={() => false}
           {...(Platform.OS === 'web' ? {
             onMouseDown: (e: any) => {
               const rect = e.currentTarget.getBoundingClientRect();
