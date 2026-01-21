@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput,
   Dimensions, Platform, Modal, Switch, Pressable, ActivityIndicator
@@ -236,6 +236,7 @@ export default function DivePlanningScreen() {
   const [scrubberElapsed, setScrubberElapsed] = useState(0);
   const [chartScrubberTime, setChartScrubberTime] = useState<number>(0);
   const [isPdfLoading, setIsPdfLoading] = useState(false);
+  const lastScrubberUpdate = useRef<number>(0);
 
   const gasMixes = useMemo(() => {
     return gases.map(g => {
@@ -565,9 +566,11 @@ export default function DivePlanningScreen() {
   }, [currentResult, appliedSettings]);
 
   const handleChartTouch = useCallback((event: any, chartW: number, padding: { left: number }, totalTime: number) => {
+    const now = Date.now();
+    if (now - lastScrubberUpdate.current < 32) return;
+    lastScrubberUpdate.current = now;
     const locationX = event.nativeEvent.locationX - padding.left;
     const rawTime = Math.max(0, Math.min((locationX / chartW) * totalTime, totalTime));
-    // Round to nearest 0.5 minute for smoother scrubbing
     const time = Math.round(rawTime * 2) / 2;
     setChartScrubberTime(time);
   }, []);
@@ -787,10 +790,14 @@ export default function DivePlanningScreen() {
               const locationX = e.clientX - rect.left - padding.left;
               const rawTime = Math.max(0, Math.min((locationX / chartW) * totalTime, totalTime));
               const time = Math.round(rawTime * 2) / 2;
+              lastScrubberUpdate.current = Date.now();
               setChartScrubberTime(time);
             },
             onMouseMove: (e: any) => {
               if (e.buttons === 1) {
+                const now = Date.now();
+                if (now - lastScrubberUpdate.current < 32) return;
+                lastScrubberUpdate.current = now;
                 const rect = e.currentTarget.getBoundingClientRect();
                 const locationX = e.clientX - rect.left - padding.left;
                 const rawTime = Math.max(0, Math.min((locationX / chartW) * totalTime, totalTime));
