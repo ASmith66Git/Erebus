@@ -257,9 +257,15 @@ export default function ProfileScreen() {
       
       if (data.equipment?.length > 0) {
         const equipSheet = XLSX.utils.json_to_sheet(data.equipment.map((eq: any) => ({
-          'Type': eq.type,
-          'Name': eq.friendly_name,
+          'Type': eq.equipment_type,
+          'Name': eq.name,
+          'Brand': eq.brand,
+          'Model': eq.model,
+          'Serial #': eq.serial_number,
           'Quantity': eq.quantity,
+          'Purchase Date': eq.purchase_date,
+          'Last Service': eq.last_service_date,
+          'Notes': eq.notes,
         })));
         XLSX.utils.book_append_sheet(workbook, equipSheet, 'Equipment');
       }
