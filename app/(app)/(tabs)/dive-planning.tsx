@@ -392,6 +392,49 @@ export default function DivePlanningScreen() {
     </View>
   );
 
+  const SliderWithState = ({ 
+    label, value, min, max, step, onChange, unit, colors 
+  }: { 
+    label: string; value: number; min: number; max: number; step: number; 
+    onChange: (v: number) => void; unit: string; colors: any;
+  }) => {
+    const [localValue, setLocalValue] = useState(value);
+    const isDragging = useRef(false);
+    
+    useEffect(() => {
+      if (!isDragging.current) {
+        setLocalValue(value);
+      }
+    }, [value]);
+    
+    return (
+      <View style={styles.sliderContainer}>
+        <View style={styles.sliderHeader}>
+          <Text style={[styles.sliderLabel, { color: colors.text }]}>{label}</Text>
+          <Text style={[styles.sliderValue, { color: colors.primary }]}>{localValue}{unit}</Text>
+        </View>
+        <Slider
+          style={styles.touchSlider}
+          minimumValue={min}
+          maximumValue={max}
+          step={step}
+          value={localValue}
+          onValueChange={(v) => {
+            isDragging.current = true;
+            setLocalValue(v);
+          }}
+          onSlidingComplete={(v) => {
+            isDragging.current = false;
+            onChange(v);
+          }}
+          minimumTrackTintColor={colors.primary}
+          maximumTrackTintColor={colors.border}
+          thumbTintColor={colors.primary}
+        />
+      </View>
+    );
+  };
+
   const renderSlider = (
     label: string,
     value: number,
@@ -402,23 +445,16 @@ export default function DivePlanningScreen() {
     unit: string = ''
   ) => {
     return (
-      <View style={styles.sliderContainer}>
-        <View style={styles.sliderHeader}>
-          <Text style={[styles.sliderLabel, { color: colors.text }]}>{label}</Text>
-          <Text style={[styles.sliderValue, { color: colors.primary }]}>{value}{unit}</Text>
-        </View>
-        <Slider
-          style={styles.touchSlider}
-          minimumValue={min}
-          maximumValue={max}
-          step={step}
-          value={value}
-          onValueChange={onChange}
-          minimumTrackTintColor={colors.primary}
-          maximumTrackTintColor={colors.border}
-          thumbTintColor={colors.primary}
-        />
-      </View>
+      <SliderWithState
+        label={label}
+        value={value}
+        min={min}
+        max={max}
+        step={step}
+        onChange={onChange}
+        unit={unit}
+        colors={colors}
+      />
     );
   };
 
