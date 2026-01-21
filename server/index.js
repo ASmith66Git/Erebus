@@ -7,10 +7,13 @@ const path = require('path');
 const multer = require('multer');
 const { Pool } = require('pg');
 const { Resend } = require('resend');
+const { Expo } = require('expo-server-sdk');
 const diveLogParser = require('./services/diveLogParser');
 const diveLogParserV2 = require('./services/diveLogParserV2');
 const DiveLogPersistenceService = require('./services/diveLogPersistence');
 const diveComputerCatalog = require('./data/diveComputerCatalog');
+
+const expo = new Expo();
 
 const upload = multer({ 
   storage: multer.memoryStorage(),
@@ -68,6 +71,58 @@ async function getUncachableResendClient() {
     client: new Resend(apiKey),
     fromEmail: fromEmail
   };
+}
+
+async function sendPushNotification(userId, title, body, data = {}) {
+  try {
+    const tokenResult = await pool.query(
+      'SELECT token FROM push_tokens WHERE user_id = $1 AND is_active = true',
+      [userId]
+    );
+    
+    if (tokenResult.rows.length === 0) {
+      console.log(`No active push tokens for user ${userId}`);
+      return { success: false, reason: 'no_tokens' };
+    }
+    
+    const messages = [];
+    for (const row of tokenResult.rows) {
+      if (!Expo.isExpoPushToken(row.token)) {
+        console.log(`Invalid Expo push token: ${row.token}`);
+        continue;
+      }
+      
+      messages.push({
+        to: row.token,
+        sound: 'default',
+        title,
+        body,
+        data,
+      });
+    }
+    
+    if (messages.length === 0) {
+      return { success: false, reason: 'no_valid_tokens' };
+    }
+    
+    const chunks = expo.chunkPushNotifications(messages);
+    const tickets = [];
+    
+    for (const chunk of chunks) {
+      try {
+        const ticketChunk = await expo.sendPushNotificationsAsync(chunk);
+        tickets.push(...ticketChunk);
+      } catch (error) {
+        console.error('Error sending push notification chunk:', error);
+      }
+    }
+    
+    console.log(`Sent ${tickets.length} push notifications to user ${userId}`);
+    return { success: true, tickets };
+  } catch (error) {
+    console.error('Error in sendPushNotification:', error);
+    return { success: false, reason: 'error', error: error.message };
+  }
 }
 
 app.use(cors());
@@ -6903,13 +6958,15 @@ app.post('/api/admin/support/conversations/:id/messages', authenticateToken, asy
     }
     
     const convCheck = await pool.query(
-      'SELECT * FROM support_conversations WHERE id = $1',
+      'SELECT sc.*, u.first_name FROM support_conversations sc JOIN users u ON sc.user_id = u.id WHERE sc.id = $1',
       [conversationId]
     );
     
     if (convCheck.rows.length === 0) {
       return res.status(404).json({ error: 'Conversation not found' });
     }
+    
+    const conversation = convCheck.rows[0];
     
     const result = await pool.query(`
       INSERT INTO support_messages (conversation_id, sender_id, is_admin_reply, message)
@@ -6921,6 +6978,13 @@ app.post('/api/admin/support/conversations/:id/messages', authenticateToken, asy
       'UPDATE support_conversations SET updated_at = CURRENT_TIMESTAMP, status = $1 WHERE id = $2',
       ['in_progress', conversationId]
     );
+    
+    sendPushNotification(
+      conversation.user_id,
+      'Support Reply',
+      message.length > 100 ? message.substring(0, 100) + '...' : message,
+      { type: 'support_reply', conversationId: conversationId }
+    ).catch(err => console.error('Push notification error:', err));
     
     res.status(201).json(result.rows[0]);
   } catch (error) {

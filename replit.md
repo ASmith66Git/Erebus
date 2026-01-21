@@ -25,7 +25,7 @@ The application is built using Expo React Native, targeting both iOS and Android
 - **Dive Site Management**: Offers card-based listing with search/filter, tabbed detail views, inline editing, Wikipedia integration for wreck sites, and soft-delete functionality.
 - **Dive Log Management**: Allows logging dives, importing from various formats (UDDF, Subsurface XML, CSV), and tracking personal statistics. Detail view includes interactive SVG charts and gas pressure gauges.
 - **Bluetooth Dive Computer Sync**: Direct BLE connectivity for automated dive log downloads (requires EAS Build).
-- **Push Notifications** (Android): Uses Expo Notifications with FCM for various channels and supports local scheduled notifications (requires EAS Build).
+- **Push Notifications** (Android/iOS): Uses Expo Notifications with FCM/APNs for various channels, supports local scheduled notifications, and server-side push via expo-server-sdk for support message replies (requires EAS Build).
 - **Biometric Authentication** (Android/iOS): Integrates `expo-local-authentication` for fingerprint and Face ID support.
 - **Photos Gallery**: Features a 3-column masonry grid, full-screen viewer, camera/library access, underwater camera uploads, dive log linking, favorites, multi-select, and photo detail editing.
 - **Gear Profiles**: Manages diving equipment configurations with support for different tank setups, gas mixes, weighting, and a template system. Includes a 5-tab interface (Config, Exposure, Gas, Weight, Gear) with view/edit modes.
@@ -53,3 +53,4 @@ The application is built using Expo React Native, targeting both iOS and Android
 - **Google Maps JavaScript API**: For maps and Places Autocomplete on the web.
 - **bcrypt**: For password hashing.
 - **react-native-svg**: For rendering SVG graphics.
+- **expo-server-sdk**: For server-side push notifications.
