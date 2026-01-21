@@ -991,6 +991,15 @@ app.post('/api/auth/signup', async (req, res) => {
       { expiresIn: '30d' }
     );
     
+    // Automatically populate new user with sample data from Onboard user
+    cloneOnboardDataToUser(user.id).then(cloneResult => {
+      if (cloneResult.success) {
+        console.log(`Auto-populated sample data for new user ${user.id}:`, cloneResult.stats);
+      }
+    }).catch(err => {
+      console.error(`Failed to auto-populate sample data for user ${user.id}:`, err);
+    });
+    
     res.status(201).json({
       user: {
         id: user.id,
