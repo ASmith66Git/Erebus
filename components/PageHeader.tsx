@@ -55,12 +55,11 @@ const styles = StyleSheet.create({
   headerCenter: {
     flex: 1,
     flexDirection: 'row',
-    alignItems: 'flex-end',
+    alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
   },
   logoWrapper: {
-    marginBottom: 2,
   },
   headerTitle: {
     fontSize: 16,
