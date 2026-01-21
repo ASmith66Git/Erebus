@@ -2,6 +2,9 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Switch, Modal, ActivityIndicator, Platform, RefreshControl, TextInput, Alert, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
+import * as XLSX from 'xlsx';
 import { router } from 'expo-router';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -62,6 +65,7 @@ export default function ProfileScreen() {
   const [editLoading, setEditLoading] = useState(false);
   const [showSexPicker, setShowSexPicker] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [editFormData, setEditFormData] = useState({
     firstName: '',
     lastName: '',
@@ -156,6 +160,162 @@ export default function ProfileScreen() {
     await Promise.all([loadManufacturers(), loadUserDiveComputer()]);
     setRefreshing(false);
   }, []);
+
+  const exportDiveData = async () => {
+    if (!token) return;
+    
+    setExporting(true);
+    try {
+      const response = await fetch(`${getApiUrl()}/api/export/dive-data`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch dive data');
+      }
+      
+      const data = await response.json();
+      
+      const workbook = XLSX.utils.book_new();
+      
+      if (data.diveLogs?.length > 0) {
+        const logsSheet = XLSX.utils.json_to_sheet(data.diveLogs.map((log: any) => ({
+          'Dive #': log.dive_number,
+          'Date': log.date,
+          'Site': log.site_name || log.location || '',
+          'Max Depth (m)': log.max_depth,
+          'Duration (min)': log.duration,
+          'Water Temp (C)': log.water_temp,
+          'Visibility (m)': log.visibility,
+          'Entry': log.entry_type,
+          'Weight (kg)': log.weight_used,
+          'CNS %': log.cns_percent,
+          'Notes': log.notes,
+        })));
+        XLSX.utils.book_append_sheet(workbook, logsSheet, 'Dive Logs');
+      }
+      
+      if (data.diveSites?.length > 0) {
+        const sitesSheet = XLSX.utils.json_to_sheet(data.diveSites.map((site: any) => ({
+          'Name': site.name,
+          'Location': site.location,
+          'Country': site.country,
+          'Type': site.type,
+          'Max Depth (m)': site.max_depth,
+          'Difficulty': site.difficulty,
+          'Description': site.description,
+          'Access': site.access,
+          'Latitude': site.latitude,
+          'Longitude': site.longitude,
+        })));
+        XLSX.utils.book_append_sheet(workbook, sitesSheet, 'Dive Sites');
+      }
+      
+      if (data.diveTrips?.length > 0) {
+        const tripsSheet = XLSX.utils.json_to_sheet(data.diveTrips.map((trip: any) => ({
+          'Name': trip.name,
+          'Type': trip.trip_type,
+          'Start Date': trip.start_date,
+          'End Date': trip.end_date,
+          'Location': trip.location,
+          'Country': trip.country,
+          'Operator': trip.operator,
+          'Notes': trip.notes,
+        })));
+        XLSX.utils.book_append_sheet(workbook, tripsSheet, 'Dive Trips');
+      }
+      
+      if (data.gearProfiles?.length > 0) {
+        const gearSheet = XLSX.utils.json_to_sheet(data.gearProfiles.map((gear: any) => ({
+          'Name': gear.name,
+          'BCD Type': gear.bcd_type,
+          'Exposure Suit': gear.exposure_suit_type,
+          'Weighting System': gear.weighting_system,
+          'Notes': gear.notes,
+        })));
+        XLSX.utils.book_append_sheet(workbook, gearSheet, 'Gear Profiles');
+      }
+      
+      if (data.certifications?.length > 0) {
+        const certsSheet = XLSX.utils.json_to_sheet(data.certifications.map((cert: any) => ({
+          'Course': cert.course_name,
+          'Agency': cert.agency_name,
+          'Certification Date': cert.certification_date,
+          'Certification #': cert.certification_number,
+          'Instructor': cert.instructor_name,
+        })));
+        XLSX.utils.book_append_sheet(workbook, certsSheet, 'Certifications');
+      }
+      
+      if (data.diveBuddies?.length > 0) {
+        const buddiesSheet = XLSX.utils.json_to_sheet(data.diveBuddies.map((buddy: any) => ({
+          'Name': buddy.name,
+          'Notes': buddy.notes,
+        })));
+        XLSX.utils.book_append_sheet(workbook, buddiesSheet, 'Dive Buddies');
+      }
+      
+      if (data.equipment?.length > 0) {
+        const equipSheet = XLSX.utils.json_to_sheet(data.equipment.map((eq: any) => ({
+          'Type': eq.type,
+          'Name': eq.friendly_name,
+          'Quantity': eq.quantity,
+        })));
+        XLSX.utils.book_append_sheet(workbook, equipSheet, 'Equipment');
+      }
+      
+      if (data.diveLogSamples?.length > 0) {
+        const samplesSheet = XLSX.utils.json_to_sheet(data.diveLogSamples.map((s: any) => ({
+          'Dive Log ID': s.dive_log_id,
+          'Time (s)': s.time_seconds,
+          'Depth (m)': s.depth,
+          'Temp (C)': s.temperature,
+          'NDL (min)': s.ndl,
+          'Ceiling (m)': s.ceiling,
+        })));
+        XLSX.utils.book_append_sheet(workbook, samplesSheet, 'Dive Samples');
+      }
+      
+      const wbout = XLSX.write(workbook, { type: 'base64', bookType: 'xlsx' });
+      const fileName = `erebus_dive_data_${new Date().toISOString().split('T')[0]}.xlsx`;
+      
+      if (Platform.OS === 'web') {
+        const blob = new Blob([Uint8Array.from(atob(wbout), c => c.charCodeAt(0))], {
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        a.click();
+        URL.revokeObjectURL(url);
+      } else {
+        const filePath = `${FileSystem.documentDirectory}${fileName}`;
+        await FileSystem.writeAsStringAsync(filePath, wbout, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+        await Sharing.shareAsync(filePath, {
+          mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          dialogTitle: 'Export Dive Data',
+        });
+      }
+      
+      if (Platform.OS === 'web') {
+        window.alert('Dive data exported successfully!');
+      } else {
+        Alert.alert('Success', 'Dive data exported successfully!');
+      }
+    } catch (error) {
+      console.error('Export error:', error);
+      if (Platform.OS === 'web') {
+        window.alert('Failed to export dive data. Please try again.');
+      } else {
+        Alert.alert('Error', 'Failed to export dive data. Please try again.');
+      }
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const saveDiveComputer = async (brand: string | null, model: string | null) => {
     setLoading(true);
@@ -346,6 +506,7 @@ export default function ProfileScreen() {
     { icon: 'rocket-outline', title: 'Roadmap', description: 'See upcoming features', route: '/(app)/(tabs)/roadmap' },
     { icon: 'notifications-outline', title: 'Notifications', description: 'Manage your alerts', route: null },
     { icon: 'shield-checkmark-outline', title: 'Privacy', description: 'Control your data', route: '/privacy' },
+    { icon: 'download-outline', title: 'Export Data', description: 'Download your dive data', route: 'export' },
     { icon: 'help-circle-outline', title: 'Help & Support', description: 'Get assistance', route: null },
     { icon: 'document-text-outline', title: 'Terms & Conditions', description: 'Legal information', route: '/terms' },
   ];
@@ -555,13 +716,26 @@ export default function ProfileScreen() {
           <Pressable 
             key={index} 
             style={styles.menuRow}
-            onPress={() => item.route && router.push(item.route as any)}
+            disabled={item.route === 'export' && exporting}
+            onPress={() => {
+              if (item.route === 'export') {
+                exportDiveData();
+              } else if (item.route) {
+                router.push(item.route as any);
+              }
+            }}
           >
             <View style={[styles.menuIcon, { backgroundColor: colors.primary + '20' }]}>
-              <Ionicons name={item.icon as any} size={20} color={colors.primary} />
+              {item.route === 'export' && exporting ? (
+                <ActivityIndicator size="small" color={colors.primary} />
+              ) : (
+                <Ionicons name={item.icon as any} size={20} color={colors.primary} />
+              )}
             </View>
             <View style={styles.menuContent}>
-              <Text style={[styles.menuTitle, { color: colors.text }]}>{item.title}</Text>
+              <Text style={[styles.menuTitle, { color: colors.text }]}>
+                {item.route === 'export' && exporting ? 'Exporting...' : item.title}
+              </Text>
               <Text style={[styles.menuDescription, { color: colors.textSecondary }]}>{item.description}</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />

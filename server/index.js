@@ -6367,6 +6367,99 @@ app.get('/api/roadmap', authenticateToken, async (req, res) => {
   }
 });
 
+// Data Export API
+app.get('/api/export/dive-data', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    
+    // Fetch all user dive data
+    const [
+      diveLogs,
+      diveSites,
+      diveTrips,
+      gearProfiles,
+      certifications,
+      diveBuddies,
+      equipment,
+      photos
+    ] = await Promise.all([
+      pool.query(`
+        SELECT dl.*, ds.name as site_name 
+        FROM dive_logs dl 
+        LEFT JOIN dive_sites ds ON dl.dive_site_id = ds.id 
+        WHERE dl.user_id = $1 
+        ORDER BY dl.date DESC
+      `, [userId]),
+      pool.query('SELECT * FROM dive_sites WHERE user_id = $1 ORDER BY name', [userId]),
+      pool.query('SELECT * FROM dive_trips WHERE user_id = $1 ORDER BY start_date DESC', [userId]),
+      pool.query('SELECT * FROM gear_profiles WHERE user_id = $1 ORDER BY name', [userId]),
+      pool.query(`
+        SELECT uc.*, tc.name as course_name, ta.name as agency_name
+        FROM user_certifications uc
+        LEFT JOIN training_courses tc ON uc.course_id = tc.id
+        LEFT JOIN training_agencies ta ON tc.agency_id = ta.id
+        WHERE uc.user_id = $1
+        ORDER BY uc.certification_date DESC
+      `, [userId]),
+      pool.query('SELECT * FROM dive_buddies WHERE user_id = $1 ORDER BY name', [userId]),
+      pool.query('SELECT * FROM equipment_inventory WHERE user_id = $1 ORDER BY type, friendly_name', [userId]),
+      pool.query('SELECT id, filename, dive_log_id, trip_id, is_favorite, notes, created_at FROM dive_photos WHERE user_id = $1 ORDER BY created_at DESC', [userId])
+    ]);
+
+    // Fetch dive log details (samples, gases, events) for each dive
+    const diveLogIds = diveLogs.rows.map(d => d.id);
+    let samples = { rows: [] };
+    let gases = { rows: [] };
+    let events = { rows: [] };
+    let tankPressures = { rows: [] };
+    
+    if (diveLogIds.length > 0) {
+      [samples, gases, events, tankPressures] = await Promise.all([
+        pool.query('SELECT * FROM dive_log_samples WHERE dive_log_id = ANY($1) ORDER BY dive_log_id, time_seconds', [diveLogIds]),
+        pool.query('SELECT * FROM dive_log_gases WHERE dive_log_id = ANY($1) ORDER BY dive_log_id, switch_time_seconds', [diveLogIds]),
+        pool.query('SELECT * FROM dive_log_events WHERE dive_log_id = ANY($1) ORDER BY dive_log_id, time_seconds', [diveLogIds]),
+        pool.query('SELECT * FROM dive_log_tank_pressures WHERE dive_log_id = ANY($1) ORDER BY dive_log_id, time_seconds', [diveLogIds])
+      ]);
+    }
+
+    // Fetch gear profile details
+    const gearProfileIds = gearProfiles.rows.map(g => g.id);
+    let cylinders = { rows: [] };
+    let weights = { rows: [] };
+    let gearEquipment = { rows: [] };
+    
+    if (gearProfileIds.length > 0) {
+      [cylinders, weights, gearEquipment] = await Promise.all([
+        pool.query('SELECT * FROM gear_cylinders WHERE gear_profile_id = ANY($1)', [gearProfileIds]),
+        pool.query('SELECT * FROM gear_weights WHERE gear_profile_id = ANY($1)', [gearProfileIds]),
+        pool.query('SELECT gpe.*, ei.friendly_name, ei.type as equipment_type FROM gear_profile_equipment gpe LEFT JOIN equipment_inventory ei ON gpe.equipment_id = ei.id WHERE gpe.gear_profile_id = ANY($1)', [gearProfileIds])
+      ]);
+    }
+
+    res.json({
+      exportDate: new Date().toISOString(),
+      diveLogs: diveLogs.rows,
+      diveLogSamples: samples.rows,
+      diveLogGases: gases.rows,
+      diveLogEvents: events.rows,
+      diveLogTankPressures: tankPressures.rows,
+      diveSites: diveSites.rows,
+      diveTrips: diveTrips.rows,
+      gearProfiles: gearProfiles.rows,
+      gearCylinders: cylinders.rows,
+      gearWeights: weights.rows,
+      gearEquipment: gearEquipment.rows,
+      certifications: certifications.rows,
+      diveBuddies: diveBuddies.rows,
+      equipment: equipment.rows,
+      photos: photos.rows
+    });
+  } catch (error) {
+    console.error('Export dive data error:', error);
+    res.status(500).json({ error: 'Failed to export data' });
+  }
+});
+
 if (process.env.NODE_ENV === 'production' || process.env.PORT) {
   app.use(express.static(distPath));
   
