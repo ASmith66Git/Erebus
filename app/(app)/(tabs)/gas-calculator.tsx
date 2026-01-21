@@ -1018,6 +1018,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     borderTopWidth: 1,
+    flexWrap: 'nowrap',
   },
   configLabel: {
     fontSize: 14,
@@ -1153,6 +1154,10 @@ const styles = StyleSheet.create({
   },
   inputRow: {
     marginBottom: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    flexWrap: 'nowrap',
   },
   inputLabel: {
     fontSize: 14,
@@ -1162,6 +1167,7 @@ const styles = StyleSheet.create({
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexShrink: 1,
   },
   input: {
     flex: 1,
@@ -1328,6 +1334,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 12,
+    flexWrap: 'nowrap',
   },
   toggle: {
     paddingHorizontal: 16,
