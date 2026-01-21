@@ -12,7 +12,7 @@ import {
   Dimensions,
   Image,
 } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import Svg, { Circle, Path, Line, Text as SvgText, Rect, G } from 'react-native-svg';
 import { GestureResponderEvent, PanResponder } from 'react-native';
@@ -1431,9 +1431,11 @@ export default function DiveLogDetailScreen() {
     }
   }, [id, token]);
 
-  useEffect(() => {
-    fetchDiveLog();
-  }, [fetchDiveLog]);
+  useFocusEffect(
+    useCallback(() => {
+      fetchDiveLog();
+    }, [fetchDiveLog])
+  );
 
   useEffect(() => {
     const fetchGearProfile = async () => {
