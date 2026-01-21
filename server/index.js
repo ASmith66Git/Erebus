@@ -1007,6 +1007,160 @@ app.post('/api/auth/signup', async (req, res) => {
   }
 });
 
+// Clone onboard user data to a new user
+const ONBOARD_EMAIL = 'anthony@clara-eu.co';
+
+async function cloneOnboardDataToUser(targetUserId) {
+  // Find onboard user
+  const onboardResult = await pool.query('SELECT id FROM users WHERE email = $1', [ONBOARD_EMAIL]);
+  if (onboardResult.rows.length === 0) {
+    console.log('Onboard user not found, skipping data clone');
+    return { success: false, message: 'Onboard user not found' };
+  }
+  const onboardUserId = onboardResult.rows[0].id;
+  
+  const stats = { diveSites: 0, diveLogs: 0, gearProfiles: 0, diveBuddies: 0, equipment: 0, certifications: 0 };
+  
+  try {
+    // Clone dive sites (need to track ID mapping for dive logs)
+    const diveSites = await pool.query('SELECT * FROM dive_sites WHERE user_id = $1 AND deleted_at IS NULL', [onboardUserId]);
+    const siteIdMap = {};
+    for (const site of diveSites.rows) {
+      const result = await pool.query(`
+        INSERT INTO dive_sites (user_id, name, location, country, latitude, longitude, type, max_depth, difficulty, description, access, current, visibility, water_type, amenities, created_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, NOW())
+        RETURNING id
+      `, [targetUserId, site.name, site.location, site.country, site.latitude, site.longitude, site.type, site.max_depth, site.difficulty, site.description, site.access, site.current, site.visibility, site.water_type, site.amenities]);
+      siteIdMap[site.id] = result.rows[0].id;
+      stats.diveSites++;
+    }
+    
+    // Clone dive buddies (need to track ID mapping for dive log buddies)
+    const buddies = await pool.query('SELECT * FROM dive_buddies WHERE user_id = $1', [onboardUserId]);
+    const buddyIdMap = {};
+    for (const buddy of buddies.rows) {
+      const result = await pool.query(`
+        INSERT INTO dive_buddies (user_id, name, notes, created_at)
+        VALUES ($1, $2, $3, NOW())
+        RETURNING id
+      `, [targetUserId, buddy.name, buddy.notes]);
+      buddyIdMap[buddy.id] = result.rows[0].id;
+      stats.diveBuddies++;
+    }
+    
+    // Clone gear profiles
+    const gearProfiles = await pool.query('SELECT * FROM gear_profiles WHERE user_id = $1', [onboardUserId]);
+    const gearIdMap = {};
+    for (const gear of gearProfiles.rows) {
+      const result = await pool.query(`
+        INSERT INTO gear_profiles (user_id, name, bcd_type, bcd_brand, bcd_model, exposure_suit_type, exposure_thickness, weighting_system, total_weight_kg, notes, created_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
+        RETURNING id
+      `, [targetUserId, gear.name, gear.bcd_type, gear.bcd_brand, gear.bcd_model, gear.exposure_suit_type, gear.exposure_thickness, gear.weighting_system, gear.total_weight_kg, gear.notes]);
+      gearIdMap[gear.id] = result.rows[0].id;
+      stats.gearProfiles++;
+      
+      // Clone gear cylinders
+      const cylinders = await pool.query('SELECT * FROM gear_cylinders WHERE gear_profile_id = $1', [gear.id]);
+      for (const cyl of cylinders.rows) {
+        await pool.query(`
+          INSERT INTO gear_cylinders (gear_profile_id, slot, tank_type, tank_size_liters, working_pressure_bar, gas_name, o2_percent, he_percent)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        `, [result.rows[0].id, cyl.slot, cyl.tank_type, cyl.tank_size_liters, cyl.working_pressure_bar, cyl.gas_name, cyl.o2_percent, cyl.he_percent]);
+      }
+      
+      // Clone gear weights
+      const weights = await pool.query('SELECT * FROM gear_weights WHERE gear_profile_id = $1', [gear.id]);
+      for (const w of weights.rows) {
+        await pool.query(`
+          INSERT INTO gear_weights (gear_profile_id, weight_type, weight_kg, position)
+          VALUES ($1, $2, $3, $4)
+        `, [result.rows[0].id, w.weight_type, w.weight_kg, w.position]);
+      }
+    }
+    
+    // Clone equipment inventory
+    const equipment = await pool.query('SELECT * FROM equipment_inventory WHERE user_id = $1', [onboardUserId]);
+    for (const eq of equipment.rows) {
+      await pool.query(`
+        INSERT INTO equipment_inventory (user_id, equipment_type, name, brand, model, serial_number, quantity, purchase_date, last_service_date, notes, created_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
+      `, [targetUserId, eq.equipment_type, eq.name, eq.brand, eq.model, eq.serial_number, eq.quantity, eq.purchase_date, eq.last_service_date, eq.notes]);
+      stats.equipment++;
+    }
+    
+    // Clone dive logs (with mapped site IDs and gear profile IDs)
+    const diveLogs = await pool.query('SELECT * FROM dive_logs WHERE user_id = $1 AND deleted_at IS NULL ORDER BY dive_datetime', [onboardUserId]);
+    const logIdMap = {};
+    for (const log of diveLogs.rows) {
+      const newSiteId = log.dive_site_id ? siteIdMap[log.dive_site_id] : null;
+      const newGearId = log.gear_profile_id ? gearIdMap[log.gear_profile_id] : null;
+      
+      const result = await pool.query(`
+        INSERT INTO dive_logs (user_id, dive_site_id, gear_profile_id, dive_datetime, duration_seconds, max_depth_meters, avg_depth_meters, 
+          min_temperature_celsius, max_temperature_celsius, dive_number, surface_interval_seconds, dive_mode, surface_conditions, 
+          weather_conditions, notes, rating, samples, gas_mixes, gas_pressures, buddy, created_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, NOW())
+        RETURNING id
+      `, [targetUserId, newSiteId, newGearId, log.dive_datetime, log.duration_seconds, log.max_depth_meters, log.avg_depth_meters,
+          log.min_temperature_celsius, log.max_temperature_celsius, log.dive_number, log.surface_interval_seconds, log.dive_mode,
+          log.surface_conditions, log.weather_conditions, log.notes, log.rating, log.samples, log.gas_mixes, log.gas_pressures, log.buddy]);
+      logIdMap[log.id] = result.rows[0].id;
+      stats.diveLogs++;
+      
+      // Clone dive log gases
+      const gases = await pool.query('SELECT * FROM dive_log_gases WHERE dive_log_id = $1', [log.id]);
+      for (const gas of gases.rows) {
+        await pool.query(`
+          INSERT INTO dive_log_gases (dive_log_id, gas_slot, name, o2_percent, he_percent, n2_percent, is_diluent, is_bailout, 
+            tank_size_liters, work_pressure_bar, start_pressure_bar, end_pressure_bar)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+        `, [result.rows[0].id, gas.gas_slot, gas.name, gas.o2_percent, gas.he_percent, gas.n2_percent, gas.is_diluent, gas.is_bailout,
+            gas.tank_size_liters, gas.work_pressure_bar, gas.start_pressure_bar, gas.end_pressure_bar]);
+      }
+    }
+    
+    // Clone certifications (courses are shared, just link to user)
+    const certs = await pool.query('SELECT * FROM user_certifications WHERE user_id = $1', [onboardUserId]);
+    for (const cert of certs.rows) {
+      await pool.query(`
+        INSERT INTO user_certifications (user_id, course_id, certification_date, certification_number, instructor_name, dive_shop, notes, created_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+      `, [targetUserId, cert.course_id, cert.certification_date, cert.certification_number, cert.instructor_name, cert.dive_shop, cert.notes]);
+      stats.certifications++;
+    }
+    
+    console.log(`Cloned onboard data to user ${targetUserId}:`, stats);
+    return { success: true, stats };
+  } catch (error) {
+    console.error('Error cloning onboard data:', error);
+    return { success: false, message: error.message };
+  }
+}
+
+// Endpoint to populate sample data for a user
+app.post('/api/user/populate-sample-data', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    
+    // Check if user already has dive logs (don't duplicate)
+    const existing = await pool.query('SELECT COUNT(*) as count FROM dive_logs WHERE user_id = $1', [userId]);
+    if (parseInt(existing.rows[0].count) > 0) {
+      return res.status(400).json({ error: 'You already have dive data. Sample data can only be added to empty accounts.' });
+    }
+    
+    const result = await cloneOnboardDataToUser(userId);
+    if (result.success) {
+      res.json({ message: 'Sample data added successfully', stats: result.stats });
+    } else {
+      res.status(500).json({ error: result.message || 'Failed to add sample data' });
+    }
+  } catch (error) {
+    console.error('Populate sample data error:', error);
+    res.status(500).json({ error: 'Failed to populate sample data' });
+  }
+});
+
 app.post('/api/auth/login', async (req, res) => {
   const { email, password } = req.body;
   

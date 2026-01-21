@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Modal, FlatList } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Modal, FlatList, Alert, Platform, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useSettings, languageOptions, themeColorOptions, QUICK_ACTION_OPTIONS, UnitSystem, DateFormat, Language } from '@/contexts/SettingsContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { getApiUrl } from '@/utils/apiConfig';
 import PageHeader from '@/components/PageHeader';
 import ThemedBackground from '@/components/ThemedBackground';
 
@@ -15,9 +17,62 @@ const dateFormatOptions: { value: DateFormat; label: string; example: string }[]
 export default function SettingsScreen() {
   const { colors } = useTheme();
   const { units, setUnits, dateFormat, setDateFormat, language, setLanguage, themeColor, setThemeColor, quickActions, setQuickActions } = useSettings();
+  const { token } = useAuth();
   const [showLanguagePicker, setShowLanguagePicker] = useState(false);
+  const [loadingSampleData, setLoadingSampleData] = useState(false);
 
   const selectedLanguage = languageOptions.find(l => l.value === language);
+
+  const handleLoadSampleData = async () => {
+    const confirmMessage = 'This will add sample dive data to help you explore the app. This only works for new accounts with no existing dives. Continue?';
+    
+    const confirmed = Platform.OS === 'web' 
+      ? window.confirm(confirmMessage)
+      : await new Promise<boolean>((resolve) => {
+          Alert.alert('Load Sample Data', confirmMessage, [
+            { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
+            { text: 'Load Data', onPress: () => resolve(true) }
+          ]);
+        });
+    
+    if (!confirmed) return;
+    
+    setLoadingSampleData(true);
+    try {
+      const response = await fetch(`${getApiUrl()}/api/user/populate-sample-data`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        const message = `Sample data loaded!\n\nDive Sites: ${data.stats?.diveSites || 0}\nDive Logs: ${data.stats?.diveLogs || 0}\nGear Profiles: ${data.stats?.gearProfiles || 0}\nBuddies: ${data.stats?.diveBuddies || 0}\nEquipment: ${data.stats?.equipment || 0}\nCertifications: ${data.stats?.certifications || 0}`;
+        if (Platform.OS === 'web') {
+          window.alert(message);
+        } else {
+          Alert.alert('Success', message);
+        }
+      } else {
+        const errorMsg = data.error || 'Failed to load sample data';
+        if (Platform.OS === 'web') {
+          window.alert(errorMsg);
+        } else {
+          Alert.alert('Error', errorMsg);
+        }
+      }
+    } catch (error) {
+      console.error('Load sample data error:', error);
+      const errorMsg = 'Failed to load sample data. Please try again.';
+      if (Platform.OS === 'web') {
+        window.alert(errorMsg);
+      } else {
+        Alert.alert('Error', errorMsg);
+      }
+    } finally {
+      setLoadingSampleData(false);
+    }
+  };
 
   const toggleQuickAction = (actionId: string) => {
     if (quickActions.includes(actionId)) {
@@ -193,6 +248,27 @@ export default function SettingsScreen() {
           <Text style={[styles.quickActionHint, { color: colors.textSecondary }]}>
             {quickActions.length}/5 selected
           </Text>
+        </View>
+
+        <View style={[styles.section, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Sample Data</Text>
+          <Text style={[styles.sectionDescription, { color: colors.textSecondary }]}>
+            New to the app? Load sample dive data to explore all features
+          </Text>
+          <Pressable
+            style={[styles.sampleDataButton, { backgroundColor: colors.primary }]}
+            onPress={handleLoadSampleData}
+            disabled={loadingSampleData}
+          >
+            {loadingSampleData ? (
+              <ActivityIndicator color="#FFF" size="small" />
+            ) : (
+              <>
+                <Ionicons name="download-outline" size={20} color="#FFF" style={{ marginRight: 8 }} />
+                <Text style={styles.sampleDataButtonText}>Load Sample Data</Text>
+              </>
+            )}
+          </Pressable>
         </View>
 
         <View style={{ height: 40 }} />
@@ -426,5 +502,18 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 12,
     textAlign: 'center',
+  },
+  sampleDataButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 14,
+    borderRadius: 8,
+    marginTop: 12,
+  },
+  sampleDataButtonText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
