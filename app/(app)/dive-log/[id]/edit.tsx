@@ -26,11 +26,6 @@ const EQUIPMENT_OPTIONS = [
   'Fins', 'Masks', 'CCR O2', 'CCR Dil', 'CCR CO2', 'Dive Computer', 'Other'
 ];
 
-const SKILLS_OPTIONS = [
-  'Bailout', 'Gas switch', 'SMB launch', 'Mask clearing', 'Backward manoeuvring',
-  'Buoyancy', 'Breathing', 'Gas Shut down', 'High PO2', 'Low PO2',
-  'Manual PO2', 'Line laying with markers'
-];
 
 const WORKLOAD_OPTIONS = ['Light', 'Moderate', 'Heavy', 'Exhausting'];
 const THERMAL_OPTIONS = ['Cold', 'Cool', 'Comfortable', 'Warm', 'Hot'];
@@ -65,7 +60,7 @@ interface DiveLog {
   thermalComfort: string | null;
   visibility: string | null;
   equipmentIssues: string[] | null;
-  skillsPracticed: string[] | null;
+  skillsNotes: string | null;
   decompressionSymptoms: boolean | null;
   problemNotes: string | null;
   gearProfileId: number | null;
@@ -113,7 +108,7 @@ export default function EditDiveLogScreen() {
   const [workload, setWorkload] = useState('');
   const [thermalComfort, setThermalComfort] = useState('');
   const [equipmentIssues, setEquipmentIssues] = useState<string[]>([]);
-  const [skillsPracticed, setSkillsPracticed] = useState<string[]>([]);
+  const [skillsNotes, setSkillsNotes] = useState('');
   const [decompressionSymptoms, setDecompressionSymptoms] = useState(false);
   const [problemNotes, setProblemNotes] = useState('');
   
@@ -177,7 +172,7 @@ export default function EditDiveLogScreen() {
       setWorkload(data.workload || '');
       setThermalComfort(data.thermalComfort || '');
       setEquipmentIssues(data.equipmentIssues || []);
-      setSkillsPracticed(data.skillsPracticed || []);
+      setSkillsNotes(data.skillsNotes || '');
       setDecompressionSymptoms(data.decompressionSymptoms || false);
       setProblemNotes(data.problemNotes || '');
       setGearProfileId(data.gearProfileId);
@@ -324,7 +319,7 @@ export default function EditDiveLogScreen() {
           workload: workload || null,
           thermalComfort: thermalComfort || null,
           equipmentIssues: equipmentIssues.length > 0 ? equipmentIssues : null,
-          skillsPracticed: skillsPracticed.length > 0 ? skillsPracticed : null,
+          skillsNotes: skillsNotes.trim() || null,
           decompressionSymptoms,
           problemNotes: problemNotes || null,
           gearProfileId,
@@ -350,12 +345,7 @@ export default function EditDiveLogScreen() {
     );
   };
 
-  const toggleSkill = (skill: string) => {
-    setSkillsPracticed((prev) =>
-      prev.includes(skill) ? prev.filter((s) => s !== skill) : [...prev, skill]
-    );
-  };
-
+  
   const toggleBuddy = (buddyId: number) => {
     setSelectedBuddyIds((prev) =>
       prev.includes(buddyId) ? prev.filter((id) => id !== buddyId) : [...prev, buddyId]
@@ -763,26 +753,42 @@ export default function EditDiveLogScreen() {
     </ScrollView>
   );
 
-  const renderSkillsTab = () => (
-    <ScrollView style={styles.tabContent} contentContainerStyle={styles.tabContentContainer}>
-      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <Text style={[styles.cardTitle, { color: colors.text }]}>Skills Practiced</Text>
-        <View style={styles.checkboxGrid}>
-          {SKILLS_OPTIONS.map((skill) => {
-            const isChecked = skillsPracticed.includes(skill);
-            return (
-              <Pressable key={skill} style={styles.checkboxItem} onPress={() => toggleSkill(skill)}>
-                <View style={[styles.checkbox, { borderColor: colors.border, backgroundColor: isChecked ? colors.primary + '20' : 'transparent' }]}>
-                  {isChecked && <Feather name="check" size={12} color={colors.primary} />}
-                </View>
-                <Text style={[styles.checkboxLabel, { color: colors.text }]}>{skill}</Text>
-              </Pressable>
-            );
-          })}
+  const renderSkillsTab = () => {
+    const placeholderText = `Record the skills you practised on this dive, for example:
+• Buoyancy control and trim
+• SMB deployment
+• Mask clearing
+• Gas switching procedures
+• Backwards finning
+• Line laying with markers
+• Emergency drills (bailout, valve shutdown)`;
+    
+    return (
+      <ScrollView style={styles.tabContent} contentContainerStyle={styles.tabContentContainer}>
+        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+            <Feather name="award" size={16} color={colors.primary} />
+            <Text style={[styles.cardTitle, { color: colors.text, marginBottom: 0 }]}>Skills Practised</Text>
+          </View>
+          <TextInput
+            style={[styles.input, { 
+              color: colors.text, 
+              backgroundColor: colors.background, 
+              borderColor: colors.border,
+              minHeight: 180,
+              textAlignVertical: 'top',
+              paddingTop: 12,
+            }]}
+            value={skillsNotes}
+            onChangeText={setSkillsNotes}
+            multiline
+            placeholder={placeholderText}
+            placeholderTextColor={colors.textSecondary}
+          />
         </View>
-      </View>
-    </ScrollView>
-  );
+      </ScrollView>
+    );
+  };
 
   const renderComputerTab = () => (
     <ScrollView style={styles.tabContent} contentContainerStyle={styles.tabContentContainer}>
