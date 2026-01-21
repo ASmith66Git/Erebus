@@ -81,6 +81,7 @@ export default function PhotoDetailScreen() {
   const { colors } = useTheme();
   const { token } = useAuth();
   const scrubListRef = useRef<FlatList>(null);
+  const mainPhotoListRef = useRef<FlatList>(null);
   
   const [photo, setPhoto] = useState<Photo | null>(null);
   const [loading, setLoading] = useState(true);
@@ -336,8 +337,18 @@ export default function PhotoDetailScreen() {
     );
   }
 
-  const renderViewMode = () => (
-    <View style={styles.viewModeContainer}>
+  const handleSwipePhotoChange = (index: number) => {
+    if (index >= 0 && index < tripPhotos.length && tripPhotos[index]) {
+      const newPhoto = tripPhotos[index];
+      setCurrentPhotoIndex(index);
+      navigateToPhoto(newPhoto.id, index);
+    }
+  };
+
+  const renderViewMode = () => {
+    const hasTripPhotos = tripId && tripPhotos.length > 1;
+    
+    const renderSinglePhoto = () => (
       <View style={styles.fullImageContainer}>
         <Image
           source={{ uri: getImageUrl(photo.imageUrl) }}
@@ -345,53 +356,91 @@ export default function PhotoDetailScreen() {
           resizeMode="contain"
         />
       </View>
-      
-      <View style={[styles.viewModeOverlay, { backgroundColor: colors.background + 'E6' }]}>
-        <View style={styles.viewModeActions}>
-          <Pressable 
-            style={[styles.viewActionButton, { backgroundColor: colors.surface }]} 
-            onPress={toggleFavorite}
-          >
-            <Ionicons 
-              name={photo.isFavorite ? 'heart' : 'heart-outline'} 
-              size={24} 
-              color={photo.isFavorite ? '#FF3B30' : colors.text} 
+    );
+    
+    const renderSwipeablePhotos = () => (
+      <FlatList
+        ref={mainPhotoListRef}
+        data={tripPhotos}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        initialScrollIndex={currentPhotoIndex}
+        getItemLayout={(data, index) => ({
+          length: SCREEN_WIDTH,
+          offset: SCREEN_WIDTH * index,
+          index,
+        })}
+        onMomentumScrollEnd={(e) => {
+          const newIndex = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH);
+          if (newIndex !== currentPhotoIndex && newIndex >= 0 && newIndex < tripPhotos.length) {
+            handleSwipePhotoChange(newIndex);
+          }
+        }}
+        keyExtractor={(item) => item.id.toString()}
+        renderItem={({ item }) => (
+          <View style={[styles.fullImageContainer, { width: SCREEN_WIDTH }]}>
+            <Image
+              source={{ uri: getImageUrl(item.image_url) }}
+              style={styles.fullImage}
+              resizeMode="contain"
             />
-          </Pressable>
+          </View>
+        )}
+      />
+    );
+    
+    return (
+      <View style={styles.viewModeContainer}>
+        {hasTripPhotos ? renderSwipeablePhotos() : renderSinglePhoto()}
+        
+        <View style={[styles.viewModeOverlay, { backgroundColor: colors.background + 'E6' }]}>
+          <View style={styles.viewModeActions}>
+            <Pressable 
+              style={[styles.viewActionButton, { backgroundColor: colors.surface }]} 
+              onPress={toggleFavorite}
+            >
+              <Ionicons 
+                name={photo.isFavorite ? 'heart' : 'heart-outline'} 
+                size={24} 
+                color={photo.isFavorite ? '#FF3B30' : colors.text} 
+              />
+            </Pressable>
+            
+            <Pressable 
+              style={[styles.viewActionButton, { backgroundColor: colors.primary }]} 
+              onPress={handleStartEditing}
+            >
+              <Feather name="edit-2" size={20} color="#FFF" />
+            </Pressable>
+          </View>
           
-          <Pressable 
-            style={[styles.viewActionButton, { backgroundColor: colors.primary }]} 
-            onPress={handleStartEditing}
-          >
-            <Feather name="edit-2" size={20} color="#FFF" />
-          </Pressable>
+          {photo.caption && (
+            <View style={[styles.captionContainer, { backgroundColor: colors.surface }]}>
+              <Text style={[styles.captionText, { color: colors.text }]}>{photo.caption}</Text>
+            </View>
+          )}
+          
+          {(photo.diveSiteName || photo.tripName) && (
+            <View style={[styles.infoContainer, { backgroundColor: colors.surface }]}>
+              {photo.diveSiteName && (
+                <View style={styles.infoRow}>
+                  <Ionicons name="water" size={16} color={colors.primary} />
+                  <Text style={[styles.infoText, { color: colors.text }]}>{photo.diveSiteName}</Text>
+                </View>
+              )}
+              {photo.tripName && (
+                <View style={styles.infoRow}>
+                  <Ionicons name="airplane" size={16} color={colors.primary} />
+                  <Text style={[styles.infoText, { color: colors.text }]}>{photo.tripName}</Text>
+                </View>
+              )}
+            </View>
+          )}
         </View>
-        
-        {photo.caption && (
-          <View style={[styles.captionContainer, { backgroundColor: colors.surface }]}>
-            <Text style={[styles.captionText, { color: colors.text }]}>{photo.caption}</Text>
-          </View>
-        )}
-        
-        {(photo.diveSiteName || photo.tripName) && (
-          <View style={[styles.infoContainer, { backgroundColor: colors.surface }]}>
-            {photo.diveSiteName && (
-              <View style={styles.infoRow}>
-                <Ionicons name="water" size={16} color={colors.primary} />
-                <Text style={[styles.infoText, { color: colors.text }]}>{photo.diveSiteName}</Text>
-              </View>
-            )}
-            {photo.tripName && (
-              <View style={styles.infoRow}>
-                <Ionicons name="airplane" size={16} color={colors.primary} />
-                <Text style={[styles.infoText, { color: colors.text }]}>{photo.tripName}</Text>
-              </View>
-            )}
-          </View>
-        )}
       </View>
-    </View>
-  );
+    );
+  };
 
   const renderEditMode = () => (
     <ScrollView style={styles.content}>
