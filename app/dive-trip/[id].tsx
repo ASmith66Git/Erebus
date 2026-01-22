@@ -12,6 +12,7 @@ import {
   Image,
   FlatList,
   Dimensions,
+  Modal,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Feather, Ionicons } from '@expo/vector-icons';
@@ -23,8 +24,8 @@ import ThemedBackground from '@/components/ThemedBackground';
 import EmbeddedMapPicker from '@/components/EmbeddedMapPicker';
 import StaticMapView from '@/components/StaticMapView';
 import * as ImagePicker from 'expo-image-picker';
-
-import DatePickerField from '@/components/DatePickerField';
+import DateTimePicker from 'react-native-ui-datepicker';
+import dayjs from 'dayjs';
 
 type TabType = 'details' | 'dives' | 'photos';
 
@@ -80,6 +81,7 @@ export default function DiveTripScreen() {
   const [tripPhotos, setTripPhotos] = useState<TripPhoto[]>([]);
   const [availableDives, setAvailableDives] = useState<AvailableDiveLog[]>([]);
   const [showDivePicker, setShowDivePicker] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState<'start' | 'end' | null>(null);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -567,24 +569,40 @@ export default function DiveTripScreen() {
             </View>
           </View>
 
-          <View style={styles.formRow}>
-            <View style={{ flex: 1 }}>
-              <DatePickerField
-                label="Start Date"
-                value={formData.startDate}
-                onChange={(date: string) => setFormData({ ...formData, startDate: date })}
-                placeholder="Select date"
-              />
+          <View style={styles.dateRow}>
+            <View style={styles.dateField}>
+              <Text style={[styles.formLabel, { color: colors.text }]}>Start Date</Text>
+              <Pressable
+                style={[styles.dateButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                onPress={() => setShowDatePicker('start')}
+              >
+                <Feather name="calendar" size={18} color={colors.textSecondary} />
+                <Text style={[styles.dateButtonText, { color: formData.startDate ? colors.text : colors.textSecondary }]} numberOfLines={1}>
+                  {formData.startDate ? dayjs(formData.startDate).format('D MMM YYYY') : 'Select'}
+                </Text>
+                {formData.startDate && (
+                  <Pressable onPress={() => setFormData(prev => ({ ...prev, startDate: '' }))} hitSlop={8}>
+                    <Feather name="x-circle" size={16} color={colors.textSecondary} />
+                  </Pressable>
+                )}
+              </Pressable>
             </View>
-            <View style={{ flex: 1 }}>
-              <DatePickerField
-                label="End Date"
-                value={formData.endDate}
-                onChange={(date: string) => setFormData({ ...formData, endDate: date })}
-                placeholder="Select date"
-                initialDisplayDate={formData.startDate}
-                minDate={formData.startDate ? new Date(formData.startDate) : undefined}
-              />
+            <View style={styles.dateField}>
+              <Text style={[styles.formLabel, { color: colors.text }]}>End Date</Text>
+              <Pressable
+                style={[styles.dateButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                onPress={() => setShowDatePicker('end')}
+              >
+                <Feather name="calendar" size={18} color={colors.textSecondary} />
+                <Text style={[styles.dateButtonText, { color: formData.endDate ? colors.text : colors.textSecondary }]} numberOfLines={1}>
+                  {formData.endDate ? dayjs(formData.endDate).format('D MMM YYYY') : 'Select'}
+                </Text>
+                {formData.endDate && (
+                  <Pressable onPress={() => setFormData(prev => ({ ...prev, endDate: '' }))} hitSlop={8}>
+                    <Feather name="x-circle" size={16} color={colors.textSecondary} />
+                  </Pressable>
+                )}
+              </Pressable>
             </View>
           </View>
 
@@ -926,6 +944,62 @@ export default function DiveTripScreen() {
       {activeTab === 'details' && renderDetailsTab()}
       {activeTab === 'dives' && !isNew && renderDivesTab()}
       {activeTab === 'photos' && !isNew && renderPhotosTab()}
+
+      {/* Date Picker Modal */}
+      <Modal
+        visible={showDatePicker !== null}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setShowDatePicker(null)}
+      >
+        <Pressable
+          style={styles.dateModalOverlay}
+          onPress={() => setShowDatePicker(null)}
+        >
+          <Pressable
+            style={[styles.dateModalContent, { backgroundColor: colors.surface }]}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View style={[styles.dateModalHeader, { borderBottomColor: colors.border }]}>
+              <Text style={[styles.dateModalTitle, { color: colors.text }]}>
+                {showDatePicker === 'start' ? 'Start Date' : 'End Date'}
+              </Text>
+              <Pressable onPress={() => setShowDatePicker(null)}>
+                <Feather name="x" size={24} color={colors.text} />
+              </Pressable>
+            </View>
+            <View style={styles.datePickerContainer}>
+              <DateTimePicker
+                mode="single"
+                date={showDatePicker === 'start' 
+                  ? (formData.startDate ? dayjs(formData.startDate) : dayjs())
+                  : (formData.endDate ? dayjs(formData.endDate) : (formData.startDate ? dayjs(formData.startDate) : dayjs()))
+                }
+                onChange={(params: any) => {
+                  if (params.date) {
+                    const dateStr = dayjs(params.date).format('YYYY-MM-DD');
+                    if (showDatePicker === 'start') {
+                      setFormData(prev => ({ ...prev, startDate: dateStr }));
+                    } else {
+                      setFormData(prev => ({ ...prev, endDate: dateStr }));
+                    }
+                    setShowDatePicker(null);
+                  }
+                }}
+                minDate={showDatePicker === 'end' && formData.startDate ? dayjs(formData.startDate) : undefined}
+                calendarTextStyle={{ color: colors.text }}
+                selectedTextStyle={{ color: '#FFFFFF' }}
+                headerTextStyle={{ color: colors.text }}
+                weekDaysTextStyle={{ color: colors.textSecondary }}
+                monthContainerStyle={{ backgroundColor: colors.surface }}
+                yearContainerStyle={{ backgroundColor: colors.surface }}
+                selectedItemColor={colors.primary}
+                headerButtonColor={colors.primary}
+              />
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </ThemedBackground>
   );
 }
@@ -963,6 +1037,56 @@ const styles = StyleSheet.create({
   tabContentContainer: { padding: 16, paddingBottom: 40 },
   formGroup: { marginBottom: 20 },
   formRow: { flexDirection: 'row', gap: 12, marginBottom: 20 },
+  dateRow: {
+    flexDirection: 'row',
+    marginBottom: 20,
+  },
+  dateField: {
+    flex: 1,
+    marginHorizontal: 4,
+  },
+  dateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 12,
+    minHeight: 48,
+  },
+  dateButtonText: {
+    flex: 1,
+    fontSize: 14,
+    marginLeft: 6,
+  },
+  dateModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  dateModalContent: {
+    width: '100%',
+    maxWidth: 380,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  dateModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+  },
+  dateModalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  datePickerContainer: {
+    padding: 16,
+  },
   formLabel: { fontSize: 14, fontWeight: '500', marginBottom: 8 },
   formInput: {
     borderWidth: 1,
