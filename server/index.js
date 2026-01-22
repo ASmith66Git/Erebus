@@ -6947,6 +6947,18 @@ app.post('/api/support/conversations', authenticateToken, async (req, res) => {
       `, [conversation.id, userId, message]);
       
       await client.query('COMMIT');
+      
+      // Notify all admins about the new support ticket
+      const admins = await pool.query("SELECT id FROM users WHERE role = 'admin'");
+      for (const admin of admins.rows) {
+        sendPushNotification(
+          admin.id,
+          'New Support Ticket',
+          `${subject}: ${message.length > 80 ? message.substring(0, 80) + '...' : message}`,
+          { type: 'support_new_ticket', conversationId: conversation.id }
+        ).catch(err => console.error('Admin push notification error:', err));
+      }
+      
       res.status(201).json(conversation);
     } catch (err) {
       await client.query('ROLLBACK');
@@ -7029,6 +7041,17 @@ app.post('/api/support/conversations/:id/messages', authenticateToken, async (re
       'UPDATE support_conversations SET updated_at = CURRENT_TIMESTAMP, status = $1 WHERE id = $2',
       ['open', conversationId]
     );
+    
+    // Notify all admins about the new user message
+    const admins = await pool.query("SELECT id FROM users WHERE role = 'admin'");
+    for (const admin of admins.rows) {
+      sendPushNotification(
+        admin.id,
+        'New Support Message',
+        message.length > 100 ? message.substring(0, 100) + '...' : message,
+        { type: 'support_user_message', conversationId: conversationId }
+      ).catch(err => console.error('Admin push notification error:', err));
+    }
     
     res.status(201).json(result.rows[0]);
   } catch (error) {
