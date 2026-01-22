@@ -1,0 +1,70 @@
+our code is actually very well-written—it already includes several "heavy-duty" fixes (like GATT refreshing and progressive delays) specifically tailored for Android 15 and Shearwater hardware.
+
+However, based on the logs you provided earlier and the code structure, there are two specific "silent killers" in this Replit code that are likely causing the Operation cancelled (error code 2) during service discovery.
+
+1. The UUID Mismatch (Primary Suspect)
+In your code, you have defined: const shearwaterServiceUUID = 'fe25c237-0ece-443c-b0aa-e02033e7029d';
+
+While this is a valid Shearwater UUID for newer models (like the Tern), many Perdix (especially older ones or those on specific firmware) still present the standard Silicon Labs BLE service used by Shearwater.
+
+The Fix: You need to check for both possible UUIDs. If your serviceUUIDs.includes(shearwaterServiceUUID) check fails, the app enters a retry loop that eventually triggers the "Operation Cancelled" error when it gives up.
+
+2. The "MTU Request" Race Condition
+In your connect method, you are requesting the MTU during the connection call:
+
+JavaScript
+
+const device = await this.manager.connectToDevice(deviceId, {
+  timeout: 25000,
+  requestMTU: 512, // <--- This is the danger zone
+  refreshGatt: 'OnConnected',
+});
+The Problem: On many Android Bluetooth stacks, requesting an MTU change simultaneously with a GATT refresh and connection can crash the internal GATT tool, leading to an immediate Operation Cancelled.
+
+Recommended Code Adjustments
+Apply these changes to your connect(deviceId: string) function:
+
+Change A: Expand the UUID check
+Update your constant and the check logic:
+
+JavaScript
+
+// Add the legacy UUID used by many Perdix units
+const SHEARWATER_UUIDS = [
+  'fe25c237-0ece-443c-b0aa-e02033e7029d', // New
+  '0000fee9-0000-1000-8000-00805f9b34fb'  // Legacy/Standard
+];
+
+// ... inside your discovery loop ...
+const serviceUUIDs = services.map(s => s.uuid.toLowerCase());
+const foundShearwater = SHEARWATER_UUIDS.some(uuid => 
+  serviceUUIDs.includes(uuid.toLowerCase())
+);
+
+if (foundShearwater) {
+  console.log('BLE: Shearwater service found!');
+  discoverySuccess = true;
+  break;
+}
+Change B: Move MTU Request
+Remove requestMTU: 512 from the connectToDevice options and move it to after service discovery is successful.
+
+JavaScript
+
+// 1. Connect without MTU first
+const device = await this.manager.connectToDevice(deviceId, {
+  timeout: 25000,
+  refreshGatt: 'OnConnected', 
+});
+
+// ... after discoverySuccess is true ...
+console.log('BLE: Discovery successful, now requesting MTU 512');
+try {
+  await device.requestMTU(512);
+} catch (e) {
+  console.warn('MTU Request failed, continuing with default', e.message);
+}
+Why the Logs showed "Operation Cancelled"
+When react-native-ble-plx throws error code 2, it usually means the Observable (the internal stream) was disposed of because a timeout was hit or a new connection attempt was started before the old one finished.
+
+By having a 3-second delay (await new Promise(resolve => setTimeout(resolve, 3000));) followed by a 4-cycle retry loop, you might be hitting the total transaction timeout for the Android BLE stack. Expanding the UUID check will allow the app to "succeed" on the first try rather than failing through to the cancellation point.

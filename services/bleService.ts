@@ -159,7 +159,11 @@ class BleService {
       throw new Error('BLE not initialized');
     }
 
-    const shearwaterServiceUUID = 'fe25c237-0ece-443c-b0aa-e02033e7029d';
+    // Support both new and legacy Shearwater UUIDs
+    const SHEARWATER_UUIDS = [
+      'fe25c237-0ece-443c-b0aa-e02033e7029d', // New (Tern, newer Perdix firmware)
+      '0000fee9-0000-1000-8000-00805f9b34fb', // Legacy/Standard Silicon Labs BLE
+    ];
     const maxConnectionAttempts = 3; // Full connection cycles to try
     
     for (let connectionCycle = 1; connectionCycle <= maxConnectionAttempts; connectionCycle++) {
@@ -184,9 +188,9 @@ class BleService {
           }
         }
 
+        // Connect WITHOUT MTU request to avoid race condition on Android
         const device = await this.manager.connectToDevice(deviceId, {
           timeout: 25000, // Increased timeout for Android 15 on foldables
-          requestMTU: 512,
           refreshGatt: 'OnConnected', // Force GATT cache refresh on Android 15
         });
         console.log('BLE: Connected, waiting 3000ms before discovery (Android 15 GATT stability)...');
@@ -228,8 +232,12 @@ class BleService {
               }
             }
             
-            // Check if Shearwater service is present
-            if (serviceUUIDs.includes(shearwaterServiceUUID)) {
+            // Check if any Shearwater service UUID is present
+            const foundShearwater = SHEARWATER_UUIDS.some(uuid => 
+              serviceUUIDs.includes(uuid.toLowerCase())
+            );
+            
+            if (foundShearwater) {
               console.log('BLE: Shearwater service found!');
               discoverySuccess = true;
               break;
@@ -278,7 +286,10 @@ class BleService {
               const retryUUIDs = retryServices.map((s: any) => s.uuid.toLowerCase());
               console.log('BLE: Post-ping services:', retryUUIDs.join(', '));
               
-              if (retryUUIDs.includes(shearwaterServiceUUID)) {
+              const foundAfterPing = SHEARWATER_UUIDS.some(uuid => 
+                retryUUIDs.includes(uuid.toLowerCase())
+              );
+              if (foundAfterPing) {
                 console.log('BLE: Shearwater service found after RSSI ping!');
                 discoverySuccess = true;
               }
@@ -313,6 +324,15 @@ class BleService {
         // Final verification
         const verifyServices = await device.services();
         console.log('BLE: Final service count:', verifyServices.length);
+        
+        // Request MTU AFTER discovery to avoid Android race condition
+        console.log('BLE: Discovery successful, requesting MTU 512...');
+        try {
+          await device.requestMTU(512);
+          console.log('BLE: MTU request successful');
+        } catch (mtuError: any) {
+          console.warn('BLE: MTU request failed, continuing with default:', mtuError?.message);
+        }
         
         this.connectedDevice = device;
         this.connectedDeviceId = deviceId;

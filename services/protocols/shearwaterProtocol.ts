@@ -9,8 +9,15 @@ import {
 } from './baseProtocol';
 import { DownloadProgress } from '../bleService';
 
-const SHEARWATER_SERVICE_UUID = 'fe25c237-0ece-443c-b0aa-e02033e7029d';
-const SHEARWATER_CHAR_UUID = '27b7570b-359e-45a3-91bb-cf7e70049bd2';
+// Support both new and legacy Shearwater service UUIDs
+const SHEARWATER_SERVICE_UUIDS = [
+  'fe25c237-0ece-443c-b0aa-e02033e7029d', // New (Tern, newer Perdix firmware)
+  '0000fee9-0000-1000-8000-00805f9b34fb', // Legacy/Standard Silicon Labs BLE
+];
+const SHEARWATER_CHAR_UUIDS = [
+  '27b7570b-359e-45a3-91bb-cf7e70049bd2', // New characteristic
+  '0000fee8-0000-1000-8000-00805f9b34fb', // Legacy characteristic (TX)
+];
 
 const MANIFEST_ADDR = 0xe0000000;
 const MANIFEST_SIZE = 0x600;
@@ -122,21 +129,37 @@ function bytesToHex(bytes: Uint8Array): string {
 
 export class ShearwaterProtocol extends BaseDiveComputerProtocol {
   private fingerprint: Uint8Array = new Uint8Array(4);
+  private activeServiceUUID: string = SHEARWATER_SERVICE_UUIDS[0];
+  private activeCharUUID: string = SHEARWATER_CHAR_UUIDS[0];
   
   get name(): string {
     return 'Shearwater';
   }
   
   get serviceUUID(): string {
-    return SHEARWATER_SERVICE_UUID;
+    return this.activeServiceUUID;
   }
   
   get characteristicUUID(): string {
-    return SHEARWATER_CHAR_UUID;
+    return this.activeCharUUID;
   }
   
   get supportedModels(): string[] {
     return Object.values(HARDWARE_MAP);
+  }
+  
+  get allServiceUUIDs(): string[] {
+    return SHEARWATER_SERVICE_UUIDS;
+  }
+  
+  get allCharacteristicUUIDs(): string[] {
+    return SHEARWATER_CHAR_UUIDS;
+  }
+  
+  setActiveUUIDs(serviceUUID: string, charUUID: string): void {
+    this.activeServiceUUID = serviceUUID;
+    this.activeCharUUID = charUUID;
+    console.log(`Shearwater: Using service ${serviceUUID}, char ${charUUID}`);
   }
   
   setFingerprint(data: Uint8Array): void {
