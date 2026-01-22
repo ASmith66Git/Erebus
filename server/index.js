@@ -3566,6 +3566,8 @@ app.get('/api/photos', authenticateToken, async (req, res) => {
         width: row.width,
         height: row.height,
         fileSize: row.file_size,
+        mediaType: row.media_type || 'image',
+        duration: row.duration,
         isFavorite: row.is_favorite,
         createdAt: row.created_at,
         updatedAt: row.updated_at
@@ -3617,6 +3619,8 @@ app.get('/api/photos/:id', authenticateToken, async (req, res) => {
       width: row.width,
       height: row.height,
       fileSize: row.file_size,
+      mediaType: row.media_type || 'image',
+      duration: row.duration,
       isFavorite: row.is_favorite,
       createdAt: row.created_at,
       updatedAt: row.updated_at
@@ -3627,12 +3631,12 @@ app.get('/api/photos/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// Create new photo
+// Create new photo/video
 app.post('/api/photos', authenticateToken, async (req, res) => {
-  const { imageUrl, thumbnailUrl, caption, takenAt, diveLogId, locationLat, locationLng, width, height, fileSize } = req.body;
+  const { imageUrl, thumbnailUrl, caption, takenAt, diveLogId, locationLat, locationLng, width, height, fileSize, mediaType, duration } = req.body;
   
   if (!imageUrl) {
-    return res.status(400).json({ error: 'Image URL is required' });
+    return res.status(400).json({ error: 'Media URL is required' });
   }
   
   try {
@@ -3645,10 +3649,10 @@ app.post('/api/photos', authenticateToken, async (req, res) => {
     }
     
     const result = await pool.query(`
-      INSERT INTO dive_photos (user_id, dive_log_id, image_url, thumbnail_url, caption, taken_at, location_lat, location_lng, width, height, file_size)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      INSERT INTO dive_photos (user_id, dive_log_id, image_url, thumbnail_url, caption, taken_at, location_lat, location_lng, width, height, file_size, media_type, duration)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
       RETURNING *
-    `, [req.user.id, diveLogId || null, imageUrl, thumbnailUrl || null, caption || null, takenAt || null, locationLat || null, locationLng || null, width || null, height || null, fileSize || null]);
+    `, [req.user.id, diveLogId || null, imageUrl, thumbnailUrl || null, caption || null, takenAt || null, locationLat || null, locationLng || null, width || null, height || null, fileSize || null, mediaType || 'image', duration || null]);
     
     const row = result.rows[0];
     res.status(201).json({
@@ -3664,6 +3668,8 @@ app.post('/api/photos', authenticateToken, async (req, res) => {
       width: row.width,
       height: row.height,
       fileSize: row.file_size,
+      mediaType: row.media_type,
+      duration: row.duration,
       isFavorite: row.is_favorite,
       createdAt: row.created_at,
       updatedAt: row.updated_at
