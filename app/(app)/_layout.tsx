@@ -54,7 +54,6 @@ function CustomDrawerContent(props: any) {
     { icon: 'rocket-outline', label: 'Roadmap', action: () => handleNavigation('/(app)/(tabs)/roadmap-admin') },
     { icon: 'code-slash-outline', label: 'Dev Log', action: () => handleNavigation('/(app)/(tabs)/dev-log') },
     { icon: 'bug-outline', label: 'Debug Logs', action: () => handleNavigation('/(app)/(tabs)/debug-log') },
-    { icon: 'options-outline', label: 'Other Settings', action: () => showComingSoon('Other Settings') },
   ];
 
   return (
