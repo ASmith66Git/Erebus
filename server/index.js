@@ -1550,9 +1550,7 @@ app.post('/api/admin/users/:id/reset-password', authenticateToken, requireAdmin,
       [resetToken, resetExpires, id]
     );
     
-    const baseUrl = process.env.REPLIT_DEV_DOMAIN 
-      ? `https://${process.env.REPLIT_DEV_DOMAIN}`
-      : 'http://localhost:5000';
+    const baseUrl = req.headers.origin || `https://${req.headers.host}`;
     const resetLink = `${baseUrl}/reset-password?token=${resetToken}`;
     
     try {
