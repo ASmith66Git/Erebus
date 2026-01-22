@@ -337,7 +337,14 @@ export default function BleConnectScreen() {
           Connect Dive Computer
         </Text>
         <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>
-          Make sure your dive computer is in Bluetooth pairing mode
+          Put your dive computer in Bluetooth/Upload mode and keep it active throughout the transfer. For Shearwater: Menu → System Setup → Bluetooth → PC Upload.
+        </Text>
+      </View>
+      
+      <View style={[styles.tipBanner, { backgroundColor: colors.primary + '15', borderColor: colors.primary + '30' }]}>
+        <Feather name="info" size={16} color={colors.primary} />
+        <Text style={[styles.tipText, { color: colors.text }]}>
+          Connection issues? Try unpairing the device in Android Settings → Bluetooth first, then scan again.
         </Text>
       </View>
 
@@ -452,6 +459,21 @@ const styles = StyleSheet.create({
   errorBannerText: {
     flex: 1,
     fontSize: 13,
+  },
+  tipBanner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    marginHorizontal: 20,
+    marginBottom: 16,
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  tipText: {
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 18,
   },
   deviceList: {
     flex: 1,
