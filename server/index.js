@@ -6895,7 +6895,7 @@ app.get('/api/support/conversations', authenticateToken, async (req, res) => {
         (SELECT sm.message FROM support_messages sm WHERE sm.conversation_id = sc.id ORDER BY sm.created_at DESC LIMIT 1) as last_message,
         (SELECT sm.created_at FROM support_messages sm WHERE sm.conversation_id = sc.id ORDER BY sm.created_at DESC LIMIT 1) as last_message_at
       FROM support_conversations sc
-      WHERE sc.user_id = $1
+      WHERE sc.user_id = $1 AND sc.status != 'closed'
       ORDER BY sc.updated_at DESC
     `, [userId]);
     res.json(result.rows);
@@ -7031,7 +7031,7 @@ app.get('/api/support/unread-count', authenticateToken, async (req, res) => {
       SELECT COUNT(*) as count
       FROM support_messages sm
       JOIN support_conversations sc ON sm.conversation_id = sc.id
-      WHERE sc.user_id = $1 AND sm.is_admin_reply = true AND sm.read_at IS NULL
+      WHERE sc.user_id = $1 AND sc.status != 'closed' AND sm.is_admin_reply = true AND sm.read_at IS NULL
     `, [userId]);
     res.json({ count: parseInt(result.rows[0].count) });
   } catch (error) {
