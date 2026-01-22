@@ -19,6 +19,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { Video, ResizeMode } from 'expo-av';
 import { getApiUrl } from '@/utils/apiConfig';
+import { compressVideo, formatBytes, isCompressionAvailable, CompressionProgress } from '@/services/videoService';
 import PageHeader from '@/components/PageHeader';
 import ThemedBackground from '@/components/ThemedBackground';
 
@@ -71,6 +72,7 @@ export default function PhotosScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [compressionProgress, setCompressionProgress] = useState<CompressionProgress | null>(null);
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
   const [viewerIndex, setViewerIndex] = useState(0);
   const [showViewer, setShowViewer] = useState(false);
@@ -247,10 +249,30 @@ export default function PhotosScreen() {
 
   const uploadMedia = async (assets: ImagePicker.ImagePickerAsset[]) => {
     setUploading(true);
+    setCompressionProgress(null);
     
     try {
       for (const asset of assets) {
         const isVideo = asset.type === 'video';
+        let mediaUri = asset.uri;
+        let thumbnailUri: string | null = null;
+        let finalFileSize = asset.fileSize || 0;
+        
+        if (isVideo && isCompressionAvailable()) {
+          console.log('Step 0: Compressing video...');
+          const result = await compressVideo(asset.uri, (progress) => {
+            setCompressionProgress(progress);
+          });
+          mediaUri = result.compressedUri;
+          thumbnailUri = result.thumbnailUri;
+          finalFileSize = result.compressedSize;
+          console.log(`Compressed: ${formatBytes(result.originalSize)} -> ${formatBytes(result.compressedSize)} (${Math.round(result.compressionRatio * 100)}%)`);
+          setCompressionProgress(null);
+        } else if (isVideo) {
+          const { generateThumbnail: genThumb } = require('@/services/videoService');
+          thumbnailUri = await genThumb(asset.uri);
+        }
+        
         const extension = isVideo ? 'mp4' : 'jpg';
         const contentType = isVideo ? 'video/mp4' : 'image/jpeg';
         const fileName = `${isVideo ? 'video' : 'photo'}-${Date.now()}.${extension}`;
@@ -264,7 +286,7 @@ export default function PhotosScreen() {
           },
           body: JSON.stringify({
             name: fileName,
-            size: asset.fileSize || 0,
+            size: finalFileSize,
             contentType,
           }),
         });
@@ -276,7 +298,7 @@ export default function PhotosScreen() {
         const { uploadURL, objectPath } = await urlResponse.json();
         console.log('Step 2: Got upload URL, fetching media blob...');
         
-        const mediaResponse = await fetch(asset.uri);
+        const mediaResponse = await fetch(mediaUri);
         const mediaBlob = await mediaResponse.blob();
         console.log('Step 3: Got media blob, uploading to storage...', mediaBlob.size);
         
@@ -303,6 +325,47 @@ export default function PhotosScreen() {
         const { url: mediaUrl } = await getUrlResponse.json();
         console.log('Step 5: Got public URL, saving to database...', mediaUrl);
         
+        let thumbnailUrl: string | null = null;
+        if (thumbnailUri) {
+          console.log('Step 5b: Uploading thumbnail...');
+          const thumbFileName = `thumb-${Date.now()}.jpg`;
+          const thumbUrlResponse = await fetch(`${getApiUrl()}/api/uploads/request-url`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              name: thumbFileName,
+              size: 0,
+              contentType: 'image/jpeg',
+            }),
+          });
+          
+          if (thumbUrlResponse.ok) {
+            const { uploadURL: thumbUploadURL, objectPath: thumbObjectPath } = await thumbUrlResponse.json();
+            const thumbResponse = await fetch(thumbnailUri);
+            const thumbBlob = await thumbResponse.blob();
+            
+            const thumbUploadRes = await fetch(thumbUploadURL, {
+              method: 'PUT',
+              body: thumbBlob,
+              headers: { 'Content-Type': 'image/jpeg' },
+            });
+            
+            if (thumbUploadRes.ok) {
+              const thumbGetUrlRes = await fetch(`${getApiUrl()}/api/objects/url?path=${encodeURIComponent(thumbObjectPath)}`, {
+                headers: { Authorization: `Bearer ${token}` },
+              });
+              if (thumbGetUrlRes.ok) {
+                const { url } = await thumbGetUrlRes.json();
+                thumbnailUrl = url;
+                console.log('Thumbnail uploaded:', thumbnailUrl);
+              }
+            }
+          }
+        }
+        
         const saveResponse = await fetch(`${getApiUrl()}/api/photos`, {
           method: 'POST',
           headers: {
@@ -311,9 +374,10 @@ export default function PhotosScreen() {
           },
           body: JSON.stringify({
             imageUrl: mediaUrl,
+            thumbnailUrl,
             width: asset.width,
             height: asset.height,
-            fileSize: asset.fileSize,
+            fileSize: finalFileSize,
             mediaType: isVideo ? 'video' : 'image',
             duration: isVideo ? Math.round(asset.duration || 0) : null,
           }),
@@ -333,6 +397,7 @@ export default function PhotosScreen() {
       alert(`Failed to upload media: ${error?.message || 'Unknown error'}`);
     } finally {
       setUploading(false);
+      setCompressionProgress(null);
     }
   };
 
@@ -798,10 +863,34 @@ export default function PhotosScreen() {
         </ScrollView>
       </View>
       
+      {compressionProgress && (
+        <View style={styles.compressionOverlay}>
+          <View style={[styles.compressionCard, { backgroundColor: colors.surface }]}>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={[styles.compressionText, { color: colors.text }]}>
+              {compressionProgress.stage === 'compressing' 
+                ? `Compressing video... ${Math.round(compressionProgress.progress * 100)}%`
+                : compressionProgress.stage === 'thumbnail'
+                ? 'Generating thumbnail...'
+                : 'Complete'}
+            </Text>
+            <View style={styles.progressBarContainer}>
+              <View 
+                style={[
+                  styles.progressBar, 
+                  { width: `${compressionProgress.progress * 100}%`, backgroundColor: colors.primary }
+                ]} 
+              />
+            </View>
+          </View>
+        </View>
+      )}
+      
       {!selectionMode && (
         <Pressable
           style={[styles.fab, { backgroundColor: colors.primary }]}
           onPress={() => setShowUploadMenu(true)}
+          disabled={uploading}
         >
           {uploading ? (
             <ActivityIndicator color="#FFF" />
@@ -1153,6 +1242,42 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 6,
+  },
+  compressionOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 100,
+  },
+  compressionCard: {
+    padding: 24,
+    borderRadius: 16,
+    alignItems: 'center',
+    width: '80%',
+    maxWidth: 300,
+  },
+  compressionText: {
+    fontSize: 16,
+    fontWeight: '500',
+    marginTop: 16,
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  progressBarContainer: {
+    width: '100%',
+    height: 6,
+    backgroundColor: 'rgba(128,128,128,0.3)',
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  progressBar: {
+    height: '100%',
+    borderRadius: 3,
   },
   viewerContainer: {
     flex: 1,

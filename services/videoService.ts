@@ -1,23 +1,6 @@
 import { Platform } from 'react-native';
 import * as FileSystem from 'expo-file-system';
 
-let VideoCompressor: any = null;
-let VideoThumbnails: any = null;
-
-if (Platform.OS !== 'web') {
-  try {
-    VideoCompressor = require('react-native-compressor').Video;
-  } catch (e) {
-    console.log('[VideoService] react-native-compressor not available');
-  }
-  
-  try {
-    VideoThumbnails = require('expo-video-thumbnails');
-  } catch (e) {
-    console.log('[VideoService] expo-video-thumbnails not available');
-  }
-}
-
 export interface VideoProcessResult {
   compressedUri: string;
   thumbnailUri: string | null;
@@ -49,11 +32,10 @@ export async function compressVideo(
 ): Promise<VideoProcessResult> {
   const originalSize = await getFileSize(videoUri);
   
-  if (Platform.OS === 'web' || !VideoCompressor) {
-    const thumbnailUri = await generateThumbnail(videoUri);
+  if (Platform.OS === 'web') {
     return {
       compressedUri: videoUri,
-      thumbnailUri,
+      thumbnailUri: null,
       originalSize,
       compressedSize: originalSize,
       compressionRatio: 1,
@@ -62,6 +44,8 @@ export async function compressVideo(
 
   try {
     onProgress?.({ progress: 0, stage: 'compressing' });
+    
+    const { Video: VideoCompressor } = await import('react-native-compressor');
     
     const compressedUri = await VideoCompressor.compress(
       videoUri,
@@ -89,7 +73,7 @@ export async function compressVideo(
       compressionRatio: originalSize > 0 ? compressedSize / originalSize : 1,
     };
   } catch (error) {
-    console.error('[VideoService] Compression failed:', error);
+    console.log('[VideoService] Compression not available, using original:', error);
     const thumbnailUri = await generateThumbnail(videoUri);
     return {
       compressedUri: videoUri,
@@ -106,18 +90,15 @@ export async function generateThumbnail(videoUri: string): Promise<string | null
     return null;
   }
   
-  if (!VideoThumbnails) {
-    return null;
-  }
-
   try {
+    const VideoThumbnails = await import('expo-video-thumbnails');
     const { uri } = await VideoThumbnails.getThumbnailAsync(videoUri, {
       time: 1000,
       quality: 0.7,
     });
     return uri;
   } catch (error) {
-    console.error('[VideoService] Thumbnail generation failed:', error);
+    console.log('[VideoService] Thumbnail generation not available:', error);
     return null;
   }
 }
@@ -131,5 +112,5 @@ export function formatBytes(bytes: number): string {
 }
 
 export function isCompressionAvailable(): boolean {
-  return Platform.OS !== 'web' && VideoCompressor !== null;
+  return Platform.OS !== 'web';
 }

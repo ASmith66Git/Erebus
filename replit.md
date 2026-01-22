@@ -27,7 +27,7 @@ The application is built using Expo React Native, targeting both iOS and Android
 - **Bluetooth Dive Computer Sync**: Direct BLE connectivity for automated dive log downloads (requires EAS Build).
 - **Push Notifications** (Android/iOS): Uses Expo Notifications with FCM/APNs for various channels, supports local scheduled notifications, and server-side push via expo-server-sdk for support message replies (requires EAS Build).
 - **Biometric Authentication** (Android/iOS): Integrates `expo-local-authentication` for fingerprint and Face ID support.
-- **Photos & Videos Gallery**: Features a 3-column masonry grid supporting both photos and videos, full-screen viewer with video playback (expo-av), camera/library access for photos and videos (up to 5 min), underwater camera uploads, dive log linking, favorites, multi-select, and detail editing. Videos show play icons and duration on thumbnails.
+- **Photos & Videos Gallery**: Features a 3-column masonry grid supporting both photos and videos, full-screen viewer with video playback (expo-av), camera/library access for photos and videos (up to 5 min), underwater camera uploads, dive log linking, favorites, multi-select, and detail editing. Videos show play icons and duration on thumbnails. On native (Android/iOS via EAS Build), videos are automatically compressed before upload using react-native-compressor, with progress UI and automatic thumbnail generation.
 - **Gear Profiles**: Manages diving equipment configurations with support for different tank setups, gas mixes, weighting, and a template system. Includes a 5-tab interface (Config, Exposure, Gas, Weight, Gear) with view/edit modes.
 - **Equipment Inventory**: Tracks user's dive equipment by type (regulator, BCD, wetsuit, drysuit, mask, fins, gloves, boots, hood, cylinder, torch, computer, SMB, reel, knife, camera, weights, harness, other) with friendly names and quantities. Equipment can be linked to specific gear profiles.
 - **Weather Forecast**: Integrates 7-day marine and atmospheric weather forecasts based on dive site location.
@@ -47,7 +47,7 @@ The application is built using Expo React Native, targeting both iOS and Android
 
 ### Build Verification
 - Native `android/app/build.gradle` versionCode and versionName must be updated manually as they override app.config.js.
-- Current version: 1.1.23 (versionCode 30).
+- Current version: 1.1.24 (versionCode 31).
 
 ## External Dependencies
 - **PostgreSQL**: Primary database.
