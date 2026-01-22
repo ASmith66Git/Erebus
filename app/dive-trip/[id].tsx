@@ -962,8 +962,8 @@ const styles = StyleSheet.create({
   tabContent: { flex: 1 },
   tabContentContainer: { padding: 16, paddingBottom: 40 },
   formGroup: { marginBottom: 20 },
-  formRow: { flexDirection: 'row', gap: 12, flexWrap: 'nowrap' },
-  formRowDateGroup: { flex: 1, flexBasis: 0, flexGrow: 1, flexShrink: 1, minWidth: 0, marginBottom: 0 },
+  formRow: { flexDirection: 'row', gap: 12 },
+  formRowDateGroup: { flex: 1, minWidth: 120 },
   formLabel: { fontSize: 14, fontWeight: '500', marginBottom: 8 },
   formInput: {
     borderWidth: 1,

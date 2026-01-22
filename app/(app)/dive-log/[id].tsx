@@ -16,6 +16,8 @@ import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import Svg, { Circle, Path, Line, Text as SvgText, Rect, G } from 'react-native-svg';
 import { GestureResponderEvent, PanResponder } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, { runOnJS } from 'react-native-reanimated';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { getApiUrl } from '@/utils/apiConfig';
@@ -504,30 +506,22 @@ function DiveProfileChart({ samples, colors, showTemp, showNdl, showGf99, showPp
         </Text>
       </View>
       
-      <View 
-        style={{ 
-          height: chartHeight, 
-          backgroundColor: colors.surface,
-          borderRadius: 12,
-          borderWidth: 1,
-          borderColor: colors.border,
-          overflow: 'hidden',
-          cursor: Platform.OS === 'web' ? 'crosshair' : undefined,
-        } as any}
-        onStartShouldSetResponder={() => true}
-        onMoveShouldSetResponder={() => true}
-        onResponderTerminationRequest={() => false}
-        onResponderGrant={(e) => handleTouch(e, true)}
-        onResponderMove={(e) => handleTouch(e, false)}
-        onResponderRelease={(e) => handleTouchEnd(e)}
-        onResponderTerminate={() => handleTouchEnd()}
-        {...(Platform.OS === 'web' ? {
-          onMouseDown: handleMouseDown,
-          onMouseMove: handleMouseMove,
-          onMouseUp: handleMouseUp,
-          onMouseLeave: handleMouseLeave,
-        } : {})}
-      >
+      {Platform.OS === 'web' ? (
+        <View 
+          style={{ 
+            height: chartHeight, 
+            backgroundColor: colors.surface,
+            borderRadius: 12,
+            borderWidth: 1,
+            borderColor: colors.border,
+            overflow: 'hidden',
+            cursor: 'crosshair',
+          } as any}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseLeave}
+        >
         <Svg width={chartWidth} height={chartHeight}>
           {[0.25, 0.5, 0.75].map((ratio, i) => (
             <Line
@@ -617,7 +611,123 @@ function DiveProfileChart({ samples, colors, showTemp, showNdl, showGf99, showPp
             {maxDepth.toFixed(0)}m
           </SvgText>
         </Svg>
-      </View>
+        </View>
+      ) : (
+        <GestureDetector gesture={Gesture.Pan()
+          .onBegin((e) => {
+            'worklet';
+            const clampedX = Math.max(padding, Math.min(e.x, chartWidth - padding));
+            runOnJS(setScrubberX)(clampedX);
+          })
+          .onUpdate((e) => {
+            'worklet';
+            const clampedX = Math.max(padding, Math.min(e.x, chartWidth - padding));
+            runOnJS(setScrubberX)(clampedX);
+          })
+          .minDistance(0)
+          .activeOffsetX([-5, 5])
+          .activeOffsetY([-20, 20])
+        }>
+          <Animated.View style={{ 
+            height: chartHeight, 
+            backgroundColor: colors.surface,
+            borderRadius: 12,
+            borderWidth: 1,
+            borderColor: colors.border,
+            overflow: 'hidden',
+          }}>
+            <Svg width={chartWidth} height={chartHeight}>
+              {[0.25, 0.5, 0.75].map((ratio, i) => (
+                <Line
+                  key={`grid-${i}`}
+                  x1={padding}
+                  y1={padding + ratio * innerHeight}
+                  x2={chartWidth - padding}
+                  y2={padding + ratio * innerHeight}
+                  stroke={colors.border || '#333'}
+                  strokeWidth={0.5}
+                  strokeDasharray="4,4"
+                />
+              ))}
+              <Path
+                d={depthPath}
+                stroke="#2196F3"
+                strokeWidth={1}
+                fill="none"
+              />
+              {tempPath && (
+                <Path
+                  d={tempPath}
+                  stroke="#4CAF50"
+                  strokeWidth={1}
+                  fill="none"
+                />
+              )}
+              {ndlPath && (
+                <Path
+                  d={ndlPath}
+                  stroke="#FFC107"
+                  strokeWidth={1}
+                  fill="none"
+                />
+              )}
+              {gf99Path && (
+                <Path
+                  d={gf99Path}
+                  stroke="#9C27B0"
+                  strokeWidth={1}
+                  fill="none"
+                />
+              )}
+              {ppo2Path && (
+                <Path
+                  d={ppo2Path}
+                  stroke="#FF5722"
+                  strokeWidth={1}
+                  fill="none"
+                />
+              )}
+              {cnsPath && (
+                <Path
+                  d={cnsPath}
+                  stroke="#795548"
+                  strokeWidth={1}
+                  fill="none"
+                />
+              )}
+              {scrubberX != null && (
+                <Line
+                  x1={scrubberX}
+                  y1={padding}
+                  x2={scrubberX}
+                  y2={padding + innerHeight}
+                  stroke={colors.primary}
+                  strokeWidth={1.5}
+                  strokeDasharray="3,3"
+                />
+              )}
+              <SvgText
+                x={padding - 5}
+                y={padding + 5}
+                fontSize={10}
+                fill={colors.textSecondary || '#666'}
+                textAnchor="end"
+              >
+                0m
+              </SvgText>
+              <SvgText
+                x={padding - 5}
+                y={padding + innerHeight}
+                fontSize={10}
+                fill={colors.textSecondary || '#666'}
+                textAnchor="end"
+              >
+                {maxDepth.toFixed(0)}m
+              </SvgText>
+            </Svg>
+          </Animated.View>
+        </GestureDetector>
+      )}
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 12, justifyContent: 'center' }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
           <View style={{ width: 12, height: 3, backgroundColor: '#2196F3', borderRadius: 1 }} />

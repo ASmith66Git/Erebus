@@ -8,6 +8,8 @@ import { DrawerActions, useNavigation } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
 import Svg, { Path, Line, Text as SvgText, Rect, G, Circle } from 'react-native-svg';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, { runOnJS } from 'react-native-reanimated';
 import {
   calculateDivePlan, calculateMultiDivePlan, createGasMix, initializeTissues,
   DEFAULT_SETTINGS, GasMix, DivePlanResult, TissueState, DivePlanInput, DivePlanSettings,
@@ -283,6 +285,8 @@ export default function DivePlanningScreen() {
   const lastScrubberUpdate = useRef<number>(0);
   const pendingScrubberTime = useRef<number | null>(null);
   const rafId = useRef<number | null>(null);
+  const chartContainerRef = useRef<View>(null);
+  const chartLayoutRef = useRef<{ x: number; y: number; width: number; height: number } | null>(null);
 
   const gasMixes = useMemo(() => {
     return gases.map(g => {
@@ -831,24 +835,18 @@ export default function DivePlanningScreen() {
           </View>
         )}
         
-        <View 
-          style={{ position: 'relative', cursor: 'crosshair' } as any}
-          onTouchStart={(e) => handleChartTouch(e, chartW, padding, totalTime, true)}
-          onTouchMove={(e) => handleChartTouch(e, chartW, padding, totalTime, false)}
-          onTouchEnd={(e) => handleChartTouch(e, chartW, padding, totalTime, true)}
-          onStartShouldSetResponder={() => true}
-          onMoveShouldSetResponder={() => true}
-          onResponderTerminationRequest={() => false}
-          {...(Platform.OS === 'web' ? {
-            onMouseDown: (e: any) => {
+        {Platform.OS === 'web' ? (
+          <View 
+            style={{ position: 'relative', cursor: 'crosshair' } as any}
+            onMouseDown={(e: any) => {
               const rect = e.currentTarget.getBoundingClientRect();
               const locationX = e.clientX - rect.left - padding.left;
               const rawTime = Math.max(0, Math.min((locationX / chartW) * totalTime, totalTime));
               const time = Math.round(rawTime * 2) / 2;
               lastScrubberUpdate.current = Date.now();
               setChartScrubberTime(time);
-            },
-            onMouseMove: (e: any) => {
+            }}
+            onMouseMove={(e: any) => {
               if (e.buttons === 1) {
                 const now = Date.now();
                 if (now - lastScrubberUpdate.current < 32) return;
@@ -859,9 +857,8 @@ export default function DivePlanningScreen() {
                 const time = Math.round(rawTime * 2) / 2;
                 setChartScrubberTime(time);
               }
-            },
-          } : {})}
-        >
+            }}
+          >
           <Svg width={chartWidth} height={CHART_HEIGHT}>
             <Rect x={padding.left} y={padding.top} width={chartW} height={chartH} fill={isDark ? '#1A1A1C' : '#F5F5F7'} />
             {depthGridLines}
@@ -926,6 +923,90 @@ export default function DivePlanningScreen() {
             />
           </Svg>
         </View>
+        ) : (
+          <GestureDetector gesture={Gesture.Pan()
+            .onBegin((e) => {
+              'worklet';
+              const locationX = e.x - 30;
+              const rawTime = Math.max(0, Math.min((locationX / (chartWidth - 60)) * totalTime, totalTime));
+              const time = Math.round(rawTime * 2) / 2;
+              runOnJS(setChartScrubberTime)(time);
+            })
+            .onUpdate((e) => {
+              'worklet';
+              const locationX = e.x - 30;
+              const rawTime = Math.max(0, Math.min((locationX / (chartWidth - 60)) * totalTime, totalTime));
+              const time = Math.round(rawTime * 2) / 2;
+              runOnJS(setChartScrubberTime)(time);
+            })
+            .minDistance(0)
+            .activeOffsetX([-5, 5])
+            .activeOffsetY([-20, 20])
+          }>
+            <Animated.View style={{ position: 'relative' }}>
+              <Svg width={chartWidth} height={CHART_HEIGHT}>
+                <Rect x={padding.left} y={padding.top} width={chartW} height={chartH} fill={isDark ? '#1A1A1C' : '#F5F5F7'} />
+                {depthGridLines}
+                {timeLabels}
+                <G transform={`translate(${padding.left}, ${padding.top})`}>
+                  {ceilingPathD && <Path d={ceilingPathD} stroke={colors.danger} strokeWidth={1.5} fill="none" strokeOpacity={0.8} />}
+                  {densityPathD && <Path d={densityPathD} stroke={colors.success} strokeWidth={1.5} fill="none" strokeOpacity={0.7} />}
+                  {cnsPathD && <Path d={cnsPathD} stroke="#FF9500" strokeWidth={1.5} fill="none" strokeOpacity={0.8} />}
+                  {otuPathD && <Path d={otuPathD} stroke="#AF52DE" strokeWidth={1.5} fill="none" strokeOpacity={0.7} />}
+                  <Path d={depthPathD} stroke="#007AFF" strokeWidth={3.5} fill="none" />
+                  {decoStopMarkers}
+                </G>
+                {depthLabels}
+                <SvgText x={padding.left + chartW / 2} y={CHART_HEIGHT - 2} fontSize={10} fill={colors.textSecondary} textAnchor="middle">
+                  Time (min)
+                </SvgText>
+                <Line x1={padding.left} y1={padding.top} x2={padding.left} y2={padding.top + chartH} stroke={colors.border} strokeWidth={1} />
+                <Line x1={padding.left} y1={padding.top + chartH} x2={padding.left + chartW} y2={padding.top + chartH} stroke={colors.border} strokeWidth={1} />
+                <Line 
+                  x1={scrubberX} 
+                  y1={padding.top} 
+                  x2={scrubberX} 
+                  y2={padding.top + chartH} 
+                  stroke={colors.accent} 
+                  strokeWidth={2} 
+                  strokeDasharray="4,2"
+                />
+                <Circle 
+                  cx={scrubberX} 
+                  cy={scrubberDepthY} 
+                  r={6} 
+                  fill="#007AFF" 
+                  stroke="#FFF" 
+                  strokeWidth={2} 
+                />
+                <Circle 
+                  cx={scrubberX} 
+                  cy={padding.top - 8} 
+                  r={8} 
+                  fill={colors.accent} 
+                  stroke="#FFF" 
+                  strokeWidth={1.5} 
+                />
+                <Line 
+                  x1={scrubberX - 3} 
+                  y1={padding.top - 10} 
+                  x2={scrubberX - 3} 
+                  y2={padding.top - 6} 
+                  stroke="#FFF" 
+                  strokeWidth={1} 
+                />
+                <Line 
+                  x1={scrubberX + 3} 
+                  y1={padding.top - 10} 
+                  x2={scrubberX + 3} 
+                  y2={padding.top - 6} 
+                  stroke="#FFF" 
+                  strokeWidth={1} 
+                />
+              </Svg>
+            </Animated.View>
+          </GestureDetector>
+        )}
         
         <View style={styles.chartLegend}>
           <View style={styles.legendItem}>
