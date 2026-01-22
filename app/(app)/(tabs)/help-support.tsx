@@ -89,21 +89,42 @@ export default function HelpSupportScreen() {
     }
   }, [token]);
 
-  const fetchMessages = useCallback(async (conversationId: number) => {
-    setMessagesLoading(true);
+  const fetchMessages = useCallback(async (conversationId: number, isPolling = false) => {
+    if (!isPolling) {
+      setMessagesLoading(true);
+    }
     try {
       const response = await fetch(`${getApiUrl()}/api/support/conversations/${conversationId}/messages`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (response.ok) {
         const data = await response.json();
-        setMessages(data.messages);
-        setSelectedConversation(data.conversation);
+        if (isPolling) {
+          setMessages(prev => {
+            if (data.messages.length !== prev.length || 
+                (data.messages.length > 0 && prev.length > 0 && 
+                 data.messages[data.messages.length - 1].id !== prev[prev.length - 1].id)) {
+              return data.messages;
+            }
+            return prev;
+          });
+          setSelectedConversation(prev => {
+            if (prev && data.conversation.status !== prev.status) {
+              return data.conversation;
+            }
+            return prev;
+          });
+        } else {
+          setMessages(data.messages);
+          setSelectedConversation(data.conversation);
+        }
       }
     } catch (error) {
       console.error('Failed to fetch messages:', error);
     } finally {
-      setMessagesLoading(false);
+      if (!isPolling) {
+        setMessagesLoading(false);
+      }
     }
   }, [token]);
 
@@ -115,7 +136,7 @@ export default function HelpSupportScreen() {
     if (!selectedConversation) return;
     
     const pollInterval = setInterval(() => {
-      fetchMessages(selectedConversation.id);
+      fetchMessages(selectedConversation.id, true);
     }, 3000);
     
     return () => clearInterval(pollInterval);
