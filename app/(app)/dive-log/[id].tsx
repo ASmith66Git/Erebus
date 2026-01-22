@@ -616,13 +616,11 @@ function DiveProfileChart({ samples, colors, showTemp, showNdl, showGf99, showPp
         <GestureDetector gesture={Gesture.Pan()
           .onBegin((e) => {
             'worklet';
-            const clampedX = Math.max(padding, Math.min(e.x, chartWidth - padding));
-            runOnJS(setScrubberX)(clampedX);
+            runOnJS(calculateScrubberPosition)(e.x);
           })
           .onUpdate((e) => {
             'worklet';
-            const clampedX = Math.max(padding, Math.min(e.x, chartWidth - padding));
-            runOnJS(setScrubberX)(clampedX);
+            runOnJS(calculateScrubberPosition)(e.x);
           })
           .minDistance(0)
           .activeOffsetX([-5, 5])
