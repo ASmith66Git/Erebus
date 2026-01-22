@@ -113,6 +113,7 @@ integrations = ["resend:1.0.0", "javascript_object_storage:2.0.0"]
 [userenv.shared]
 PEXELS_API_KEY = "OcHCrP60cM9wXO33I9D6bl5ymzBHZjKbnMgQwM3JbnZ5rHzJhKstEIHO"
 JWT_SECRET = "7c49768ebb65c6e3995568872ac373224b6c099b2d0d2615c5b25df469a20058df12f66a08370968130240f29cc6c0b1d0c8654b24e105511480745a4d868ddf"
+APP_URL = "https://erebus.nammu-tech.com"
 
 [deployment]
 deploymentTarget = "autoscale"
