@@ -141,15 +141,16 @@ export default function DiveTripsScreen() {
             )}
             
             <View style={styles.tripCardStats}>
-              <Text style={[styles.tripCardDives, { color: colors.primary }]}>
-                {typeof trip.linked_dives === 'number' ? trip.linked_dives : (Array.isArray(trip.linked_dives) ? trip.linked_dives.length : trip.total_dives || 0)} dives
-              </Text>
-              {(trip.photo_count ?? 0) > 0 && (
-                <View style={styles.tripPhotoIndicator}>
-                  <Ionicons name="image" size={12} color={colors.primary} />
-                  <Text style={[styles.tripPhotoCount, { color: colors.primary }]}>{trip.photo_count}</Text>
-                </View>
-              )}
+              <View style={styles.tripStatItem}>
+                <Ionicons name="water" size={14} color={colors.primary} />
+                <Text style={[styles.tripCardDives, { color: colors.primary }]}>
+                  {typeof trip.linked_dives === 'number' ? trip.linked_dives : (Array.isArray(trip.linked_dives) ? trip.linked_dives.length : trip.total_dives || 0)}
+                </Text>
+              </View>
+              <View style={styles.tripStatItem}>
+                <Ionicons name="image" size={14} color={colors.primary} />
+                <Text style={[styles.tripPhotoCount, { color: colors.primary }]}>{trip.photo_count ?? 0}</Text>
+              </View>
             </View>
           </View>
         </View>
@@ -229,9 +230,9 @@ const styles = StyleSheet.create({
   tripName: { fontSize: 16, fontWeight: '600' },
   tripType: { fontSize: 12, marginTop: 2 },
   tripCardMeta: { fontSize: 12, marginTop: 4 },
-  tripCardStats: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 8 },
+  tripCardStats: { flexDirection: 'row', alignItems: 'center', gap: 16, marginTop: 8 },
+  tripStatItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   tripCardDives: { fontSize: 13, fontWeight: '500' },
-  tripPhotoIndicator: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  tripPhotoCount: { fontSize: 12 },
+  tripPhotoCount: { fontSize: 13, fontWeight: '500' },
   fab: { position: 'absolute', bottom: 24, right: 24, width: 56, height: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center', elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 4 },
 });
