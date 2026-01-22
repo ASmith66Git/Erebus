@@ -963,7 +963,7 @@ const styles = StyleSheet.create({
   tabContentContainer: { padding: 16, paddingBottom: 40 },
   formGroup: { marginBottom: 20 },
   formRow: { flexDirection: 'row', gap: 12 },
-  formRowDateGroup: { flex: 1, minWidth: 120 },
+  formRowDateGroup: { flex: 1, flexBasis: 0, minWidth: 0 },
   formLabel: { fontSize: 14, fontWeight: '500', marginBottom: 8 },
   formInput: {
     borderWidth: 1,
