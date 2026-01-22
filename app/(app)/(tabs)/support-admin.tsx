@@ -135,6 +135,25 @@ export default function SupportAdminScreen() {
     fetchUnreadCount();
   }, [fetchConversations, fetchUnreadCount]);
 
+  useEffect(() => {
+    if (!selectedConversation) return;
+    
+    const pollInterval = setInterval(() => {
+      fetchMessages(selectedConversation.id);
+    }, 3000);
+    
+    return () => clearInterval(pollInterval);
+  }, [selectedConversation?.id, fetchMessages]);
+
+  useEffect(() => {
+    const pollConversationsInterval = setInterval(() => {
+      fetchConversations();
+      fetchUnreadCount();
+    }, 5000);
+    
+    return () => clearInterval(pollConversationsInterval);
+  }, [fetchConversations, fetchUnreadCount]);
+
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !selectedConversation) return;
     

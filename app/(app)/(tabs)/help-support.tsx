@@ -109,6 +109,24 @@ export default function HelpSupportScreen() {
     fetchConversations();
   }, [fetchConversations]);
 
+  useEffect(() => {
+    if (!selectedConversation) return;
+    
+    const pollInterval = setInterval(() => {
+      fetchMessages(selectedConversation.id);
+    }, 3000);
+    
+    return () => clearInterval(pollInterval);
+  }, [selectedConversation?.id, fetchMessages]);
+
+  useEffect(() => {
+    const pollConversationsInterval = setInterval(() => {
+      fetchConversations();
+    }, 5000);
+    
+    return () => clearInterval(pollConversationsInterval);
+  }, [fetchConversations]);
+
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !selectedConversation) return;
     
