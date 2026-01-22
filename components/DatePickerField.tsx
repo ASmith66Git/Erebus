@@ -152,7 +152,7 @@ export default function DatePickerField({
 
 const styles = StyleSheet.create({
   container: {
-    width: '100%',
+    // No width set - let parent flex control the size
   },
   label: {
     fontSize: 14,
