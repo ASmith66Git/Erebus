@@ -38,6 +38,17 @@ The application is built using Expo React Native, targeting both iOS and Android
 - **App Settings**: Manages user preferences for unit systems, date formats, and language selection.
 - **Dive Buddies**: Manages social dive buddies with names, photos, notes, and the ability to link to dive logs.
 
+## Development Notes
+### Android Touch Handling
+- **Chart Scrubbers**: Must use `react-native-gesture-handler` (GestureDetector + Gesture.Pan()) for chart scrubbers on Android - the basic responder system (onResponderTerminationRequest) doesn't work reliably because ScrollView steals touch events.
+- **Pattern**: Use `Platform.OS === 'web'` ternary to separate web (mouse events) from native (GestureDetector) touch handling.
+- **GestureHandlerRootView**: Already configured at app root in `app/(app)/_layout.tsx`.
+- **Layout Tips**: Date picker side-by-side layouts should use `flex: 1` with `minWidth` instead of percentage widths for reliable display across screen sizes.
+
+### Build Verification
+- Native `android/app/build.gradle` versionCode and versionName must be updated manually as they override app.config.js.
+- Current version: 1.1.15 (versionCode 22).
+
 ## External Dependencies
 - **PostgreSQL**: Primary database.
 - **Express.js**: Backend API server.
