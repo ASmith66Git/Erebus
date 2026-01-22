@@ -1,7 +1,33 @@
 import { Platform, PermissionsAndroid } from 'react-native';
+import { Buffer } from 'buffer';
 
 let BleManager: any = null;
 let bleManagerInstance: any = null;
+
+// Detailed BLE logging helper
+const bleLog = (category: string, message: string, data?: any) => {
+  const timestamp = new Date().toISOString().split('T')[1].replace('Z', '');
+  const prefix = `[BLE ${timestamp}] [${category}]`;
+  if (data !== undefined) {
+    console.log(prefix, message, typeof data === 'object' ? JSON.stringify(data) : data);
+  } else {
+    console.log(prefix, message);
+  }
+};
+
+// Convert base64 to hex for logging
+const base64ToHex = (base64: string): string => {
+  try {
+    return Buffer.from(base64, 'base64').toString('hex').toUpperCase();
+  } catch {
+    return '<invalid base64>';
+  }
+};
+
+// Convert hex to readable format with spacing
+const formatHex = (hex: string): string => {
+  return hex.match(/.{1,2}/g)?.join(' ') || hex;
+};
 
 if (Platform.OS !== 'web') {
   try {
@@ -558,16 +584,23 @@ class BleService {
     const baseRetryDelay = 3000; // Match Subsurface's longer delays
     let lastError: Error | null = null;
     const deviceId = this.connectedDevice?.id || 'unknown';
+    const hexData = formatHex(base64ToHex(data));
+    const dataLen = Buffer.from(data, 'base64').length;
+
+    bleLog('WRITE', `Starting write: ${dataLen} bytes, withResponse=${withResponse}`);
+    bleLog('WRITE', `TX Data: ${hexData}`);
+    bleLog('WRITE', `Service: ${serviceUUID.substring(0, 8)}..., Char: ${characteristicUUID.substring(0, 8)}...`);
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         // Check if device is still connected before each attempt
         if (!this.connectedDevice) {
+          bleLog('WRITE', 'ERROR: Device disconnected during write');
           throw new Error('Device disconnected during write operation');
         }
         
         // Log device state for debugging
-        console.log(`BLE Write attempt ${attempt}: device.id=${this.connectedDevice?.id}, checking connection...`);
+        bleLog('WRITE', `Attempt ${attempt}/${maxRetries}: device.id=${this.connectedDevice?.id?.substring(0, 8)}...`);
         
         // Check connection state
         const isConnected = await this.connectedDevice.isConnected();
@@ -610,19 +643,24 @@ class BleService {
           }
         }
         
+        const writeStart = Date.now();
         if (withResponse) {
+          bleLog('WRITE', 'Calling writeCharacteristicWithResponseForService...');
           await this.connectedDevice.writeCharacteristicWithResponseForService(
             serviceUUID,
             characteristicUUID,
             data
           );
         } else {
+          bleLog('WRITE', 'Calling writeCharacteristicWithoutResponseForService...');
           await this.connectedDevice.writeCharacteristicWithoutResponseForService(
             serviceUUID,
             characteristicUUID,
             data
           );
         }
+        const writeTime = Date.now() - writeStart;
+        bleLog('WRITE', `SUCCESS in ${writeTime}ms`);
         return; // Success
       } catch (error: any) {
         lastError = error;
@@ -712,25 +750,39 @@ class BleService {
       throw new Error('No device connected');
     }
 
+    bleLog('MONITOR', `Setting up monitor on ${characteristicUUID.substring(0, 8)}...`);
+    let packetCount = 0;
+    const monitorStart = Date.now();
+
     const subscription = this.connectedDevice.monitorCharacteristicForService(
       serviceUUID,
       characteristicUUID,
       (error: any, characteristic: any) => {
         if (error) {
           const friendlyMessage = this.parseBleError(error);
-          console.error('Monitor error (parsed):', friendlyMessage);
+          bleLog('MONITOR', `ERROR after ${packetCount} packets: ${friendlyMessage}`);
+          bleLog('MONITOR', `Raw error: code=${error?.errorCode}, android=${error?.androidErrorCode}, reason=${error?.reason}`);
           if (onError) {
             onError(new Error(`Monitor failed: ${friendlyMessage}`));
           }
           return;
         }
         if (characteristic && characteristic.value) {
+          packetCount++;
+          const hexData = formatHex(base64ToHex(characteristic.value));
+          const dataLen = Buffer.from(characteristic.value, 'base64').length;
+          const elapsed = Date.now() - monitorStart;
+          bleLog('MONITOR', `RX #${packetCount} (${elapsed}ms): ${dataLen} bytes: ${hexData}`);
           onData(characteristic.value);
         }
       }
     );
 
-    return () => subscription.remove();
+    bleLog('MONITOR', 'Monitor subscription created');
+    return () => {
+      bleLog('MONITOR', `Stopping monitor after ${packetCount} packets`);
+      subscription.remove();
+    };
   }
 
   onConnectionStateChange(callback: ConnectionStateCallback): () => void {

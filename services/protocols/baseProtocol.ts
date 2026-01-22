@@ -2,6 +2,22 @@ import bleService, { BleDevice, DownloadProgress } from '../bleService';
 import { SlipDecoder, slipEncode } from './slipCodec';
 import { Buffer } from 'buffer';
 
+// Detailed protocol logging helper
+const protoLog = (category: string, message: string, data?: any) => {
+  const timestamp = new Date().toISOString().split('T')[1].replace('Z', '');
+  const prefix = `[PROTO ${timestamp}] [${category}]`;
+  if (data !== undefined) {
+    console.log(prefix, message, typeof data === 'object' ? JSON.stringify(data) : data);
+  } else {
+    console.log(prefix, message);
+  }
+};
+
+// Convert Uint8Array to hex string for logging
+const bytesToHex = (bytes: Uint8Array): string => {
+  return Array.from(bytes).map(b => b.toString(16).padStart(2, '0').toUpperCase()).join(' ');
+};
+
 export interface DiveComputerInfo {
   manufacturer: string;
   model: string;
@@ -122,8 +138,15 @@ export abstract class BaseDiveComputerProtocol {
   }
   
   async connect(deviceId: string): Promise<boolean> {
+    protoLog('CONNECT', `=== Protocol connect starting for device ${deviceId.substring(0, 8)}... ===`);
+    const connectStart = Date.now();
+    
     await bleService.initialize();
+    protoLog('CONNECT', 'BLE service initialized');
+    
     const connected = await bleService.connect(deviceId);
+    const bleConnectTime = Date.now() - connectStart;
+    protoLog('CONNECT', `BLE connect result: ${connected} (took ${bleConnectTime}ms)`);
     
     if (connected) {
       // Shearwater devices need time for all GATT services to enumerate
@@ -133,7 +156,7 @@ export abstract class BaseDiveComputerProtocol {
       
       for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
-          console.log(`Setting up BLE monitor (attempt ${attempt}/${maxRetries})...`);
+          protoLog('CONNECT', `Setting up BLE monitor (attempt ${attempt}/${maxRetries})...`);
           await this.setupMonitor();
           break; // Success, exit retry loop
         } catch (error: any) {
@@ -166,11 +189,12 @@ export abstract class BaseDiveComputerProtocol {
       
       // libdivecomputer-style initialization: 300ms delay + clear buffers
       // This allows the device to stabilize before sending commands
-      console.log('Protocol: Stabilization delay (300ms) before communication...');
+      protoLog('CONNECT', 'Starting 300ms stabilization delay (libdivecomputer style)...');
       await new Promise(resolve => setTimeout(resolve, 300));
       this.pendingPackets = []; // Clear any stale data
       this.slipDecoder.reset();
-      console.log('Protocol: Ready for communication');
+      const totalTime = Date.now() - connectStart;
+      protoLog('CONNECT', `=== Protocol connect complete in ${totalTime}ms, ready for communication ===`);
     }
     
     return connected;
@@ -200,22 +224,33 @@ export abstract class BaseDiveComputerProtocol {
     const buffer = Buffer.from(base64Data, 'base64');
     const data = new Uint8Array(buffer);
     
+    protoLog('SLIP', `Raw RX: ${bytesToHex(data)}`);
+    
     const packets = this.slipDecoder.addData(data);
     
+    protoLog('SLIP', `Decoded ${packets.length} complete packet(s), pending=${this.pendingPackets.length}`);
+    
     for (const packet of packets) {
+      protoLog('SLIP', `Decoded packet: ${bytesToHex(packet)}`);
       if (this.packetResolver) {
+        protoLog('SLIP', 'Resolving waiting promise');
         this.packetResolver(packet);
         this.packetResolver = null;
       } else {
+        protoLog('SLIP', 'No resolver, queuing packet');
         this.pendingPackets.push(packet);
       }
     }
   }
   
   protected async sendPacket(data: Uint8Array): Promise<void> {
+    protoLog('TX', `Sending packet: ${bytesToHex(data)}`);
     const frames = slipEncode(data, true);
+    protoLog('TX', `SLIP encoded into ${frames.length} frame(s)`);
     
-    for (const frame of frames) {
+    for (let i = 0; i < frames.length; i++) {
+      const frame = frames[i];
+      protoLog('TX', `Frame ${i + 1}/${frames.length}: ${bytesToHex(frame)}`);
       const base64Data = Buffer.from(frame).toString('base64');
       await bleService.writeCharacteristic(
         this.serviceUUID,
@@ -224,21 +259,31 @@ export abstract class BaseDiveComputerProtocol {
         false
       );
     }
+    protoLog('TX', 'All frames sent');
   }
   
   protected async receivePacket(timeoutMs: number = 3000): Promise<Uint8Array> {
+    protoLog('RX', `Waiting for packet (timeout=${timeoutMs}ms, pending=${this.pendingPackets.length})`);
+    
     if (this.pendingPackets.length > 0) {
-      return this.pendingPackets.shift()!;
+      const packet = this.pendingPackets.shift()!;
+      protoLog('RX', `Using queued packet: ${bytesToHex(packet)}`);
+      return packet;
     }
     
     return new Promise((resolve, reject) => {
+      const startTime = Date.now();
       const timer = setTimeout(() => {
         this.packetResolver = null;
+        const elapsed = Date.now() - startTime;
+        protoLog('RX', `TIMEOUT after ${elapsed}ms waiting for packet`);
         reject(new Error('Packet receive timeout'));
       }, timeoutMs);
       
       this.packetResolver = (packet: Uint8Array) => {
         clearTimeout(timer);
+        const elapsed = Date.now() - startTime;
+        protoLog('RX', `Received packet after ${elapsed}ms: ${bytesToHex(packet)}`);
         resolve(packet);
       };
     });
@@ -249,6 +294,10 @@ export abstract class BaseDiveComputerProtocol {
     expectedResponseSize: number,
     timeoutMs: number = 3000
   ): Promise<Uint8Array> {
+    const cmdByte = request[0];
+    protoLog('TRANSFER', `=== Starting transfer: cmd=0x${cmdByte.toString(16).toUpperCase()}, expectedResp=${expectedResponseSize}, timeout=${timeoutMs}ms ===`);
+    protoLog('TRANSFER', `Request payload: ${bytesToHex(request)}`);
+    
     const packet = new Uint8Array(request.length + 4);
     packet[0] = 0xff;
     packet[1] = 0x01;
@@ -256,28 +305,40 @@ export abstract class BaseDiveComputerProtocol {
     packet[3] = 0x00;
     packet.set(request, 4);
     
+    protoLog('TRANSFER', `Full packet with header: ${bytesToHex(packet)}`);
+    
+    const transferStart = Date.now();
     await this.sendPacket(packet);
     
     if (expectedResponseSize === 0) {
+      protoLog('TRANSFER', 'No response expected, done');
       return new Uint8Array(0);
     }
     
     const response = await this.receivePacket(timeoutMs);
+    const transferTime = Date.now() - transferStart;
+    
+    protoLog('TRANSFER', `Response received in ${transferTime}ms: ${bytesToHex(response)}`);
     
     if (response.length < 4) {
+      protoLog('TRANSFER', `ERROR: Response too short (${response.length} bytes)`);
       throw new Error('Invalid response packet: too short');
     }
     
     if (response[0] !== 0x01 || response[1] !== 0xff || response[3] !== 0x00) {
+      protoLog('TRANSFER', `ERROR: Invalid header: got [${response[0].toString(16)}, ${response[1].toString(16)}, ${response[2].toString(16)}, ${response[3].toString(16)}]`);
       throw new Error('Invalid response packet header');
     }
     
     const length = response[2];
     if (length < 1 || length - 1 + 4 !== response.length) {
+      protoLog('TRANSFER', `ERROR: Length mismatch: header says ${length}, actual payload would be ${response.length - 4}`);
       throw new Error('Invalid response packet length');
     }
     
-    return response.slice(4);
+    const payload = response.slice(4);
+    protoLog('TRANSFER', `=== Transfer complete: payload=${bytesToHex(payload)} ===`);
+    return payload;
   }
   
   protected updateProgress(progress: DownloadProgress): void {
