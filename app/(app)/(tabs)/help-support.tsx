@@ -13,6 +13,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { getApiUrl } from '@/utils/apiConfig';
@@ -53,6 +54,7 @@ const PRIORITY_OPTIONS = [
 
 export default function HelpSupportScreen() {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const { token } = useAuth();
   
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -323,7 +325,7 @@ export default function HelpSupportScreen() {
             />
           )}
           
-          <View style={[styles.inputContainer, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
+          <View style={[styles.inputContainer, { backgroundColor: colors.surface, borderTopColor: colors.border, paddingBottom: 12 + insets.bottom }]}>
             <TextInput
               style={[styles.messageInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
               placeholder="Type your message..."

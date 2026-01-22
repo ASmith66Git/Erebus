@@ -12,6 +12,7 @@ import {
   Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { getApiUrl } from '@/utils/apiConfig';
@@ -64,6 +65,7 @@ const STATUS_ACTIONS = [
 
 export default function SupportAdminScreen() {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const { token, user } = useAuth();
   
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -397,7 +399,7 @@ export default function SupportAdminScreen() {
             />
           )}
           
-          <View style={[styles.inputContainer, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
+          <View style={[styles.inputContainer, { backgroundColor: colors.surface, borderTopColor: colors.border, paddingBottom: 12 + insets.bottom }]}>
             <TextInput
               style={[styles.messageInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
               placeholder="Type your reply..."
