@@ -17,6 +17,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
+import { Video, ResizeMode } from 'expo-av';
 import { getApiUrl } from '@/utils/apiConfig';
 import PageHeader from '@/components/PageHeader';
 import ThemedBackground from '@/components/ThemedBackground';
@@ -413,9 +414,16 @@ export default function PhotosScreen() {
     return url;
   };
 
+  const formatDuration = (seconds: number): string => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
   const renderPhoto = (photo: Photo, index: number) => {
     const isSelected = selectedIds.has(photo.id);
     const isLastInRow = (index + 1) % NUM_COLUMNS === 0;
+    const isVideo = photo.mediaType === 'video';
     
     return (
       <Pressable
@@ -434,11 +442,30 @@ export default function PhotosScreen() {
           toggleSelection(photo.id);
         }}
       >
-        <Image
-          source={{ uri: getImageUrl(photo.thumbnailUrl || photo.imageUrl) }}
-          style={styles.photoImage}
-          resizeMode="cover"
-        />
+        {isVideo && !photo.thumbnailUrl ? (
+          <View style={[styles.photoImage, styles.videoPlaceholder]}>
+            <Ionicons name="videocam" size={32} color="rgba(255,255,255,0.7)" />
+            {photo.duration && (
+              <Text style={styles.videoDuration}>{formatDuration(photo.duration)}</Text>
+            )}
+          </View>
+        ) : (
+          <>
+            <Image
+              source={{ uri: getImageUrl(photo.thumbnailUrl || photo.imageUrl) }}
+              style={styles.photoImage}
+              resizeMode="cover"
+            />
+            {isVideo && (
+              <View style={styles.videoIndicator}>
+                <Ionicons name="play-circle" size={28} color="rgba(255,255,255,0.9)" />
+                {photo.duration && (
+                  <Text style={styles.videoDuration}>{formatDuration(photo.duration)}</Text>
+                )}
+              </View>
+            )}
+          </>
+        )}
         
         {photo.isFavorite && (
           <View style={styles.favoriteIndicator}>
@@ -550,11 +577,22 @@ export default function PhotosScreen() {
           >
             {photos.map((photo) => (
               <View key={photo.id} style={[styles.viewerPage, { width: screenWidth, height: screenHeight }]}>
-                <Image
-                  source={{ uri: getImageUrl(photo.imageUrl) }}
-                  style={[styles.viewerImage, { maxWidth: screenWidth, maxHeight: screenHeight - 200 }]}
-                  resizeMode="contain"
-                />
+                {photo.mediaType === 'video' ? (
+                  <Video
+                    source={{ uri: getImageUrl(photo.imageUrl) }}
+                    style={[styles.viewerImage, { maxWidth: screenWidth, maxHeight: screenHeight - 200 }]}
+                    resizeMode={ResizeMode.CONTAIN}
+                    useNativeControls
+                    shouldPlay={photos[viewerIndex]?.id === photo.id}
+                    isLooping={false}
+                  />
+                ) : (
+                  <Image
+                    source={{ uri: getImageUrl(photo.imageUrl) }}
+                    style={[styles.viewerImage, { maxWidth: screenWidth, maxHeight: screenHeight - 200 }]}
+                    resizeMode="contain"
+                  />
+                )}
               </View>
             ))}
           </ScrollView>
@@ -637,12 +675,12 @@ export default function PhotosScreen() {
     >
       <Pressable style={styles.uploadMenuOverlay} onPress={() => setShowUploadMenu(false)}>
         <View style={[styles.uploadMenu, { backgroundColor: colors.surface }]}>
-          <Pressable style={styles.uploadMenuItem} onPress={() => pickImage(true)}>
+          <Pressable style={styles.uploadMenuItem} onPress={() => pickMedia(true)}>
             <Ionicons name="camera" size={24} color={colors.primary} />
-            <Text style={[styles.uploadMenuText, { color: colors.text }]}>Take Photo</Text>
+            <Text style={[styles.uploadMenuText, { color: colors.text }]}>Take Photo/Video</Text>
           </Pressable>
           <View style={[styles.menuDivider, { backgroundColor: colors.border }]} />
-          <Pressable style={styles.uploadMenuItem} onPress={() => pickImage(false)}>
+          <Pressable style={styles.uploadMenuItem} onPress={() => pickMedia(false)}>
             <Ionicons name="images" size={24} color={colors.primary} />
             <Text style={[styles.uploadMenuText, { color: colors.text }]}>Choose from Library</Text>
           </Pressable>
@@ -1015,6 +1053,30 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 6,
     right: 6,
+  },
+  videoIndicator: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.2)',
+  },
+  videoPlaceholder: {
+    backgroundColor: '#1a1a2e',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  videoDuration: {
+    color: '#FFF',
+    fontSize: 11,
+    fontWeight: '600',
+    marginTop: 2,
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   diveIndicator: {
     position: 'absolute',
