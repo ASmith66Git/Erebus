@@ -159,10 +159,11 @@ class BleService {
       throw new Error('BLE not initialized');
     }
 
-    // Support both new and legacy Shearwater UUIDs
+    // Support all known Shearwater service UUIDs
     const SHEARWATER_UUIDS = [
-      'fe25c237-0ece-443c-b0aa-e02033e7029d', // New (Tern, newer Perdix firmware)
-      '0000fee9-0000-1000-8000-00805f9b34fb', // Legacy/Standard Silicon Labs BLE
+      'fe25c237-0ece-443c-b0aa-e02033e7029d', // Modern: Perdix 2, Tern, newer firmware (v81+)
+      '0000fee9-0000-1000-8000-00805f9b34fb', // Standard/Legacy: Original Perdix/Petrel 2
+      '00001101-0000-1000-8000-00805f9b34fb', // Classic Serial: Very old firmware or "Legacy" BT mode
     ];
     const maxConnectionAttempts = 3; // Full connection cycles to try
     

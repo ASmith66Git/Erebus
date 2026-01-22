@@ -9,14 +9,16 @@ import {
 } from './baseProtocol';
 import { DownloadProgress } from '../bleService';
 
-// Support both new and legacy Shearwater service UUIDs
+// Support all known Shearwater service UUIDs
 const SHEARWATER_SERVICE_UUIDS = [
-  'fe25c237-0ece-443c-b0aa-e02033e7029d', // New (Tern, newer Perdix firmware)
-  '0000fee9-0000-1000-8000-00805f9b34fb', // Legacy/Standard Silicon Labs BLE
+  'fe25c237-0ece-443c-b0aa-e02033e7029d', // Modern: Perdix 2, Tern, newer firmware (v81+)
+  '0000fee9-0000-1000-8000-00805f9b34fb', // Standard/Legacy: Original Perdix/Petrel 2
+  '00001101-0000-1000-8000-00805f9b34fb', // Classic Serial: Very old firmware or "Legacy" BT mode
 ];
 const SHEARWATER_CHAR_UUIDS = [
-  '27b7570b-359e-45a3-91bb-cf7e70049bd2', // New characteristic
-  '0000fee8-0000-1000-8000-00805f9b34fb', // Legacy characteristic (TX)
+  '27b7570b-359e-45a3-91bb-cf7e70049bd2', // Modern characteristic
+  '0000fee8-0000-1000-8000-00805f9b34fb', // Standard/Legacy characteristic (TX)
+  '00001101-0000-1000-8000-00805f9b34fb', // Classic Serial characteristic
 ];
 
 const MANIFEST_ADDR = 0xe0000000;
