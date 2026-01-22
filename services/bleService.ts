@@ -169,13 +169,23 @@ class BleService {
 
         // On retry cycles, add extra delay to let Android BLE stack fully reset
         if (connectionCycle > 1) {
-          const retryDelay = 4000 + (connectionCycle * 1000); // 5s, 6s for cycles 2, 3
+          const retryDelay = 5000 + (connectionCycle * 2000); // 7s, 9s for cycles 2, 3
           console.log(`BLE: Waiting ${retryDelay}ms before reconnection attempt (GATT cache clear)...`);
           await new Promise(resolve => setTimeout(resolve, retryDelay));
+          
+          // Ensure any previous connection is fully cancelled
+          try {
+            console.log('BLE: Ensuring previous connection is cancelled...');
+            await this.manager.cancelDeviceConnection(deviceId);
+            await new Promise(resolve => setTimeout(resolve, 2000));
+          } catch (cancelError: any) {
+            // Device might already be disconnected, that's fine
+            console.log('BLE: Cancel result:', cancelError?.message || 'already disconnected');
+          }
         }
 
         const device = await this.manager.connectToDevice(deviceId, {
-          timeout: 20000, // Increased timeout for Android 15 on foldables
+          timeout: 25000, // Increased timeout for Android 15 on foldables
           requestMTU: 512,
           refreshGatt: 'OnConnected', // Force GATT cache refresh on Android 15
         });
@@ -280,14 +290,18 @@ class BleService {
               // Still not found - disconnect and retry full connection
               console.warn(`BLE: Service still not found, disconnecting to clear GATT cache...`);
               try {
-                await device.cancelConnection();
+                // Use manager-level disconnect which is more reliable
+                await this.manager.cancelDeviceConnection(deviceId);
                 // CRITICAL: Wait for Android BLE stack to fully process the disconnect
-                console.log('BLE: Waiting 4s for disconnect to complete before retry...');
-                await new Promise(resolve => setTimeout(resolve, 4000));
+                console.log('BLE: Waiting 5s for disconnect to complete before retry...');
+                await new Promise(resolve => setTimeout(resolve, 5000));
               } catch (e) {
                 // Ignore disconnect errors, but still wait
-                await new Promise(resolve => setTimeout(resolve, 3000));
+                console.log('BLE: Disconnect error (expected):', (e as any)?.message);
+                await new Promise(resolve => setTimeout(resolve, 4000));
               }
+              // Clear device reference to ensure clean state
+              this.connectedDevice = null;
               continue; // Try another connection cycle
             }
           } else {
