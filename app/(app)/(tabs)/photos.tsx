@@ -39,6 +39,8 @@ interface Photo {
   width: number | null;
   height: number | null;
   fileSize: number | null;
+  mediaType: 'image' | 'video';
+  duration: number | null;
   isFavorite: boolean;
   createdAt: string;
   updatedAt: string;
@@ -210,7 +212,7 @@ export default function PhotosScreen() {
     }
   };
 
-  const pickImage = async (useCamera: boolean) => {
+  const pickMedia = async (useCamera: boolean) => {
     setShowUploadMenu(false);
     
     const permissionResult = useCamera 
@@ -218,34 +220,41 @@ export default function PhotosScreen() {
       : await ImagePicker.requestMediaLibraryPermissionsAsync();
       
     if (!permissionResult.granted) {
-      alert(useCamera ? 'Camera permission is required' : 'Photo library permission is required');
+      alert(useCamera ? 'Camera permission is required' : 'Media library permission is required');
       return;
     }
     
     const result = useCamera
       ? await ImagePicker.launchCameraAsync({
-          mediaTypes: ['images'],
+          mediaTypes: ['images', 'videos'],
           allowsEditing: false,
           quality: 0.8,
+          videoMaxDuration: 300,
         })
       : await ImagePicker.launchImageLibraryAsync({
-          mediaTypes: ['images'],
+          mediaTypes: ['images', 'videos'],
           allowsMultipleSelection: true,
           selectionLimit: 10,
           quality: 0.8,
+          videoMaxDuration: 300,
         });
     
     if (!result.canceled && result.assets.length > 0) {
-      await uploadImages(result.assets);
+      await uploadMedia(result.assets);
     }
   };
 
-  const uploadImages = async (assets: ImagePicker.ImagePickerAsset[]) => {
+  const uploadMedia = async (assets: ImagePicker.ImagePickerAsset[]) => {
     setUploading(true);
     
     try {
       for (const asset of assets) {
-        console.log('Step 1: Requesting upload URL...', 'Token exists:', !!token, 'Token length:', token?.length);
+        const isVideo = asset.type === 'video';
+        const extension = isVideo ? 'mp4' : 'jpg';
+        const contentType = isVideo ? 'video/mp4' : 'image/jpeg';
+        const fileName = `${isVideo ? 'video' : 'photo'}-${Date.now()}.${extension}`;
+        
+        console.log('Step 1: Requesting upload URL...', 'Type:', asset.type, 'Token exists:', !!token);
         const urlResponse = await fetch(`${getApiUrl()}/api/uploads/request-url`, {
           method: 'POST',
           headers: {
@@ -253,9 +262,9 @@ export default function PhotosScreen() {
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
-            name: `photo-${Date.now()}.jpg`,
+            name: fileName,
             size: asset.fileSize || 0,
-            contentType: 'image/jpeg',
+            contentType,
           }),
         });
         
@@ -264,21 +273,21 @@ export default function PhotosScreen() {
           throw new Error(`Failed to get upload URL: ${urlResponse.status} - ${errorText}`);
         }
         const { uploadURL, objectPath } = await urlResponse.json();
-        console.log('Step 2: Got upload URL, fetching image blob...');
+        console.log('Step 2: Got upload URL, fetching media blob...');
         
-        const imageResponse = await fetch(asset.uri);
-        const imageBlob = await imageResponse.blob();
-        console.log('Step 3: Got image blob, uploading to storage...', imageBlob.size);
+        const mediaResponse = await fetch(asset.uri);
+        const mediaBlob = await mediaResponse.blob();
+        console.log('Step 3: Got media blob, uploading to storage...', mediaBlob.size);
         
         const uploadResponse = await fetch(uploadURL, {
           method: 'PUT',
-          body: imageBlob,
-          headers: { 'Content-Type': 'image/jpeg' },
+          body: mediaBlob,
+          headers: { 'Content-Type': contentType },
         });
         
         if (!uploadResponse.ok) {
           const errorText = await uploadResponse.text();
-          throw new Error(`Failed to upload image: ${uploadResponse.status} - ${errorText}`);
+          throw new Error(`Failed to upload ${isVideo ? 'video' : 'image'}: ${uploadResponse.status} - ${errorText}`);
         }
         console.log('Step 4: Uploaded to storage, getting public URL...');
         
@@ -288,10 +297,10 @@ export default function PhotosScreen() {
         
         if (!getUrlResponse.ok) {
           const errorText = await getUrlResponse.text();
-          throw new Error(`Failed to get image URL: ${getUrlResponse.status} - ${errorText}`);
+          throw new Error(`Failed to get media URL: ${getUrlResponse.status} - ${errorText}`);
         }
-        const { url: imageUrl } = await getUrlResponse.json();
-        console.log('Step 5: Got public URL, saving to database...', imageUrl);
+        const { url: mediaUrl } = await getUrlResponse.json();
+        console.log('Step 5: Got public URL, saving to database...', mediaUrl);
         
         const saveResponse = await fetch(`${getApiUrl()}/api/photos`, {
           method: 'POST',
@@ -300,25 +309,27 @@ export default function PhotosScreen() {
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
-            imageUrl,
+            imageUrl: mediaUrl,
             width: asset.width,
             height: asset.height,
             fileSize: asset.fileSize,
+            mediaType: isVideo ? 'video' : 'image',
+            duration: isVideo ? Math.round(asset.duration || 0) : null,
           }),
         });
         
         if (!saveResponse.ok) {
           const errorText = await saveResponse.text();
-          throw new Error(`Failed to save photo: ${saveResponse.status} - ${errorText}`);
+          throw new Error(`Failed to save ${isVideo ? 'video' : 'photo'}: ${saveResponse.status} - ${errorText}`);
         }
-        console.log('Step 6: Photo saved successfully!');
+        console.log('Step 6: Media saved successfully!');
       }
       
       fetchPhotos();
     } catch (error: any) {
       console.error('Upload error:', error?.message || error?.toString() || 'Unknown error');
       console.error('Upload error details:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
-      alert(`Failed to upload photos: ${error?.message || 'Unknown error'}`);
+      alert(`Failed to upload media: ${error?.message || 'Unknown error'}`);
     } finally {
       setUploading(false);
     }
