@@ -679,7 +679,7 @@ export default function PhotoDetailScreen() {
       <ThemedBackground style={styles.container}>
         <View style={[styles.header, { backgroundColor: colors.headerBackground, borderBottomColor: colors.border }]}>
           <Pressable onPress={() => router.back()} style={styles.headerButton}>
-            <Ionicons name="chevron-back" size={28} color={colors.text} />
+            <Ionicons name="close" size={28} color={colors.text} />
           </Pressable>
           <Text style={[styles.headerTitle, { color: colors.text }]}>
             {isEditing ? 'Edit Photo' : 'Photo'}
