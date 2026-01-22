@@ -317,20 +317,18 @@ export default function SupportAdminScreen() {
         borderColor: item.is_admin_reply ? colors.primary : colors.border,
       }
     ]}>
-      <View style={styles.messageHeader}>
-        <Text style={[
-          styles.senderName,
-          { color: item.is_admin_reply ? '#FFFFFF' : colors.primary }
-        ]}>
-          {item.is_admin_reply ? `${item.first_name} (Admin)` : `${item.first_name} ${item.last_name}`}
-        </Text>
-        <Text style={[
-          styles.messageTime,
-          { color: item.is_admin_reply ? 'rgba(255,255,255,0.7)' : colors.textSecondary }
-        ]}>
-          {formatMessageTime(item.created_at)}
-        </Text>
-      </View>
+      <Text style={[
+        styles.messageTime,
+        { color: item.is_admin_reply ? 'rgba(255,255,255,0.7)' : colors.textSecondary, marginBottom: 4 }
+      ]}>
+        {formatMessageTime(item.created_at)}
+      </Text>
+      <Text style={[
+        styles.senderName,
+        { color: item.is_admin_reply ? '#FFFFFF' : colors.primary, marginBottom: 4 }
+      ]}>
+        {item.is_admin_reply ? `${item.first_name} (Admin)` : `${item.first_name} ${item.last_name}`}
+      </Text>
       <Text style={[
         styles.messageText,
         { color: item.is_admin_reply ? '#FFFFFF' : colors.text }

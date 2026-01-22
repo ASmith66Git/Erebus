@@ -271,20 +271,18 @@ export default function HelpSupportScreen() {
         borderColor: item.is_admin_reply ? colors.border : colors.primary,
       }
     ]}>
-      <View style={styles.messageHeader}>
-        <Text style={[
-          styles.senderName,
-          { color: item.is_admin_reply ? colors.primary : '#FFFFFF' }
-        ]}>
-          {item.is_admin_reply ? 'Support Team' : 'You'}
-        </Text>
-        <Text style={[
-          styles.messageTime,
-          { color: item.is_admin_reply ? colors.textSecondary : 'rgba(255,255,255,0.7)' }
-        ]}>
-          {formatMessageTime(item.created_at)}
-        </Text>
-      </View>
+      <Text style={[
+        styles.messageTime,
+        { color: item.is_admin_reply ? colors.textSecondary : 'rgba(255,255,255,0.7)', marginBottom: 4 }
+      ]}>
+        {formatMessageTime(item.created_at)}
+      </Text>
+      <Text style={[
+        styles.senderName,
+        { color: item.is_admin_reply ? colors.primary : '#FFFFFF', marginBottom: 4 }
+      ]}>
+        {item.is_admin_reply ? 'Support Team' : 'You'}
+      </Text>
       <Text style={[
         styles.messageText,
         { color: item.is_admin_reply ? colors.text : '#FFFFFF' }
