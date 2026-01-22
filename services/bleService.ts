@@ -75,7 +75,7 @@ class BleService {
 
   async initialize(): Promise<boolean> {
     if (Platform.OS === 'web') {
-      console.log('BLE not available on web platform');
+      bleLog('INIT', 'BLE not available on web platform');
       return false;
     }
 
@@ -196,22 +196,22 @@ class BleService {
     for (let connectionCycle = 1; connectionCycle <= maxConnectionAttempts; connectionCycle++) {
       try {
         this.stopScanning();
-        console.log(`BLE: Connection cycle ${connectionCycle}/${maxConnectionAttempts} to device:`, deviceId);
+        bleLog('CONNECT', `Connection cycle ${connectionCycle}/${maxConnectionAttempts} to device: ${deviceId}`);
 
         // On retry cycles, add extra delay to let Android BLE stack fully reset
         if (connectionCycle > 1) {
           const retryDelay = 5000 + (connectionCycle * 2000); // 7s, 9s for cycles 2, 3
-          console.log(`BLE: Waiting ${retryDelay}ms before reconnection attempt (GATT cache clear)...`);
+          bleLog('CONNECT', `Waiting ${retryDelay}ms before reconnection attempt (GATT cache clear)...`);
           await new Promise(resolve => setTimeout(resolve, retryDelay));
           
           // Ensure any previous connection is fully cancelled
           try {
-            console.log('BLE: Ensuring previous connection is cancelled...');
+            bleLog('CONNECT', 'Ensuring previous connection is cancelled...');
             await this.manager.cancelDeviceConnection(deviceId);
             await new Promise(resolve => setTimeout(resolve, 2000));
           } catch (cancelError: any) {
             // Device might already be disconnected, that's fine
-            console.log('BLE: Cancel result:', cancelError?.message || 'already disconnected');
+            bleLog('CONNECT', 'Cancel result:', cancelError?.message || 'already disconnected');
           }
         }
 
@@ -220,7 +220,7 @@ class BleService {
           timeout: 25000, // Increased timeout for Android 15 on foldables
           refreshGatt: 'OnConnected', // Force GATT cache refresh on Android 15
         });
-        console.log('BLE: Connected, waiting 3000ms before discovery (Android 15 GATT stability)...');
+        bleLog('CONNECT', 'Connected, waiting 3000ms before discovery (Android 15 GATT stability)...');
         
         // Extended pre-discovery delay for Android 15 GATT stability
         // Foldable devices (like Honor Magic V3) need extra time due to antenna handling
@@ -231,25 +231,25 @@ class BleService {
         const maxDiscoveryAttempts = 4; // Increased from 3
         
         for (let attempt = 1; attempt <= maxDiscoveryAttempts; attempt++) {
-          console.log(`BLE: Service discovery attempt ${attempt}/${maxDiscoveryAttempts}...`);
+          bleLog('DISCOVER', `Service discovery attempt ${attempt}/${maxDiscoveryAttempts}...`);
           
           try {
             await device.discoverAllServicesAndCharacteristics();
             
             // Progressive stabilization delay - longer each attempt
             const stabilizationDelay = 1500 + (attempt * 1000); // 2.5s, 3.5s, 4.5s, 5.5s
-            console.log(`BLE: Waiting ${stabilizationDelay}ms for GATT stabilization...`);
+            bleLog('DISCOVER', `Waiting ${stabilizationDelay}ms for GATT stabilization...`);
             await new Promise(resolve => setTimeout(resolve, stabilizationDelay));
             
             // Check what services we found
             const services = await device.services();
-            console.log(`BLE: Found ${services.length} services on attempt ${attempt}`);
+            bleLog('DISCOVER', `Found ${services.length} services on attempt ${attempt}`);
             
             // Log all services for debugging
             const serviceUUIDs: string[] = [];
             for (const service of services) {
               serviceUUIDs.push(service.uuid.toLowerCase());
-              console.log('BLE: Service UUID:', service.uuid);
+              bleLog('DISCOVER', 'Service UUID:', service.uuid);
               const characteristics = await service.characteristics();
               for (const char of characteristics) {
                 console.log('  - Characteristic:', char.uuid, 
@@ -265,18 +265,18 @@ class BleService {
             );
             
             if (foundShearwater) {
-              console.log('BLE: Shearwater service found!');
+              bleLog('DISCOVER', 'Shearwater service found!');
               discoverySuccess = true;
               break;
             } else {
-              console.log(`BLE: Shearwater service not found yet. Available: ${serviceUUIDs.join(', ')}`);
+              bleLog('DISCOVER', `Shearwater service not found yet. Available: ${serviceUUIDs.join(', ')}`);
               if (attempt < maxDiscoveryAttempts) {
-                console.log('BLE: Waiting 2.5s before retry...');
+                bleLog('DISCOVER', 'Waiting 2.5s before retry...');
                 await new Promise(resolve => setTimeout(resolve, 2500));
               }
             }
           } catch (discoverError: any) {
-            console.error(`BLE: Discovery attempt ${attempt} failed:`, discoverError?.message);
+            bleLog('DISCOVER', `Discovery attempt ${attempt} failed: ${discoverError?.message}`);
             if (attempt < maxDiscoveryAttempts) {
               await new Promise(resolve => setTimeout(resolve, 1500));
             }
@@ -286,7 +286,7 @@ class BleService {
         // Check if device is still connected
         const stillConnected = await device.isConnected();
         if (!stillConnected) {
-          console.log('BLE: Device disconnected during discovery, waiting 2s before retry...');
+          bleLog('DISCOVER', 'Device disconnected during discovery, waiting 2s before retry...');
           await new Promise(resolve => setTimeout(resolve, 2000));
           continue; // Try another connection cycle
         }
@@ -294,16 +294,16 @@ class BleService {
         if (!discoverySuccess) {
           // Service not found - try to "ping" the device to force GATT refresh before disconnecting
           if (connectionCycle < maxConnectionAttempts) {
-            console.warn(`BLE: Shearwater service not found (cycle ${connectionCycle}), attempting GATT refresh...`);
+            bleLog('DISCOVER', `Shearwater service not found (cycle ${connectionCycle}), attempting GATT refresh...`);
             
             try {
               // Try reading RSSI to "ping" the device - this can force GATT table refresh
-              console.log('BLE: Reading RSSI to ping device...');
+              bleLog('DISCOVER', 'Reading RSSI to ping device...');
               const rssiDevice = await device.readRSSI();
-              console.log('BLE: RSSI read successful:', rssiDevice.rssi);
+              bleLog('DISCOVER', 'RSSI read successful:', rssiDevice.rssi);
               
               // Wait and try one more discovery after the ping
-              console.log('BLE: Waiting 2s after RSSI ping, then retrying discovery...');
+              bleLog('DISCOVER', 'Waiting 2s after RSSI ping, then retrying discovery...');
               await new Promise(resolve => setTimeout(resolve, 2000));
               
               await device.discoverAllServicesAndCharacteristics();
@@ -311,31 +311,31 @@ class BleService {
               
               const retryServices = await device.services();
               const retryUUIDs = retryServices.map((s: any) => s.uuid.toLowerCase());
-              console.log('BLE: Post-ping services:', retryUUIDs.join(', '));
+              bleLog('DISCOVER', 'Post-ping services:', retryUUIDs.join(', '));
               
               const foundAfterPing = SHEARWATER_UUIDS.some(uuid => 
                 retryUUIDs.includes(uuid.toLowerCase())
               );
               if (foundAfterPing) {
-                console.log('BLE: Shearwater service found after RSSI ping!');
+                bleLog('DISCOVER', 'Shearwater service found after RSSI ping!');
                 discoverySuccess = true;
               }
             } catch (pingError: any) {
-              console.log('BLE: RSSI ping failed:', pingError?.message);
+              bleLog('DISCOVER', 'RSSI ping failed:', pingError?.message);
             }
             
             if (!discoverySuccess) {
               // Still not found - disconnect and retry full connection
-              console.warn(`BLE: Service still not found, disconnecting to clear GATT cache...`);
+              bleLog('DISCOVER', 'Service still not found, disconnecting to clear GATT cache...');
               try {
                 // Use manager-level disconnect which is more reliable
                 await this.manager.cancelDeviceConnection(deviceId);
                 // CRITICAL: Wait for Android BLE stack to fully process the disconnect
-                console.log('BLE: Waiting 5s for disconnect to complete before retry...');
+                bleLog('CONNECT', 'Waiting 5s for disconnect to complete before retry...');
                 await new Promise(resolve => setTimeout(resolve, 5000));
               } catch (e) {
                 // Ignore disconnect errors, but still wait
-                console.log('BLE: Disconnect error (expected):', (e as any)?.message);
+                bleLog('CONNECT', 'Disconnect error (expected):', (e as any)?.message);
                 await new Promise(resolve => setTimeout(resolve, 4000));
               }
               // Clear device reference to ensure clean state
@@ -350,15 +350,15 @@ class BleService {
         
         // Final verification
         const verifyServices = await device.services();
-        console.log('BLE: Final service count:', verifyServices.length);
+        bleLog('DISCOVER', 'Final service count:', verifyServices.length);
         
         // Request MTU AFTER discovery to avoid Android race condition
-        console.log('BLE: Discovery successful, requesting MTU 512...');
+        bleLog('MTU', 'Discovery successful, requesting MTU 512...');
         try {
           await device.requestMTU(512);
-          console.log('BLE: MTU request successful');
+          bleLog('MTU', 'MTU request successful');
         } catch (mtuError: any) {
-          console.warn('BLE: MTU request failed, continuing with default:', mtuError?.message);
+          bleLog('MTU', 'MTU request failed, continuing with default:', mtuError?.message);
         }
         
         this.connectedDevice = device;
@@ -371,7 +371,7 @@ class BleService {
         });
 
         device.onDisconnected(() => {
-          console.log('BLE: Device disconnected (ID preserved for reconnection:', this.connectedDeviceId, ')');
+          bleLog('CONNECT', 'Device disconnected (ID preserved for reconnection)', this.connectedDeviceId);
           this.connectedDevice = null;
           this.notifyConnectionState({
             connected: false,
@@ -380,7 +380,7 @@ class BleService {
           });
         });
 
-        console.log('BLE: Connection complete, Shearwater service verified, ready for communication');
+        bleLog('CONNECT', 'Connection complete, Shearwater service verified, ready for communication');
         return true;
         
       } catch (error: any) {
@@ -393,7 +393,7 @@ class BleService {
         }
         
         // Otherwise, continue to next connection cycle
-        console.log('BLE: Will retry connection cycle...');
+        bleLog('CONNECT', 'Will retry connection cycle...');
       }
     }
     
@@ -611,26 +611,26 @@ class BleService {
         // Validate service exists before writing (prevents "device ?" errors)
         const serviceExists = await this.validateServiceExists(serviceUUID);
         if (!serviceExists) {
-          console.log(`BLE: Service ${serviceUUID} not found, attempting progressive re-discovery...`);
+          bleLog('DISCOVER', `Service ${serviceUUID} not found, attempting progressive re-discovery...`);
           
           // Progressive re-discovery with increasing delays (Shearwater devices need extra time)
           let found = false;
           const discoveryDelays = [2000, 3000, 4000]; // Increasing delays
           
           for (let i = 0; i < discoveryDelays.length && !found; i++) {
-            console.log(`BLE: Re-discovery attempt ${i + 1}/${discoveryDelays.length}, waiting ${discoveryDelays[i]}ms...`);
+            bleLog('DISCOVER', `Re-discovery attempt ${i + 1}/${discoveryDelays.length}, waiting ${discoveryDelays[i]}ms...`);
             await this.connectedDevice.discoverAllServicesAndCharacteristics();
             await new Promise(resolve => setTimeout(resolve, discoveryDelays[i]));
             
             found = await this.validateServiceExists(serviceUUID);
             if (found) {
-              console.log(`BLE: Service found after re-discovery attempt ${i + 1}`);
+              bleLog('DISCOVER', `Service found after re-discovery attempt ${i + 1}`);
             }
           }
           
           if (!found) {
             // Last resort: full reconnect before giving up
-            console.log('BLE: Service still not found, attempting full reconnect...');
+            bleLog('RECOVER', 'Service still not found, attempting full reconnect...');
             if (this.connectedDeviceId) {
               await this.reconnect();
               await new Promise(resolve => setTimeout(resolve, 3000));
@@ -687,35 +687,35 @@ class BleService {
           // First: Try re-discovery if we still have a device reference (GATT cache refresh)
           if (this.connectedDevice && isServiceError) {
             try {
-              console.log('BLE: Attempting GATT refresh (re-discovery)...');
+              bleLog('RECOVER', 'Attempting GATT refresh (re-discovery)...');
               const stillConnected = await this.connectedDevice.isConnected();
               if (stillConnected) {
                 await this.connectedDevice.discoverAllServicesAndCharacteristics();
                 await new Promise(resolve => setTimeout(resolve, 500));
-                console.log('BLE: GATT refresh successful');
+                bleLog('RECOVER', 'GATT refresh successful');
                 recovered = true;
               } else {
-                console.log('BLE: Device reports disconnected, will do full reconnect');
+                bleLog('RECOVER', 'Device reports disconnected, will do full reconnect');
               }
             } catch (refreshError: any) {
-              console.log('BLE: GATT refresh failed:', refreshError?.message);
+              bleLog('RECOVER', 'GATT refresh failed:', refreshError?.message);
             }
           }
           
           // Second: Full reconnection if GATT refresh didn't work
           if (!recovered) {
             try {
-              console.log('BLE: Attempting full reconnection...');
+              bleLog('RECOVER', 'Attempting full reconnection...');
               await this.reconnect();
-              console.log('BLE: Full reconnection successful');
+              bleLog('RECOVER', 'Full reconnection successful');
               recovered = true;
             } catch (reconnectError: any) {
-              console.warn('BLE: Reconnection failed:', reconnectError?.message);
+              bleLog('RECOVER', 'Reconnection failed:', reconnectError?.message);
             }
           }
           
           if (recovered) {
-            console.log('BLE: Recovery successful, retrying write...');
+            bleLog('RECOVER', 'Recovery successful, retrying write...');
           }
         } else if (isCancelledError) {
           // User cancelled, don't retry
@@ -809,7 +809,7 @@ class BleService {
     }
     
     const deviceId = this.connectedDeviceId;
-    console.log('BLE: Full reconnection to device:', deviceId);
+    bleLog('RECONNECT', 'Full reconnection to device:', deviceId);
     
     // Clear the old device reference first (don't cancel - it may already be disconnected)
     const oldDevice = this.connectedDevice;
@@ -821,42 +821,42 @@ class BleService {
         // Check if still connected before cancelling
         const isConnected = await oldDevice.isConnected();
         if (isConnected) {
-          console.log('BLE: Old device still connected, cancelling...');
+          bleLog('RECONNECT', 'Old device still connected, cancelling...');
           await oldDevice.cancelConnection();
         } else {
-          console.log('BLE: Old device already disconnected');
+          bleLog('RECONNECT', 'Old device already disconnected');
         }
       } catch (e: any) {
         // Completely ignore - device may already be disconnected
-        console.log('BLE: Cancel cleanup (ignored):', e?.message || 'unknown');
+        bleLog('RECONNECT', 'Cancel cleanup (ignored):', e?.message || 'unknown');
       }
     }
     
     // Wait for BLE stack to settle (Shearwater needs time to be discoverable again)
-    console.log('BLE: Waiting for BLE stack to settle...');
+    bleLog('RECONNECT', 'Waiting for BLE stack to settle...');
     await new Promise(resolve => setTimeout(resolve, 3000));
     
     // Reconnect using stored device ID - use 12 sec timeout like Subsurface
-    console.log('BLE: Attempting connectToDevice:', deviceId);
+    bleLog('RECONNECT', 'Attempting connectToDevice:', deviceId);
     const device = await this.manager.connectToDevice(deviceId, {
       timeout: 12000, // Match Subsurface's BLE_TIMEOUT
       requestMTU: 512,
     });
     
-    console.log('BLE: Reconnected, discovering services...');
+    bleLog('RECONNECT', 'Reconnected, discovering services...');
     await device.discoverAllServicesAndCharacteristics();
     
     // Wait for GATT to stabilize - Shearwater needs extra time for service enumeration
     await new Promise(resolve => setTimeout(resolve, 2000));
     
     const services = await device.services();
-    console.log('BLE: Found', services.length, 'services after reconnection');
+    bleLog('RECONNECT', 'Found services after reconnection:', services.length);
     
     this.connectedDevice = device;
     
     // Re-register disconnect listener
     device.onDisconnected(() => {
-      console.log('BLE: Device disconnected (ID preserved for reconnection:', this.connectedDeviceId, ')');
+      bleLog('CONNECT', 'Device disconnected (ID preserved for reconnection)', this.connectedDeviceId);
       this.connectedDevice = null;
       this.notifyConnectionState({
         connected: false,
@@ -866,15 +866,15 @@ class BleService {
     });
     
     // Invoke all reconnection callbacks to let protocols re-establish their subscriptions
-    console.log('BLE: Invoking', this.reconnectionCallbacks.length, 'reconnection callbacks...');
+    bleLog('RECONNECT', 'Invoking reconnection callbacks:', this.reconnectionCallbacks.length);
     for (const callback of this.reconnectionCallbacks) {
       try {
         await callback();
       } catch (e: any) {
-        console.error('BLE: Reconnection callback error:', e?.message);
+        bleLog('RECONNECT', 'Reconnection callback error:', e?.message);
       }
     }
-    console.log('BLE: Reconnection callbacks completed');
+    bleLog('RECONNECT', 'Reconnection callbacks completed');
     
     return true;
   }
@@ -892,7 +892,7 @@ class BleService {
 
   async validateServiceExists(serviceUUID: string): Promise<boolean> {
     if (!this.connectedDevice) {
-      console.log('BLE: validateServiceExists - no connected device');
+      bleLog('VALIDATE', 'validateServiceExists - no connected device');
       return false;
     }
     
@@ -900,10 +900,10 @@ class BleService {
       const services = await this.connectedDevice.services();
       const normalizedTarget = serviceUUID.toLowerCase();
       const found = services.some((s: any) => s.uuid.toLowerCase() === normalizedTarget);
-      console.log(`BLE: validateServiceExists(${serviceUUID}) = ${found} (${services.length} services total)`);
+      bleLog('VALIDATE', `validateServiceExists(${serviceUUID}) = ${found} (${services.length} services total)`);
       return found;
     } catch (error: any) {
-      console.error('BLE: validateServiceExists error:', error?.message);
+      bleLog('VALIDATE', `validateServiceExists error: ${error?.message}`);
       return false;
     }
   }
@@ -913,7 +913,7 @@ class BleService {
       throw new Error('No device connected');
     }
     
-    console.log('BLE: Re-discovering services...');
+    bleLog('VALIDATE', 'Re-discovering services...');
     await this.connectedDevice.discoverAllServicesAndCharacteristics();
     
     // Stabilization delay after re-discovery
@@ -921,9 +921,9 @@ class BleService {
     
     // Log discovered services again
     const services = await this.connectedDevice.services();
-    console.log('BLE: Found', services.length, 'services after re-discovery');
+    bleLog('VALIDATE', 'Found services after re-discovery:', services.length);
     for (const service of services) {
-      console.log('BLE: Service UUID:', service.uuid);
+      bleLog('DISCOVER', 'Service UUID:', service.uuid);
     }
   }
 
