@@ -2,14 +2,14 @@ import bleService, { BleDevice, DownloadProgress } from '../bleService';
 import { SlipDecoder, slipEncode } from './slipCodec';
 import { Buffer } from 'buffer';
 
-// Detailed protocol logging helper
+// Detailed protocol logging helper - uses console.warn so it gets captured by error logging system
 const protoLog = (category: string, message: string, data?: any) => {
   const timestamp = new Date().toISOString().split('T')[1].replace('Z', '');
   const prefix = `[PROTO ${timestamp}] [${category}]`;
   if (data !== undefined) {
-    console.log(prefix, message, typeof data === 'object' ? JSON.stringify(data) : data);
+    console.warn(prefix, message, typeof data === 'object' ? JSON.stringify(data) : data);
   } else {
-    console.log(prefix, message);
+    console.warn(prefix, message);
   }
 };
 

@@ -1,0 +1,58 @@
+{
+  "deviceInfo": {
+    "platform": "android",
+    "version": 35,
+    "timestamp": "2026-01-22T17:24:22.114Z"
+  },
+  "logs": [
+    {
+      "id": "1769102589385-7rjhhrqrj",
+      "timestamp": "2026-01-22T17:23:09.385Z",
+      "level": "error",
+      "message": "Download error details: {\n  \"message\": \"Operation cancelled (error code 2)\",\n  \"name\": \"Error\",\n  \"stack\": \"Error: Operation cancelled (error code 2)\\n    at ?anon_0__loop (address at index.android.bundle:1:3956197)\\n    at throw (native)\\n    at ?anon_0_ (address at index.android.bundle:1:3953886)\\n    at throw (native)\\n    at asyncGeneratorStep (address at index.android.bundle:1:572733)\\n    at _throw (address at index.android.bundle:1:573038)\\n    at tryCallOne (address at InternalBytecode.js:1:1180)\\n    at anonymous (address at InternalBytecode.js:1:1874)\",\n  \"fullError\": \"{\\n  \\\"message\\\": \\\"Operation cancelled (error code 2)\\\",\\n  \\\"stack\\\": \\\"Error: Operation cancelled (error code 2)\\\\n    at ?anon_0__loop (address at index.android.bundle:1:3956197)\\\\n    at throw (native)\\\\n    at ?anon_0_ (address at index.android.bundle:1:3953886)\\\\n    at throw (native)\\\\n    at asyncGeneratorStep (address at index.android.bundle:1:572733)\\\\n    at _throw (address at index.android.bundle:1",
+      "source": "console.error"
+    },
+    {
+      "id": "1769102589383-asg7jvc1p",
+      "timestamp": "2026-01-22T17:23:09.383Z",
+      "level": "error",
+      "message": "Download error: Error: Operation cancelled (error code 2)\nError: Operation cancelled (error code 2)\n    at ?anon_0__loop (address at index.android.bundle:1:3956197)\n    at throw (native)\n    at ?anon_0_ (address at index.android.bundle:1:3953886)\n    at throw (native)\n    at asyncGeneratorStep (address at index.android.bundle:1:572733)\n    at _throw (address at index.android.bundle:1:573038)\n    at tryCallOne (address at InternalBytecode.js:1:1180)\n    at anonymous (address at InternalBytecode.js:1:1874)",
+      "source": "console.error"
+    },
+    {
+      "id": "1769102589379-1ku9tmh9r",
+      "timestamp": "2026-01-22T17:23:09.379Z",
+      "level": "error",
+      "message": "BLE Error Details: {\n  \"message\": \"Operation was cancelled\",\n  \"reason\": \"\",\n  \"errorCode\": 2,\n  \"androidErrorCode\": null,\n  \"iosErrorCode\": null,\n  \"attErrorCode\": null,\n  \"name\": \"BleError\",\n  \"stack\": \"BleError: Operation was cancelled\\n    at construct (native)\\n    at apply (native)\\n    at _construct (address at index.android.bundle:1:144605)\\n    at Wrapper (address at index.android.bundle:1:144258)\\n    at construct (native)\\n    at _callSuper (address at index.android.bundle:1:129146)\\n    at BleError (address at index.android.bundle:1:3967642)\\n    at parseBleError (address at index.android.bundle:1:3967446)\\n    at ?anon_0_ (address at index.android.bundle:1:3970982)\\n    at throw (native)\\n    a\"\n}",
+      "source": "console.error"
+    },
+    {
+      "id": "1769102589376-dpfyngp2m",
+      "timestamp": "2026-01-22T17:23:09.376Z",
+      "level": "error",
+      "message": "Connection cycle 3 error: BleError: Operation was cancelled\nBleError: Operation was cancelled\n    at construct (native)\n    at apply (native)\n    at _construct (address at index.android.bundle:1:144605)\n    at Wrapper (address at index.android.bundle:1:144258)\n    at construct (native)\n    at _callSuper (address at index.android.bundle:1:129146)\n    at BleError (address at index.android.bundle:1:3967642)\n    at parseBleError (address at index.android.bundle:1:3967446)\n    at ?anon_0_ (address at index.android.bundle:1:3970982)\n    at throw (native)\n    at asyncGeneratorStep (address at index.android.bundle:1:572733)\n    at _throw (address at index.android.bundle:1:573038)\n    at tryCallOne (address at InternalBytecode.js:1:1180)\n    at anonymous (address at InternalBytecode.js:1:1874)",
+      "source": "console.error"
+    },
+    {
+      "id": "1769102551332-w9jvg0zph",
+      "timestamp": "2026-01-22T17:22:31.332Z",
+      "level": "error",
+      "message": "Connection cycle 2 error: BleError: Operation was cancelled\nBleError: Operation was cancelled\n    at construct (native)\n    at apply (native)\n    at _construct (address at index.android.bundle:1:144605)\n    at Wrapper (address at index.android.bundle:1:144258)\n    at construct (native)\n    at _callSuper (address at index.android.bundle:1:129146)\n    at BleError (address at index.android.bundle:1:3967642)\n    at parseBleError (address at index.android.bundle:1:3967446)\n    at ?anon_0_ (address at index.android.bundle:1:3970982)\n    at throw (native)\n    at asyncGeneratorStep (address at index.android.bundle:1:572733)\n    at _throw (address at index.android.bundle:1:573038)\n    at tryCallOne (address at InternalBytecode.js:1:1180)\n    at anonymous (address at InternalBytecode.js:1:1874)",
+      "source": "console.error"
+    },
+    {
+      "id": "1769102512298-mv59452p6",
+      "timestamp": "2026-01-22T17:21:52.298Z",
+      "level": "warn",
+      "message": "BLE: Service still not found, disconnecting to clear GATT cache...",
+      "source": "console.warn"
+    },
+    {
+      "id": "1769102508246-uian2nzps",
+      "timestamp": "2026-01-22T17:21:48.246Z",
+      "level": "warn",
+      "message": "BLE: Shearwater service not found (cycle 1), attempting GATT refresh...",
+      "source": "console.warn"
+    }
+  ]
+}

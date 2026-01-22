@@ -4,14 +4,14 @@ import { Buffer } from 'buffer';
 let BleManager: any = null;
 let bleManagerInstance: any = null;
 
-// Detailed BLE logging helper
+// Detailed BLE logging helper - uses console.warn so it gets captured by error logging system
 const bleLog = (category: string, message: string, data?: any) => {
   const timestamp = new Date().toISOString().split('T')[1].replace('Z', '');
   const prefix = `[BLE ${timestamp}] [${category}]`;
   if (data !== undefined) {
-    console.log(prefix, message, typeof data === 'object' ? JSON.stringify(data) : data);
+    console.warn(prefix, message, typeof data === 'object' ? JSON.stringify(data) : data);
   } else {
-    console.log(prefix, message);
+    console.warn(prefix, message);
   }
 };
 

@@ -161,7 +161,7 @@ export class ShearwaterProtocol extends BaseDiveComputerProtocol {
   setActiveUUIDs(serviceUUID: string, charUUID: string): void {
     this.activeServiceUUID = serviceUUID;
     this.activeCharUUID = charUUID;
-    console.log(`Shearwater: Using service ${serviceUUID}, char ${charUUID}`);
+    console.warn(`Shearwater: Using service ${serviceUUID}, char ${charUUID}`);
   }
   
   setFingerprint(data: Uint8Array): void {
@@ -171,27 +171,27 @@ export class ShearwaterProtocol extends BaseDiveComputerProtocol {
   }
   
   async getDeviceInfo(): Promise<DiveComputerInfo> {
-    console.log('[SHEARWATER] === Getting device info ===');
+    console.warn('[SHEARWATER] === Getting device info ===');
     
-    console.log('[SHEARWATER] Reading serial number (ID_SERIAL=0x8010)...');
+    console.warn('[SHEARWATER] Reading serial number (ID_SERIAL=0x8010)...');
     const serialResp = await this.rdbi(ID_SERIAL, 8);
     const serialHex = bytesToHex(serialResp);
     const serial = parseInt(serialHex, 16).toString();
-    console.log(`[SHEARWATER] Serial: ${serial} (hex: ${serialHex})`);
+    console.warn(`[SHEARWATER] Serial: ${serial} (hex: ${serialHex})`);
     
-    console.log('[SHEARWATER] Reading firmware version (ID_FIRMWARE=0x8011)...');
+    console.warn('[SHEARWATER] Reading firmware version (ID_FIRMWARE=0x8011)...');
     const firmwareResp = await this.rdbi(ID_FIRMWARE, 12);
     const firmwareStr = String.fromCharCode(...firmwareResp).replace(/\0/g, '').trim();
     const firmware = firmwareStr.replace(/^V/, '');
-    console.log(`[SHEARWATER] Firmware: ${firmware}`);
+    console.warn(`[SHEARWATER] Firmware: ${firmware}`);
     
-    console.log('[SHEARWATER] Reading hardware type (ID_HARDWARE=0x8012)...');
+    console.warn('[SHEARWATER] Reading hardware type (ID_HARDWARE=0x8012)...');
     const hardwareResp = await this.rdbi(ID_HARDWARE, 2);
     const hardwareCode = arrayUint16BE(hardwareResp);
     const model = HARDWARE_MAP[hardwareCode] || `Unknown (0x${hardwareCode.toString(16)})`;
-    console.log(`[SHEARWATER] Model: ${model} (code: 0x${hardwareCode.toString(16)})`);
+    console.warn(`[SHEARWATER] Model: ${model} (code: 0x${hardwareCode.toString(16)})`);
     
-    console.log('[SHEARWATER] === Device info complete ===');
+    console.warn('[SHEARWATER] === Device info complete ===');
     return {
       manufacturer: 'Shearwater',
       model,
@@ -202,34 +202,34 @@ export class ShearwaterProtocol extends BaseDiveComputerProtocol {
   }
   
   private async rdbi(id: number, expectedLength: number): Promise<Uint8Array> {
-    console.log(`[SHEARWATER] RDBI request: id=0x${id.toString(16)}, expectedLen=${expectedLength}`);
+    console.warn(`[SHEARWATER] RDBI request: id=0x${id.toString(16)}, expectedLen=${expectedLength}`);
     const request = new Uint8Array([RDBI_REQUEST, (id >> 8) & 0xff, id & 0xff]);
     const response = await this.transfer(request, expectedLength + 3);
     
-    console.log(`[SHEARWATER] RDBI response: ${bytesToHex(response)}`);
+    console.warn(`[SHEARWATER] RDBI response: ${bytesToHex(response)}`);
     
     if (response.length < 3) {
-      console.log('[SHEARWATER] ERROR: RDBI response too short');
+      console.warn('[SHEARWATER] ERROR: RDBI response too short');
       throw new Error('RDBI response too short');
     }
     
     if (response[0] === NAK) {
-      console.log(`[SHEARWATER] ERROR: RDBI NAK received for ID 0x${id.toString(16)}`);
+      console.warn(`[SHEARWATER] ERROR: RDBI NAK received for ID 0x${id.toString(16)}`);
       throw new Error(`RDBI NAK received for ID 0x${id.toString(16)}`);
     }
     
     if (response[0] !== RDBI_RESPONSE) {
-      console.log(`[SHEARWATER] ERROR: Unexpected response type: 0x${response[0].toString(16)}`);
+      console.warn(`[SHEARWATER] ERROR: Unexpected response type: 0x${response[0].toString(16)}`);
       throw new Error(`Unexpected RDBI response type: 0x${response[0].toString(16)}`);
     }
     
     const respId = arrayUint16BE(response, 1);
     if (respId !== id) {
-      console.log(`[SHEARWATER] ERROR: ID mismatch: expected 0x${id.toString(16)}, got 0x${respId.toString(16)}`);
+      console.warn(`[SHEARWATER] ERROR: ID mismatch: expected 0x${id.toString(16)}, got 0x${respId.toString(16)}`);
       throw new Error(`RDBI response ID mismatch: expected 0x${id.toString(16)}, got 0x${respId.toString(16)}`);
     }
     
-    console.log(`[SHEARWATER] RDBI success, payload: ${bytesToHex(response.slice(3))}`);
+    console.warn(`[SHEARWATER] RDBI success, payload: ${bytesToHex(response.slice(3))}`);
     return response.slice(3);
   }
   
@@ -239,7 +239,7 @@ export class ShearwaterProtocol extends BaseDiveComputerProtocol {
     compressed: boolean,
     onProgress?: (current: number, total: number) => void
   ): Promise<Uint8Array> {
-    console.log(`[SHEARWATER] === Download block: addr=0x${address.toString(16)}, size=${size}, compressed=${compressed} ===`);
+    console.warn(`[SHEARWATER] === Download block: addr=0x${address.toString(16)}, size=${size}, compressed=${compressed} ===`);
     const downloadStart = Date.now();
     
     const compressionFlag = compressed ? 0x10 : 0x00;
@@ -256,17 +256,17 @@ export class ShearwaterProtocol extends BaseDiveComputerProtocol {
       size & 0xff,
     ]);
     
-    console.log(`[SHEARWATER] Sending download init (0x35)...`);
+    console.warn(`[SHEARWATER] Sending download init (0x35)...`);
     const initResponse = await this.transfer(initRequest, 3);
-    console.log(`[SHEARWATER] Download init response: ${bytesToHex(initResponse)}`);
+    console.warn(`[SHEARWATER] Download init response: ${bytesToHex(initResponse)}`);
     
     if (initResponse.length !== 3 || initResponse[0] !== 0x75 || initResponse[1] !== 0x10) {
-      console.log('[SHEARWATER] ERROR: Invalid download init response');
+      console.warn('[SHEARWATER] ERROR: Invalid download init response');
       throw new Error('Invalid download init response');
     }
     
     const blockSize = initResponse[2];
-    console.log(`[SHEARWATER] Block size from device: ${blockSize} bytes`);
+    console.warn(`[SHEARWATER] Block size from device: ${blockSize} bytes`);
     
     const rawBuffer: number[] = [];
     const rleDecoder = compressed ? new RLEDecoder() : null;
