@@ -4651,7 +4651,7 @@ app.put('/api/dive-logs/:id', authenticateToken, async (req, res) => {
     const {
       diveSiteId, diveDateTime, durationSeconds, maxDepthMeters, avgDepthMeters,
       minTemperatureCelsius, maxTemperatureCelsius, notes, rating, gearProfileId, gasMixes,
-      skillsNotes
+      skillsNotes, workload, thermalComfort, equipmentIssues, problemNotes
     } = req.body;
 
     const existingResult = await pool.query(
@@ -4686,8 +4686,12 @@ app.put('/api/dive-logs/:id', authenticateToken, async (req, res) => {
         rating = COALESCE($9, rating),
         gear_profile_id = $10,
         gas_mixes = COALESCE($11, gas_mixes),
-        skills_notes = COALESCE($12, skills_notes)
-      WHERE id = $13 AND user_id = $14
+        skills_notes = COALESCE($12, skills_notes),
+        workload = $13,
+        thermal_comfort = $14,
+        equipment_issues = $15,
+        problem_notes = $16
+      WHERE id = $17 AND user_id = $18
       RETURNING *
     `;
     const updateParams = [
@@ -4696,6 +4700,10 @@ app.put('/api/dive-logs/:id', authenticateToken, async (req, res) => {
       gearProfileId !== undefined ? gearProfileId : null,
       gasMixes ? JSON.stringify(gasMixes) : null,
       skillsNotes,
+      workload || null,
+      thermalComfort || null,
+      equipmentIssues ? JSON.stringify(equipmentIssues) : null,
+      problemNotes || null,
       id, req.user.id
     ];
     
