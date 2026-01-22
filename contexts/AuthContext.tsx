@@ -285,13 +285,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
   
   async function initializeNotifications(authToken: string) {
+    console.log('[AuthContext] Starting notification initialization...');
     try {
       const result = await notificationService.initialize();
+      console.log('[AuthContext] Notification initialize result:', result);
       if (result.token) {
-        await notificationService.registerTokenWithServer(authToken);
+        console.log('[AuthContext] Token obtained, registering with server...');
+        const registered = await notificationService.registerTokenWithServer(authToken);
+        console.log('[AuthContext] Token registration result:', registered);
+      } else {
+        console.log('[AuthContext] No token obtained, skipping server registration');
       }
     } catch (error) {
-      console.log('Notification initialization failed:', error);
+      console.log('[AuthContext] Notification initialization failed:', error);
     }
   }
 

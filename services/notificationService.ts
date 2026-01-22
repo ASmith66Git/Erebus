@@ -25,44 +25,57 @@ class NotificationService {
   private responseListener: Notifications.Subscription | null = null;
 
   async initialize(): Promise<PushNotificationState> {
+    console.log('[NotificationService] Initializing on platform:', Platform.OS);
+    
     if (Platform.OS === 'web') {
+      console.log('[NotificationService] Web platform - skipping push notifications');
       return { token: null, permission: 'undetermined' };
     }
 
     if (!Device.isDevice) {
-      console.log('Push notifications require a physical device');
+      console.log('[NotificationService] Not a physical device - push notifications unavailable');
       return { token: null, permission: 'undetermined' };
     }
 
+    console.log('[NotificationService] Physical device detected, checking permissions...');
     const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    console.log('[NotificationService] Existing permission status:', existingStatus);
     let finalStatus = existingStatus;
 
     if (existingStatus !== 'granted') {
+      console.log('[NotificationService] Requesting notification permissions...');
       const { status } = await Notifications.requestPermissionsAsync();
       finalStatus = status;
+      console.log('[NotificationService] Permission request result:', finalStatus);
     }
 
     if (finalStatus !== 'granted') {
+      console.log('[NotificationService] Permission denied');
       return { token: null, permission: 'denied' };
     }
 
     try {
       const projectId = Constants.expoConfig?.extra?.eas?.projectId;
+      console.log('[NotificationService] Project ID:', projectId);
+      
       if (!projectId) {
-        console.error('No project ID found in app config');
+        console.error('[NotificationService] No project ID found in app config');
         return { token: null, permission: 'granted' };
       }
 
+      console.log('[NotificationService] Getting Expo push token...');
       const tokenData = await Notifications.getExpoPushTokenAsync({ projectId });
       this.token = tokenData.data;
+      console.log('[NotificationService] Push token obtained:', this.token);
 
       if (Platform.OS === 'android') {
+        console.log('[NotificationService] Setting up Android notification channels...');
         await this.setupAndroidChannel();
       }
 
       return { token: this.token, permission: 'granted' };
     } catch (error) {
-      console.error('Error getting push token:', error);
+      console.error('[NotificationService] Error getting push token:', error);
       return { token: null, permission: 'granted' };
     }
   }
@@ -91,13 +104,21 @@ class NotificationService {
   }
 
   async registerTokenWithServer(authToken: string): Promise<boolean> {
+    console.log('[NotificationService] Attempting to register token with server...');
+    
     if (!this.token) {
-      console.log('No push token available to register');
+      console.log('[NotificationService] No push token available to register');
       return false;
     }
 
+    const apiUrl = getApiUrl();
+    console.log('[NotificationService] API URL:', apiUrl);
+    console.log('[NotificationService] Token to register:', this.token);
+    console.log('[NotificationService] Platform:', Platform.OS);
+    console.log('[NotificationService] Device name:', Device.deviceName);
+
     try {
-      const response = await fetch(`${getApiUrl()}/api/push-tokens`, {
+      const response = await fetch(`${apiUrl}/api/push-tokens`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -110,15 +131,19 @@ class NotificationService {
         }),
       });
 
+      const responseText = await response.text();
+      console.log('[NotificationService] Server response status:', response.status);
+      console.log('[NotificationService] Server response:', responseText);
+
       if (!response.ok) {
-        console.error('Failed to register push token:', response.status);
+        console.error('[NotificationService] Failed to register push token:', response.status, responseText);
         return false;
       }
 
-      console.log('Push token registered successfully');
+      console.log('[NotificationService] Push token registered successfully with server');
       return true;
     } catch (error) {
-      console.error('Error registering push token:', error);
+      console.error('[NotificationService] Error registering push token:', error);
       return false;
     }
   }

@@ -2325,22 +2325,30 @@ app.put('/api/user/profile', authenticateToken, async (req, res) => {
 app.post('/api/push-tokens', authenticateToken, async (req, res) => {
   const { token, platform, deviceName } = req.body;
   
+  console.log('[Push Tokens] Registration request from user:', req.user.id);
+  console.log('[Push Tokens] Token:', token);
+  console.log('[Push Tokens] Platform:', platform);
+  console.log('[Push Tokens] Device name:', deviceName);
+  
   if (!token || !platform) {
+    console.log('[Push Tokens] Missing required fields');
     return res.status(400).json({ error: 'Token and platform are required' });
   }
   
   try {
-    await pool.query(
+    const result = await pool.query(
       `INSERT INTO push_tokens (user_id, token, platform, device_name, is_active, updated_at)
        VALUES ($1, $2, $3, $4, TRUE, CURRENT_TIMESTAMP)
        ON CONFLICT (user_id, token) 
-       DO UPDATE SET is_active = TRUE, device_name = $4, updated_at = CURRENT_TIMESTAMP`,
+       DO UPDATE SET is_active = TRUE, device_name = $4, updated_at = CURRENT_TIMESTAMP
+       RETURNING id`,
       [req.user.id, token, platform, deviceName || null]
     );
     
+    console.log('[Push Tokens] Token registered successfully, ID:', result.rows[0]?.id);
     res.json({ message: 'Push token registered successfully' });
   } catch (error) {
-    console.error('Register push token error:', error);
+    console.error('[Push Tokens] Register error:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });
