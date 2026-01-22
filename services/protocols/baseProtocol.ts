@@ -163,6 +163,14 @@ export abstract class BaseDiveComputerProtocol {
       };
       bleService.registerReconnectionCallback(this.reconnectionCallback);
       console.log('Protocol: Reconnection callback registered');
+      
+      // libdivecomputer-style initialization: 300ms delay + clear buffers
+      // This allows the device to stabilize before sending commands
+      console.log('Protocol: Stabilization delay (300ms) before communication...');
+      await new Promise(resolve => setTimeout(resolve, 300));
+      this.pendingPackets = []; // Clear any stale data
+      this.slipDecoder.reset();
+      console.log('Protocol: Ready for communication');
     }
     
     return connected;
