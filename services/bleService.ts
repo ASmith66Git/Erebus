@@ -278,7 +278,23 @@ class BleService {
       '0000fee9-0000-1000-8000-00805f9b34fb', // Standard/Legacy: Original Perdix/Petrel 2
       '00001101-0000-1000-8000-00805f9b34fb', // Classic Serial: Very old firmware or "Legacy" BT mode
     ];
+    
+    // UDS Protocol codes for reference (Shearwater v93+ firmware)
+    // Request Download: 0x35, Read Data: 0x22, Error/NAK: 0x7F
+    // Legacy Petrel: Download 0xBB, Read 0x01/0x03, NAK 0x15
+    
     const maxConnectionAttempts = 3; // Full connection cycles to try
+    
+    // FORCE DISCONNECT FIRST - Clear any stale GATT state
+    // This is critical for bonded devices that refuse to expose services
+    bleLog('CONNECT', 'Force-clearing any existing connection state...');
+    try {
+      await this.manager.cancelDeviceConnection(deviceId);
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      bleLog('CONNECT', 'Previous connection cancelled');
+    } catch (e: any) {
+      bleLog('CONNECT', 'No existing connection to cancel:', e?.message);
+    }
     
     for (let connectionCycle = 1; connectionCycle <= maxConnectionAttempts; connectionCycle++) {
       try {
@@ -347,22 +363,57 @@ class BleService {
         
         // Service discovery with progressive retries
         let discoverySuccess = false;
-        const maxDiscoveryAttempts = 4; // Increased from 3
+        const maxDiscoveryAttempts = 5; // Increased for stubborn GATT servers
         
         for (let attempt = 1; attempt <= maxDiscoveryAttempts; attempt++) {
           bleLog('DISCOVER', `Service discovery attempt ${attempt}/${maxDiscoveryAttempts}...`);
           
           try {
+            // For attempts 3+, try forcing a GATT refresh by disconnecting briefly
+            if (attempt >= 3) {
+              bleLog('DISCOVER', 'Attempt 3+ - Forcing GATT cache refresh via reconnect...');
+              try {
+                await this.manager.cancelDeviceConnection(deviceId);
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                device = await this.manager.connectToDevice(deviceId, {
+                  timeout: 20000,
+                  refreshGatt: 'OnConnected',
+                });
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                // Re-request MTU after reconnect
+                try {
+                  await device.requestMTU(512);
+                } catch (e) {}
+                await new Promise(resolve => setTimeout(resolve, 1000));
+              } catch (reconnectError: any) {
+                bleLog('DISCOVER', 'Reconnect for GATT refresh failed:', reconnectError?.message);
+              }
+            }
+            
             await device.discoverAllServicesAndCharacteristics();
             
             // Progressive stabilization delay - longer each attempt
-            const stabilizationDelay = 1500 + (attempt * 1000); // 2.5s, 3.5s, 4.5s, 5.5s
+            const stabilizationDelay = 2000 + (attempt * 1500); // 3.5s, 5s, 6.5s, 8s, 9.5s
             bleLog('DISCOVER', `Waiting ${stabilizationDelay}ms for GATT stabilization...`);
             await new Promise(resolve => setTimeout(resolve, stabilizationDelay));
             
             // Check what services we found
             const services = await device.services();
             bleLog('DISCOVER', `Found ${services.length} services on attempt ${attempt}`);
+            
+            // If zero services found, this is the critical failure case
+            if (services.length === 0) {
+              bleLog('DISCOVER', 'CRITICAL: Zero services returned - device refusing GATT enumeration');
+              bleLog('DISCOVER', 'This is common for bonded Shearwater devices on Android 12+');
+              
+              if (attempt < maxDiscoveryAttempts) {
+                // Wait longer and try more aggressive refresh
+                const aggressiveDelay = 4000 + (attempt * 1000);
+                bleLog('DISCOVER', `Waiting ${aggressiveDelay}ms before aggressive retry...`);
+                await new Promise(resolve => setTimeout(resolve, aggressiveDelay));
+                continue;
+              }
+            }
             
             // Log all services for debugging
             const serviceUUIDs: string[] = [];
@@ -390,14 +441,14 @@ class BleService {
             } else {
               bleLog('DISCOVER', `Shearwater service not found yet. Available: ${serviceUUIDs.join(', ')}`);
               if (attempt < maxDiscoveryAttempts) {
-                bleLog('DISCOVER', 'Waiting 2.5s before retry...');
-                await new Promise(resolve => setTimeout(resolve, 2500));
+                bleLog('DISCOVER', 'Waiting 3s before retry...');
+                await new Promise(resolve => setTimeout(resolve, 3000));
               }
             }
           } catch (discoverError: any) {
             bleLog('DISCOVER', `Discovery attempt ${attempt} failed: ${discoverError?.message}`);
             if (attempt < maxDiscoveryAttempts) {
-              await new Promise(resolve => setTimeout(resolve, 1500));
+              await new Promise(resolve => setTimeout(resolve, 2000));
             }
           }
         }
