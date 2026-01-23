@@ -1,0 +1,317 @@
+{
+  "deviceInfo": {
+    "platform": "android",
+    "version": 35,
+    "timestamp": "2026-01-23T17:13:55.821Z"
+  },
+  "logs": [
+    {
+      "id": "1769188304485-akmmnt4sy",
+      "timestamp": "2026-01-23T17:11:44.485Z",
+      "level": "error",
+      "message": "Download error details: {\n  \"message\": \"Operation cancelled (error code 2)\",\n  \"name\": \"Error\",\n  \"stack\": \"Error: Operation cancelled (error code 2)\\n    at ?anon_0__loop (address at index.android.bundle:1:3990609)\\n    at throw (native)\\n    at ?anon_0_ (address at index.android.bundle:1:3988408)\\n    at throw (native)\\n    at asyncGeneratorStep (address at index.android.bundle:1:573602)\\n    at _throw (address at index.android.bundle:1:573907)\\n    at tryCallOne (address at InternalBytecode.js:1:1180)\\n    at anonymous (address at InternalBytecode.js:1:1874)\",\n  \"fullError\": \"{\\n  \\\"message\\\": \\\"Operation cancelled (error code 2)\\\",\\n  \\\"stack\\\": \\\"Error: Operation cancelled (error code 2)\\\\n    at ?anon_0__loop (address at index.android.bundle:1:3990609)\\\\n    at throw (native)\\\\n    at ?anon_0_ (address at index.android.bundle:1:3988408)\\\\n    at throw (native)\\\\n    at asyncGeneratorStep (address at index.android.bundle:1:573602)\\\\n    at _throw (address at index.android.bundle:1",
+      "source": "console.error"
+    },
+    {
+      "id": "1769188304483-12lqslz7c",
+      "timestamp": "2026-01-23T17:11:44.483Z",
+      "level": "error",
+      "message": "Download error: Error: Operation cancelled (error code 2)\nError: Operation cancelled (error code 2)\n    at ?anon_0__loop (address at index.android.bundle:1:3990609)\n    at throw (native)\n    at ?anon_0_ (address at index.android.bundle:1:3988408)\n    at throw (native)\n    at asyncGeneratorStep (address at index.android.bundle:1:573602)\n    at _throw (address at index.android.bundle:1:573907)\n    at tryCallOne (address at InternalBytecode.js:1:1180)\n    at anonymous (address at InternalBytecode.js:1:1874)",
+      "source": "console.error"
+    },
+    {
+      "id": "1769188304480-olq6gl9rr",
+      "timestamp": "2026-01-23T17:11:44.480Z",
+      "level": "error",
+      "message": "BLE Error Details: {\n  \"message\": \"Operation was cancelled\",\n  \"reason\": \"\",\n  \"errorCode\": 2,\n  \"androidErrorCode\": null,\n  \"iosErrorCode\": null,\n  \"attErrorCode\": null,\n  \"name\": \"BleError\",\n  \"stack\": \"BleError: Operation was cancelled\\n    at construct (native)\\n    at apply (native)\\n    at _construct (address at index.android.bundle:1:145481)\\n    at Wrapper (address at index.android.bundle:1:145134)\\n    at construct (native)\\n    at _callSuper (address at index.android.bundle:1:130022)\\n    at BleError (address at index.android.bundle:1:4001910)\\n    at parseBleError (address at index.android.bundle:1:4001714)\\n    at ?anon_0_ (address at index.android.bundle:1:4005248)\\n    at throw (native)\\n    a\"\n}",
+      "source": "console.error"
+    },
+    {
+      "id": "1769188304477-cv7ls6nyw",
+      "timestamp": "2026-01-23T17:11:44.477Z",
+      "level": "error",
+      "message": "Connection cycle 3 error: BleError: Operation was cancelled\nBleError: Operation was cancelled\n    at construct (native)\n    at apply (native)\n    at _construct (address at index.android.bundle:1:145481)\n    at Wrapper (address at index.android.bundle:1:145134)\n    at construct (native)\n    at _callSuper (address at index.android.bundle:1:130022)\n    at BleError (address at index.android.bundle:1:4001910)\n    at parseBleError (address at index.android.bundle:1:4001714)\n    at ?anon_0_ (address at index.android.bundle:1:4005248)\n    at throw (native)\n    at asyncGeneratorStep (address at index.android.bundle:1:573602)\n    at _throw (address at index.android.bundle:1:573907)\n    at tryCallOne (address at InternalBytecode.js:1:1180)\n    at anonymous (address at InternalBytecode.js:1:1874)",
+      "source": "console.error"
+    },
+    {
+      "id": "1769188277396-nk3wk7xsr",
+      "timestamp": "2026-01-23T17:11:17.396Z",
+      "level": "warn",
+      "message": "[BLE 17:11:17.395] [CONNECT] Ensuring previous connection is cancelled...",
+      "source": "console.warn"
+    },
+    {
+      "id": "1769188266389-hkeyyjbfm",
+      "timestamp": "2026-01-23T17:11:06.389Z",
+      "level": "warn",
+      "message": "[BLE 17:11:06.389] [CONNECT] Waiting 11000ms before reconnection attempt (GATT cache clear)...",
+      "source": "console.warn"
+    },
+    {
+      "id": "1769188266388-6x5uwxhao",
+      "timestamp": "2026-01-23T17:11:06.388Z",
+      "level": "warn",
+      "message": "[BLE 17:11:06.388] [CONNECT] Connection cycle 3/3 to device: 00:13:43:19:99:C8",
+      "source": "console.warn"
+    },
+    {
+      "id": "1769188266387-emd198shr",
+      "timestamp": "2026-01-23T17:11:06.387Z",
+      "level": "warn",
+      "message": "[BLE 17:11:06.387] [CONNECT] Will retry connection cycle...",
+      "source": "console.warn"
+    },
+    {
+      "id": "1769188266383-e67pwk0z8",
+      "timestamp": "2026-01-23T17:11:06.383Z",
+      "level": "error",
+      "message": "Connection cycle 2 error: BleError: Operation was cancelled\nBleError: Operation was cancelled\n    at construct (native)\n    at apply (native)\n    at _construct (address at index.android.bundle:1:145481)\n    at Wrapper (address at index.android.bundle:1:145134)\n    at construct (native)\n    at _callSuper (address at index.android.bundle:1:130022)\n    at BleError (address at index.android.bundle:1:4001910)\n    at parseBleError (address at index.android.bundle:1:4001714)\n    at ?anon_0_ (address at index.android.bundle:1:4005248)\n    at throw (native)\n    at asyncGeneratorStep (address at index.android.bundle:1:573602)\n    at _throw (address at index.android.bundle:1:573907)\n    at tryCallOne (address at InternalBytecode.js:1:1180)\n    at anonymous (address at InternalBytecode.js:1:1874)",
+      "source": "console.error"
+    },
+    {
+      "id": "1769188241375-k2ld7qm0i",
+      "timestamp": "2026-01-23T17:10:41.375Z",
+      "level": "warn",
+      "message": "[BLE 17:10:41.375] [CONNECT] Cancel result: Device 00:13:43:19:99:C8 is not connected",
+      "source": "console.warn"
+    },
+    {
+      "id": "1769188241325-oby8xtzdw",
+      "timestamp": "2026-01-23T17:10:41.325Z",
+      "level": "warn",
+      "message": "[BLE 17:10:41.325] [CONNECT] Ensuring previous connection is cancelled...",
+      "source": "console.warn"
+    },
+    {
+      "id": "1769188232302-x0h7aijl3",
+      "timestamp": "2026-01-23T17:10:32.302Z",
+      "level": "warn",
+      "message": "[BLE 17:10:32.302] [CONNECT] Waiting 9000ms before reconnection attempt (GATT cache clear)...",
+      "source": "console.warn"
+    },
+    {
+      "id": "1769188232300-bxfk9whic",
+      "timestamp": "2026-01-23T17:10:32.300Z",
+      "level": "warn",
+      "message": "[BLE 17:10:32.300] [CONNECT] Connection cycle 2/3 to device: 00:13:43:19:99:C8",
+      "source": "console.warn"
+    },
+    {
+      "id": "1769188227289-g2uiubc0g",
+      "timestamp": "2026-01-23T17:10:27.289Z",
+      "level": "warn",
+      "message": "[BLE 17:10:27.289] [CONNECT] Waiting 5s for disconnect to complete before retry...",
+      "source": "console.warn"
+    },
+    {
+      "id": "1769188227223-d4sjjfme2",
+      "timestamp": "2026-01-23T17:10:27.223Z",
+      "level": "warn",
+      "message": "[BLE 17:10:27.223] [DISCOVER] Service still not found, disconnecting to clear GATT cache...",
+      "source": "console.warn"
+    },
+    {
+      "id": "1769188227221-kxzr1ecdx",
+      "timestamp": "2026-01-23T17:10:27.221Z",
+      "level": "warn",
+      "message": "[BLE 17:10:27.220] [DISCOVER] Post-ping services: ",
+      "source": "console.warn"
+    },
+    {
+      "id": "1769188223193-wkdh5n3gw",
+      "timestamp": "2026-01-23T17:10:23.193Z",
+      "level": "warn",
+      "message": "[BLE 17:10:23.193] [DISCOVER] Waiting 2s after RSSI ping, then retrying discovery...",
+      "source": "console.warn"
+    },
+    {
+      "id": "1769188223193-wamwjckxq",
+      "timestamp": "2026-01-23T17:10:23.193Z",
+      "level": "warn",
+      "message": "[BLE 17:10:23.193] [DISCOVER] RSSI read successful: -58",
+      "source": "console.warn"
+    },
+    {
+      "id": "1769188223154-siu4m15fc",
+      "timestamp": "2026-01-23T17:10:23.154Z",
+      "level": "warn",
+      "message": "[BLE 17:10:23.154] [DISCOVER] Reading RSSI to ping device...",
+      "source": "console.warn"
+    },
+    {
+      "id": "1769188223154-ygku83ebo",
+      "timestamp": "2026-01-23T17:10:23.154Z",
+      "level": "warn",
+      "message": "[BLE 17:10:23.154] [DISCOVER] Shearwater service not found (cycle 1), attempting GATT refresh...",
+      "source": "console.warn"
+    },
+    {
+      "id": "1769188223088-7al8imfv9",
+      "timestamp": "2026-01-23T17:10:23.088Z",
+      "level": "warn",
+      "message": "[BLE 17:10:23.088] [DISCOVER] Shearwater service not found yet. Available: ",
+      "source": "console.warn"
+    },
+    {
+      "id": "1769188223087-hk2gklskx",
+      "timestamp": "2026-01-23T17:10:23.087Z",
+      "level": "warn",
+      "message": "[BLE 17:10:23.086] [DISCOVER] Found 0 services on attempt 4",
+      "source": "console.warn"
+    },
+    {
+      "id": "1769188217575-ymbrv7esu",
+      "timestamp": "2026-01-23T17:10:17.575Z",
+      "level": "warn",
+      "message": "[BLE 17:10:17.575] [DISCOVER] Waiting 5500ms for GATT stabilization...",
+      "source": "console.warn"
+    },
+    {
+      "id": "1769188217540-duxk26zyg",
+      "timestamp": "2026-01-23T17:10:17.540Z",
+      "level": "warn",
+      "message": "[BLE 17:10:17.540] [DISCOVER] Service discovery attempt 4/4...",
+      "source": "console.warn"
+    },
+    {
+      "id": "1769188215004-ri7orzp5l",
+      "timestamp": "2026-01-23T17:10:15.004Z",
+      "level": "warn",
+      "message": "[BLE 17:10:15.003] [DISCOVER] Waiting 2.5s before retry...",
+      "source": "console.warn"
+    },
+    {
+      "id": "1769188215002-mzrfau2be",
+      "timestamp": "2026-01-23T17:10:15.002Z",
+      "level": "warn",
+      "message": "[BLE 17:10:15.002] [DISCOVER] Shearwater service not found yet. Available: ",
+      "source": "console.warn"
+    },
+    {
+      "id": "1769188215000-dt3lqmiku",
+      "timestamp": "2026-01-23T17:10:15.000Z",
+      "level": "warn",
+      "message": "[BLE 17:10:15.000] [DISCOVER] Found 0 services on attempt 3",
+      "source": "console.warn"
+    },
+    {
+      "id": "1769188210486-7v2g33lrb",
+      "timestamp": "2026-01-23T17:10:10.486Z",
+      "level": "warn",
+      "message": "[BLE 17:10:10.486] [DISCOVER] Waiting 4500ms for GATT stabilization...",
+      "source": "console.warn"
+    },
+    {
+      "id": "1769188210434-brrotwepm",
+      "timestamp": "2026-01-23T17:10:10.434Z",
+      "level": "warn",
+      "message": "[BLE 17:10:10.434] [DISCOVER] Service discovery attempt 3/4...",
+      "source": "console.warn"
+    },
+    {
+      "id": "1769188207913-sgbhntwis",
+      "timestamp": "2026-01-23T17:10:07.913Z",
+      "level": "warn",
+      "message": "[BLE 17:10:07.913] [DISCOVER] Waiting 2.5s before retry...",
+      "source": "console.warn"
+    },
+    {
+      "id": "1769188207912-2qcmnb6kb",
+      "timestamp": "2026-01-23T17:10:07.912Z",
+      "level": "warn",
+      "message": "[BLE 17:10:07.912] [DISCOVER] Shearwater service not found yet. Available: ",
+      "source": "console.warn"
+    },
+    {
+      "id": "1769188207911-3ryg346zw",
+      "timestamp": "2026-01-23T17:10:07.911Z",
+      "level": "warn",
+      "message": "[BLE 17:10:07.911] [DISCOVER] Found 0 services on attempt 2",
+      "source": "console.warn"
+    },
+    {
+      "id": "1769188204396-trpv4m74f",
+      "timestamp": "2026-01-23T17:10:04.396Z",
+      "level": "warn",
+      "message": "[BLE 17:10:04.396] [DISCOVER] Waiting 3500ms for GATT stabilization...",
+      "source": "console.warn"
+    },
+    {
+      "id": "1769188204339-zitfii7t2",
+      "timestamp": "2026-01-23T17:10:04.339Z",
+      "level": "warn",
+      "message": "[BLE 17:10:04.339] [DISCOVER] Service discovery attempt 2/4...",
+      "source": "console.warn"
+    },
+    {
+      "id": "1769188201822-2sayi15xz",
+      "timestamp": "2026-01-23T17:10:01.823Z",
+      "level": "warn",
+      "message": "[BLE 17:10:01.822] [DISCOVER] Waiting 2.5s before retry...",
+      "source": "console.warn"
+    },
+    {
+      "id": "1769188201821-flv9wlajc",
+      "timestamp": "2026-01-23T17:10:01.821Z",
+      "level": "warn",
+      "message": "[BLE 17:10:01.821] [DISCOVER] Shearwater service not found yet. Available: ",
+      "source": "console.warn"
+    },
+    {
+      "id": "1769188201818-bjecnj1j6",
+      "timestamp": "2026-01-23T17:10:01.818Z",
+      "level": "warn",
+      "message": "[BLE 17:10:01.818] [DISCOVER] Found 0 services on attempt 1",
+      "source": "console.warn"
+    },
+    {
+      "id": "1769188199307-oqwr889ta",
+      "timestamp": "2026-01-23T17:09:59.307Z",
+      "level": "warn",
+      "message": "[BLE 17:09:59.306] [DISCOVER] Waiting 2500ms for GATT stabilization...",
+      "source": "console.warn"
+    },
+    {
+      "id": "1769188199275-3ww92vg3o",
+      "timestamp": "2026-01-23T17:09:59.275Z",
+      "level": "warn",
+      "message": "[BLE 17:09:59.275] [DISCOVER] Service discovery attempt 1/4...",
+      "source": "console.warn"
+    },
+    {
+      "id": "1769188196262-8kmzvw1pz",
+      "timestamp": "2026-01-23T17:09:56.262Z",
+      "level": "warn",
+      "message": "[BLE 17:09:56.261] [CONNECT] Connected, waiting 3000ms before discovery (Android 15 GATT stability)...",
+      "source": "console.warn"
+    },
+    {
+      "id": "1769188194744-izqtq3j2r",
+      "timestamp": "2026-01-23T17:09:54.744Z",
+      "level": "warn",
+      "message": "[BLE 17:09:54.744] [CONNECT] Connection cycle 1/3 to device: 00:13:43:19:99:C8",
+      "source": "console.warn"
+    },
+    {
+      "id": "1769187788042-mpmkxs7l7",
+      "timestamp": "2026-01-23T17:03:08.042Z",
+      "level": "warn",
+      "message": "Method getInfoAsync imported from \"expo-file-system\" is deprecated.\nYou can migrate to the new filesystem API using \"File\" and \"Directory\" classes or import the legacy API from \"expo-file-system/legacy\".\nAPI reference and examples are available in the filesystem docs: https://docs.expo.dev/versions/v54.0.0/sdk/filesystem/",
+      "source": "console.warn"
+    },
+    {
+      "id": "1769187779642-1xm1p3b92",
+      "timestamp": "2026-01-23T17:02:59.642Z",
+      "level": "warn",
+      "message": "Method getInfoAsync imported from \"expo-file-system\" is deprecated.\nYou can migrate to the new filesystem API using \"File\" and \"Directory\" classes or import the legacy API from \"expo-file-system/legacy\".\nAPI reference and examples are available in the filesystem docs: https://docs.expo.dev/versions/v54.0.0/sdk/filesystem/",
+      "source": "console.warn"
+    },
+    {
+      "id": "1769187771530-6h73zduow",
+      "timestamp": "2026-01-23T17:02:51.530Z",
+      "level": "warn",
+      "message": "[expo-av]: Expo AV has been deprecated and will be removed in SDK 54. Use the `expo-audio` and `expo-video` packages to replace the required functionality.",
+      "source": "console.warn"
+    }
+  ]
+}
