@@ -968,7 +968,7 @@ export default function DiveTripScreen() {
                 <Feather name="x" size={24} color={colors.text} />
               </Pressable>
             </View>
-            <View style={styles.datePickerContainer}>
+            <View style={[styles.datePickerContainer, { backgroundColor: colors.surface }]}>
               <DateTimePicker
                 mode="single"
                 date={showDatePicker === 'start' 
@@ -991,10 +991,13 @@ export default function DiveTripScreen() {
                 selectedTextStyle={{ color: '#FFFFFF' }}
                 headerTextStyle={{ color: colors.text }}
                 weekDaysTextStyle={{ color: colors.textSecondary }}
+                dayContainerStyle={{ backgroundColor: colors.surface }}
                 monthContainerStyle={{ backgroundColor: colors.surface }}
                 yearContainerStyle={{ backgroundColor: colors.surface }}
                 selectedItemColor={colors.primary}
                 headerButtonColor={colors.primary}
+                todayContainerStyle={{ borderColor: colors.primary }}
+                todayTextStyle={{ color: colors.primary }}
               />
             </View>
           </Pressable>
@@ -1039,11 +1042,13 @@ const styles = StyleSheet.create({
   formRow: { flexDirection: 'row', gap: 12, marginBottom: 20 },
   dateRow: {
     flexDirection: 'row',
+    gap: 12,
     marginBottom: 20,
   },
   dateField: {
     flex: 1,
-    marginHorizontal: 4,
+    minWidth: 0,
+    flexShrink: 1,
   },
   dateButton: {
     flexDirection: 'row',
@@ -1053,11 +1058,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 12,
     minHeight: 48,
+    gap: 6,
   },
   dateButtonText: {
     flex: 1,
     fontSize: 14,
-    marginLeft: 6,
   },
   dateModalOverlay: {
     flex: 1,
