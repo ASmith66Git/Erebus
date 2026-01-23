@@ -8,14 +8,22 @@ import {
   ActivityIndicator,
   Alert,
   Platform,
+  FlatList,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Feather } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { getApiUrl } from '@/utils/apiConfig';
 import * as DocumentPicker from 'expo-document-picker';
 import ThemedBackground from '@/components/ThemedBackground';
+
+interface BatchUploadResult {
+  fileName: string;
+  status: 'pending' | 'uploading' | 'success' | 'error';
+  divesImported?: number;
+  error?: string;
+}
 
 interface DiveComputerCapabilities {
   brand: { id: string; name: string } | null;
@@ -35,6 +43,8 @@ export default function ImportDiveLogScreen() {
   const [importing, setImporting] = useState(false);
   const [capabilities, setCapabilities] = useState<DiveComputerCapabilities | null>(null);
   const [loadingCapabilities, setLoadingCapabilities] = useState(true);
+  const [batchResults, setBatchResults] = useState<BatchUploadResult[]>([]);
+  const [showBatchResults, setShowBatchResults] = useState(false);
 
   const hasBleSupport = capabilities?.model?.has_ble === true;
   const isWeb = Platform.OS === 'web';
@@ -61,14 +71,14 @@ export default function ImportDiveLogScreen() {
     router.push('/ble-connect');
   };
 
-  const handleWebFileSelect = async (event: any) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    
-    setImporting(true);
+  const uploadSingleFile = async (file: File | { uri: string; name: string; type: string }): Promise<{ divesImported: number; error?: string }> => {
     try {
       const formData = new FormData();
-      formData.append('file', file, file.name);
+      if ('uri' in file) {
+        formData.append('file', file as any);
+      } else {
+        formData.append('file', file, file.name);
+      }
 
       const uploadResponse = await fetch(`${getApiUrl()}/api/dive-logs/import`, {
         method: 'POST',
@@ -84,28 +94,86 @@ export default function ImportDiveLogScreen() {
         throw new Error(data.error || 'Import failed');
       }
 
-      const importedCount = data.dives?.length || 0;
-      alert(`Imported ${importedCount} dive${importedCount !== 1 ? 's' : ''} from ${file.name}`);
-      router.back();
+      return { divesImported: data.dives?.length || 0 };
     } catch (error: any) {
-      alert(`Import Error: ${error.message || 'Failed to import dive logs'}`);
-    } finally {
-      setImporting(false);
-      event.target.value = '';
+      return { divesImported: 0, error: error.message || 'Import failed' };
     }
+  };
+
+  const handleWebFileSelect = async (event: any) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+    
+    const fileArray = Array.from(files) as File[];
+    
+    if (fileArray.length === 1) {
+      setImporting(true);
+      const result = await uploadSingleFile(fileArray[0]);
+      setImporting(false);
+      
+      if (result.error) {
+        alert(`Import Error: ${result.error}`);
+      } else {
+        alert(`Imported ${result.divesImported} dive${result.divesImported !== 1 ? 's' : ''} from ${fileArray[0].name}`);
+        router.back();
+      }
+      event.target.value = '';
+      return;
+    }
+    
+    setImporting(true);
+    setShowBatchResults(true);
+    const results: BatchUploadResult[] = fileArray.map(f => ({
+      fileName: f.name,
+      status: 'pending' as const,
+    }));
+    setBatchResults(results);
+    
+    let totalDives = 0;
+    let successCount = 0;
+    let errorCount = 0;
+    
+    for (let i = 0; i < fileArray.length; i++) {
+      setBatchResults(prev => prev.map((r, idx) => 
+        idx === i ? { ...r, status: 'uploading' } : r
+      ));
+      
+      const result = await uploadSingleFile(fileArray[i]);
+      
+      setBatchResults(prev => prev.map((r, idx) => 
+        idx === i ? {
+          ...r,
+          status: result.error ? 'error' : 'success',
+          divesImported: result.divesImported,
+          error: result.error,
+        } : r
+      ));
+      
+      if (result.error) {
+        errorCount++;
+      } else {
+        successCount++;
+        totalDives += result.divesImported;
+      }
+    }
+    
+    setImporting(false);
+    event.target.value = '';
+    
+    setTimeout(() => {
+      alert(`Batch import complete!\n\n${successCount} file${successCount !== 1 ? 's' : ''} imported successfully\n${totalDives} total dive${totalDives !== 1 ? 's' : ''} added${errorCount > 0 ? `\n${errorCount} file${errorCount !== 1 ? 's' : ''} failed` : ''}`);
+    }, 500);
   };
 
   const handleImportFile = async () => {
     if (Platform.OS === 'web') {
-      console.log('[DEBUG] Using native HTML file input on web');
       const input = document.createElement('input');
       input.type = 'file';
       input.accept = '.uddf,.xml,.csv,.ssrf,.zip,.log,.txt,application/xml,application/octet-stream';
+      input.multiple = true;
       input.style.display = 'none';
       document.body.appendChild(input);
-      console.log('[DEBUG] Input accept attribute:', input.accept);
       input.onchange = (e) => {
-        console.log('[DEBUG] File selected');
         handleWebFileSelect(e);
         document.body.removeChild(input);
       };
@@ -117,43 +185,87 @@ export default function ImportDiveLogScreen() {
       const result = await DocumentPicker.getDocumentAsync({
         type: '*/*',
         copyToCacheDirectory: true,
+        multiple: true,
       });
 
-      if (result.canceled || !result.assets?.[0]) {
+      if (result.canceled || !result.assets || result.assets.length === 0) {
         return;
       }
 
-      const file = result.assets[0];
-      setImporting(true);
-
-      const formData = new FormData();
-      formData.append('file', {
-        uri: file.uri,
-        name: file.name,
-        type: file.mimeType || 'application/octet-stream',
-      } as any);
-
-      const uploadResponse = await fetch(`${getApiUrl()}/api/dive-logs/import`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-        body: formData,
-      });
-
-      const data = await uploadResponse.json();
-
-      if (!uploadResponse.ok) {
-        throw new Error(data.error || 'Import failed');
+      const files = result.assets;
+      
+      if (files.length === 1) {
+        const file = files[0];
+        setImporting(true);
+        
+        const result = await uploadSingleFile({
+          uri: file.uri,
+          name: file.name,
+          type: file.mimeType || 'application/octet-stream',
+        });
+        
+        setImporting(false);
+        
+        if (result.error) {
+          Alert.alert('Import Error', result.error);
+        } else {
+          Alert.alert('Import Successful', `Imported ${result.divesImported} dive${result.divesImported !== 1 ? 's' : ''} from ${file.name}`, [
+            { text: 'OK', onPress: () => router.back() }
+          ]);
+        }
+        return;
       }
-
-      const importedCount = data.dives?.length || 0;
-      Alert.alert('Import Successful', `Imported ${importedCount} dive${importedCount !== 1 ? 's' : ''} from ${file.name}`, [
-        { text: 'OK', onPress: () => router.back() }
-      ]);
+      
+      setImporting(true);
+      setShowBatchResults(true);
+      const results: BatchUploadResult[] = files.map(f => ({
+        fileName: f.name,
+        status: 'pending' as const,
+      }));
+      setBatchResults(results);
+      
+      let totalDives = 0;
+      let successCount = 0;
+      let errorCount = 0;
+      
+      for (let i = 0; i < files.length; i++) {
+        setBatchResults(prev => prev.map((r, idx) => 
+          idx === i ? { ...r, status: 'uploading' } : r
+        ));
+        
+        const file = files[i];
+        const result = await uploadSingleFile({
+          uri: file.uri,
+          name: file.name,
+          type: file.mimeType || 'application/octet-stream',
+        });
+        
+        setBatchResults(prev => prev.map((r, idx) => 
+          idx === i ? {
+            ...r,
+            status: result.error ? 'error' : 'success',
+            divesImported: result.divesImported,
+            error: result.error,
+          } : r
+        ));
+        
+        if (result.error) {
+          errorCount++;
+        } else {
+          successCount++;
+          totalDives += result.divesImported;
+        }
+      }
+      
+      setImporting(false);
+      
+      Alert.alert(
+        'Batch Import Complete',
+        `${successCount} file${successCount !== 1 ? 's' : ''} imported successfully\n${totalDives} total dive${totalDives !== 1 ? 's' : ''} added${errorCount > 0 ? `\n${errorCount} file${errorCount !== 1 ? 's' : ''} failed` : ''}`,
+        [{ text: 'OK' }]
+      );
     } catch (error: any) {
       Alert.alert('Import Error', error.message || 'Failed to import dive logs');
-    } finally {
       setImporting(false);
     }
   };
@@ -243,7 +355,7 @@ export default function ImportDiveLogScreen() {
             disabled={importing}
           >
             <View style={[styles.optionIcon, { backgroundColor: colors.primary + '20' }]}>
-              {importing ? (
+              {importing && !showBatchResults ? (
                 <ActivityIndicator size="small" color={colors.primary} />
               ) : (
                 <Feather name="upload" size={32} color={colors.primary} />
@@ -254,11 +366,60 @@ export default function ImportDiveLogScreen() {
                 Import from File
               </Text>
               <Text style={[styles.optionDescription, { color: colors.textSecondary }]}>
-                Upload UDDF, Subsurface XML, or CSV files
+                Upload UDDF, Subsurface XML, or CSV files (batch supported)
               </Text>
             </View>
             <Feather name="chevron-right" size={24} color={colors.textSecondary} />
           </Pressable>
+
+          {showBatchResults && batchResults.length > 0 && (
+            <View style={[styles.batchResultsCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <View style={styles.batchHeader}>
+                <Ionicons name="documents-outline" size={20} color={colors.primary} />
+                <Text style={[styles.batchTitle, { color: colors.text }]}>
+                  Batch Import Progress
+                </Text>
+                {!importing && (
+                  <Pressable onPress={() => { setShowBatchResults(false); setBatchResults([]); }}>
+                    <Ionicons name="close-circle" size={22} color={colors.textSecondary} />
+                  </Pressable>
+                )}
+              </View>
+              {batchResults.map((result, index) => (
+                <View key={index} style={[styles.batchResultRow, { borderTopColor: colors.border }]}>
+                  <View style={styles.batchResultIcon}>
+                    {result.status === 'pending' && (
+                      <Ionicons name="time-outline" size={18} color={colors.textSecondary} />
+                    )}
+                    {result.status === 'uploading' && (
+                      <ActivityIndicator size="small" color={colors.primary} />
+                    )}
+                    {result.status === 'success' && (
+                      <Ionicons name="checkmark-circle" size={18} color="#10B981" />
+                    )}
+                    {result.status === 'error' && (
+                      <Ionicons name="close-circle" size={18} color="#EF4444" />
+                    )}
+                  </View>
+                  <View style={styles.batchResultContent}>
+                    <Text style={[styles.batchFileName, { color: colors.text }]} numberOfLines={1}>
+                      {result.fileName}
+                    </Text>
+                    {result.status === 'success' && (
+                      <Text style={[styles.batchResultText, { color: '#10B981' }]}>
+                        {result.divesImported} dive{result.divesImported !== 1 ? 's' : ''} imported
+                      </Text>
+                    )}
+                    {result.status === 'error' && (
+                      <Text style={[styles.batchResultText, { color: '#EF4444' }]} numberOfLines={1}>
+                        {result.error}
+                      </Text>
+                    )}
+                  </View>
+                </View>
+              ))}
+            </View>
+          )}
 
           <Pressable
             style={[styles.optionCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
@@ -373,5 +534,45 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     lineHeight: 20,
+  },
+  batchResultsCard: {
+    borderRadius: 12,
+    borderWidth: 1,
+    overflow: 'hidden',
+    marginTop: 8,
+  },
+  batchHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    padding: 12,
+  },
+  batchTitle: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  batchResultRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderTopWidth: 1,
+  },
+  batchResultIcon: {
+    width: 24,
+    alignItems: 'center',
+  },
+  batchResultContent: {
+    flex: 1,
+    gap: 2,
+  },
+  batchFileName: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  batchResultText: {
+    fontSize: 12,
   },
 });
