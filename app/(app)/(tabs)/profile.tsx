@@ -66,6 +66,7 @@ export default function ProfileScreen() {
   const [showSexPicker, setShowSexPicker] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [supportUnreadCount, setSupportUnreadCount] = useState(0);
   const [editFormData, setEditFormData] = useState({
     firstName: '',
     lastName: '',
@@ -73,10 +74,26 @@ export default function ProfileScreen() {
     sex: null as SexOption,
   });
 
+  const fetchSupportUnreadCount = useCallback(async () => {
+    if (!token) return;
+    try {
+      const response = await fetch(`${getApiUrl()}/api/support/unread-count`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setSupportUnreadCount(data.unreadCount || 0);
+      }
+    } catch (error) {
+      console.error('Failed to fetch support unread count:', error);
+    }
+  }, [token]);
+
   useEffect(() => {
     loadManufacturers();
     loadUserDiveComputer();
     loadSearchableStatus();
+    fetchSupportUnreadCount();
   }, []);
 
   useEffect(() => {
@@ -838,9 +855,16 @@ export default function ProfileScreen() {
               )}
             </View>
             <View style={styles.menuContent}>
-              <Text style={[styles.menuTitle, { color: colors.text }]}>
-                {item.route === 'export' && exporting ? 'Exporting...' : item.title}
-              </Text>
+              <View style={styles.menuTitleRow}>
+                <Text style={[styles.menuTitle, { color: colors.text }]}>
+                  {item.route === 'export' && exporting ? 'Exporting...' : item.title}
+                </Text>
+                {item.route === '/(app)/(tabs)/help-support' && supportUnreadCount > 0 && (
+                  <View style={[styles.unreadBadge, { backgroundColor: colors.primary }]}>
+                    <Text style={styles.unreadBadgeText}>{supportUnreadCount > 99 ? '99+' : supportUnreadCount}</Text>
+                  </View>
+                )}
+              </View>
               <Text style={[styles.menuDescription, { color: colors.textSecondary }]}>{item.description}</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
@@ -1214,6 +1238,11 @@ const styles = StyleSheet.create({
   menuContent: {
     flex: 1,
   },
+  menuTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   menuTitle: {
     fontSize: 15,
     fontWeight: '500',
@@ -1221,6 +1250,19 @@ const styles = StyleSheet.create({
   },
   menuDescription: {
     fontSize: 13,
+  },
+  unreadBadge: {
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 6,
+  },
+  unreadBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '700',
   },
   version: {
     textAlign: 'center',
