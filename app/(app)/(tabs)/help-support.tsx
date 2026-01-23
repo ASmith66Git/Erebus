@@ -144,26 +144,27 @@ export default function HelpSupportScreen() {
   }, [token]);
 
   useEffect(() => {
-    fetchConversations();
-  }, [fetchConversations]);
+    fetchConversations(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]); // Only re-fetch when token changes, not on every callback recreation
 
   useEffect(() => {
     if (!selectedConversation) return;
     
     const pollInterval = setInterval(() => {
       fetchMessages(selectedConversation.id, true);
-    }, 3000);
+    }, 5000); // Increased to 5 seconds
     
     return () => clearInterval(pollInterval);
-  }, [selectedConversation?.id, fetchMessages]);
+  }, [selectedConversation?.id]);
 
   useEffect(() => {
     const pollConversationsInterval = setInterval(() => {
-      fetchConversations(true); // Background refresh - no loading indicator
-    }, 10000); // Increased to 10 seconds to reduce refresh frequency
+      fetchConversations(true);
+    }, 15000); // Increased to 15 seconds to reduce refresh frequency
     
     return () => clearInterval(pollConversationsInterval);
-  }, [fetchConversations]);
+  }, []);
 
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !selectedConversation) return;

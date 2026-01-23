@@ -148,28 +148,29 @@ export default function SupportAdminScreen() {
   }, [token, fetchUnreadCount, fetchConversations]);
 
   useEffect(() => {
-    fetchConversations();
+    fetchConversations(false);
     fetchUnreadCount();
-  }, [fetchConversations, fetchUnreadCount]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, statusFilter]); // Only re-fetch when token or filter changes
 
   useEffect(() => {
     if (!selectedConversation) return;
     
     const pollInterval = setInterval(() => {
       fetchMessages(selectedConversation.id);
-    }, 3000);
+    }, 5000); // Increased to 5 seconds
     
     return () => clearInterval(pollInterval);
-  }, [selectedConversation?.id, fetchMessages]);
+  }, [selectedConversation?.id]);
 
   useEffect(() => {
     const pollConversationsInterval = setInterval(() => {
-      fetchConversations(true); // Background refresh - no loading indicator
+      fetchConversations(true);
       fetchUnreadCount();
-    }, 10000); // Increased to 10 seconds to reduce refresh frequency
+    }, 15000); // Increased to 15 seconds to reduce refresh frequency
     
     return () => clearInterval(pollConversationsInterval);
-  }, [fetchConversations, fetchUnreadCount]);
+  }, []);
 
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !selectedConversation) return;
