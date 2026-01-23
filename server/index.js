@@ -1582,6 +1582,13 @@ app.get('/api/admin/email-preview/welcome', authenticateToken, requireAdmin, (re
   res.send(html);
 });
 
+app.get('/api/email-preview/welcome', (req, res) => {
+  const firstName = req.query.name || 'Diver';
+  const html = generateWelcomeEmailHtml(firstName);
+  res.setHeader('Content-Type', 'text/html');
+  res.send(html);
+});
+
 app.post('/api/admin/email-test/welcome', authenticateToken, requireAdmin, async (req, res) => {
   const { email, firstName } = req.body;
   if (!email) {
