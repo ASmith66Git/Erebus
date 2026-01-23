@@ -77,195 +77,57 @@ async function getUncachableResendClient() {
 function generateWelcomeEmailHtml(firstName) {
   const displayName = firstName || 'Diver';
   const baseUrl = 'https://erebus.nammu-tech.com';
-  const iconUrl = `${baseUrl}/email-assets/erebus-icon.png`;
   
-  return `
-<!DOCTYPE html>
-<html lang="en">
+  return `<!DOCTYPE html>
+<html>
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <title>Welcome to Erebus</title>
-  <!--[if mso]>
-  <noscript>
-    <xml>
-      <o:OfficeDocumentSettings>
-        <o:PixelsPerInch>96</o:PixelsPerInch>
-      </o:OfficeDocumentSettings>
-    </xml>
-  </noscript>
-  <![endif]-->
 </head>
-<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5; -webkit-font-smoothing: antialiased;">
-  
-  <!-- Preheader text (hidden but shows in email preview) -->
-  <div style="display: none; max-height: 0px; overflow: hidden;">
-    Welcome to Erebus - Your comprehensive dive management companion awaits.
+<body style="font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f5f5f5;">
+  <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 40px; border-radius: 8px;">
+    <h1 style="color: #D22F00; margin-bottom: 24px;">Welcome to Erebus</h1>
+    
+    <p style="color: #333333; font-size: 16px; line-height: 1.6;">
+      Hello ${displayName},
+    </p>
+    
+    <p style="color: #333333; font-size: 16px; line-height: 1.6;">
+      Thank you for joining Erebus - your comprehensive dive management companion.
+    </p>
+    
+    <p style="color: #333333; font-size: 16px; line-height: 1.6;">
+      With Erebus, you can:
+    </p>
+    
+    <ul style="color: #333333; font-size: 16px; line-height: 1.8;">
+      <li>Log detailed dive profiles and sync from your dive computer</li>
+      <li>Explore dive sites worldwide with weather forecasts</li>
+      <li>Plan technical dives with decompression calculations</li>
+      <li>Manage your gear and certifications</li>
+    </ul>
+    
+    <p style="color: #333333; font-size: 16px; line-height: 1.6;">
+      We've added sample dive logs and sites to help you get started. Feel free to explore!
+    </p>
+    
+    <p style="margin: 32px 0; text-align: center;">
+      <a href="${baseUrl}" style="display: inline-block; padding: 14px 32px; background-color: #D22F00; color: #ffffff; text-decoration: none; font-weight: bold; border-radius: 6px;">Open Erebus</a>
+    </p>
+    
+    <p style="color: #666666; font-size: 14px; line-height: 1.6;">
+      Dive safe,<br>
+      The Erebus Team
+    </p>
+    
+    <hr style="border: none; border-top: 1px solid #eeeeee; margin: 32px 0;">
+    
+    <p style="color: #999999; font-size: 12px; text-align: center;">
+      Erebus by Nammu Tech
+    </p>
   </div>
-  
-  <table role="presentation" cellpadding="0" cellspacing="0" style="width: 100%; border-collapse: collapse; background-color: #f5f5f5;">
-    <tr>
-      <td align="center" style="padding: 40px 20px;">
-        
-        <!-- Main Container -->
-        <table role="presentation" cellpadding="0" cellspacing="0" style="width: 100%; max-width: 600px; border-collapse: collapse; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
-          
-          <!-- Header with Logo -->
-          <tr>
-            <td style="padding: 48px 40px 32px; text-align: center; border-bottom: 1px solid #eee;">
-              <img src="${iconUrl}" alt="Erebus" width="80" height="80" style="display: block; margin: 0 auto 20px; border-radius: 16px;" />
-              <h1 style="margin: 0; color: #1a1a1a; font-size: 28px; font-weight: 600; letter-spacing: -0.5px;">Welcome to Erebus</h1>
-              <p style="margin: 8px 0 0; color: #666666; font-size: 16px; font-weight: 400;">Your Dive Management Companion</p>
-            </td>
-          </tr>
-          
-          <!-- Main Content -->
-          <tr>
-            <td style="padding: 40px;">
-              <p style="margin: 0 0 20px; color: #1a1a1a; font-size: 16px; line-height: 1.6;">
-                Hello ${displayName},
-              </p>
-              <p style="margin: 0 0 28px; color: #4a4a4a; font-size: 15px; line-height: 1.7;">
-                Thank you for joining Erebus. We're pleased to welcome you to our community of divers who rely on professional-grade tools for their underwater adventures.
-              </p>
-              
-              <!-- Feature List -->
-              <table role="presentation" cellpadding="0" cellspacing="0" style="width: 100%; border-collapse: collapse; margin: 0 0 28px;">
-                
-                <!-- Feature 1: Dive Logging -->
-                <tr>
-                  <td style="padding: 16px 0; border-bottom: 1px solid #f0f0f0;">
-                    <table role="presentation" cellpadding="0" cellspacing="0" style="width: 100%;">
-                      <tr>
-                        <td style="width: 48px; vertical-align: top;">
-                          <div style="width: 40px; height: 40px; background-color: #FEE9E5; border-radius: 8px; text-align: center; line-height: 40px;">
-                            <span style="color: #D22F00; font-size: 18px; font-weight: 600;">1</span>
-                          </div>
-                        </td>
-                        <td style="padding-left: 12px; vertical-align: top;">
-                          <p style="margin: 0 0 4px; color: #1a1a1a; font-size: 15px; font-weight: 600;">Comprehensive Dive Logging</p>
-                          <p style="margin: 0; color: #666666; font-size: 14px; line-height: 1.5;">Record detailed dive profiles with gas mixes, conditions, and sync directly from your dive computer.</p>
-                        </td>
-                      </tr>
-                    </table>
-                  </td>
-                </tr>
-                
-                <!-- Feature 2: Dive Sites -->
-                <tr>
-                  <td style="padding: 16px 0; border-bottom: 1px solid #f0f0f0;">
-                    <table role="presentation" cellpadding="0" cellspacing="0" style="width: 100%;">
-                      <tr>
-                        <td style="width: 48px; vertical-align: top;">
-                          <div style="width: 40px; height: 40px; background-color: #FEE9E5; border-radius: 8px; text-align: center; line-height: 40px;">
-                            <span style="color: #D22F00; font-size: 18px; font-weight: 600;">2</span>
-                          </div>
-                        </td>
-                        <td style="padding-left: 12px; vertical-align: top;">
-                          <p style="margin: 0 0 4px; color: #1a1a1a; font-size: 15px; font-weight: 600;">Global Dive Site Database</p>
-                          <p style="margin: 0; color: #666666; font-size: 14px; line-height: 1.5;">Explore dive locations worldwide with integrated weather forecasts and marine conditions.</p>
-                        </td>
-                      </tr>
-                    </table>
-                  </td>
-                </tr>
-                
-                <!-- Feature 3: Dive Planning -->
-                <tr>
-                  <td style="padding: 16px 0; border-bottom: 1px solid #f0f0f0;">
-                    <table role="presentation" cellpadding="0" cellspacing="0" style="width: 100%;">
-                      <tr>
-                        <td style="width: 48px; vertical-align: top;">
-                          <div style="width: 40px; height: 40px; background-color: #FEE9E5; border-radius: 8px; text-align: center; line-height: 40px;">
-                            <span style="color: #D22F00; font-size: 18px; font-weight: 600;">3</span>
-                          </div>
-                        </td>
-                        <td style="padding-left: 12px; vertical-align: top;">
-                          <p style="margin: 0 0 4px; color: #1a1a1a; font-size: 15px; font-weight: 600;">Technical Dive Planning</p>
-                          <p style="margin: 0; color: #666666; font-size: 14px; line-height: 1.5;">Professional decompression planning using the Buhlmann ZHL-16C algorithm with gradient factors.</p>
-                        </td>
-                      </tr>
-                    </table>
-                  </td>
-                </tr>
-                
-                <!-- Feature 4: Gear & Certs -->
-                <tr>
-                  <td style="padding: 16px 0;">
-                    <table role="presentation" cellpadding="0" cellspacing="0" style="width: 100%;">
-                      <tr>
-                        <td style="width: 48px; vertical-align: top;">
-                          <div style="width: 40px; height: 40px; background-color: #FEE9E5; border-radius: 8px; text-align: center; line-height: 40px;">
-                            <span style="color: #D22F00; font-size: 18px; font-weight: 600;">4</span>
-                          </div>
-                        </td>
-                        <td style="padding-left: 12px; vertical-align: top;">
-                          <p style="margin: 0 0 4px; color: #1a1a1a; font-size: 15px; font-weight: 600;">Equipment & Certifications</p>
-                          <p style="margin: 0; color: #666666; font-size: 14px; line-height: 1.5;">Manage your gear profiles, track equipment inventory, and store certification records digitally.</p>
-                        </td>
-                      </tr>
-                    </table>
-                  </td>
-                </tr>
-                
-              </table>
-              
-              <p style="margin: 0 0 28px; color: #4a4a4a; font-size: 15px; line-height: 1.7;">
-                We've added sample dive logs and sites to help you explore the app. You can delete these and start fresh with your own data at any time.
-              </p>
-              
-              <!-- CTA Button -->
-              <table role="presentation" cellpadding="0" cellspacing="0" style="width: 100%; margin: 0 0 24px;">
-                <tr>
-                  <td align="center">
-                    <a href="${baseUrl}" style="display: inline-block; padding: 14px 36px; background-color: #D22F00; color: #ffffff; text-decoration: none; font-weight: 600; font-size: 15px; border-radius: 6px;">
-                      Open Erebus
-                    </a>
-                  </td>
-                </tr>
-              </table>
-              
-              <p style="margin: 0; color: #888888; font-size: 14px; text-align: center; line-height: 1.6;">
-                Questions or feedback? Reply to this email and we'll be happy to assist.
-              </p>
-            </td>
-          </tr>
-          
-          <!-- Footer -->
-          <tr>
-            <td style="padding: 24px 40px; background-color: #fafafa; border-top: 1px solid #eee; border-radius: 0 0 8px 8px;">
-              <table role="presentation" cellpadding="0" cellspacing="0" style="width: 100%;">
-                <tr>
-                  <td style="text-align: center;">
-                    <p style="margin: 0 0 4px; color: #888888; font-size: 13px;">Dive safe.</p>
-                    <p style="margin: 0; color: #aaaaaa; font-size: 12px;">Erebus by Nammu Tech</p>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-          
-        </table>
-        
-        <!-- Legal Footer -->
-        <table role="presentation" cellpadding="0" cellspacing="0" style="width: 100%; max-width: 600px; margin-top: 24px;">
-          <tr>
-            <td style="text-align: center;">
-              <p style="margin: 0; color: #999999; font-size: 11px; line-height: 1.5;">
-                This email was sent because you created an account on Erebus.<br />
-                &copy; ${new Date().getFullYear()} Nammu Tech. All rights reserved.
-              </p>
-            </td>
-          </tr>
-        </table>
-        
-      </td>
-    </tr>
-  </table>
 </body>
-</html>
-`;
+</html>`;
 }
 
 async function sendWelcomeEmail(email, firstName) {
