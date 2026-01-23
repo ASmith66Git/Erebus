@@ -271,6 +271,7 @@ function generateWelcomeEmailHtml(firstName) {
 async function sendWelcomeEmail(email, firstName) {
   try {
     const { client, fromEmail } = await getUncachableResendClient();
+    console.log(`Sending welcome email from: "${fromEmail}" to: "${email}"`);
     const result = await client.emails.send({
       from: fromEmail,
       to: email,
@@ -278,7 +279,7 @@ async function sendWelcomeEmail(email, firstName) {
       html: generateWelcomeEmailHtml(firstName),
     });
     console.log('Welcome email sent:', result);
-    return { success: true, result };
+    return { success: true, result, fromEmail };
   } catch (error) {
     console.error('Failed to send welcome email:', error);
     return { success: false, error: error.message };
