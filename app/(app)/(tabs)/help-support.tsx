@@ -148,23 +148,8 @@ export default function HelpSupportScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]); // Only re-fetch when token changes, not on every callback recreation
 
-  useEffect(() => {
-    if (!selectedConversation) return;
-    
-    const pollInterval = setInterval(() => {
-      fetchMessages(selectedConversation.id, true);
-    }, 5000); // Increased to 5 seconds
-    
-    return () => clearInterval(pollInterval);
-  }, [selectedConversation?.id]);
-
-  useEffect(() => {
-    const pollConversationsInterval = setInterval(() => {
-      fetchConversations(true);
-    }, 15000); // Increased to 15 seconds to reduce refresh frequency
-    
-    return () => clearInterval(pollConversationsInterval);
-  }, []);
+  // Disabled automatic polling to prevent UI flashing
+  // Users can pull-to-refresh or send a message to see updates
 
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !selectedConversation) return;

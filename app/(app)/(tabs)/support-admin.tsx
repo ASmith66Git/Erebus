@@ -153,24 +153,8 @@ export default function SupportAdminScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, statusFilter]); // Only re-fetch when token or filter changes
 
-  useEffect(() => {
-    if (!selectedConversation) return;
-    
-    const pollInterval = setInterval(() => {
-      fetchMessages(selectedConversation.id);
-    }, 5000); // Increased to 5 seconds
-    
-    return () => clearInterval(pollInterval);
-  }, [selectedConversation?.id]);
-
-  useEffect(() => {
-    const pollConversationsInterval = setInterval(() => {
-      fetchConversations(true);
-      fetchUnreadCount();
-    }, 15000); // Increased to 15 seconds to reduce refresh frequency
-    
-    return () => clearInterval(pollConversationsInterval);
-  }, []);
+  // Disabled automatic polling to prevent UI flashing
+  // Admins can pull-to-refresh or send a message to see updates
 
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !selectedConversation) return;
