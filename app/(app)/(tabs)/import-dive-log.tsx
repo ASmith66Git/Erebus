@@ -162,6 +162,7 @@ export default function ImportDiveLogScreen() {
     
     setTimeout(() => {
       alert(`Batch import complete!\n\n${successCount} file${successCount !== 1 ? 's' : ''} imported successfully\n${totalDives} total dive${totalDives !== 1 ? 's' : ''} added${errorCount > 0 ? `\n${errorCount} file${errorCount !== 1 ? 's' : ''} failed` : ''}`);
+      router.back();
     }, 500);
   };
 
@@ -262,7 +263,7 @@ export default function ImportDiveLogScreen() {
       Alert.alert(
         'Batch Import Complete',
         `${successCount} file${successCount !== 1 ? 's' : ''} imported successfully\n${totalDives} total dive${totalDives !== 1 ? 's' : ''} added${errorCount > 0 ? `\n${errorCount} file${errorCount !== 1 ? 's' : ''} failed` : ''}`,
-        [{ text: 'OK' }]
+        [{ text: 'OK', onPress: () => router.back() }]
       );
     } catch (error: any) {
       Alert.alert('Import Error', error.message || 'Failed to import dive logs');
