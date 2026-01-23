@@ -74,6 +74,129 @@ async function getUncachableResendClient() {
   };
 }
 
+function generateWelcomeEmailHtml(firstName) {
+  const displayName = firstName || 'Diver';
+  return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome to Erebus</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #0a0a0a;">
+  <table role="presentation" style="width: 100%; border-collapse: collapse;">
+    <tr>
+      <td align="center" style="padding: 40px 20px;">
+        <table role="presentation" style="width: 100%; max-width: 600px; border-collapse: collapse; background: linear-gradient(180deg, #1a1a2e 0%, #0f0f1a 100%); border-radius: 16px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.5);">
+          
+          <!-- Header with gradient -->
+          <tr>
+            <td style="background: linear-gradient(135deg, #D22F00 0%, #8B1E00 100%); padding: 40px 40px 60px; text-align: center;">
+              <div style="font-size: 48px; margin-bottom: 16px;">🤿</div>
+              <h1 style="margin: 0; color: #ffffff; font-size: 32px; font-weight: 700; letter-spacing: -0.5px;">Welcome to Erebus</h1>
+              <p style="margin: 12px 0 0; color: rgba(255,255,255,0.9); font-size: 16px;">Your Ultimate Dive Companion</p>
+            </td>
+          </tr>
+          
+          <!-- Main Content -->
+          <tr>
+            <td style="padding: 40px;">
+              <p style="margin: 0 0 24px; color: #ffffff; font-size: 18px; line-height: 1.6;">
+                Hey ${displayName},
+              </p>
+              <p style="margin: 0 0 24px; color: #b0b0b0; font-size: 16px; line-height: 1.7;">
+                Welcome aboard! We're thrilled to have you join the Erebus community. You've just unlocked a powerful tool designed by divers, for divers.
+              </p>
+              
+              <!-- Feature Cards -->
+              <table role="presentation" style="width: 100%; border-collapse: collapse; margin: 32px 0;">
+                <tr>
+                  <td style="padding: 16px; background: rgba(210, 47, 0, 0.1); border-radius: 12px; border-left: 4px solid #D22F00;">
+                    <div style="color: #D22F00; font-size: 20px; margin-bottom: 8px;">📊</div>
+                    <div style="color: #ffffff; font-weight: 600; margin-bottom: 4px;">Log Your Dives</div>
+                    <div style="color: #888; font-size: 14px;">Track every dive with detailed profiles, gas mixes, and conditions</div>
+                  </td>
+                </tr>
+                <tr><td style="height: 12px;"></td></tr>
+                <tr>
+                  <td style="padding: 16px; background: rgba(210, 47, 0, 0.1); border-radius: 12px; border-left: 4px solid #D22F00;">
+                    <div style="color: #D22F00; font-size: 20px; margin-bottom: 8px;">🗺️</div>
+                    <div style="color: #ffffff; font-weight: 600; margin-bottom: 4px;">Discover Dive Sites</div>
+                    <div style="color: #888; font-size: 14px;">Explore locations worldwide with weather forecasts and conditions</div>
+                  </td>
+                </tr>
+                <tr><td style="height: 12px;"></td></tr>
+                <tr>
+                  <td style="padding: 16px; background: rgba(210, 47, 0, 0.1); border-radius: 12px; border-left: 4px solid #D22F00;">
+                    <div style="color: #D22F00; font-size: 20px; margin-bottom: 8px;">⚙️</div>
+                    <div style="color: #ffffff; font-weight: 600; margin-bottom: 4px;">Plan Like a Pro</div>
+                    <div style="color: #888; font-size: 14px;">Advanced deco planning with Buhlmann ZHL-16C algorithm</div>
+                  </td>
+                </tr>
+              </table>
+              
+              <p style="margin: 24px 0; color: #b0b0b0; font-size: 16px; line-height: 1.7;">
+                We've added some sample dive logs and sites to help you explore the app. Feel free to delete them and start fresh with your own adventures!
+              </p>
+              
+              <!-- CTA Button -->
+              <table role="presentation" style="width: 100%; margin: 32px 0;">
+                <tr>
+                  <td align="center">
+                    <a href="https://erebus.nammu-tech.com" style="display: inline-block; padding: 16px 40px; background: linear-gradient(135deg, #D22F00 0%, #FF4D1A 100%); color: #ffffff; text-decoration: none; font-weight: 600; font-size: 16px; border-radius: 8px; box-shadow: 0 4px 20px rgba(210, 47, 0, 0.4);">
+                      Start Diving In
+                    </a>
+                  </td>
+                </tr>
+              </table>
+              
+              <p style="margin: 24px 0 0; color: #666; font-size: 14px; text-align: center;">
+                Questions? Just reply to this email - we're here to help.
+              </p>
+            </td>
+          </tr>
+          
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 24px 40px; background: rgba(0,0,0,0.3); border-top: 1px solid rgba(255,255,255,0.1);">
+              <table role="presentation" style="width: 100%;">
+                <tr>
+                  <td style="color: #666; font-size: 13px; text-align: center;">
+                    <p style="margin: 0 0 8px;">Dive safe, dive often. 🌊</p>
+                    <p style="margin: 0; color: #444;">Erebus by Nammu Tech</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+`;
+}
+
+async function sendWelcomeEmail(email, firstName) {
+  try {
+    const { client, fromEmail } = await getUncachableResendClient();
+    const result = await client.emails.send({
+      from: fromEmail,
+      to: email,
+      subject: 'Welcome to Erebus - Your Dive Journey Begins!',
+      html: generateWelcomeEmailHtml(firstName),
+    });
+    console.log('Welcome email sent:', result);
+    return { success: true, result };
+  } catch (error) {
+    console.error('Failed to send welcome email:', error);
+    return { success: false, error: error.message };
+  }
+}
+
 async function sendPushNotification(userId, title, body, data = {}) {
   try {
     const tokenResult = await pool.query(
@@ -1056,6 +1179,17 @@ app.post('/api/auth/signup', async (req, res) => {
       console.error(`Failed to auto-populate sample data for user ${user.id}:`, err);
     });
     
+    // Send welcome email (non-blocking)
+    sendWelcomeEmail(user.email, firstName).then(emailResult => {
+      if (emailResult.success) {
+        console.log(`Welcome email sent to ${user.email}`);
+      } else {
+        console.error(`Failed to send welcome email to ${user.email}:`, emailResult.error);
+      }
+    }).catch(err => {
+      console.error(`Error sending welcome email to ${user.email}:`, err);
+    });
+    
     res.status(201).json({
       user: {
         id: user.id,
@@ -1438,6 +1572,26 @@ app.get('/api/auth/me', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Get user error:', error);
     res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.get('/api/admin/email-preview/welcome', authenticateToken, requireAdmin, (req, res) => {
+  const firstName = req.query.name || 'Diver';
+  const html = generateWelcomeEmailHtml(firstName);
+  res.setHeader('Content-Type', 'text/html');
+  res.send(html);
+});
+
+app.post('/api/admin/email-test/welcome', authenticateToken, requireAdmin, async (req, res) => {
+  const { email, firstName } = req.body;
+  if (!email) {
+    return res.status(400).json({ error: 'Email is required' });
+  }
+  const result = await sendWelcomeEmail(email, firstName || 'Diver');
+  if (result.success) {
+    res.json({ message: 'Test email sent successfully', result: result.result });
+  } else {
+    res.status(500).json({ error: result.error });
   }
 });
 
