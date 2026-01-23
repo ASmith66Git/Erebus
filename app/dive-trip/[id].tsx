@@ -987,17 +987,34 @@ export default function DiveTripScreen() {
                   }
                 }}
                 minDate={showDatePicker === 'end' && formData.startDate ? dayjs(formData.startDate) : undefined}
-                calendarTextStyle={{ color: colors.text }}
-                selectedTextStyle={{ color: '#FFFFFF' }}
-                headerTextStyle={{ color: colors.text }}
-                weekDaysTextStyle={{ color: colors.textSecondary }}
-                dayContainerStyle={{ backgroundColor: colors.surface }}
-                monthContainerStyle={{ backgroundColor: colors.surface }}
-                yearContainerStyle={{ backgroundColor: colors.surface }}
-                selectedItemColor={colors.primary}
-                headerButtonColor={colors.primary}
-                todayContainerStyle={{ borderColor: colors.primary }}
-                todayTextStyle={{ color: colors.primary }}
+                styles={{
+                  days: { backgroundColor: colors.surface },
+                  day: { backgroundColor: colors.surface },
+                  day_label: { color: colors.text },
+                  day_cell: { backgroundColor: colors.surface },
+                  months: { backgroundColor: colors.surface },
+                  month: { backgroundColor: colors.surface },
+                  month_label: { color: colors.text },
+                  years: { backgroundColor: colors.surface },
+                  year: { backgroundColor: colors.surface },
+                  year_label: { color: colors.text },
+                  header: { backgroundColor: colors.surface },
+                  month_selector: { backgroundColor: colors.surface },
+                  month_selector_label: { color: colors.text },
+                  year_selector: { backgroundColor: colors.surface },
+                  year_selector_label: { color: colors.text },
+                  weekdays: { backgroundColor: colors.surface },
+                  weekday: { backgroundColor: colors.surface },
+                  weekday_label: { color: colors.textSecondary },
+                  button_next_image: { tintColor: colors.primary },
+                  button_prev_image: { tintColor: colors.primary },
+                  selected: { backgroundColor: colors.primary },
+                  selected_label: { color: '#FFFFFF' },
+                  today: { borderColor: colors.primary, borderWidth: 1 },
+                  today_label: { color: colors.primary },
+                  outside_label: { color: colors.textSecondary },
+                  disabled_label: { color: colors.textSecondary },
+                }}
               />
             </View>
           </Pressable>
