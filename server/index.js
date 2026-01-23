@@ -1673,6 +1673,20 @@ app.get('/api/admin/email-preview/welcome', authenticateToken, requireAdmin, (re
   res.send(html);
 });
 
+// Temporary test endpoint for sending welcome email (remove in production)
+app.post('/api/dev/send-test-welcome', async (req, res) => {
+  const { email, firstName } = req.body;
+  if (!email) {
+    return res.status(400).json({ error: 'Email is required' });
+  }
+  try {
+    const result = await sendWelcomeEmail(email, firstName || 'Diver');
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.get('/api/email-preview/welcome', (req, res) => {
   const firstName = req.query.name || 'Diver';
   const html = generateWelcomeEmailHtml(firstName);
