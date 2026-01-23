@@ -134,6 +134,67 @@ class BleService {
     return true;
   }
 
+  // Get bonded/paired devices that match service UUIDs
+  async getBondedDevices(serviceUUIDs: string[]): Promise<BleDevice[]> {
+    if (!this.manager || !this.isInitialized) {
+      return [];
+    }
+
+    try {
+      bleLog('BONDED', 'Checking for bonded devices with service UUIDs:', serviceUUIDs);
+      
+      // Use connectedDevices to find devices that are already bonded/connected
+      // This is essential for Android 12+ where bonded devices may not advertise
+      const connectedDevices = await this.manager.connectedDevices(serviceUUIDs);
+      
+      bleLog('BONDED', `Found ${connectedDevices?.length || 0} connected devices`);
+      
+      if (connectedDevices && connectedDevices.length > 0) {
+        return connectedDevices.map((device: any) => ({
+          id: device.id,
+          name: device.name || 'Unknown Device',
+          rssi: device.rssi,
+          manufacturerData: device.manufacturerData,
+        }));
+      }
+      
+      return [];
+    } catch (error: any) {
+      bleLog('BONDED', 'Error checking bonded devices:', error?.message);
+      return [];
+    }
+  }
+
+  // Get all known/bonded devices (Android specific)
+  async getKnownDevices(deviceIds: string[]): Promise<BleDevice[]> {
+    if (!this.manager || !this.isInitialized || Platform.OS !== 'android') {
+      return [];
+    }
+
+    try {
+      bleLog('KNOWN', 'Checking for known devices:', deviceIds);
+      
+      // devices() returns devices from cache or system bonded list
+      const devices = await this.manager.devices(deviceIds);
+      
+      bleLog('KNOWN', `Found ${devices?.length || 0} known devices`);
+      
+      if (devices && devices.length > 0) {
+        return devices.map((device: any) => ({
+          id: device.id,
+          name: device.name || 'Bonded Device',
+          rssi: null,
+          manufacturerData: null,
+        }));
+      }
+      
+      return [];
+    } catch (error: any) {
+      bleLog('KNOWN', 'Error checking known devices:', error?.message);
+      return [];
+    }
+  }
+
   async startScanning(
     serviceUUIDs: string[] | null,
     onDeviceFound: DeviceFoundCallback
@@ -153,14 +214,40 @@ class BleService {
     }
 
     this.deviceFoundCallbacks.push(onDeviceFound);
+    
+    // IMPORTANT: For Android 12+, check bonded devices first before scanning
+    // Bonded devices may not advertise, so we need to check connectedDevices()
+    if (Platform.OS === 'android' && serviceUUIDs && serviceUUIDs.length > 0) {
+      bleLog('SCAN', 'Checking bonded devices first (Android 12+ requirement)...');
+      
+      try {
+        const bondedDevices = await this.getBondedDevices(serviceUUIDs);
+        
+        // Report bonded devices immediately
+        for (const device of bondedDevices) {
+          bleLog('SCAN', `Found bonded device: ${device.name} (${device.id})`);
+          this.deviceFoundCallbacks.forEach(callback => callback(device));
+        }
+        
+        if (bondedDevices.length > 0) {
+          bleLog('SCAN', `Reported ${bondedDevices.length} bonded device(s), continuing with scan for more...`);
+        }
+      } catch (bondedError: any) {
+        bleLog('SCAN', 'Bonded device check failed, continuing with normal scan:', bondedError?.message);
+      }
+    }
 
+    bleLog('SCAN', 'Starting BLE scan with service UUIDs:', serviceUUIDs);
+    
     this.manager.startDeviceScan(serviceUUIDs, null, (error: any, device: any) => {
       if (error) {
         console.error('Scan error:', error);
+        bleLog('SCAN', 'Scan error:', error?.message);
         return;
       }
 
       if (device && device.name) {
+        bleLog('SCAN', `Discovered device: ${device.name} (${device.id}) RSSI: ${device.rssi}`);
         const bleDevice: BleDevice = {
           id: device.id,
           name: device.name,
@@ -215,16 +302,48 @@ class BleService {
           }
         }
 
-        // Connect WITHOUT MTU request to avoid race condition on Android
-        const device = await this.manager.connectToDevice(deviceId, {
-          timeout: 25000, // Increased timeout for Android 15 on foldables
-          refreshGatt: 'OnConnected', // Force GATT cache refresh on Android 15
-        });
+        // For bonded devices, check if already connected first
+        let device: any = null;
+        let isAlreadyConnected = false;
+        
+        try {
+          // Check if device is already connected (common for bonded devices)
+          const connectedDevices = await this.manager.connectedDevices(SHEARWATER_UUIDS);
+          const alreadyConnected = connectedDevices?.find((d: any) => d.id === deviceId);
+          if (alreadyConnected) {
+            bleLog('CONNECT', 'Device is already connected (bonded device), using existing connection');
+            device = alreadyConnected;
+            isAlreadyConnected = true;
+          }
+        } catch (checkError: any) {
+          bleLog('CONNECT', 'Could not check connected devices:', checkError?.message);
+        }
+        
+        // If not already connected, establish new connection
+        if (!device) {
+          bleLog('CONNECT', 'Establishing new connection...');
+          device = await this.manager.connectToDevice(deviceId, {
+            timeout: 25000, // Increased timeout for Android 15 on foldables
+            refreshGatt: 'OnConnected', // Force GATT cache refresh on Android 15
+          });
+        }
+        
         bleLog('CONNECT', 'Connected, waiting 3000ms before discovery (Android 15 GATT stability)...');
         
         // Extended pre-discovery delay for Android 15 GATT stability
         // Foldable devices (like Honor Magic V3) need extra time due to antenna handling
         await new Promise(resolve => setTimeout(resolve, 3000));
+        
+        // For bonded devices, request MTU to help trigger GATT operations
+        // This can help "wake up" the GATT server on some Android versions
+        try {
+          bleLog('CONNECT', 'Requesting MTU 512 to trigger GATT operations...');
+          const mtu = await device.requestMTU(512);
+          bleLog('CONNECT', `MTU negotiated: ${mtu}`);
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        } catch (mtuError: any) {
+          bleLog('CONNECT', 'MTU request failed (non-critical):', mtuError?.message);
+        }
         
         // Service discovery with progressive retries
         let discoverySuccess = false;
