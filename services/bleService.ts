@@ -4,6 +4,44 @@ import { Buffer } from 'buffer';
 let BleManager: any = null;
 let bleManagerInstance: any = null;
 
+// ============================================================================
+// SHEARWATER PROTOCOL CONSTANTS
+// ============================================================================
+
+// Known Shearwater Service UUIDs
+const SHEARWATER_SERVICE_UUIDS = [
+  'fe25c237-0ece-443c-b0aa-e02033e7029d', // Modern: Perdix 2, Tern, newer firmware (v81+)
+  '0000fee9-0000-1000-8000-00805f9b34fb', // Standard/Legacy: Original Perdix/Petrel 2
+  '00001101-0000-1000-8000-00805f9b34fb', // Classic Serial: Very old firmware or "Legacy" BT mode
+];
+
+// Shearwater Characteristic UUIDs (for the modern FE25 service)
+const SHEARWATER_WRITE_CHAR = 'fe25c237-0ece-443c-b0aa-e02033e7029e'; // Write characteristic
+const SHEARWATER_NOTIFY_CHAR = 'fe25c237-0ece-443c-b0aa-e02033e7029f'; // Notify characteristic
+
+// UDS (Unified Diagnostic Services) Protocol - Modern Firmware v93+
+// These replace the legacy 0xBB download protocol
+const UDS = {
+  // Request codes (sent to device)
+  REQUEST_DOWNLOAD: 0x35,    // Start download session (replaces legacy 0xBB)
+  READ_DATA: 0x22,           // Request specific data (dive log headers, etc.)
+  TRANSFER_DATA: 0x36,       // Request data block transfer
+  SESSION_EXIT: 0x37,        // Terminate session safely
+  
+  // Response codes (received from device)
+  DOWNLOAD_ACK: 0x75,        // Positive response to 0x35 (SID + 0x40)
+  READ_ACK: 0x62,            // Positive response to 0x22 (SID + 0x40)
+  TRANSFER_ACK: 0x76,        // Positive response to 0x36 (SID + 0x40)
+  SESSION_ACK: 0x77,         // Positive response to 0x37 (SID + 0x40)
+  NEGATIVE_RESPONSE: 0x7F,   // Error/NAK
+  
+  // Legacy Protocol (older Petrel firmware)
+  LEGACY_DOWNLOAD: 0xBB,     // Legacy download start
+  LEGACY_READ: 0x01,         // Legacy read command
+  LEGACY_MANIFEST: 0x03,     // Legacy manifest request
+  LEGACY_NAK: 0x15,          // Legacy negative acknowledgment
+};
+
 // Detailed BLE logging helper - uses console.warn so it gets captured by error logging system
 const bleLog = (category: string, message: string, data?: any) => {
   const timestamp = new Date().toISOString().split('T')[1].replace('Z', '');
@@ -165,6 +203,103 @@ class BleService {
     }
   }
 
+  // ============================================================================
+  // FAST-PATH DIRECT CONNECT (Shearwater Cloud App Method)
+  // ============================================================================
+  // This bypasses scanning entirely for bonded devices, just like the official app.
+  // Key insight: The official app connects instantly because it uses connectedDevices()
+  // to find already-bonded Perdix devices instead of scanning every time.
+  
+  async fastPathConnect(): Promise<{ device: any; serviceUUID: string } | null> {
+    if (!this.manager || !this.isInitialized) {
+      throw new Error('BLE not initialized');
+    }
+    
+    bleLog('FASTPATH', 'Attempting Fast-Path Direct Connect (like official Shearwater app)...');
+    
+    // Step 1: Check if OS already has a bonded/connected Shearwater device
+    // This is the key to instant connection - no scanning needed!
+    try {
+      const connectedDevices = await this.manager.connectedDevices(SHEARWATER_SERVICE_UUIDS);
+      
+      if (connectedDevices && connectedDevices.length > 0) {
+        bleLog('FASTPATH', `Found ${connectedDevices.length} bonded Shearwater device(s)`);
+        
+        for (const device of connectedDevices) {
+          bleLog('FASTPATH', `Trying bonded device: ${device.name || device.id}`);
+          
+          try {
+            // Device is already connected at OS level, just need to connect at app level
+            const connectedDevice = await device.connect({
+              timeout: 15000,
+              refreshGatt: 'OnConnected',
+            });
+            
+            // Request MTU immediately to trigger GATT operations
+            try {
+              const mtu = await connectedDevice.requestMTU(512);
+              bleLog('FASTPATH', `MTU negotiated: ${mtu}`);
+            } catch (e) {}
+            
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            // Do targeted discovery - only discover what we need
+            await connectedDevice.discoverAllServicesAndCharacteristics();
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            
+            // Check which Shearwater service is available
+            const services = await connectedDevice.services();
+            for (const service of services) {
+              const uuid = service.uuid.toLowerCase();
+              if (SHEARWATER_SERVICE_UUIDS.includes(uuid)) {
+                bleLog('FASTPATH', `Fast-Path SUCCESS! Connected via service: ${uuid}`);
+                this.connectedDevice = connectedDevice;
+                this.connectedDeviceId = device.id;
+                
+                // Set up disconnection listener
+                this.setupDisconnectionListener(connectedDevice);
+                
+                // Notify connection state
+                this.notifyConnectionState({
+                  connected: true,
+                  deviceId: device.id,
+                  deviceName: device.name,
+                });
+                
+                return { device: connectedDevice, serviceUUID: uuid };
+              }
+            }
+            
+            bleLog('FASTPATH', 'Device connected but Shearwater service not found');
+          } catch (connectError: any) {
+            bleLog('FASTPATH', `Failed to connect to ${device.id}: ${connectError?.message}`);
+          }
+        }
+      } else {
+        bleLog('FASTPATH', 'No bonded Shearwater devices found - will need to scan');
+      }
+    } catch (error: any) {
+      bleLog('FASTPATH', 'Error checking bonded devices:', error?.message);
+    }
+    
+    return null;
+  }
+  
+  // Helper to set up disconnection listener
+  private setupDisconnectionListener(device: any): void {
+    device.onDisconnected((error: any, disconnectedDevice: any) => {
+      bleLog('DISCONNECT', `Device disconnected: ${disconnectedDevice?.id}`, error?.message);
+      if (this.connectedDevice?.id === disconnectedDevice?.id) {
+        this.connectedDevice = null;
+        this.notifyConnectionState({
+          connected: false,
+          deviceId: null,
+          deviceName: null,
+        });
+      }
+    });
+  }
+
   // Get all known/bonded devices (Android specific)
   async getKnownDevices(deviceIds: string[]): Promise<BleDevice[]> {
     if (!this.manager || !this.isInitialized || Platform.OS !== 'android') {
@@ -272,18 +407,26 @@ class BleService {
       throw new Error('BLE not initialized');
     }
 
-    // Support all known Shearwater service UUIDs
-    const SHEARWATER_UUIDS = [
-      'fe25c237-0ece-443c-b0aa-e02033e7029d', // Modern: Perdix 2, Tern, newer firmware (v81+)
-      '0000fee9-0000-1000-8000-00805f9b34fb', // Standard/Legacy: Original Perdix/Petrel 2
-      '00001101-0000-1000-8000-00805f9b34fb', // Classic Serial: Very old firmware or "Legacy" BT mode
-    ];
-    
-    // UDS Protocol codes for reference (Shearwater v93+ firmware)
-    // Request Download: 0x35, Read Data: 0x22, Error/NAK: 0x7F
-    // Legacy Petrel: Download 0xBB, Read 0x01/0x03, NAK 0x15
+    // Use global Shearwater service UUIDs (defined at top of file)
+    // See also: UDS protocol constants for v93+ firmware communication
     
     const maxConnectionAttempts = 3; // Full connection cycles to try
+    
+    // TRY FAST-PATH FIRST - This is how the official Shearwater app works
+    // If the device is already bonded, we can connect instantly
+    if (Platform.OS === 'android') {
+      bleLog('CONNECT', 'Trying Fast-Path connect first (like official Shearwater app)...');
+      try {
+        const fastResult = await this.fastPathConnect();
+        if (fastResult) {
+          bleLog('CONNECT', 'Fast-Path succeeded! Device connected instantly.');
+          return true;
+        }
+        bleLog('CONNECT', 'Fast-Path did not find bonded device, falling back to standard connect...');
+      } catch (fastError: any) {
+        bleLog('CONNECT', 'Fast-Path failed:', fastError?.message);
+      }
+    }
     
     // FORCE DISCONNECT FIRST - Clear any stale GATT state
     // This is critical for bonded devices that refuse to expose services
@@ -324,7 +467,7 @@ class BleService {
         
         try {
           // Check if device is already connected (common for bonded devices)
-          const connectedDevices = await this.manager.connectedDevices(SHEARWATER_UUIDS);
+          const connectedDevices = await this.manager.connectedDevices(SHEARWATER_SERVICE_UUIDS);
           const alreadyConnected = connectedDevices?.find((d: any) => d.id === deviceId);
           if (alreadyConnected) {
             bleLog('CONNECT', 'Device is already connected (bonded device), using existing connection');
@@ -430,7 +573,7 @@ class BleService {
             }
             
             // Check if any Shearwater service UUID is present
-            const foundShearwater = SHEARWATER_UUIDS.some(uuid => 
+            const foundShearwater = SHEARWATER_SERVICE_UUIDS.some(uuid => 
               serviceUUIDs.includes(uuid.toLowerCase())
             );
             
@@ -483,7 +626,7 @@ class BleService {
               const retryUUIDs = retryServices.map((s: any) => s.uuid.toLowerCase());
               bleLog('DISCOVER', 'Post-ping services:', retryUUIDs.join(', '));
               
-              const foundAfterPing = SHEARWATER_UUIDS.some(uuid => 
+              const foundAfterPing = SHEARWATER_SERVICE_UUIDS.some(uuid => 
                 retryUUIDs.includes(uuid.toLowerCase())
               );
               if (foundAfterPing) {
