@@ -161,11 +161,75 @@ export default function ProfileScreen() {
     setRefreshing(false);
   }, []);
 
-  const exportDiveData = async () => {
+  const showExportOptions = () => {
+    if (Platform.OS === 'web') {
+      const includeMedia = window.confirm(
+        'Include photos and videos in export?\n\n' +
+        'Click OK to include media (ZIP file, larger download)\n' +
+        'Click Cancel for data only (Excel file, faster)'
+      );
+      exportDiveData(includeMedia);
+    } else {
+      Alert.alert(
+        'Export Options',
+        'Would you like to include your photos and videos?',
+        [
+          { text: 'Data Only (XLSX)', onPress: () => exportDiveData(false) },
+          { text: 'Include Media (ZIP)', onPress: () => exportDiveData(true) },
+          { text: 'Cancel', style: 'cancel' }
+        ]
+      );
+    }
+  };
+
+  const exportDiveData = async (includeMedia: boolean = false) => {
     if (!token) return;
     
     setExporting(true);
     try {
+      if (includeMedia) {
+        const response = await fetch(`${getApiUrl()}/api/export/dive-data-with-media`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to export data with media');
+        }
+        
+        const blob = await response.blob();
+        const fileName = `erebus_dive_data_${new Date().toISOString().split('T')[0]}.zip`;
+        
+        if (Platform.OS === 'web') {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = fileName;
+          a.click();
+          URL.revokeObjectURL(url);
+          window.alert('Dive data with media exported successfully!');
+        } else {
+          const base64 = await new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+              const result = reader.result as string;
+              resolve(result.split(',')[1]);
+            };
+            reader.readAsDataURL(blob);
+          });
+          const filePath = `${FileSystem.documentDirectory}${fileName}`;
+          await FileSystem.writeAsStringAsync(filePath, base64, {
+            encoding: FileSystem.EncodingType.Base64,
+          });
+          await Sharing.shareAsync(filePath, {
+            mimeType: 'application/zip',
+            dialogTitle: 'Export Dive Data with Media',
+          });
+          Alert.alert('Success', 'Dive data with media exported successfully!');
+        }
+        setExporting(false);
+        return;
+      }
+      
       const response = await fetch(`${getApiUrl()}/api/export/dive-data`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -760,7 +824,7 @@ export default function ProfileScreen() {
             disabled={item.route === 'export' && exporting}
             onPress={() => {
               if (item.route === 'export') {
-                exportDiveData();
+                showExportOptions();
               } else if (item.route) {
                 router.push(item.route as any);
               }

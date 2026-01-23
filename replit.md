@@ -37,6 +37,7 @@ The application is built using Expo React Native, targeting both iOS and Android
 - **Dive Trips**: Tracks dive holidays with various trip types, date ranges, operator/location details, and linking to dive logs.
 - **App Settings**: Manages user preferences for unit systems, date formats, and language selection.
 - **Dive Buddies**: Manages social dive buddies with names, photos, notes, and the ability to link to dive logs.
+- **Data Export**: Two export options from profile - data-only (XLSX spreadsheet) or full export with media (ZIP archive containing JSON data plus all photos and videos from object storage).
 
 ## Development Notes
 ### Android Touch Handling

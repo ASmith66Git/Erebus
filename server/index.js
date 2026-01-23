@@ -12,6 +12,7 @@ const diveLogParser = require('./services/diveLogParser');
 const diveLogParserV2 = require('./services/diveLogParserV2');
 const DiveLogPersistenceService = require('./services/diveLogPersistence');
 const diveComputerCatalog = require('./data/diveComputerCatalog');
+const archiver = require('archiver');
 
 const expo = new Expo();
 
@@ -6900,6 +6901,249 @@ app.get('/api/export/dive-data', authenticateToken, async (req, res) => {
     res.status(500).json({ error: 'Failed to export data' });
   }
 });
+
+// Export dive data with photos and videos as ZIP
+app.get('/api/export/dive-data-with-media', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    
+    // Fetch all user dive data (same as regular export)
+    const [
+      diveLogs,
+      diveSites,
+      diveTrips,
+      gearProfiles,
+      certifications,
+      diveBuddies,
+      equipment,
+      photos
+    ] = await Promise.all([
+      pool.query(`
+        SELECT dl.*, ds.name as site_name 
+        FROM dive_logs dl 
+        LEFT JOIN dive_sites ds ON dl.dive_site_id = ds.id 
+        WHERE dl.user_id = $1 
+        ORDER BY dl.dive_datetime DESC
+      `, [userId]),
+      pool.query('SELECT * FROM dive_sites WHERE user_id = $1 ORDER BY name', [userId]),
+      pool.query('SELECT * FROM dive_trips WHERE user_id = $1 ORDER BY start_date DESC', [userId]),
+      pool.query('SELECT * FROM gear_profiles WHERE user_id = $1 ORDER BY name', [userId]),
+      pool.query(`
+        SELECT uc.*, tc.name as course_name, ta.name as agency_name
+        FROM user_certifications uc
+        LEFT JOIN training_courses tc ON uc.course_id = tc.id
+        LEFT JOIN training_agencies ta ON tc.agency_id = ta.id
+        WHERE uc.user_id = $1
+        ORDER BY uc.certification_date DESC
+      `, [userId]),
+      pool.query('SELECT * FROM dive_buddies WHERE user_id = $1 ORDER BY name', [userId]),
+      pool.query('SELECT * FROM equipment_inventory WHERE user_id = $1 ORDER BY equipment_type, name', [userId]),
+      pool.query('SELECT * FROM dive_photos WHERE user_id = $1 AND deleted_at IS NULL ORDER BY created_at DESC', [userId])
+    ]);
+
+    // Fetch dive log details
+    const diveLogIds = diveLogs.rows.map(d => d.id);
+    let samples = { rows: [] };
+    let gases = { rows: [] };
+    let events = { rows: [] };
+    let tankPressures = { rows: [] };
+    let diveLogBuddies = { rows: [] };
+    let diveTripLogs = { rows: [] };
+    
+    if (diveLogIds.length > 0) {
+      [samples, gases, events, tankPressures, diveLogBuddies, diveTripLogs] = await Promise.all([
+        pool.query('SELECT * FROM dive_log_samples WHERE dive_log_id = ANY($1) ORDER BY dive_log_id, sample_time_seconds', [diveLogIds]),
+        pool.query('SELECT * FROM dive_log_gases WHERE dive_log_id = ANY($1) ORDER BY dive_log_id, gas_slot', [diveLogIds]),
+        pool.query('SELECT * FROM dive_log_events WHERE dive_log_id = ANY($1) ORDER BY dive_log_id, event_time_seconds', [diveLogIds]),
+        pool.query('SELECT * FROM dive_log_tank_pressures WHERE dive_log_id = ANY($1) ORDER BY dive_log_id, sample_time_seconds', [diveLogIds]),
+        pool.query('SELECT dlb.*, db.name as buddy_name FROM dive_log_buddies dlb LEFT JOIN dive_buddies db ON dlb.buddy_id = db.id WHERE dlb.dive_log_id = ANY($1)', [diveLogIds]),
+        pool.query('SELECT * FROM dive_trip_logs WHERE dive_log_id = ANY($1)', [diveLogIds])
+      ]);
+    }
+
+    // Fetch gear profile details
+    const gearProfileIds = gearProfiles.rows.map(g => g.id);
+    let cylinders = { rows: [] };
+    let weights = { rows: [] };
+    let gearEquipment = { rows: [] };
+    
+    if (gearProfileIds.length > 0) {
+      [cylinders, weights, gearEquipment] = await Promise.all([
+        pool.query('SELECT * FROM gear_cylinders WHERE gear_profile_id = ANY($1)', [gearProfileIds]),
+        pool.query('SELECT * FROM gear_weights WHERE gear_profile_id = ANY($1)', [gearProfileIds]),
+        pool.query('SELECT gpe.*, ei.name as equipment_name, ei.equipment_type FROM gear_profile_equipment gpe LEFT JOIN equipment_inventory ei ON gpe.equipment_id = ei.id WHERE gpe.gear_profile_id = ANY($1)', [gearProfileIds])
+      ]);
+    }
+
+    // Fetch dive plans
+    const divePlans = await pool.query('SELECT * FROM dive_plans WHERE user_id = $1 ORDER BY created_at DESC', [userId]);
+    const divePlanIds = divePlans.rows.map(p => p.id);
+    let divePlanDives = { rows: [] };
+    let divePlanGases = { rows: [] };
+    
+    if (divePlanIds.length > 0) {
+      [divePlanDives, divePlanGases] = await Promise.all([
+        pool.query('SELECT * FROM dive_plan_dives WHERE dive_plan_id = ANY($1) ORDER BY dive_plan_id, dive_number', [divePlanIds]),
+        pool.query('SELECT * FROM dive_plan_gases WHERE dive_plan_id = ANY($1) ORDER BY dive_plan_id, gas_number', [divePlanIds])
+      ]);
+    }
+
+    // Prepare export data object
+    const exportData = {
+      exportDate: new Date().toISOString(),
+      diveLogs: diveLogs.rows,
+      diveLogSamples: samples.rows,
+      diveLogGases: gases.rows,
+      diveLogEvents: events.rows,
+      diveLogTankPressures: tankPressures.rows,
+      diveLogBuddies: diveLogBuddies.rows,
+      diveTripLogs: diveTripLogs.rows,
+      diveSites: diveSites.rows,
+      diveTrips: diveTrips.rows,
+      divePlans: divePlans.rows,
+      divePlanDives: divePlanDives.rows,
+      divePlanGases: divePlanGases.rows,
+      gearProfiles: gearProfiles.rows,
+      gearCylinders: cylinders.rows,
+      gearWeights: weights.rows,
+      gearEquipment: gearEquipment.rows,
+      certifications: certifications.rows,
+      diveBuddies: diveBuddies.rows,
+      equipment: equipment.rows,
+      photos: photos.rows.map(p => ({
+        ...p,
+        exportedFilename: p.image_url ? `media/${p.media_type === 'video' ? 'videos' : 'photos'}/${p.id}${getExtensionFromUrl(p.image_url)}` : null,
+        exportedThumbnail: p.thumbnail_url ? `media/thumbnails/${p.id}_thumb${getExtensionFromUrl(p.thumbnail_url)}` : null
+      }))
+    };
+
+    // Set up ZIP archive
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    const filename = `erebus-export-${timestamp}.zip`;
+    
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    
+    const archive = archiver('zip', { zlib: { level: 5 } });
+    
+    archive.on('error', (err) => {
+      console.error('Archive error:', err);
+      if (!res.headersSent) {
+        res.status(500).json({ error: 'Failed to create archive' });
+      }
+    });
+    
+    archive.pipe(res);
+    
+    // Add JSON data file
+    archive.append(JSON.stringify(exportData, null, 2), { name: 'dive-data.json' });
+    
+    // Download and add media files
+    const mediaFiles = photos.rows.filter(p => p.image_url);
+    let successCount = 0;
+    let errorCount = 0;
+    
+    for (const photo of mediaFiles) {
+      try {
+        // Extract object path from URL
+        const urlPath = photo.image_url;
+        if (!urlPath) continue;
+        
+        // Parse the object storage path
+        const parts = urlPath.split('/').filter(Boolean);
+        if (parts.length < 2) continue;
+        
+        const entityId = parts.slice(1).join('/');
+        let entityDir = process.env.PRIVATE_OBJECT_DIR || '';
+        if (!entityDir.endsWith('/')) {
+          entityDir = `${entityDir}/`;
+        }
+        const objectEntityPath = `${entityDir}${entityId}`;
+        const { bucketName, objectName } = parseObjectPath(objectEntityPath);
+        const bucket = objectStorageClient.bucket(bucketName);
+        const file = bucket.file(objectName);
+        
+        const [exists] = await file.exists();
+        if (!exists) {
+          console.warn(`File not found in storage: ${objectName}`);
+          errorCount++;
+          continue;
+        }
+        
+        // Determine folder and filename
+        const isVideo = photo.media_type === 'video';
+        const folder = isVideo ? 'media/videos' : 'media/photos';
+        const ext = getExtensionFromUrl(photo.image_url);
+        const archiveFilename = `${folder}/${photo.id}${ext}`;
+        
+        // Stream file directly into archive
+        const stream = file.createReadStream();
+        archive.append(stream, { name: archiveFilename });
+        successCount++;
+        
+        // Also add thumbnail if available
+        if (photo.thumbnail_url) {
+          try {
+            const thumbParts = photo.thumbnail_url.split('/').filter(Boolean);
+            if (thumbParts.length >= 2) {
+              const thumbEntityId = thumbParts.slice(1).join('/');
+              const thumbObjectPath = `${entityDir}${thumbEntityId}`;
+              const { bucketName: thumbBucket, objectName: thumbObject } = parseObjectPath(thumbObjectPath);
+              const thumbFile = objectStorageClient.bucket(thumbBucket).file(thumbObject);
+              const [thumbExists] = await thumbFile.exists();
+              if (thumbExists) {
+                const thumbExt = getExtensionFromUrl(photo.thumbnail_url);
+                archive.append(thumbFile.createReadStream(), { name: `media/thumbnails/${photo.id}_thumb${thumbExt}` });
+              }
+            }
+          } catch (thumbErr) {
+            console.warn(`Failed to add thumbnail for photo ${photo.id}:`, thumbErr.message);
+          }
+        }
+      } catch (fileErr) {
+        console.warn(`Failed to add file for photo ${photo.id}:`, fileErr.message);
+        errorCount++;
+      }
+    }
+    
+    // Add a summary file
+    const summary = {
+      exportDate: new Date().toISOString(),
+      totalDiveLogs: diveLogs.rows.length,
+      totalDiveSites: diveSites.rows.length,
+      totalDiveTrips: diveTrips.rows.length,
+      totalGearProfiles: gearProfiles.rows.length,
+      totalCertifications: certifications.rows.length,
+      totalBuddies: diveBuddies.rows.length,
+      totalEquipment: equipment.rows.length,
+      totalMediaFiles: mediaFiles.length,
+      mediaExportSuccess: successCount,
+      mediaExportErrors: errorCount
+    };
+    archive.append(JSON.stringify(summary, null, 2), { name: 'export-summary.json' });
+    
+    // Finalize archive
+    await archive.finalize();
+    
+  } catch (error) {
+    console.error('Export dive data with media error:', error);
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Failed to export data with media' });
+    }
+  }
+});
+
+// Helper function to extract file extension from URL
+function getExtensionFromUrl(url) {
+  if (!url) return '';
+  const match = url.match(/\.([a-zA-Z0-9]+)(?:\?|$)/);
+  if (match) return `.${match[1].toLowerCase()}`;
+  // Default extensions based on common patterns
+  if (url.includes('video') || url.includes('.mp4') || url.includes('.mov')) return '.mp4';
+  if (url.includes('.webp')) return '.webp';
+  if (url.includes('.png')) return '.png';
+  return '.jpg';
+}
 
 // ============================================
 // SUPPORT MESSAGING ENDPOINTS
