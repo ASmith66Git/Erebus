@@ -1557,6 +1557,65 @@ app.get('/api/email-preview/welcome', (req, res) => {
   res.send(html);
 });
 
+app.get('/api/dev/send-test-email', async (req, res) => {
+  const { email, name } = req.query;
+  
+  if (!email) {
+    res.setHeader('Content-Type', 'text/html');
+    return res.send(`
+      <!DOCTYPE html>
+      <html>
+      <head><title>Send Test Email</title></head>
+      <body style="font-family: Arial, sans-serif; padding: 40px; max-width: 500px; margin: 0 auto;">
+        <h1 style="color: #D22F00;">Send Test Welcome Email</h1>
+        <form method="GET">
+          <div style="margin-bottom: 16px;">
+            <label style="display: block; margin-bottom: 4px;">Email Address:</label>
+            <input type="email" name="email" required style="width: 100%; padding: 8px; font-size: 16px;">
+          </div>
+          <div style="margin-bottom: 16px;">
+            <label style="display: block; margin-bottom: 4px;">First Name (optional):</label>
+            <input type="text" name="name" placeholder="Diver" style="width: 100%; padding: 8px; font-size: 16px;">
+          </div>
+          <button type="submit" style="background: #D22F00; color: white; padding: 12px 24px; border: none; font-size: 16px; cursor: pointer; border-radius: 4px;">Send Email</button>
+        </form>
+      </body>
+      </html>
+    `);
+  }
+  
+  try {
+    const result = await sendWelcomeEmail(email, name || 'Diver');
+    res.setHeader('Content-Type', 'text/html');
+    res.send(`
+      <!DOCTYPE html>
+      <html>
+      <head><title>Email Sent</title></head>
+      <body style="font-family: Arial, sans-serif; padding: 40px; max-width: 500px; margin: 0 auto;">
+        <h1 style="color: #28a745;">Email Sent!</h1>
+        <p>Welcome email sent to: <strong>${email}</strong></p>
+        <p>From: <strong>${result.fromEmail}</strong></p>
+        <p>Resend ID: <code>${result.result?.data?.id || 'N/A'}</code></p>
+        <p style="margin-top: 24px;"><a href="/api/dev/send-test-email">Send another</a></p>
+      </body>
+      </html>
+    `);
+  } catch (error) {
+    res.setHeader('Content-Type', 'text/html');
+    res.send(`
+      <!DOCTYPE html>
+      <html>
+      <head><title>Error</title></head>
+      <body style="font-family: Arial, sans-serif; padding: 40px; max-width: 500px; margin: 0 auto;">
+        <h1 style="color: #dc3545;">Error</h1>
+        <p>${error.message}</p>
+        <p><a href="/api/dev/send-test-email">Try again</a></p>
+      </body>
+      </html>
+    `);
+  }
+});
+
 app.post('/api/admin/email-test/welcome', authenticateToken, requireAdmin, async (req, res) => {
   const { email, firstName } = req.body;
   if (!email) {
