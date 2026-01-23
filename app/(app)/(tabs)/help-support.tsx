@@ -59,9 +59,11 @@ export default function HelpSupportScreen() {
   
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [messagesLoading, setMessagesLoading] = useState(false);
+  const isInitialLoadRef = useRef(true);
   const [newMessage, setNewMessage] = useState('');
   const [sending, setSending] = useState(false);
   
@@ -73,19 +75,32 @@ export default function HelpSupportScreen() {
   
   const messagesListRef = useRef<FlatList>(null);
 
-  const fetchConversations = useCallback(async () => {
+  const fetchConversations = useCallback(async (isBackgroundRefresh = false) => {
     try {
       const response = await fetch(`${getApiUrl()}/api/support/conversations`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (response.ok) {
         const data = await response.json();
-        setConversations(data);
+        if (isBackgroundRefresh) {
+          setConversations(prev => {
+            if (JSON.stringify(prev) !== JSON.stringify(data)) {
+              return data;
+            }
+            return prev;
+          });
+        } else {
+          setConversations(data);
+        }
       }
     } catch (error) {
       console.error('Failed to fetch conversations:', error);
     } finally {
-      setLoading(false);
+      if (isInitialLoadRef.current) {
+        setLoading(false);
+        isInitialLoadRef.current = false;
+      }
+      setRefreshing(false);
     }
   }, [token]);
 
@@ -144,8 +159,8 @@ export default function HelpSupportScreen() {
 
   useEffect(() => {
     const pollConversationsInterval = setInterval(() => {
-      fetchConversations();
-    }, 5000);
+      fetchConversations(true); // Background refresh - no loading indicator
+    }, 10000); // Increased to 10 seconds to reduce refresh frequency
     
     return () => clearInterval(pollConversationsInterval);
   }, [fetchConversations]);
@@ -395,8 +410,11 @@ export default function HelpSupportScreen() {
             keyExtractor={item => item.id.toString()}
             renderItem={renderConversation}
             contentContainerStyle={styles.listContent}
-            refreshing={loading}
-            onRefresh={fetchConversations}
+            refreshing={refreshing}
+            onRefresh={() => {
+              setRefreshing(true);
+              fetchConversations(false);
+            }}
           />
         )}
         

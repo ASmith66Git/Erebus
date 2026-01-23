@@ -70,6 +70,7 @@ export default function SupportAdminScreen() {
   
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -80,8 +81,9 @@ export default function SupportAdminScreen() {
   const [unreadCount, setUnreadCount] = useState(0);
   
   const messagesListRef = useRef<FlatList>(null);
+  const isInitialLoadRef = useRef(true);
 
-  const fetchConversations = useCallback(async () => {
+  const fetchConversations = useCallback(async (isBackgroundRefresh = false) => {
     try {
       const params = statusFilter !== 'all' ? `?status=${statusFilter}` : '';
       const response = await fetch(`${getApiUrl()}/api/admin/support/conversations${params}`, {
@@ -89,12 +91,25 @@ export default function SupportAdminScreen() {
       });
       if (response.ok) {
         const data = await response.json();
-        setConversations(data);
+        if (isBackgroundRefresh) {
+          setConversations(prev => {
+            if (JSON.stringify(prev) !== JSON.stringify(data)) {
+              return data;
+            }
+            return prev;
+          });
+        } else {
+          setConversations(data);
+        }
       }
     } catch (error) {
       console.error('Failed to fetch conversations:', error);
     } finally {
-      setLoading(false);
+      if (isInitialLoadRef.current) {
+        setLoading(false);
+        isInitialLoadRef.current = false;
+      }
+      setRefreshing(false);
     }
   }, [token, statusFilter]);
 
@@ -149,9 +164,9 @@ export default function SupportAdminScreen() {
 
   useEffect(() => {
     const pollConversationsInterval = setInterval(() => {
-      fetchConversations();
+      fetchConversations(true); // Background refresh - no loading indicator
       fetchUnreadCount();
-    }, 5000);
+    }, 10000); // Increased to 10 seconds to reduce refresh frequency
     
     return () => clearInterval(pollConversationsInterval);
   }, [fetchConversations, fetchUnreadCount]);
@@ -511,10 +526,10 @@ export default function SupportAdminScreen() {
             keyExtractor={item => item.id.toString()}
             renderItem={renderConversation}
             contentContainerStyle={styles.listContent}
-            refreshing={loading}
+            refreshing={refreshing}
             onRefresh={() => {
-              setLoading(true);
-              fetchConversations();
+              setRefreshing(true);
+              fetchConversations(false);
             }}
           />
         )}
