@@ -1546,15 +1546,6 @@ export default function DiveSiteDetailScreen() {
                     <Image source={{ uri: wikipediaInfo.thumbnail }} style={styles.wikiThumbnail} />
                   )}
                   <Text style={[styles.wikiExtract, { color: colors.textSecondary }]}>{wikipediaInfo.extract}</Text>
-                  {wikipediaInfo.url && (
-                    <Pressable 
-                      style={styles.wikiLink}
-                      onPress={() => Linking.openURL(wikipediaInfo.url!)}
-                    >
-                      <Feather name="external-link" size={14} color={colors.primary} />
-                      <Text style={[styles.wikiLinkText, { color: colors.primary }]}>View on Wikipedia</Text>
-                    </Pressable>
-                  )}
                 </View>
               )}
 
