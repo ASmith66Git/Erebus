@@ -4,6 +4,7 @@ import {
   Text,
   ScrollView,
   Pressable,
+  TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
   TextInput,
@@ -1494,8 +1495,9 @@ export default function DiveSiteDetailScreen() {
               numberOfLines={8}
             />
           </View>
-          <Pressable 
-            style={[styles.askGeminiButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
+          <TouchableOpacity 
+            style={[styles.askGeminiButton, { backgroundColor: colors.surface, borderColor: colors.border, cursor: 'pointer' } as any]}
+            activeOpacity={0.7}
             onPress={() => {
               const query = encodeURIComponent(`Tell me about the shipwreck ${editedSite.wreckName || displaySite?.name || 'wreck'} - history, sinking, location, and diving conditions`);
               const url = `https://gemini.google.com/app?q=${query}`;
@@ -1509,7 +1511,7 @@ export default function DiveSiteDetailScreen() {
             <Feather name="cpu" size={18} color={colors.primary} />
             <Text style={[styles.askGeminiText, { color: colors.primary }]}>Ask Gemini</Text>
             <Feather name="external-link" size={14} color={colors.textSecondary} />
-          </Pressable>
+          </TouchableOpacity>
         </>
       ) : (
         <>
@@ -1567,8 +1569,9 @@ export default function DiveSiteDetailScreen() {
                 </View>
               )}
 
-              <Pressable 
-                style={[styles.askGeminiButton, { backgroundColor: colors.surface, borderColor: colors.border, marginTop: 16 }]}
+              <TouchableOpacity 
+                style={[styles.askGeminiButton, { backgroundColor: colors.surface, borderColor: colors.border, marginTop: 16, cursor: 'pointer' } as any]}
+                activeOpacity={0.7}
                 onPress={() => {
                   const query = encodeURIComponent(`Tell me about the shipwreck ${displaySite?.wreckName || displaySite?.name || 'wreck'} - history, sinking, location, and diving conditions`);
                   const url = `https://gemini.google.com/app?q=${query}`;
@@ -1582,7 +1585,7 @@ export default function DiveSiteDetailScreen() {
                 <Feather name="cpu" size={18} color={colors.primary} />
                 <Text style={[styles.askGeminiText, { color: colors.primary }]}>Ask Gemini</Text>
                 <Feather name="external-link" size={14} color={colors.textSecondary} />
-              </Pressable>
+              </TouchableOpacity>
             </>
           )}
         </>
