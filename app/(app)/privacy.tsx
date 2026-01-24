@@ -8,10 +8,18 @@ import ThemedBackground from '@/components/ThemedBackground';
 export default function PrivacyScreen() {
   const { colors } = useTheme();
 
+  const handleBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/(app)/(tabs)/profile');
+    }
+  };
+
   return (
     <ThemedBackground>
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <Pressable onPress={() => router.back()} style={styles.backButton}>
+        <Pressable onPress={handleBack} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </Pressable>
         <Text style={[styles.headerTitle, { color: colors.text }]}>Privacy Policy</Text>
