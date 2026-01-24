@@ -7,7 +7,7 @@ import {
   RawEvent,
   ProgressCallback 
 } from './baseProtocol';
-import { DownloadProgress } from '../bleService';
+import bleService, { DownloadProgress } from '../bleService';
 
 // Support all known Shearwater service UUIDs
 const SHEARWATER_SERVICE_UUIDS = [
@@ -134,6 +134,14 @@ export class ShearwaterProtocol extends BaseDiveComputerProtocol {
   private activeServiceUUID: string = SHEARWATER_SERVICE_UUIDS[0];
   private activeCharUUID: string = SHEARWATER_CHAR_UUIDS[0];
   
+  private wrapUDSCommand(command: number, payload: number[] = []): string {
+    const header = [0xFF, 0x01];
+    const length = payload.length + 2;
+    const frame = [...header, length, 0x00, command, ...payload, 0xC0];
+    console.warn(`[SHEARWATER] wrapUDSCommand: cmd=0x${command.toString(16)}, frame=${bytesToHex(new Uint8Array(frame))}`);
+    return Buffer.from(frame).toString('base64');
+  }
+  
   get name(): string {
     return 'Shearwater';
   }
@@ -216,23 +224,31 @@ export class ShearwaterProtocol extends BaseDiveComputerProtocol {
     console.warn('[SHEARWATER] Waiting 2000ms for GATT warm-up before session init...');
     await new Promise(resolve => setTimeout(resolve, 2000));
     
-    const initRequest = new Uint8Array([
-      0x35,
-      0x00,
-      0x34,
-      0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x01,
-    ]);
-    
     try {
-      console.warn('[SHEARWATER] Sending session init (0x35) with 5s timeout, withResponse=true...');
-      const initResponse = await this.transfer(initRequest, 3, 5000, true);
+      console.warn('[SHEARWATER] Sending UDS handshake (0x35) using libdivecomputer frame format...');
+      const udsHandshake = this.wrapUDSCommand(0x35, [0x00, 0x34, 0x00, 0x00]);
+      
+      await bleService.writeCharacteristic(
+        this.serviceUUID,
+        this.characteristicUUID,
+        udsHandshake,
+        true
+      );
+      console.warn('[SHEARWATER] UDS handshake sent, waiting for response...');
+      
+      const initResponse = await this.receivePacketWithTimeout(5000);
       console.warn(`[SHEARWATER] Session init response: ${bytesToHex(initResponse)}`);
       
       if (initResponse.length >= 1 && initResponse[0] === 0x75) {
         console.warn('[SHEARWATER] Session init acknowledged (0x75), sending exit (0x37)...');
-        const exitRequest = new Uint8Array([0x37]);
-        const exitResponse = await this.transfer(exitRequest, 2, 3000, true);
+        const exitCmd = this.wrapUDSCommand(0x37, []);
+        await bleService.writeCharacteristic(
+          this.serviceUUID,
+          this.characteristicUUID,
+          exitCmd,
+          true
+        );
+        const exitResponse = await this.receivePacketWithTimeout(3000);
         console.warn(`[SHEARWATER] Session exit response: ${bytesToHex(exitResponse)}`);
       }
       
@@ -245,6 +261,30 @@ export class ShearwaterProtocol extends BaseDiveComputerProtocol {
     
     console.warn('[SHEARWATER] Post-session stabilization delay (1000ms)...');
     await new Promise(resolve => setTimeout(resolve, 1000));
+  }
+  
+  private async receivePacketWithTimeout(timeoutMs: number): Promise<Uint8Array> {
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        reject(new Error('Packet receive timeout'));
+      }, timeoutMs);
+      
+      if (this.pendingPackets.length > 0) {
+        clearTimeout(timer);
+        resolve(this.pendingPackets.shift()!);
+        return;
+      }
+      
+      const originalResolver = this.packetResolver;
+      this.packetResolver = (packet: Uint8Array) => {
+        clearTimeout(timer);
+        if (packet.length >= 4) {
+          resolve(packet.slice(4));
+        } else {
+          resolve(packet);
+        }
+      };
+    });
   }
   
   private async rdbi(id: number, expectedLength: number, timeoutMs: number = 5000): Promise<Uint8Array> {
