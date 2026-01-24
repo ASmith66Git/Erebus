@@ -221,8 +221,8 @@ export class ShearwaterProtocol extends BaseDiveComputerProtocol {
     
     console.warn('[SHEARWATER] === Initializing UDS session (iOS requires 0x35 handshake before RDBI) ===');
     
-    console.warn('[SHEARWATER] Waiting 2000ms for GATT warm-up before session init...');
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    console.warn('[SHEARWATER] Waiting 3000ms for GATT warm-up before session init (Subsurface stabilization window)...');
+    await new Promise(resolve => setTimeout(resolve, 3000));
     
     try {
       console.warn('[SHEARWATER] Sending UDS handshake (0x35) using libdivecomputer frame format...');
