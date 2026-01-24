@@ -1483,21 +1483,6 @@ export default function DiveSiteDetailScreen() {
             />
           </View>
           <View style={styles.formGroup}>
-            <Text style={[styles.formLabel, { color: colors.text }]}>Reference URL</Text>
-            <TextInput
-              style={[styles.formInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
-              value={editedSite.wreckUrl || ''}
-              onChangeText={(v) => updateField('wreckUrl', v)}
-              placeholder="https://en.wikipedia.org/wiki/SS_Thistlegorm"
-              placeholderTextColor={colors.textSecondary}
-              keyboardType="url"
-              autoCapitalize="none"
-            />
-            {editedSite.wreckUrl && !isValidUrl(editedSite.wreckUrl) && (
-              <Text style={[styles.errorText, { color: colors.error }]}>Please enter a valid URL</Text>
-            )}
-          </View>
-          <View style={styles.formGroup}>
             <Text style={[styles.formLabel, { color: colors.text }]}>Additional Notes</Text>
             <TextInput
               style={[styles.formInput, styles.textAreaLarge, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
@@ -1513,7 +1498,12 @@ export default function DiveSiteDetailScreen() {
             style={[styles.askGeminiButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
             onPress={() => {
               const query = encodeURIComponent(`Tell me about the shipwreck ${editedSite.wreckName || displaySite?.name || 'wreck'} - history, sinking, location, and diving conditions`);
-              Linking.openURL(`https://gemini.google.com/app?q=${query}`);
+              const url = `https://gemini.google.com/app?q=${query}`;
+              if (Platform.OS === 'web') {
+                window.open(url, '_blank');
+              } else {
+                Linking.openURL(url);
+              }
             }}
           >
             <Feather name="cpu" size={18} color={colors.primary} />
@@ -1536,19 +1526,6 @@ export default function DiveSiteDetailScreen() {
                     <Feather name="anchor" size={16} color={colors.primary} /> {displaySite.wreckName}
                   </Text>
                 </View>
-              )}
-
-              {displaySite?.wreckUrl && isValidUrl(displaySite.wreckUrl) && (
-                <Pressable 
-                  style={[styles.wreckUrlCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
-                  onPress={() => Linking.openURL(displaySite.wreckUrl!)}
-                >
-                  <Feather name="link" size={16} color={colors.primary} />
-                  <Text style={[styles.wreckUrlText, { color: colors.primary }]} numberOfLines={1}>
-                    {displaySite.wreckUrl}
-                  </Text>
-                  <Feather name="external-link" size={14} color={colors.textSecondary} />
-                </Pressable>
               )}
 
               {wikipediaInfo && (
@@ -1580,7 +1557,7 @@ export default function DiveSiteDetailScreen() {
                 </View>
               )}
 
-              {!wikipediaInfo && !displaySite?.wreckInfo && !displaySite?.wreckName && !displaySite?.wreckUrl && (
+              {!wikipediaInfo && !displaySite?.wreckInfo && !displaySite?.wreckName && (
                 <View style={styles.emptyTab}>
                   <Feather name="anchor" size={48} color={colors.textSecondary} />
                   <Text style={[styles.emptyTabText, { color: colors.textSecondary }]}>No wreck information available</Text>
@@ -1594,7 +1571,12 @@ export default function DiveSiteDetailScreen() {
                 style={[styles.askGeminiButton, { backgroundColor: colors.surface, borderColor: colors.border, marginTop: 16 }]}
                 onPress={() => {
                   const query = encodeURIComponent(`Tell me about the shipwreck ${displaySite?.wreckName || displaySite?.name || 'wreck'} - history, sinking, location, and diving conditions`);
-                  Linking.openURL(`https://gemini.google.com/app?q=${query}`);
+                  const url = `https://gemini.google.com/app?q=${query}`;
+                  if (Platform.OS === 'web') {
+                    window.open(url, '_blank');
+                  } else {
+                    Linking.openURL(url);
+                  }
                 }}
               >
                 <Feather name="cpu" size={18} color={colors.primary} />
@@ -2613,20 +2595,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 8,
     textAlign: 'center',
-  },
-  wreckUrlCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    gap: 10,
-    marginBottom: 16,
-  },
-  wreckUrlText: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: '500',
   },
   askGeminiButton: {
     flexDirection: 'row',
