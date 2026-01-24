@@ -2572,6 +2572,26 @@ app.get('/api/push-tokens', authenticateToken, async (req, res) => {
   }
 });
 
+app.delete('/api/push-tokens/:id', authenticateToken, async (req, res) => {
+  const { id } = req.params;
+  
+  try {
+    const result = await pool.query(
+      'DELETE FROM push_tokens WHERE id = $1 AND user_id = $2 RETURNING id',
+      [id, req.user.id]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Device not found' });
+    }
+    
+    res.json({ message: 'Device removed successfully' });
+  } catch (error) {
+    console.error('Delete push token by ID error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 app.get('/api/dive-sites', authenticateToken, async (req, res) => {
   const { search, type, difficulty, water_type, country, limit = 50, offset = 0 } = req.query;
   

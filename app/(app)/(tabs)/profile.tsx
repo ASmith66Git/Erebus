@@ -626,7 +626,7 @@ export default function ProfileScreen() {
   const menuItems = [
     { icon: 'diamond-outline', title: 'Subscription', description: 'Manage your plan', route: '/(app)/(tabs)/subscription' },
     { icon: 'rocket-outline', title: 'Roadmap', description: 'See upcoming features', route: '/(app)/(tabs)/roadmap' },
-    { icon: 'notifications-outline', title: 'Notifications', description: 'Manage your alerts', route: null },
+    { icon: 'notifications-outline', title: 'Notifications', description: 'Manage your alerts', route: '/(app)/(tabs)/notifications' },
     { icon: 'shield-checkmark-outline', title: 'Privacy', description: 'Control your data', route: '/privacy' },
     { icon: 'download-outline', title: 'Export Data', description: 'Download your dive data', route: 'export' },
     { icon: 'chatbubble-ellipses-outline', title: 'FAQ', description: 'Frequently asked questions', route: '/(app)/(tabs)/faq' },
