@@ -16,6 +16,9 @@ module.exports = {
       infoPlist: {
         NSBluetoothAlwaysUsageDescription: "Erebus needs Bluetooth access to connect to your dive computer and download dive logs.",
         NSBluetoothPeripheralUsageDescription: "Erebus needs Bluetooth access to connect to your dive computer."
+      },
+      config: {
+        googleMapsApiKey: process.env.GOOGLE_MAPS_IOS_API_KEY || ''
       }
     },
     android: {
@@ -94,6 +97,7 @@ module.exports = {
     extra: {
       googleMapsApiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || '',
       googleMapsAndroidApiKey: process.env.GOOGLE_MAPS_ANDROID_API_KEY || '',
+      googleMapsIosApiKey: process.env.GOOGLE_MAPS_IOS_API_KEY || '',
       eas: {
         projectId: "13b1ac1e-a5de-4261-aee2-33d925aadefd"
       }
