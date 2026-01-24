@@ -1061,11 +1061,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
     marginBottom: 20,
+    width: '100%',
   },
   dateField: {
     flex: 1,
-    minWidth: 0,
-    flexShrink: 1,
+    minWidth: 140,
   },
   dateButton: {
     flexDirection: 'row',
