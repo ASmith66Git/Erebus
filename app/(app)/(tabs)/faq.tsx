@@ -7,7 +7,8 @@ import {
   Pressable,
   Platform,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, Feather } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '@/contexts/ThemeContext';
 import PageHeader from '@/components/PageHeader';
 import ThemedBackground from '@/components/ThemedBackground';
@@ -201,50 +202,70 @@ export default function FAQScreen() {
     <ThemedBackground style={styles.container}>
       <PageHeader title="FAQ" showBack />
       
-      <ScrollView 
-        horizontal 
-        showsHorizontalScrollIndicator={false}
-        style={styles.categoryScroll}
-        contentContainerStyle={styles.categoryContainer}
-      >
-        <Pressable
-          onPress={() => setSelectedCategory(null)}
-          style={[
-            styles.categoryChip,
-            { 
-              backgroundColor: selectedCategory === null ? colors.primary : colors.surface,
-              borderColor: colors.border,
-            }
-          ]}
+      <View style={styles.categoryScrollWrapper}>
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          style={styles.categoryScroll}
+          contentContainerStyle={styles.categoryContainer}
         >
-          <Text style={[
-            styles.categoryText,
-            { color: selectedCategory === null ? '#FFF' : colors.text }
-          ]}>
-            All
-          </Text>
-        </Pressable>
-        {CATEGORIES.map(category => (
           <Pressable
-            key={category}
-            onPress={() => setSelectedCategory(category)}
+            onPress={() => setSelectedCategory(null)}
             style={[
               styles.categoryChip,
               { 
-                backgroundColor: selectedCategory === category ? colors.primary : colors.surface,
+                backgroundColor: selectedCategory === null ? colors.primary : colors.surface,
                 borderColor: colors.border,
               }
             ]}
           >
             <Text style={[
               styles.categoryText,
-              { color: selectedCategory === category ? '#FFF' : colors.text }
+              { color: selectedCategory === null ? '#FFF' : colors.text }
             ]}>
-              {category}
+              All
             </Text>
           </Pressable>
-        ))}
-      </ScrollView>
+          {CATEGORIES.map(category => (
+            <Pressable
+              key={category}
+              onPress={() => setSelectedCategory(category)}
+              style={[
+                styles.categoryChip,
+                { 
+                  backgroundColor: selectedCategory === category ? colors.primary : colors.surface,
+                  borderColor: colors.border,
+                }
+              ]}
+            >
+              <Text style={[
+                styles.categoryText,
+                { color: selectedCategory === category ? '#FFF' : colors.text }
+              ]}>
+                {category}
+              </Text>
+            </Pressable>
+          ))}
+          <View style={styles.scrollEndPadding} />
+        </ScrollView>
+        <LinearGradient
+          colors={[colors.background, 'transparent']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.scrollFadeLeft}
+          pointerEvents="none"
+        />
+        <LinearGradient
+          colors={['transparent', colors.background]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.scrollFadeRight}
+          pointerEvents="none"
+        />
+        <View style={styles.scrollIndicator} pointerEvents="none">
+          <Feather name="chevrons-right" size={16} color={colors.textSecondary} />
+        </View>
+      </View>
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
         {Object.entries(groupedFAQ).map(([category, items]) => (
@@ -295,6 +316,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  categoryScrollWrapper: {
+    position: 'relative',
+  },
   categoryScroll: {
     maxHeight: 50,
     flexGrow: 0,
@@ -303,6 +327,31 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     gap: 8,
+  },
+  scrollEndPadding: {
+    width: 32,
+  },
+  scrollFadeLeft: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 16,
+  },
+  scrollFadeRight: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    bottom: 0,
+    width: 40,
+  },
+  scrollIndicator: {
+    position: 'absolute',
+    right: 8,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   categoryChip: {
     paddingHorizontal: 16,
