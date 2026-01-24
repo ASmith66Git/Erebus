@@ -670,7 +670,12 @@ export default function DiveSiteDetailScreen() {
       });
 
       if (response.ok) {
-        fetchSiteImages();
+        const updatedImage = await response.json();
+        setSiteImages(prev => prev.map(img => ({
+          ...img,
+          isPrimary: img.id === imageId
+        })));
+        setSite(prev => prev ? { ...prev, imageUrl: updatedImage.imageUrl } : prev);
         setShowImageModal(false);
         Alert.alert('Success', 'Primary image updated');
       }

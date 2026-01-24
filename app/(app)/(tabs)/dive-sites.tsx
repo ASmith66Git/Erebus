@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
   Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -162,6 +163,14 @@ export default function DiveSitesScreen() {
       fetchSites();
     }
   }, [fetchSites, authLoading, token]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (token) {
+        fetchSites();
+      }
+    }, [token, fetchSites])
+  );
 
   const onRefresh = () => {
     setRefreshing(true);
