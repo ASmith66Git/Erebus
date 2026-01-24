@@ -166,14 +166,21 @@ export default function PhotoDetailScreen() {
   };
 
   const fetchDiveTrips = async () => {
+    console.log('[PhotoDetail] fetchDiveTrips called, token:', !!token);
     try {
       const response = await fetch(`${getApiUrl()}/api/dive-trips`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       
+      console.log('[PhotoDetail] Dive trips response status:', response.status);
       if (response.ok) {
         const data = await response.json();
-        setDiveTrips(data.trips || data || []);
+        console.log('[PhotoDetail] Dive trips data:', JSON.stringify(data));
+        const trips = Array.isArray(data) ? data : (data.trips || []);
+        console.log('[PhotoDetail] Setting diveTrips:', trips.length, 'trips');
+        setDiveTrips(trips);
+      } else {
+        console.log('[PhotoDetail] Dive trips fetch failed:', response.status);
       }
     } catch (error) {
       console.error('Error fetching dive trips:', error);
