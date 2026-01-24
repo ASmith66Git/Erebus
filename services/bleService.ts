@@ -230,9 +230,10 @@ class BleService {
           
           try {
             // Device is already connected at OS level, just need to connect at app level
+            // Use refreshGatt: false for instant reconnection on bonded devices
             const connectedDevice = await device.connect({
-              timeout: 15000,
-              refreshGatt: 'OnConnected',
+              timeout: 10000,
+              refreshGatt: false,
             });
             
             // Request MTU immediately to trigger GATT operations
@@ -241,14 +242,40 @@ class BleService {
               bleLog('FASTPATH', `MTU negotiated: ${mtu}`);
             } catch (e) {}
             
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            // Minimal delay - bonded devices should be ready quickly
+            await new Promise(resolve => setTimeout(resolve, 500));
             
-            // Do targeted discovery - only discover what we need
+            // Discover services and characteristics
+            bleLog('FASTPATH', 'Performing service discovery...');
             await connectedDevice.discoverAllServicesAndCharacteristics();
-            await new Promise(resolve => setTimeout(resolve, 1500));
+            await new Promise(resolve => setTimeout(resolve, 500));
             
             // Check which Shearwater service is available
             const services = await connectedDevice.services();
+            
+            // Warm-up read: Try to read a characteristic to "unlock" the GATT table
+            // This helps on some Android devices where GATT caching causes issues
+            for (const service of services) {
+              const uuid = service.uuid.toLowerCase();
+              if (SHEARWATER_SERVICE_UUIDS.includes(uuid)) {
+                try {
+                  const characteristics = await service.characteristics();
+                  if (characteristics && characteristics.length > 0) {
+                    // Try reading the first readable characteristic as warm-up
+                    for (const char of characteristics) {
+                      if (char.isReadable) {
+                        bleLog('FASTPATH', `Warm-up read on characteristic: ${char.uuid}`);
+                        await char.read();
+                        break;
+                      }
+                    }
+                  }
+                } catch (warmupErr: any) {
+                  bleLog('FASTPATH', `Warm-up read skipped: ${warmupErr?.message}`);
+                }
+                break;
+              }
+            }
             for (const service of services) {
               const uuid = service.uuid.toLowerCase();
               if (SHEARWATER_SERVICE_UUIDS.includes(uuid)) {
