@@ -762,6 +762,47 @@ export default function DiveSiteDetailScreen() {
     }
   };
 
+  const handleDeleteSite = async () => {
+    if (!token || !id || isNewSite) return;
+
+    const doDelete = async () => {
+      try {
+        const response = await fetch(`${getApiUrl()}/api/dive-sites/${id}`, {
+          method: 'DELETE',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (response.ok) {
+          Alert.alert('Success', 'Dive site deleted');
+          router.back();
+        } else {
+          const error = await response.json();
+          Alert.alert('Error', error.error || 'Failed to delete dive site');
+        }
+      } catch (error) {
+        console.error('Error deleting dive site:', error);
+        Alert.alert('Error', 'Failed to delete dive site');
+      }
+    };
+
+    if (Platform.OS === 'web') {
+      if (window.confirm('Are you sure you want to delete this dive site? This action cannot be undone.')) {
+        doDelete();
+      }
+    } else {
+      Alert.alert(
+        'Delete Dive Site',
+        'Are you sure you want to delete this dive site? This action cannot be undone.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Delete', style: 'destructive', onPress: doDelete },
+        ]
+      );
+    }
+  };
+
   const updateField = (field: keyof DiveSite, value: any) => {
     setEditedSite((prev) => ({ ...prev, [field]: value }));
   };
@@ -1699,11 +1740,16 @@ export default function DiveSiteDetailScreen() {
           {isNewSite ? 'New Dive Site' : displaySite?.name || 'Dive Site'}
         </Text>
         {!isEditing && !isNewSite && (
-          <Pressable onPress={() => setIsEditing(true)} style={styles.editButton}>
-            <Feather name="edit-2" size={20} color={colors.primary} />
-          </Pressable>
+          <View style={styles.headerActions}>
+            <Pressable onPress={() => setIsEditing(true)} style={styles.headerActionButton}>
+              <Feather name="edit-2" size={20} color={colors.primary} />
+            </Pressable>
+            <Pressable onPress={handleDeleteSite} style={styles.headerActionButton}>
+              <Feather name="trash-2" size={20} color={colors.primary} />
+            </Pressable>
+          </View>
         )}
-        {isEditing && <View style={styles.editButton} />}
+        {(isEditing || isNewSite) && <View style={styles.headerActions} />}
       </View>
 
       {isEditing && (
@@ -1785,9 +1831,15 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginLeft: 12,
   },
-  editButton: {
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    minWidth: 80,
+    justifyContent: 'flex-end',
+  },
+  headerActionButton: {
     padding: 8,
-    width: 40,
   },
   editToolbar: {
     flexDirection: 'row',
