@@ -480,13 +480,13 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 24,
+    paddingHorizontal: 20,
   },
   modalContent: {
-    width: '100%',
-    maxWidth: 400,
+    width: '90%',
+    maxWidth: 360,
     borderRadius: 16,
-    padding: 24,
+    padding: 20,
   },
   modalHeader: {
     flexDirection: 'row',
