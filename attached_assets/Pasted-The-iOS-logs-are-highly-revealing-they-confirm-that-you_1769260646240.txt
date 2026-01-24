@@ -1,0 +1,41 @@
+The iOS logs are highly revealing: they confirm that your app successfully established a fully functional BLE connection and correctly identified the Shearwater UDS service, but then hit a Packet receive timeout.
+
+This means the "Discovery" wall that was blocking you on Android 15 is not an issue on iOS. Instead, the problem is now at the protocol layer: your app is sending a command, and the Perdix is simply not answering.
+
+1. Analysis of the Timeout
+The logs show a clear sequence of events:
+
+Connection & Discovery: The app connects to device DEA3B3A9... and finds 2 services, including the modern Shearwater service fe25c237....
+
+MTU Negotiation: MTU is successfully negotiated to 512, which is optimal for high-speed log transfers.
+
+The Command: Your app sends an RDBI (Read Data By Identifier) request for ID 0x8020.
+
+The Failure: The app waits for 3000ms, receives no data, and logs [RX] TIMEOUT before disconnecting.
+
+2. Why the Perdix is Silent
+There are three likely reasons why the Perdix is ignoring your 0x22 0x8020 command:
+
+Session Initialization: In UDS (Unified Diagnostic Services), you often cannot jump straight to a "Read Data" (0x22) command. The device may require a Diagnostic Session Control or Download Init (0x35) command first to "unlock" the data registers.
+
+Incorrect DID: The identifier 0x8020 might not be valid for this specific firmware version or might be protected. If the device doesn't recognize the ID, it may send a Negative Response (0x7F) or simply ignore the request if the session isn't active.
+
+"Remembers" Previous Device: Some Shearwater computers "remember" the last bonded device (like your phone's official app) and may refuse to talk to a custom app if it thinks the "authorized" session hasn't properly closed.
+
+3. Comparison: Shearwater App vs. Your App
+Your screenshots and logs highlight the difference:
+
+Official App: Connects instantly because it uses the already-bonded system connection and likely starts with the correct Download Init sequence.
+
+Your App: Is correctly using BLE (confirmed by the fe25... UUID in the iOS log), but it is failing the handshake.
+
+Recommended Next Steps for Replit
+To fix the Packet receive timeout, ask Replit to adjust the protocol sequence:
+
+Try SID 0x35 First: Instead of starting with 0x22 (Read), have the app send a Request Download (0x35) command. This is the standard "handshake" for starting a data transfer session in modern UDS implementations.
+
+Increase RX Timeout: For the initial handshake, increase the timeout from 3000ms to 5000ms. Dive computers sometimes have a slow wake-up period for their internal flash memory when a new session starts.
+
+The "Battery Reset": Since you've been switching between Android, iOS, and the official app, the Perdix BLE stack might be confused. A quick battery pull (as noted in Shearwater troubleshooting) can reset this internal state and clear any stale session locks.
+
+Would you like me to provide the specific UDS sequence for the 0x35 handshake for you to give to Replit?

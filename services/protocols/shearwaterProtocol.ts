@@ -173,6 +173,8 @@ export class ShearwaterProtocol extends BaseDiveComputerProtocol {
   async getDeviceInfo(): Promise<DiveComputerInfo> {
     console.warn('[SHEARWATER] === Getting device info ===');
     
+    await this.initSession();
+    
     console.warn('[SHEARWATER] Reading serial number (ID_SERIAL=0x8010)...');
     const serialResp = await this.rdbi(ID_SERIAL, 8);
     const serialHex = bytesToHex(serialResp);
@@ -201,10 +203,50 @@ export class ShearwaterProtocol extends BaseDiveComputerProtocol {
     };
   }
   
-  private async rdbi(id: number, expectedLength: number): Promise<Uint8Array> {
-    console.warn(`[SHEARWATER] RDBI request: id=0x${id.toString(16)}, expectedLen=${expectedLength}`);
+  private sessionInitialized: boolean = false;
+  
+  private async initSession(): Promise<void> {
+    if (this.sessionInitialized) {
+      console.warn('[SHEARWATER] Session already initialized, skipping');
+      return;
+    }
+    
+    console.warn('[SHEARWATER] === Initializing UDS session (iOS requires 0x35 handshake before RDBI) ===');
+    
+    const initRequest = new Uint8Array([
+      0x35,
+      0x00,
+      0x34,
+      0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x01,
+    ]);
+    
+    try {
+      console.warn('[SHEARWATER] Sending session init (0x35) with 5s timeout...');
+      const initResponse = await this.transfer(initRequest, 3, 5000);
+      console.warn(`[SHEARWATER] Session init response: ${bytesToHex(initResponse)}`);
+      
+      if (initResponse.length >= 1 && initResponse[0] === 0x75) {
+        console.warn('[SHEARWATER] Session init acknowledged (0x75), sending exit (0x37)...');
+        const exitRequest = new Uint8Array([0x37]);
+        const exitResponse = await this.transfer(exitRequest, 2, 3000);
+        console.warn(`[SHEARWATER] Session exit response: ${bytesToHex(exitResponse)}`);
+      }
+      
+      this.sessionInitialized = true;
+      console.warn('[SHEARWATER] === UDS session initialized successfully ===');
+    } catch (error: any) {
+      console.warn('[SHEARWATER] Session init failed (may not be required):', error?.message);
+      this.sessionInitialized = true;
+    }
+    
+    await new Promise(resolve => setTimeout(resolve, 500));
+  }
+  
+  private async rdbi(id: number, expectedLength: number, timeoutMs: number = 5000): Promise<Uint8Array> {
+    console.warn(`[SHEARWATER] RDBI request: id=0x${id.toString(16)}, expectedLen=${expectedLength}, timeout=${timeoutMs}ms`);
     const request = new Uint8Array([RDBI_REQUEST, (id >> 8) & 0xff, id & 0xff]);
-    const response = await this.transfer(request, expectedLength + 3);
+    const response = await this.transfer(request, expectedLength + 3, timeoutMs);
     
     console.warn(`[SHEARWATER] RDBI response: ${bytesToHex(response)}`);
     
@@ -332,6 +374,7 @@ export class ShearwaterProtocol extends BaseDiveComputerProtocol {
   async downloadDives(onProgress: ProgressCallback): Promise<RawDiveData[]> {
     this.progressCallback = onProgress;
     this.reset();
+    this.sessionInitialized = false;
     
     const dives: RawDiveData[] = [];
     
@@ -340,6 +383,16 @@ export class ShearwaterProtocol extends BaseDiveComputerProtocol {
         current: 0,
         total: 100,
         percentage: 0,
+        status: 'connecting',
+        message: 'Initializing session...',
+      });
+      
+      await this.initSession();
+      
+      this.updateProgress({
+        current: 2,
+        total: 100,
+        percentage: 2,
         status: 'connecting',
         message: 'Reading device info...',
       });
