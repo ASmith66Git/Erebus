@@ -577,6 +577,8 @@ export default function PhotosScreen() {
               <Ionicons name="close" size={28} color="#FFF" />
             </Pressable>
             
+            <Text style={styles.viewerCounter}>{viewerIndex + 1} / {photos.length}</Text>
+            
             <View style={styles.viewerActions}>
               <Pressable onPress={() => toggleFavorite(selectedPhoto)} style={styles.viewerButton}>
                 <Ionicons 
@@ -587,7 +589,6 @@ export default function PhotosScreen() {
               </Pressable>
               <Pressable 
                 onPress={() => {
-                  console.log('[Photo Viewer] Info button pressed for photo:', selectedPhoto.id);
                   const photoId = selectedPhoto.id;
                   setShowViewer(false);
                   setTimeout(() => {
@@ -1322,6 +1323,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 16,
     backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  viewerCounter: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: '500',
   },
   viewerActions: {
     flexDirection: 'row',
