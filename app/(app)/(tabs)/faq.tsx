@@ -60,7 +60,7 @@ const FAQ_DATA: FAQItem[] = [
     id: '7',
     category: 'Dive Planning',
     question: 'What decompression algorithms does Erebus use?',
-    answer: 'Erebus uses the Bühlmann ZHL-16C algorithm with configurable gradient factors (GF Low and GF High). We also support VPM-B (Variable Permeability Model) for bubble-based decompression planning. These are the same algorithms used by professional dive computers and are widely trusted in the technical diving community.',
+    answer: 'Erebus supports the full Bühlmann algorithm family: ZHL-16A, ZHL-16B, and ZHL-16C, all with configurable gradient factors (GF Low and GF High). We also support VPM-B (Variable Permeability Model) for bubble-based decompression planning. These are the same algorithms used by professional dive computers and are widely trusted in the technical diving community.',
   },
   {
     id: '8',
