@@ -52,6 +52,14 @@ const PRIORITY_OPTIONS = [
   { value: 'urgent', label: 'Urgent' },
 ];
 
+const CATEGORY_OPTIONS = [
+  { value: 'general', label: 'General Support', icon: 'help-circle-outline' as const },
+  { value: 'bug', label: 'Bug Report', icon: 'bug-outline' as const },
+  { value: 'feature', label: 'Feature Request', icon: 'bulb-outline' as const },
+  { value: 'account', label: 'Account Issue', icon: 'person-outline' as const },
+  { value: 'billing', label: 'Billing', icon: 'card-outline' as const },
+];
+
 export default function HelpSupportScreen() {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
@@ -71,6 +79,7 @@ export default function HelpSupportScreen() {
   const [newSubject, setNewSubject] = useState('');
   const [newTicketMessage, setNewTicketMessage] = useState('');
   const [newPriority, setNewPriority] = useState('normal');
+  const [newCategory, setNewCategory] = useState('general');
   const [creating, setCreating] = useState(false);
   
   const messagesListRef = useRef<FlatList>(null);
@@ -183,6 +192,9 @@ export default function HelpSupportScreen() {
     
     setCreating(true);
     try {
+      const categoryLabel = CATEGORY_OPTIONS.find(c => c.value === newCategory)?.label || 'General Support';
+      const fullSubject = `[${categoryLabel}] ${newSubject.trim()}`;
+      
       const response = await fetch(`${getApiUrl()}/api/support/conversations`, {
         method: 'POST',
         headers: {
@@ -190,7 +202,7 @@ export default function HelpSupportScreen() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          subject: newSubject.trim(),
+          subject: fullSubject,
           message: newTicketMessage.trim(),
           priority: newPriority,
         }),
@@ -202,6 +214,7 @@ export default function HelpSupportScreen() {
         setNewSubject('');
         setNewTicketMessage('');
         setNewPriority('normal');
+        setNewCategory('general');
         fetchConversations();
         fetchMessages(conversation.id);
       }
@@ -423,6 +436,33 @@ export default function HelpSupportScreen() {
             </View>
             
             <ScrollView style={styles.modalBody}>
+              <Text style={[styles.inputLabel, { color: colors.text }]}>Category</Text>
+              <View style={styles.categoryContainer}>
+                {CATEGORY_OPTIONS.map(opt => (
+                  <Pressable
+                    key={opt.value}
+                    style={[
+                      styles.categoryOption,
+                      { borderColor: colors.border, backgroundColor: colors.background },
+                      newCategory === opt.value && { backgroundColor: colors.primary, borderColor: colors.primary }
+                    ]}
+                    onPress={() => setNewCategory(opt.value)}
+                  >
+                    <Ionicons 
+                      name={opt.icon} 
+                      size={18} 
+                      color={newCategory === opt.value ? '#FFFFFF' : colors.textSecondary} 
+                    />
+                    <Text style={[
+                      styles.categoryText,
+                      { color: newCategory === opt.value ? '#FFFFFF' : colors.text }
+                    ]}>
+                      {opt.label}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+              
               <Text style={[styles.inputLabel, { color: colors.text }]}>Subject</Text>
               <TextInput
                 style={[styles.textInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
@@ -702,6 +742,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   priorityText: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  categoryContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 8,
+  },
+  categoryOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    gap: 6,
+  },
+  categoryText: {
     fontSize: 13,
     fontWeight: '500',
   },
