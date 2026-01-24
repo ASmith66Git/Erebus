@@ -54,13 +54,13 @@ const FAQ_DATA: FAQItem[] = [
     id: '6',
     category: 'Dive Computer Sync',
     question: 'Do I need the native app for Bluetooth sync?',
-    answer: 'Yes, Bluetooth dive computer sync requires the native Android or iOS app. The web version does not support Bluetooth connectivity. You can build the native app using Expo EAS Build.',
+    answer: 'Yes, Bluetooth dive computer sync only works on the native iOS and Android apps. The web version does not support Bluetooth connectivity. Download Erebus from the App Store or Google Play to use this feature.',
   },
   {
     id: '7',
     category: 'Dive Planning',
-    question: 'What decompression algorithm does Erebus use?',
-    answer: 'Erebus uses the Bühlmann ZHL-16C algorithm with configurable gradient factors (GF Low and GF High). This is the same algorithm used by many popular dive computers and is widely trusted in the technical diving community.',
+    question: 'What decompression algorithms does Erebus use?',
+    answer: 'Erebus uses the Bühlmann ZHL-16C algorithm with configurable gradient factors (GF Low and GF High). We also support VPM-B (Variable Permeability Model) for bubble-based decompression planning. These are the same algorithms used by professional dive computers and are widely trusted in the technical diving community.',
   },
   {
     id: '8',
