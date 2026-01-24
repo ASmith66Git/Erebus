@@ -547,7 +547,8 @@ export default function DiveSiteDetailScreen() {
         });
 
         if (addImageResponse.ok) {
-          fetchSiteImages();
+          const newImage = await addImageResponse.json();
+          setSiteImages(prev => [...prev, newImage]);
           Alert.alert('Success', 'Image uploaded successfully');
         }
       } catch (error) {
@@ -633,7 +634,8 @@ export default function DiveSiteDetailScreen() {
       });
 
       if (addImageResponse.ok) {
-        fetchSiteImages();
+        const newImage = await addImageResponse.json();
+        setSiteImages(prev => [...prev, newImage]);
         Alert.alert('Success', 'Photo saved successfully');
       }
     } catch (error) {
@@ -688,7 +690,7 @@ export default function DiveSiteDetailScreen() {
         });
 
         if (response.ok) {
-          fetchSiteImages();
+          setSiteImages(prev => prev.filter(img => img.id !== imageId));
           setShowImageModal(false);
           if (Platform.OS === 'web') {
             alert('Image deleted successfully');
