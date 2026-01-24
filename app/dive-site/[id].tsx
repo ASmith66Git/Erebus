@@ -1418,45 +1418,6 @@ export default function DiveSiteDetailScreen() {
         </View>
       )}
 
-      {site?.siteType === 'wreck' && (
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Wikipedia Information</Text>
-          {loadingWiki ? (
-            <ActivityIndicator size="small" color={colors.primary} />
-          ) : wikipediaInfo ? (
-            <View style={[styles.wikiCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              {wikipediaInfo.thumbnail && (
-                <Image source={{ uri: wikipediaInfo.thumbnail }} style={styles.wikiImage} resizeMode="cover" />
-              )}
-              <Text style={[styles.wikiTitle, { color: colors.text }]}>{wikipediaInfo.title}</Text>
-              <Text style={[styles.wikiExtract, { color: colors.textSecondary }]} numberOfLines={5}>
-                {wikipediaInfo.extract}
-              </Text>
-              {wikipediaInfo.url && (
-                <Text style={[styles.wikiLink, { color: colors.primary }]}>Read more on Wikipedia</Text>
-              )}
-            </View>
-          ) : (
-            <Text style={[styles.noDataText, { color: colors.textSecondary }]}>
-              No Wikipedia information found for this wreck
-            </Text>
-          )}
-        </View>
-      )}
-
-      {isEditing && site?.siteType === 'wreck' && (
-        <View style={styles.formGroup}>
-          <Text style={[styles.formLabel, { color: colors.text }]}>Wikipedia URL</Text>
-          <TextInput
-            style={[styles.formInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
-            value={editedSite.wikipediaUrl || ''}
-            onChangeText={(v) => updateField('wikipediaUrl', v)}
-            placeholder="https://en.wikipedia.org/wiki/..."
-            placeholderTextColor={colors.textSecondary}
-          />
-        </View>
-      )}
-
       <Modal visible={showImageModal} transparent animationType="fade">
         <Pressable style={styles.modalOverlay} onPress={() => setShowImageModal(false)}>
           <View style={[styles.imageModalContent, { backgroundColor: colors.background }]}>
@@ -1497,14 +1458,6 @@ export default function DiveSiteDetailScreen() {
       </Modal>
     </View>
   );
-
-  const wreckResources = [
-    { name: 'Wrecksite.eu', url: 'https://www.wrecksite.eu', icon: 'anchor' },
-    { name: 'Dive Site Directory', url: 'https://www.divesitedirectory.com', icon: 'compass' },
-    { name: 'Scuba Diving Wrecks', url: 'https://www.scubadiving.com/wrecks', icon: 'life-buoy' },
-    { name: 'NavSource Naval History', url: 'https://www.navsource.org', icon: 'navigation' },
-    { name: 'NOAA Maritime Heritage', url: 'https://sanctuaries.noaa.gov/maritime', icon: 'globe' },
-  ];
 
   const isValidUrl = (str: string) => {
     try {
@@ -1556,27 +1509,17 @@ export default function DiveSiteDetailScreen() {
               numberOfLines={8}
             />
           </View>
-          <View style={[styles.wreckResourcesSection, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Text style={[styles.wreckResourcesTitle, { color: colors.text }]}>
-              <Feather name="search" size={14} color={colors.primary} /> Wreck Research Resources
-            </Text>
-            <Text style={[styles.wreckResourcesSubtitle, { color: colors.textSecondary }]}>
-              Use the links below to copy and paste information about this wreck
-            </Text>
-            <View style={styles.wreckResourcesList}>
-              {wreckResources.map((resource, index) => (
-                <Pressable 
-                  key={index} 
-                  style={[styles.wreckResourceLink, { borderColor: colors.border }]}
-                  onPress={() => Linking.openURL(resource.url)}
-                >
-                  <Feather name={resource.icon as any} size={14} color={colors.primary} />
-                  <Text style={[styles.wreckResourceLinkText, { color: colors.primary }]}>{resource.name}</Text>
-                  <Feather name="external-link" size={12} color={colors.textSecondary} />
-                </Pressable>
-              ))}
-            </View>
-          </View>
+          <Pressable 
+            style={[styles.askGeminiButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
+            onPress={() => {
+              const query = encodeURIComponent(`Tell me about the shipwreck ${editedSite.wreckName || displaySite?.name || 'wreck'} - history, sinking, location, and diving conditions`);
+              Linking.openURL(`https://gemini.google.com/app?q=${query}`);
+            }}
+          >
+            <Feather name="cpu" size={18} color={colors.primary} />
+            <Text style={[styles.askGeminiText, { color: colors.primary }]}>Ask Gemini</Text>
+            <Feather name="external-link" size={14} color={colors.textSecondary} />
+          </Pressable>
         </>
       ) : (
         <>
@@ -1647,24 +1590,17 @@ export default function DiveSiteDetailScreen() {
                 </View>
               )}
 
-              <View style={[styles.wreckResourcesSection, { backgroundColor: colors.surface, borderColor: colors.border, marginTop: 16 }]}>
-                <Text style={[styles.wreckResourcesTitle, { color: colors.text }]}>
-                  <Feather name="search" size={14} color={colors.primary} /> Wreck Research Resources
-                </Text>
-                <View style={styles.wreckResourcesList}>
-                  {wreckResources.map((resource, index) => (
-                    <Pressable 
-                      key={index} 
-                      style={[styles.wreckResourceLink, { borderColor: colors.border }]}
-                      onPress={() => Linking.openURL(resource.url)}
-                    >
-                      <Feather name={resource.icon as any} size={14} color={colors.primary} />
-                      <Text style={[styles.wreckResourceLinkText, { color: colors.primary }]}>{resource.name}</Text>
-                      <Feather name="external-link" size={12} color={colors.textSecondary} />
-                    </Pressable>
-                  ))}
-                </View>
-              </View>
+              <Pressable 
+                style={[styles.askGeminiButton, { backgroundColor: colors.surface, borderColor: colors.border, marginTop: 16 }]}
+                onPress={() => {
+                  const query = encodeURIComponent(`Tell me about the shipwreck ${displaySite?.wreckName || displaySite?.name || 'wreck'} - history, sinking, location, and diving conditions`);
+                  Linking.openURL(`https://gemini.google.com/app?q=${query}`);
+                }}
+              >
+                <Feather name="cpu" size={18} color={colors.primary} />
+                <Text style={[styles.askGeminiText, { color: colors.primary }]}>Ask Gemini</Text>
+                <Feather name="external-link" size={14} color={colors.textSecondary} />
+              </Pressable>
             </>
           )}
         </>
@@ -2692,38 +2628,18 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
   },
-  wreckResourcesSection: {
+  askGeminiButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     padding: 16,
     borderRadius: 12,
     borderWidth: 1,
     gap: 10,
   },
-  wreckResourcesTitle: {
+  askGeminiText: {
     fontSize: 16,
     fontWeight: '600',
-  },
-  wreckResourcesSubtitle: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  wreckResourcesList: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 8,
-  },
-  wreckResourceLink: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    gap: 6,
-  },
-  wreckResourceLinkText: {
-    fontSize: 13,
-    fontWeight: '500',
   },
   errorText: {
     fontSize: 12,
