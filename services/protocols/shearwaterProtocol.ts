@@ -289,9 +289,29 @@ export class ShearwaterProtocol extends BaseDiveComputerProtocol {
   
   private async rdbi(id: number, expectedLength: number, timeoutMs: number = 5000): Promise<Uint8Array> {
     console.warn(`[SHEARWATER] RDBI request: id=0x${id.toString(16)}, expectedLen=${expectedLength}, timeout=${timeoutMs}ms`);
-    const request = new Uint8Array([RDBI_REQUEST, (id >> 8) & 0xff, id & 0xff]);
-    const response = await this.transfer(request, expectedLength + 3, timeoutMs);
     
+    const didHigh = (id >> 8) & 0xFF;
+    const didLow = id & 0xFF;
+    
+    const frame = Buffer.from([
+      0xFF, 0x01,
+      0x04, 0x00,
+      RDBI_REQUEST,
+      didHigh, didLow,
+      0xC0
+    ]);
+    
+    const base64Data = frame.toString('base64');
+    console.warn(`[SHEARWATER] RDBI frame: ${bytesToHex(new Uint8Array(frame))}`);
+    
+    await bleService.writeCharacteristic(
+      this.serviceUUID,
+      this.characteristicUUID,
+      base64Data,
+      true
+    );
+    
+    const response = await this.receivePacketWithTimeout(timeoutMs);
     console.warn(`[SHEARWATER] RDBI response: ${bytesToHex(response)}`);
     
     if (response.length < 3) {
