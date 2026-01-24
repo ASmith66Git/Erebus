@@ -114,7 +114,7 @@ const FAQ_DATA: FAQItem[] = [
     id: '16',
     category: 'Dive Sites',
     question: 'How do I add a new dive site?',
-    answer: 'Go to the Explore tab and tap the "+" button. You can enter the site details manually or use the map to drop a pin at the location. For wreck sites, the app can automatically fetch information from Wikipedia.',
+    answer: 'Go to the Explore tab and tap the "+" button. You can enter the site details manually or use the map to drop a pin at the location. For wreck sites, the app includes links to Wrecksite database for detailed wreck information and history.',
   },
   {
     id: '17',
