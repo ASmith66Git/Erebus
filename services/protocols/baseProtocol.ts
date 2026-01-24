@@ -243,8 +243,8 @@ export abstract class BaseDiveComputerProtocol {
     }
   }
   
-  protected async sendPacket(data: Uint8Array): Promise<void> {
-    protoLog('TX', `Sending packet: ${bytesToHex(data)}`);
+  protected async sendPacket(data: Uint8Array, withResponse: boolean = false): Promise<void> {
+    protoLog('TX', `Sending packet (withResponse=${withResponse}): ${bytesToHex(data)}`);
     const frames = slipEncode(data, true);
     protoLog('TX', `SLIP encoded into ${frames.length} frame(s)`);
     
@@ -256,7 +256,7 @@ export abstract class BaseDiveComputerProtocol {
         this.serviceUUID,
         this.characteristicUUID,
         base64Data,
-        false
+        withResponse
       );
     }
     protoLog('TX', 'All frames sent');
@@ -292,10 +292,11 @@ export abstract class BaseDiveComputerProtocol {
   protected async transfer(
     request: Uint8Array,
     expectedResponseSize: number,
-    timeoutMs: number = 3000
+    timeoutMs: number = 3000,
+    withResponse: boolean = false
   ): Promise<Uint8Array> {
     const cmdByte = request[0];
-    protoLog('TRANSFER', `=== Starting transfer: cmd=0x${cmdByte.toString(16).toUpperCase()}, expectedResp=${expectedResponseSize}, timeout=${timeoutMs}ms ===`);
+    protoLog('TRANSFER', `=== Starting transfer: cmd=0x${cmdByte.toString(16).toUpperCase()}, expectedResp=${expectedResponseSize}, timeout=${timeoutMs}ms, withResponse=${withResponse} ===`);
     protoLog('TRANSFER', `Request payload: ${bytesToHex(request)}`);
     
     const packet = new Uint8Array(request.length + 4);
@@ -308,7 +309,7 @@ export abstract class BaseDiveComputerProtocol {
     protoLog('TRANSFER', `Full packet with header: ${bytesToHex(packet)}`);
     
     const transferStart = Date.now();
-    await this.sendPacket(packet);
+    await this.sendPacket(packet, withResponse);
     
     if (expectedResponseSize === 0) {
       protoLog('TRANSFER', 'No response expected, done');

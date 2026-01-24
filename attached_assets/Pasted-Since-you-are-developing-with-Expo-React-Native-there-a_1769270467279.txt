@@ -1,0 +1,44 @@
+Since you are developing with Expo/React Native, there are three critical adjustments needed in your code to align with how Shearwater computers handle modern secure handshakes.
+
+1. Fix the characteristic write type
+In your current code, you have a comment suggesting the use of writeCharacteristicWithoutResponseForService. However, for the 0x35 handshake, Shearwater's UDS protocol generally expects a confirmed write (withResponse).
+
+Issue: Using "without response" for a critical security handshake can lead to packet loss or the device ignoring the command entirely, causing the app to wait indefinitely for an ACK until it times out.
+
+Fix: Ensure your writeCharacteristic call for the 0x35 command uses withResponse: true.
+
+2. Add "GATT Warm-up" Delays
+Your code already has some delays, but they may be too short for the initial handshake on v93 firmware. Shearwater devices often need a significant pause after service discovery before they are ready to process a UDS session request.
+
+Adjustment: Increase the delay after discoverAllServicesAndCharacteristics() to at least 2000ms before sending the 0x35 request.
+
+Why: This gives the Perdix's internal BLE stack time to fully enumerate the GATT table and "unlock" the security layer required for UDS.
+
+3. Handle the "Bonding" Requirement
+For iOS 17+ (and your log's iOS 26.3 build), secure handshakes like 0x35 often require the device to be paired/bonded at the OS level.
+
+Symptom: If the device isn't bonded, iOS may silently drop the handshake response for security reasons, resulting in your Packet receive timeout.
+
+Fix:
+
+Go to your iPhone Bluetooth Settings and ensure the Perdix is explicitly paired.
+
+In your code, ensure you are not calling cancelDeviceConnection too aggressively between retries, as this can break the bonding session.
+
+Suggested Code Modification for the Handshake
+In the part of your app that initiates the download (likely calling writeCharacteristic with UDS.REQUEST_DOWNLOAD), use this pattern:
+
+TypeScript
+
+// 1. Wait after discovery for the device to 'settle'
+await new Promise(resolve => setTimeout(resolve, 2000));
+
+// 2. Perform the 0x35 Handshake with a CONFIRMED write
+const handshakeData = Buffer.from([UDS.REQUEST_DOWNLOAD]).toString('base64');
+await bleService.writeCharacteristic(
+  SHEARWATER_SERVICE_UUIDS[0], 
+  SHEARWATER_WRITE_CHAR, 
+  handshakeData,
+  true // withResponse: MUST be true for the handshake
+);
+Would you like me to provide a specific update for your connect function in bleService.ts to include these stability improvements?

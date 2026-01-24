@@ -213,6 +213,9 @@ export class ShearwaterProtocol extends BaseDiveComputerProtocol {
     
     console.warn('[SHEARWATER] === Initializing UDS session (iOS requires 0x35 handshake before RDBI) ===');
     
+    console.warn('[SHEARWATER] Waiting 2000ms for GATT warm-up before session init...');
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
     const initRequest = new Uint8Array([
       0x35,
       0x00,
@@ -222,14 +225,14 @@ export class ShearwaterProtocol extends BaseDiveComputerProtocol {
     ]);
     
     try {
-      console.warn('[SHEARWATER] Sending session init (0x35) with 5s timeout...');
-      const initResponse = await this.transfer(initRequest, 3, 5000);
+      console.warn('[SHEARWATER] Sending session init (0x35) with 5s timeout, withResponse=true...');
+      const initResponse = await this.transfer(initRequest, 3, 5000, true);
       console.warn(`[SHEARWATER] Session init response: ${bytesToHex(initResponse)}`);
       
       if (initResponse.length >= 1 && initResponse[0] === 0x75) {
         console.warn('[SHEARWATER] Session init acknowledged (0x75), sending exit (0x37)...');
         const exitRequest = new Uint8Array([0x37]);
-        const exitResponse = await this.transfer(exitRequest, 2, 3000);
+        const exitResponse = await this.transfer(exitRequest, 2, 3000, true);
         console.warn(`[SHEARWATER] Session exit response: ${bytesToHex(exitResponse)}`);
       }
       
@@ -240,7 +243,8 @@ export class ShearwaterProtocol extends BaseDiveComputerProtocol {
       this.sessionInitialized = true;
     }
     
-    await new Promise(resolve => setTimeout(resolve, 500));
+    console.warn('[SHEARWATER] Post-session stabilization delay (1000ms)...');
+    await new Promise(resolve => setTimeout(resolve, 1000));
   }
   
   private async rdbi(id: number, expectedLength: number, timeoutMs: number = 5000): Promise<Uint8Array> {
