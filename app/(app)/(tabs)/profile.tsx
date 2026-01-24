@@ -5,6 +5,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import * as XLSX from 'xlsx';
+import Constants from 'expo-constants';
 import { router } from 'expo-router';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -873,7 +874,7 @@ export default function ProfileScreen() {
         ))}
       </View>
 
-      <Text style={[styles.version, { color: colors.textSecondary }]}>Erebus v1.0.0</Text>
+      <Text style={[styles.version, { color: colors.textSecondary }]}>Erebus v{Constants.expoConfig?.version || '1.0.0'}</Text>
 
       <Modal
         visible={showBrandPicker}
