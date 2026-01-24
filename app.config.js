@@ -2,8 +2,8 @@ module.exports = {
   expo: {
     name: "Erebus",
     slug: "erebus-dive-app",
-    version: "1.1.25",
-    runtimeVersion: "1.1.25",
+    version: "1.1.26",
+    runtimeVersion: "1.1.26",
     orientation: "default",
     icon: "./assets/images/icon.png",
     scheme: "myapp",
