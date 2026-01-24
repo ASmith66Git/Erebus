@@ -177,7 +177,8 @@ export default function PhotosScreen() {
       });
       if (response.ok) {
         const data = await response.json();
-        setDiveTrips(data.trips || []);
+        const trips = Array.isArray(data) ? data : (data.trips || []);
+        setDiveTrips(trips);
       }
     } catch (error) {
       console.error('Error fetching dive trips:', error);
