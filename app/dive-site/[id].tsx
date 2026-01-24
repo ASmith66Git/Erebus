@@ -1502,7 +1502,13 @@ export default function DiveSiteDetailScreen() {
               const query = encodeURIComponent(`Tell me about the shipwreck ${editedSite.wreckName || displaySite?.name || 'wreck'} - history, sinking, location, and diving conditions`);
               const url = `https://gemini.google.com/app?q=${query}`;
               if (Platform.OS === 'web') {
-                window.open(url, '_blank');
+                const link = document.createElement('a');
+                link.href = url;
+                link.target = '_blank';
+                link.rel = 'noopener noreferrer';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
               } else {
                 Linking.openURL(url);
               }
@@ -1576,7 +1582,13 @@ export default function DiveSiteDetailScreen() {
                   const query = encodeURIComponent(`Tell me about the shipwreck ${displaySite?.wreckName || displaySite?.name || 'wreck'} - history, sinking, location, and diving conditions`);
                   const url = `https://gemini.google.com/app?q=${query}`;
                   if (Platform.OS === 'web') {
-                    window.open(url, '_blank');
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.target = '_blank';
+                    link.rel = 'noopener noreferrer';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
                   } else {
                     Linking.openURL(url);
                   }
