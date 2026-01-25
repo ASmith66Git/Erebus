@@ -38,6 +38,7 @@
     "archiver": "^7.0.1",
     "babel-plugin-module-resolver": "^5.0.2",
     "bcryptjs": "^3.0.3",
+    "buffer": "^6.0.3",
     "cors": "^2.8.5",
     "dayjs": "^1.11.19",
     "expo": "~54.0.31",
