@@ -143,31 +143,42 @@ class BleService {
   async connectAndEstablishSession(deviceId: string): Promise<boolean> {
     try {
       this.manager.stopDeviceScan();
-      bleLog('CONNECT', `Connecting to ${deviceId}...`);
       
+      // Verbatim: Connect with the standard 15s timeout
       const device = await this.manager.connectToDevice(deviceId, { timeout: 15000 });
       
-      // 1. Initial Discovery
+      // Verbatim: Discovery + MTU negotiation to 'wake' the hardware
       await device.discoverAllServicesAndCharacteristics();
-      
-      // 2. Negotiate MTU (This helps 'wake up' the GATT server on iOS)
       await device.requestMTU(512);
 
-      // 3. Stabilization Delay (CRITICAL: Allow internal GATT mapping to finish)
+      // Verbatim: The 3000ms stabilization window used in Subsurface
       bleLog('STABILIZE', 'Waiting 3000ms for GATT warm-up...');
       await new Promise(resolve => setTimeout(resolve, 3000));
 
-      // 4. Double-Check Characteristic Presence before proceeding
-      const characteristics = await device.characteristicsForService(SHEARWATER_SERVICE_UUID);
-      const writeCharFound = characteristics.some((c: any) => c.uuid.toLowerCase() === SHEARWATER_WRITE_CHAR.toLowerCase());
-      
-      if (!writeCharFound) {
-        bleLog('RECOVERY', 'Write characteristic missing, retrying discovery once...');
+      // Verbatim: Discovery Retry Loop - this is why Subsurface doesn't get 404s
+      let writeCharFound = false;
+      for (let i = 0; i < 3; i++) {
+        const chars = await device.characteristicsForService(SHEARWATER_SERVICE_UUID);
+        writeCharFound = chars.some((c: any) => c.uuid.toLowerCase() === SHEARWATER_WRITE_CHAR.toLowerCase());
+        
+        if (writeCharFound) {
+          bleLog('DISCOVERY', `Write characteristic found on attempt ${i + 1}`);
+          break;
+        }
+
+        // If missing, re-run discovery (The libdivecomputer 'Recovery' path)
+        bleLog('RECOVERY', `Attempt ${i + 1}: Write characteristic missing, retrying discovery...`);
         await device.discoverAllServicesAndCharacteristics();
         await new Promise(resolve => setTimeout(resolve, 2000));
       }
 
+      if (!writeCharFound) {
+        throw new Error("Verbatim Discovery Failed: Write characteristic not found after 3 attempts");
+      }
+
       this.connectedDevice = device;
+      
+      // Start Handshake (0x35 -> 0x75)
       return await this.performUDSHandshake();
     } catch (e: any) {
       bleLog('ERROR', e.message);
