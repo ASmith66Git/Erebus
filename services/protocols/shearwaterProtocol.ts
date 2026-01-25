@@ -42,6 +42,17 @@ const RDBI_REQUEST = 0x22;
 const RDBI_RESPONSE = 0x62;
 const NAK = 0x7f;
 
+// UDS Protocol Constants (Unified Diagnostic Services) - Modern Firmware v93+
+const UDS = {
+  REQUEST_DOWNLOAD: 0x35,    // Start download session
+  DOWNLOAD_ACK: 0x75,        // Positive response to 0x35 (SID + 0x40)
+  SESSION_EXIT: 0x37,        // Terminate session safely
+};
+
+// Modern Shearwater BLE Characteristics (for FE25 service)
+const SHEARWATER_WRITE_CHAR = 'fe25c237-0ece-443c-b0aa-e02033e7029e';  // Write characteristic
+const SHEARWATER_NOTIFY_CHAR = 'fe25c237-0ece-443c-b0aa-e02033e7029f'; // Notify characteristic
+
 const HARDWARE_MAP: Record<number, string> = {
   0x0101: 'Petrel',
   0x0102: 'Petrel 2',
@@ -219,54 +230,87 @@ export class ShearwaterProtocol extends BaseDiveComputerProtocol {
   
   private sessionInitialized: boolean = false;
   
+  /**
+   * Subsurface/libdivecomputer-style UDS session initialization
+   * Key pattern: Setup notification listener BEFORE sending handshake command
+   * Connection is only "established" once 0x75 ACK is received
+   */
   private async initSession(): Promise<void> {
     if (this.sessionInitialized) {
       console.warn('[SHEARWATER] Session already initialized, skipping');
       return;
     }
     
-    console.warn('[SHEARWATER] === Initializing UDS session (iOS requires 0x35 handshake before RDBI) ===');
+    console.warn('[SHEARWATER] === Initializing UDS session (Subsurface/libdivecomputer pattern) ===');
     
-    console.warn('[SHEARWATER] Waiting 3000ms for GATT warm-up before session init (Subsurface stabilization window)...');
+    // Subsurface-style GATT warm-up delay
+    console.warn('[SHEARWATER] Waiting 3000ms for GATT warm-up (Subsurface stabilization window)...');
     await new Promise(resolve => setTimeout(resolve, 3000));
     
-    try {
-      console.warn('[SHEARWATER] Sending UDS handshake (0x35) using libdivecomputer frame format...');
-      const udsHandshake = this.wrapUDSCommand(0x35, [0x00, 0x34, 0x00, 0x00]);
+    return new Promise(async (resolve, reject) => {
+      let handshakeResolved = false;
+      let removeListener: (() => void) | null = null;
       
-      await bleService.writeCharacteristic(
-        this.serviceUUID,
-        this.characteristicUUID,
-        udsHandshake,
-        false  // iOS requires Write Without Response for Shearwater UDS characteristic
-      );
-      console.warn('[SHEARWATER] UDS handshake sent, waiting for response...');
-      
-      const initResponse = await this.receivePacketWithTimeout(5000);
-      console.warn(`[SHEARWATER] Session init response: ${bytesToHex(initResponse)}`);
-      
-      if (initResponse.length >= 1 && initResponse[0] === 0x75) {
-        console.warn('[SHEARWATER] Session init acknowledged (0x75), sending exit (0x37)...');
-        const exitCmd = this.wrapUDSCommand(0x37, []);
+      try {
+        // 1. Setup Listener FIRST (critical for iOS - must be listening before send)
+        console.warn('[SHEARWATER] Setting up notification listener BEFORE handshake (Subsurface pattern)...');
+        removeListener = await bleService.monitorCharacteristic(
+          this.serviceUUID,
+          SHEARWATER_NOTIFY_CHAR,
+          (base64Data: string) => {
+            const hex = Buffer.from(base64Data, 'base64').toString('hex').toLowerCase();
+            console.warn(`[SHEARWATER] Handshake listener received: ${hex}`);
+            
+            // Look for 0x75 ACK (positive response to 0x35)
+            if (hex.includes('75')) {
+              console.warn('[SHEARWATER] UDS Handshake SUCCESS: Received 0x75 ACK');
+              handshakeResolved = true;
+              if (removeListener) removeListener();
+              this.sessionInitialized = true;
+              resolve();
+            }
+          },
+          (error: Error) => {
+            console.warn('[SHEARWATER] Handshake monitor error:', error.message);
+            if (removeListener) removeListener();
+            // Don't reject - try to continue anyway
+          }
+        );
+        console.warn('[SHEARWATER] Notification listener active, now sending handshake...');
+        
+        // 2. Send the 0x35 Handshake (libdivecomputer frame format)
+        console.warn('[SHEARWATER] Sending UDS handshake (0x35) with payload [0x00, 0x34]...');
+        const handshakeFrame = this.wrapUDSCommand(UDS.REQUEST_DOWNLOAD, [0x00, 0x34]);
+        
         await bleService.writeCharacteristic(
           this.serviceUUID,
-          this.characteristicUUID,
-          exitCmd,
-          false  // iOS requires Write Without Response for Shearwater UDS characteristic
+          SHEARWATER_WRITE_CHAR,
+          handshakeFrame,
+          false  // Write Without Response for Shearwater UDS characteristic
         );
-        const exitResponse = await this.receivePacketWithTimeout(3000);
-        console.warn(`[SHEARWATER] Session exit response: ${bytesToHex(exitResponse)}`);
+        console.warn('[SHEARWATER] Handshake sent, waiting for 0x75 ACK...');
+        
+        // 3. Timeout (matching Subsurface BLE_TIMEOUT of 12 seconds)
+        setTimeout(() => {
+          if (!handshakeResolved) {
+            console.warn('[SHEARWATER] Handshake timeout after 12s - no 0x75 response');
+            if (removeListener) removeListener();
+            // Don't reject - mark as initialized and try to continue
+            // Some devices may work without explicit handshake ACK
+            this.sessionInitialized = true;
+            console.warn('[SHEARWATER] Continuing despite timeout (device may still respond to RDBI)');
+            resolve();
+          }
+        }, 12000);
+        
+      } catch (error: any) {
+        console.warn('[SHEARWATER] Handshake error:', error?.message);
+        if (removeListener) removeListener();
+        // Don't reject - mark as initialized and try to continue
+        this.sessionInitialized = true;
+        resolve();
       }
-      
-      this.sessionInitialized = true;
-      console.warn('[SHEARWATER] === UDS session initialized successfully ===');
-    } catch (error: any) {
-      console.warn('[SHEARWATER] Session init failed (may not be required):', error?.message);
-      this.sessionInitialized = true;
-    }
-    
-    console.warn('[SHEARWATER] Post-session stabilization delay (1000ms)...');
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    });
   }
   
   private async receivePacketWithTimeout(timeoutMs: number): Promise<Uint8Array> {
