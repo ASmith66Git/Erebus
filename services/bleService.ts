@@ -989,7 +989,37 @@ class BleService {
         }
         
         const writeStart = Date.now();
-        if (withResponse) {
+        
+        // Dynamic write type detection: query the characteristic's actual properties
+        // iOS strictly enforces this, Android is more lenient
+        let useWriteWithResponse = withResponse;
+        try {
+          const characteristics = await this.connectedDevice.characteristicsForService(serviceUUID);
+          const targetChar = characteristics?.find((c: any) => 
+            c.uuid.toLowerCase() === characteristicUUID.toLowerCase()
+          );
+          
+          if (targetChar) {
+            const canWriteWithResponse = targetChar.isWritableWithResponse;
+            const canWriteWithoutResponse = targetChar.isWritableWithoutResponse;
+            bleLog('WRITE', `Char properties: withResponse=${canWriteWithResponse}, withoutResponse=${canWriteWithoutResponse}`);
+            
+            // Use the characteristic's advertised capability
+            if (withResponse && !canWriteWithResponse && canWriteWithoutResponse) {
+              bleLog('WRITE', 'Switching to Write Without Response (characteristic does not support withResponse)');
+              useWriteWithResponse = false;
+            } else if (!withResponse && !canWriteWithoutResponse && canWriteWithResponse) {
+              bleLog('WRITE', 'Switching to Write With Response (characteristic does not support withoutResponse)');
+              useWriteWithResponse = true;
+            }
+          } else {
+            bleLog('WRITE', 'Could not find characteristic properties, using requested write type');
+          }
+        } catch (propError: any) {
+          bleLog('WRITE', `Could not query char properties: ${propError?.message}, using requested write type`);
+        }
+        
+        if (useWriteWithResponse) {
           bleLog('WRITE', 'Calling writeCharacteristicWithResponseForService...');
           await this.connectedDevice.writeCharacteristicWithResponseForService(
             serviceUUID,
