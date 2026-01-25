@@ -1,0 +1,96 @@
+o align your code with the exact state-driven methodology used by Subsurface and libdivecomputer, you must integrate the notification listener directly into your connection sequence.
+
+
+In libdivecomputer, a connection is only considered "established" once the 0x75 acknowledgment is received in response to the 0x35 handshake. Your current code connects at the BLE level but lacks the synchronous "wait-for-ACK" logic.
+
+
+1. The Subsurface Handshake Sequence
+The following implementation pattern replicates the Subsurface stability model by subscribing to notifications before sending the handshake and using a Promise to block until the ACK arrives.
+
+TypeScript
+
+async connectAndHandshake(deviceId: string): Promise<boolean> {
+  // 1. Standard BLE Connection (Discovery & MTU)
+  const connected = await this.connect(deviceId);
+  if (!connected) return false;
+
+  // 2. Subsurface-style GATT warm-up delay [cite: 124]
+  bleLog('SHEARWATER', 'Waiting 3000ms for GATT warm-up (Subsurface window)...');
+  await new Promise(resolve => setTimeout(resolve, 3000));
+
+  return new Promise(async (resolve, reject) => {
+    let handshakeResolved = false;
+
+    // 3. Setup Listener FIRST 
+    const removeListener = await this.monitorCharacteristic(
+      SHEARWATER_SERVICE_UUIDS[0],
+      SHEARWATER_NOTIFY_CHAR,
+      (base64Data) => {
+        const hex = Buffer.from(base64Data, 'base64').toString('hex').toLowerCase();
+        
+        // Look for 0x75 ACK (The response to 0x35) [cite: 123]
+        if (hex.includes('75')) {
+          bleLog('SHEARWATER', 'UDS Handshake SUCCESS: Received 0x75 ACK');
+          handshakeResolved = true;
+          removeListener();
+          resolve(true);
+        }
+      },
+      (error) => {
+        bleLog('SHEARWATER', 'Handshake Monitor Error: ' + error.message);
+        removeListener();
+        reject(error);
+      }
+    );
+
+    // 4. Send the 0x35 Handshake [cite: 153, 154]
+    try {
+      // Use wrapUDSCommand to get the libdivecomputer frame format 
+      const handshakeFrame = this.wrapUDSCommand(UDS.REQUEST_DOWNLOAD, [0x00, 0x34]);
+      
+      // CRITICAL: Try 'false' for withResponse if you still get 'Writing not permitted' [cite: 140, 142]
+      await this.writeCharacteristic(
+        SHEARWATER_SERVICE_UUIDS[0],
+        SHEARWATER_WRITE_CHAR,
+        handshakeFrame,
+        false 
+      );
+    } catch (e) {
+      removeListener();
+      reject(e);
+    }
+
+    // 5. Handshake Timeout (Matching Subsurface BLE_TIMEOUT) [cite: 141, 147]
+    setTimeout(() => {
+      if (!handshakeResolved) {
+        removeListener();
+        reject(new Error('UDS Handshake Timeout: No 0x75 response from Perdix'));
+      }
+    }, 12000);
+  });
+}
+2. Solving the "Writing Not Permitted" Error
+Your logs showed an ATT Error 3 (401). This is often because the modern Shearwater UDS characteristic is defined as Write Without Response.
+
+
+
+
+The Fix: In your writeCharacteristic call within the handshake, set the withResponse parameter to false.
+
+
+
+Verification: In your discovery logs, check the properties of characteristic 27b7570b-.... If it only lists writeNoResp, the app will crash if you use writeWithResponse.
+
+
+3. Fingerprint Comparison (Efficiency)
+Once the handshake resolves, Subsurface performs a "Read Data By Identifier" (RDBI) for DID 0x8020.
+
+
+The Goal: Extract the "Latest Dive ID" from the 9-byte response.
+
+
+
+Logic: If your app already has this Dive ID in its local storage, you can stop the process immediately and tell the user "No new dives found," just like Subsurface.
+
+4. Re-calculating the 0x35 Frame
+The frame you previously generated—ff0106003500340000c0—is close, but ensure the length byte accurately reflects the payload. libdivecomputer is very strict: if the length byte doesn't match the actual number of bytes before the C0 terminator, the Perdix will ignore the packet.
