@@ -145,7 +145,7 @@ class BleService {
       this.manager.stopDeviceScan();
       
       // Verbatim: Connect with the standard 15s timeout
-      const device = await this.manager.connectToDevice(deviceId, { timeout: 15000 });
+      let device = await this.manager.connectToDevice(deviceId, { timeout: 15000 });
       
       // Verbatim: Discovery + MTU negotiation to 'wake' the hardware
       await device.discoverAllServicesAndCharacteristics();
@@ -155,7 +155,7 @@ class BleService {
       bleLog('STABILIZE', 'Waiting 3000ms for GATT warm-up...');
       await new Promise(resolve => setTimeout(resolve, 3000));
 
-      // Verbatim: Discovery Retry Loop - this is why Subsurface doesn't get 404s
+      // Verbatim: Discovery Retry Loop with GATT refresh - Subsurface 'stubborn device' recovery
       let writeCharFound = false;
       for (let i = 0; i < 3; i++) {
         const chars = await device.characteristicsForService(SHEARWATER_SERVICE_UUID);
@@ -166,10 +166,14 @@ class BleService {
           break;
         }
 
-        // If missing, re-run discovery (The libdivecomputer 'Recovery' path)
-        bleLog('RECOVERY', `Attempt ${i + 1}: Write characteristic missing, retrying discovery...`);
-        await device.discoverAllServicesAndCharacteristics();
+        bleLog('RECOVERY', `Attempt ${i + 1}: Char missing, forcing GATT refresh...`);
+        
+        // Verbatim Subsurface 'stubborn device' recovery:
+        // Disconnect, wait, and reconnect with refreshGatt set to true
+        await this.manager.cancelDeviceConnection(deviceId);
         await new Promise(resolve => setTimeout(resolve, 2000));
+        device = await this.manager.connectToDevice(deviceId, { refreshGatt: true });
+        await device.discoverAllServicesAndCharacteristics();
       }
 
       if (!writeCharFound) {
