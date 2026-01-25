@@ -144,20 +144,30 @@ class BleService {
     try {
       this.manager.stopDeviceScan();
       bleLog('CONNECT', `Connecting to ${deviceId}...`);
-
+      
       const device = await this.manager.connectToDevice(deviceId, { timeout: 15000 });
+      
+      // 1. Initial Discovery
       await device.discoverAllServicesAndCharacteristics();
-
-      // Trigger GATT stability via MTU
+      
+      // 2. Negotiate MTU (This helps 'wake up' the GATT server on iOS)
       await device.requestMTU(512);
 
-      // Subsurface-style GATT stabilization window
+      // 3. Stabilization Delay (CRITICAL: Allow internal GATT mapping to finish)
       bleLog('STABILIZE', 'Waiting 3000ms for GATT warm-up...');
       await new Promise(resolve => setTimeout(resolve, 3000));
 
-      this.connectedDevice = device;
+      // 4. Double-Check Characteristic Presence before proceeding
+      const characteristics = await device.characteristicsForService(SHEARWATER_SERVICE_UUID);
+      const writeCharFound = characteristics.some((c: any) => c.uuid.toLowerCase() === SHEARWATER_WRITE_CHAR.toLowerCase());
+      
+      if (!writeCharFound) {
+        bleLog('RECOVERY', 'Write characteristic missing, retrying discovery once...');
+        await device.discoverAllServicesAndCharacteristics();
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
 
-      // Establish the secure UDS session
+      this.connectedDevice = device;
       return await this.performUDSHandshake();
     } catch (e: any) {
       bleLog('ERROR', e.message);
