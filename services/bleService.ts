@@ -1,6 +1,11 @@
 import { Platform, PermissionsAndroid } from 'react-native';
 import { Buffer } from 'buffer';
 
+// Ensure Buffer is available globally in the React Native environment
+if (typeof global.Buffer === 'undefined') {
+  (global as any).Buffer = Buffer;
+}
+
 let BleManager: any = null;
 let bleManagerInstance: any = null;
 
