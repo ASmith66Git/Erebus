@@ -1,0 +1,37 @@
+Starting Metro Bundler
+iOS node_modules/expo-router/entry.js ▓▓▓▓▓▓░░░░░░░░░░ 41.7% (429/664)
+WARN  Attempted to import the module "/Users/expo/workingdir/build/node_modules/jspdf" which is listed in the "exports" of "/Users/expo/workingdir/build/node_modules/jspdf", however no match was resolved for this request (platform = ios). Falling back to file-based resolution. Consider updating the call site or asking the package maintainer(s) to expose this API.
+iOS node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓░░░░░░░ 62.0% (1109/1474)
+iOS node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓▓▓▓▓░░ 92.9% (2140/2220)
+iOS Bundling failed 9804ms node_modules/expo-router/entry.js (2253 modules)
+Unable to resolve module ../services/bleService from /Users/expo/workingdir/build/app/ble-connect.tsx: 
+None of these files exist:
+  * services/bleService(.ios.ts|.native.ts|.ts|.ios.tsx|.native.tsx|.tsx|.ios.mjs|.native.mjs|.mjs|.ios.js|.native.js|.js|.ios.jsx|.native.jsx|.jsx|.ios.json|.native.json|.json|.ios.cjs|.native.cjs|.cjs|.ios.scss|.native.scss|.scss|.ios.sass|.native.sass|.sass|.ios.css|.native.css|.css)
+  * services/bleService
+  15 | import { useAuth } from '@/contexts/AuthContext';
+  16 | import { getApiUrl } from '@/utils/apiConfig';
+> 17 | import bleService from '@/services/bleService';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  18 |
+  19 | interface BleDevice {
+  20 |   id: string;
+Import stack:
+ app/ble-connect.tsx
+ | import "../services/bleService"
+ app (require.context)
+Error: Unable to resolve module ../services/bleService from /Users/expo/workingdir/build/app/ble-connect.tsx: 
+None of these files exist:
+  * services/bleService(.ios.ts|.native.ts|.ts|.ios.tsx|.native.tsx|.tsx|.ios.mjs|.native.mjs|.mjs|.ios.js|.native.js|.js|.ios.jsx|.native.jsx|.jsx|.ios.json|.native.json|.json|.ios.cjs|.native.cjs|.cjs|.ios.scss|.native.scss|.scss|.ios.sass|.native.sass|.sass|.ios.css|.native.css|.css)
+  * services/bleService
+  15 | import { useAuth } from '@/contexts/AuthContext';
+  16 | import { getApiUrl } from '@/utils/apiConfig';
+> 17 | import bleService from '@/services/bleService';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  18 |
+  19 | interface BleDevice {
+  20 |   id: string;
+Import stack:
+ app/ble-connect.tsx
+ | import "../services/bleService"
+ app (require.context)
+npx expo export:embed --eager --platform ios --dev false exited with non-zero code: 1
