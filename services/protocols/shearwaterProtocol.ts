@@ -8,6 +8,12 @@ import {
   ProgressCallback 
 } from './baseProtocol';
 import bleService, { DownloadProgress } from '../bleService';
+import { Buffer } from 'buffer';
+
+// Ensure Buffer is available globally in the React Native environment
+if (typeof global.Buffer === 'undefined') {
+  (global as any).Buffer = Buffer;
+}
 
 // Support all known Shearwater service UUIDs
 const SHEARWATER_SERVICE_UUIDS = [

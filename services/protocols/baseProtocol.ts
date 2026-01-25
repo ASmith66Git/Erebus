@@ -2,6 +2,11 @@ import bleService, { BleDevice, DownloadProgress } from '../bleService';
 import { SlipDecoder, slipEncode } from './slipCodec';
 import { Buffer } from 'buffer';
 
+// Ensure Buffer is available globally in the React Native environment
+if (typeof global.Buffer === 'undefined') {
+  (global as any).Buffer = Buffer;
+}
+
 // Detailed protocol logging helper - uses console.warn so it gets captured by error logging system
 const protoLog = (category: string, message: string, data?: any) => {
   const timestamp = new Date().toISOString().split('T')[1].replace('Z', '');

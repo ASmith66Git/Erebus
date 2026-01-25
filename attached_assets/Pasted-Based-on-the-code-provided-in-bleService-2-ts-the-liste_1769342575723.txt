@@ -1,0 +1,91 @@
+Based on the code provided in `bleService (2).ts`, the **listener foundation** is present, but it is not yet "setup properly" to handle the specific **UDS protocol responses** (like `0x75` or `0x62`) required to complete the handshake you're currently working on.
+
+Here is the breakdown of what is missing and what is already there:
+
+### 1. What is already there (The Infrastructure)
+
+Your code contains the necessary `react-native-ble-plx` method to listen to the device:
+
+* 
+**`monitorCharacteristic`**: This function is well-written. It correctly sets up a subscription to a characteristic and uses `bleLog` to show received packets in your console.
+
+
+* 
+**Base64 Decoding**: You have `base64ToHex` and `formatHex` helpers to make the incoming data readable for debugging.
+
+
+
+### 2. What is missing (The Protocol Logic)
+
+While the *mechanism* to listen exists, the *logic* to use it during the connection phase is missing:
+
+* 
+**Subscription Timing**: In a standard UDS handshake, you must call `monitorCharacteristic` **before** you send the `0x35` write command. If you send the write first, the Perdix may respond so quickly that your app misses the packet before the listener is active.
+
+
+* **Packet Filtering**: The device sends several types of notifications. Your listener needs logic to look at the first few bytes to identify a **UDS Response Header** (`01 FF`) and the **Service ACK** (`0x75` for the handshake).
+
+
+* 
+**Handshake Completion**: Currently, your `connect` method finishes once services are discovered. To be "properly setup," the connection process shouldn't be considered "complete" until the listener confirms the `0x75` ACK has been received.
+
+
+
+### 3. Recommended Listener Implementation
+
+To fix this, you need to implement a "Wait for Response" pattern. Here is how `libdivecomputer` and Subsurface handle it:
+
+1. 
+**Start Monitoring**: Subscribe to `SHEARWATER_NOTIFY_CHAR`.
+
+
+2. 
+**Send 0x35**: Write the handshake packet.
+
+
+3. **Validate Response**:
+* 
+**Byte 0-1**: Must be `01 FF` (UDS Response Header).
+
+
+* 
+**Byte 4**: Must be `0x75` (Positive ACK for 0x35).
+
+
+
+
+
+### How to update your code
+
+You should add a dedicated method to handle the handshake that uses the listener. It would look something like this:
+
+```typescript
+async performUDSHandshake(): Promise<boolean> {
+  return new Promise(async (resolve, reject) => {
+    // 1. Setup the listener FIRST
+    const removeListener = await this.monitorCharacteristic(
+      SHEARWATER_SERVICE_UUIDS[0],
+      SHEARWATER_NOTIFY_CHAR,
+      (base64Data) => {
+        const hex = Buffer.from(base64Data, 'base64').toString('hex');
+        // Check for 0x75 ACK in the UDS frame
+        if (hex.includes('75')) {
+          bleLog('HANDSHAKE', 'Received 0x75 ACK - Session Active!');
+          removeListener();
+          resolve(true);
+        }
+      }
+    );
+
+    // 2. Send the 0x35 packet
+    const handshake = this.wrapUDSCommand(UDS.REQUEST_DOWNLOAD, [0x00, 0x34]);
+    await this.writeCharacteristic(..., handshake);
+    
+    // 3. Add a timeout so it doesn't hang forever
+    setTimeout(() => { removeListener(); reject('Handshake Timeout'); }, 5000);
+  });
+}
+
+```
+
+**Would you like me to help you integrate this "Handshake" step into your main `connect` function so it happens automatically?**
