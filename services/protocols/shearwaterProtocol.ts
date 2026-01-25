@@ -245,16 +245,17 @@ export class ShearwaterProtocol extends BaseDiveComputerProtocol {
     
     // Subsurface-style GATT warm-up delay
     console.warn('[SHEARWATER] Waiting 3000ms for GATT warm-up (Subsurface stabilization window)...');
-    await new Promise(resolve => setTimeout(resolve, 3000));
+    await new Promise<void>(resolve => setTimeout(resolve, 3000));
     
-    return new Promise(async (resolve, reject) => {
-      let handshakeResolved = false;
-      let removeListener: (() => void) | null = null;
+    let handshakeResolved = false;
+    let removeListener: (() => void) | null = null as (() => void) | null;
+    
+    try {
+      // 1. Setup Listener FIRST (critical for iOS - must be listening before send)
+      console.warn('[SHEARWATER] Setting up notification listener BEFORE handshake (Subsurface pattern)...');
       
-      try {
-        // 1. Setup Listener FIRST (critical for iOS - must be listening before send)
-        console.warn('[SHEARWATER] Setting up notification listener BEFORE handshake (Subsurface pattern)...');
-        removeListener = await bleService.monitorCharacteristic(
+      const handshakePromise = new Promise<void>((resolve) => {
+        bleService.monitorCharacteristic(
           this.serviceUUID,
           SHEARWATER_NOTIFY_CHAR,
           (base64Data: string) => {
@@ -262,7 +263,7 @@ export class ShearwaterProtocol extends BaseDiveComputerProtocol {
             console.warn(`[SHEARWATER] Handshake listener received: ${hex}`);
             
             // Look for 0x75 ACK (positive response to 0x35)
-            if (hex.includes('75')) {
+            if (hex.includes('75') && !handshakeResolved) {
               console.warn('[SHEARWATER] UDS Handshake SUCCESS: Received 0x75 ACK');
               handshakeResolved = true;
               if (removeListener) removeListener();
@@ -272,45 +273,50 @@ export class ShearwaterProtocol extends BaseDiveComputerProtocol {
           },
           (error: Error) => {
             console.warn('[SHEARWATER] Handshake monitor error:', error.message);
-            if (removeListener) removeListener();
-            // Don't reject - try to continue anyway
           }
-        );
-        console.warn('[SHEARWATER] Notification listener active, now sending handshake...');
-        
-        // 2. Send the 0x35 Handshake (libdivecomputer frame format)
-        console.warn('[SHEARWATER] Sending UDS handshake (0x35) with payload [0x00, 0x34]...');
-        const handshakeFrame = this.wrapUDSCommand(UDS.REQUEST_DOWNLOAD, [0x00, 0x34]);
-        
-        await bleService.writeCharacteristic(
-          this.serviceUUID,
-          SHEARWATER_WRITE_CHAR,
-          handshakeFrame,
-          false  // Write Without Response for Shearwater UDS characteristic
-        );
-        console.warn('[SHEARWATER] Handshake sent, waiting for 0x75 ACK...');
-        
-        // 3. Timeout (matching Subsurface BLE_TIMEOUT of 12 seconds)
+        ).then((unsubscribe: () => void) => {
+          removeListener = unsubscribe;
+        }).catch((err: Error) => {
+          console.warn('[SHEARWATER] Failed to setup monitor:', err?.message);
+        });
+      });
+      
+      // Give monitor time to setup
+      await new Promise<void>(resolve => setTimeout(resolve, 100));
+      console.warn('[SHEARWATER] Notification listener active, now sending handshake...');
+      
+      // 2. Send the 0x35 Handshake (libdivecomputer frame format)
+      console.warn('[SHEARWATER] Sending UDS handshake (0x35) with payload [0x00, 0x34]...');
+      const handshakeFrame = this.wrapUDSCommand(UDS.REQUEST_DOWNLOAD, [0x00, 0x34]);
+      
+      await bleService.writeCharacteristic(
+        this.serviceUUID,
+        SHEARWATER_WRITE_CHAR,
+        handshakeFrame,
+        false  // Write Without Response for Shearwater UDS characteristic
+      );
+      console.warn('[SHEARWATER] Handshake sent, waiting for 0x75 ACK...');
+      
+      // 3. Race between handshake response and timeout (12 seconds like Subsurface BLE_TIMEOUT)
+      const timeoutPromise = new Promise<void>((resolve) => {
         setTimeout(() => {
           if (!handshakeResolved) {
             console.warn('[SHEARWATER] Handshake timeout after 12s - no 0x75 response');
             if (removeListener) removeListener();
-            // Don't reject - mark as initialized and try to continue
-            // Some devices may work without explicit handshake ACK
             this.sessionInitialized = true;
             console.warn('[SHEARWATER] Continuing despite timeout (device may still respond to RDBI)');
-            resolve();
           }
+          resolve();
         }, 12000);
-        
-      } catch (error: any) {
-        console.warn('[SHEARWATER] Handshake error:', error?.message);
-        if (removeListener) removeListener();
-        // Don't reject - mark as initialized and try to continue
-        this.sessionInitialized = true;
-        resolve();
-      }
-    });
+      });
+      
+      await Promise.race([handshakePromise, timeoutPromise]);
+      
+    } catch (error: any) {
+      console.warn('[SHEARWATER] Handshake error:', error?.message);
+      if (removeListener) removeListener();
+      this.sessionInitialized = true;
+    }
   }
   
   private async receivePacketWithTimeout(timeoutMs: number): Promise<Uint8Array> {
