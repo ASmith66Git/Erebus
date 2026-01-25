@@ -238,7 +238,7 @@ export class ShearwaterProtocol extends BaseDiveComputerProtocol {
         this.serviceUUID,
         this.characteristicUUID,
         udsHandshake,
-        true
+        false  // iOS requires Write Without Response for Shearwater UDS characteristic
       );
       console.warn('[SHEARWATER] UDS handshake sent, waiting for response...');
       
@@ -252,7 +252,7 @@ export class ShearwaterProtocol extends BaseDiveComputerProtocol {
           this.serviceUUID,
           this.characteristicUUID,
           exitCmd,
-          true
+          false  // iOS requires Write Without Response for Shearwater UDS characteristic
         );
         const exitResponse = await this.receivePacketWithTimeout(3000);
         console.warn(`[SHEARWATER] Session exit response: ${bytesToHex(exitResponse)}`);
@@ -314,7 +314,7 @@ export class ShearwaterProtocol extends BaseDiveComputerProtocol {
       this.serviceUUID,
       this.characteristicUUID,
       base64Data,
-      true
+      false  // iOS requires Write Without Response for Shearwater UDS characteristic
     );
     
     const response = await this.receivePacketWithTimeout(timeoutMs);
