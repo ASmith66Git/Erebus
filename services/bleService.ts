@@ -67,14 +67,74 @@ class BleService {
     return Buffer.from(frame).toString('base64');
   }
 
-  async startScanning(onDeviceFound: (device: any) => void) {
-    if (!this.manager) return;
-    bleLog('SCAN', 'Starting unfiltered scan...');
-    this.manager.startDeviceScan(null, null, (error: any, device: any) => {
-      if (device && device.name && device.name.includes('Perdix')) {
-        onDeviceFound(device);
+  /**
+   * Request BLE permissions (Android 12+ requires runtime permissions)
+   */
+  async requestPermissions(): Promise<boolean> {
+    if (Platform.OS === 'android') {
+      try {
+        const apiLevel = typeof Platform.Version === 'number' ? Platform.Version : parseInt(Platform.Version, 10);
+        
+        if (apiLevel >= 31) {
+          // Android 12+ needs BLUETOOTH_SCAN and BLUETOOTH_CONNECT
+          const granted = await PermissionsAndroid.requestMultiple([
+            PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
+            PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
+            PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+          ]);
+          
+          return (
+            granted[PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN] === PermissionsAndroid.RESULTS.GRANTED &&
+            granted[PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT] === PermissionsAndroid.RESULTS.GRANTED
+          );
+        } else {
+          // Older Android just needs location
+          const granted = await PermissionsAndroid.request(
+            PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
+          );
+          return granted === PermissionsAndroid.RESULTS.GRANTED;
+        }
+      } catch (err) {
+        bleLog('PERMISSION', 'Error requesting permissions', err);
+        return false;
+      }
+    }
+    // iOS handles permissions automatically via Info.plist
+    return true;
+  }
+
+  /**
+   * Start scanning for BLE devices
+   * @param serviceUUIDs - Optional array of service UUIDs to filter (null for all devices)
+   * @param onDeviceFound - Callback when a device is found
+   */
+  async startScanning(serviceUUIDs: string[] | null, onDeviceFound: (device: any) => void) {
+    if (!this.manager) {
+      bleLog('SCAN', 'Manager not initialized');
+      return;
+    }
+    bleLog('SCAN', 'Starting scan...', { serviceUUIDs });
+    
+    this.manager.startDeviceScan(serviceUUIDs, null, (error: any, device: any) => {
+      if (error) {
+        bleLog('SCAN_ERR', error.message);
+        return;
+      }
+      if (device && device.name) {
+        onDeviceFound({
+          id: device.id,
+          name: device.name,
+          rssi: device.rssi,
+        });
       }
     });
+  }
+
+  /**
+   * Connect to a device by ID (wrapper for UI compatibility)
+   */
+  async connect(deviceId: string): Promise<boolean> {
+    return this.connectAndEstablishSession(deviceId);
   }
 
   /**
