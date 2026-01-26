@@ -1192,7 +1192,7 @@ export default function DivePlanningScreen() {
         <View style={styles.summaryGrid}>
           <View style={styles.summaryItem}>
             <Text style={[styles.summaryValue, { color: colors.text }]}>{currentResult.totalRunTime}</Text>
-            <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>Total Time (min)</Text>
+            <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>Total Run Time</Text>
           </View>
           <View style={styles.summaryItem}>
             <Text style={[styles.summaryValue, { color: colors.text }]}>{currentResult.totalDecoTime}</Text>
