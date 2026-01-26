@@ -628,15 +628,22 @@ export function calculateDecoSchedule(
   
   const firstStopDepth = findFirstStop(currentTissues, settings.gfLow, settings.decoStopInterval, settings.waterType);
   
-  const sortedGases = [...gases].sort((a, b) => (b.switchDepth || Infinity) - (a.switchDepth || Infinity));
+  // Sort deco gases by switch depth ascending (shallowest first)
+  // This ensures we pick the richest gas that's safe for the current depth
+  const decoGases = gases.filter(g => g.switchDepth !== null);
+  const sortedDecoGases = [...decoGases].sort((a, b) => (a.switchDepth || 0) - (b.switchDepth || 0));
+  const bottomGas = gases.find(g => g.switchDepth === null) || gases[0];
   
   const getGasForDepth = (d: number): GasMix => {
-    for (const gas of sortedGases) {
+    // Check deco gases from shallowest to deepest switch depth
+    // Pick the first one where current depth <= switch depth AND within MOD
+    for (const gas of sortedDecoGases) {
       if (gas.switchDepth !== null && d <= gas.switchDepth && d <= gas.modPpo2_16) {
         return gas;
       }
     }
-    return gases[0];
+    // Fall back to bottom gas if no deco gas is suitable
+    return bottomGas;
   };
   
   let iterations = 0;
