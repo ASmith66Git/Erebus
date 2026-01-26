@@ -467,6 +467,40 @@ export default function DivePlanningScreen() {
     );
   };
 
+  const renderDiscreteSelector = (
+    label: string,
+    value: number,
+    options: number[],
+    onChange: (v: number) => void,
+    unit: string = ''
+  ) => (
+    <View style={styles.discreteSelectorContainer}>
+      <Text style={[styles.discreteSelectorLabel, { color: colors.text }]}>{label}</Text>
+      <View style={styles.discreteButtonGroup}>
+        {options.map((option) => (
+          <TouchableOpacity
+            key={option}
+            style={[
+              styles.discreteButton,
+              { 
+                backgroundColor: value === option ? colors.primary : colors.background,
+                borderColor: value === option ? colors.primary : colors.border,
+              }
+            ]}
+            onPress={() => onChange(option)}
+          >
+            <Text style={[
+              styles.discreteButtonText,
+              { color: value === option ? '#FFF' : colors.text }
+            ]}>
+              {option}{unit}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    </View>
+  );
+
   const renderToggle = (
     label: string,
     value: boolean,
@@ -1982,16 +2016,12 @@ export default function DivePlanningScreen() {
       <View style={[styles.section, { backgroundColor: colors.card }]}>
         <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>Deco Stop, Deco Mix Settings</Text>
         
-        {renderSlider(`Stop size = ${ps.stopSize}${depthUnit}`, ps.stopSize, 3, 6, 3,
-          (v) => setPs({ stopSize: v }), '')}
-        {renderSlider(`Last OC = ${ps.lastOcStopDepth}${depthUnit}`, ps.lastOcStopDepth, 3, 6, 3,
-          (v) => setPs({ lastOcStopDepth: v }), '')}
-        {renderSlider(`Last CCR = ${ps.lastCcrStopDepth}${depthUnit}`, ps.lastCcrStopDepth, 3, 9, 3,
-          (v) => setPs({ lastCcrStopDepth: v }), '')}
+        {renderDiscreteSelector('Stop Size', ps.stopSize, [3, 6], (v) => setPs({ stopSize: v }), depthUnit)}
+        {renderDiscreteSelector('Last OC Stop', ps.lastOcStopDepth, [3, 6], (v) => setPs({ lastOcStopDepth: v }), depthUnit)}
+        {renderDiscreteSelector('Last CCR Stop', ps.lastCcrStopDepth, [3, 6, 9], (v) => setPs({ lastCcrStopDepth: v }), depthUnit)}
         <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Stop size dimensions, last stop depths</Text>
 
-        {renderSlider(`Stop = ${ps.minStopTime} min`, ps.minStopTime, 1, 3, 1,
-          (v) => setPs({ minStopTime: v }), '')}
+        {renderDiscreteSelector('Min Stop Time', ps.minStopTime, [1, 2, 3], (v) => setPs({ minStopTime: v }), ' min')}
         <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Minimum stop time intervals</Text>
 
         {renderSlider(`45..99% = ${ps.ppo2High}`, ps.ppo2High, 1.4, 1.6, 0.1,
@@ -2002,8 +2032,7 @@ export default function DivePlanningScreen() {
           (v) => setPs({ ppo2Low: Math.round(v * 10) / 10 }), '')}
         <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Deco mix switch depth - ppO2 threshold</Text>
 
-        {renderSlider(`100% O2 = ${ps.maxO2Depth}${depthUnit}`, ps.maxO2Depth, 3, 9, 1,
-          (v) => setPs({ maxO2Depth: v }), '')}
+        {renderDiscreteSelector('Max 100% O2 Depth', ps.maxO2Depth, [3, 6, 9], (v) => setPs({ maxO2Depth: v }), depthUnit)}
         <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Maximum depth for 100% O2 use</Text>
 
         {renderToggle('30 sec stops', ps.use30SecStops, 
@@ -2893,6 +2922,30 @@ const styles = StyleSheet.create({
   },
   sliderFill: { height: 6, borderRadius: 3, overflow: 'hidden' },
   sliderProgress: { height: '100%', borderRadius: 3 },
+  discreteSelectorContainer: {
+    marginBottom: 16,
+  },
+  discreteSelectorLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    marginBottom: 8,
+  },
+  discreteButtonGroup: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  discreteButton: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  discreteButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
   toggleContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
