@@ -1,0 +1,56 @@
+. Final Verbatim Alignment for bleService.ts
+To match the C-code's persistence, we need to modify the discovery check. Instead of relying on the cached characteristicsForService, we will explicitly call discoverAllServicesAndCharacteristics inside the loop and then manually map the services.
+
+Update your connectAndEstablishSession with this verbatim loop:
+
+TypeScript
+
+async connectAndEstablishSession(deviceId: string): Promise<boolean> {
+  try {
+    this.manager.stopDeviceScan();
+    bleLog('CONNECT', `Connecting to ${deviceId}...`);
+    
+    let device = await this.manager.connectToDevice(deviceId, { timeout: 15000 });
+    
+    // Initial Interrogation
+    await device.discoverAllServicesAndCharacteristics();
+    await device.requestMTU(512);
+
+    let charFound = false;
+    for (let i = 0; i < 3; i++) {
+      bleLog('DISCOVER', `Verification attempt ${i + 1}/3...`);
+      
+      // Explicitly fetch all services to force the bridge to refresh
+      const services = await device.services();
+      for (const service of services) {
+        if (service.uuid.toLowerCase() === SHEARWATER_SERVICE_UUID.toLowerCase()) {
+          const chars = await service.characteristics();
+          if (chars.some(c => c.uuid.toLowerCase() === SHEARWATER_WRITE_CHAR.toLowerCase())) {
+            charFound = true;
+            break;
+          }
+        }
+      }
+
+      if (charFound) break;
+
+      // Verbatim Recovery: Nuclear Refresh
+      bleLog('RECOVERY', `Attempt ${i + 1}: Char missing, forcing GATT refresh...`);
+      await this.manager.cancelDeviceConnection(deviceId);
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
+      // Reconnect with explicit refreshGatt flag
+      device = await this.manager.connectToDevice(deviceId, { refreshGatt: true });
+      await device.discoverAllServicesAndCharacteristics();
+      await new Promise(resolve => setTimeout(resolve, 2000));
+    }
+
+    if (!charFound) throw new Error("Verbatim Discovery Failed: Write characteristic not found");
+
+    this.connectedDevice = device;
+    return await this.performUDSHandshake();
+  } catch (e: any) {
+    bleLog('ERROR', e.message);
+    return false;
+  }
+}

@@ -143,46 +143,46 @@ class BleService {
   async connectAndEstablishSession(deviceId: string): Promise<boolean> {
     try {
       this.manager.stopDeviceScan();
+      bleLog('CONNECT', `Connecting to ${deviceId}...`);
       
-      // Verbatim: Connect with the standard 15s timeout
       let device = await this.manager.connectToDevice(deviceId, { timeout: 15000 });
       
-      // Verbatim: Discovery + MTU negotiation to 'wake' the hardware
+      // Initial Interrogation
       await device.discoverAllServicesAndCharacteristics();
       await device.requestMTU(512);
 
-      // Verbatim: The 3000ms stabilization window used in Subsurface
-      bleLog('STABILIZE', 'Waiting 3000ms for GATT warm-up...');
-      await new Promise(resolve => setTimeout(resolve, 3000));
-
-      // Verbatim: Discovery Retry Loop with GATT refresh - Subsurface 'stubborn device' recovery
-      let writeCharFound = false;
+      let charFound = false;
       for (let i = 0; i < 3; i++) {
-        const chars = await device.characteristicsForService(SHEARWATER_SERVICE_UUID);
-        writeCharFound = chars.some((c: any) => c.uuid.toLowerCase() === SHEARWATER_WRITE_CHAR.toLowerCase());
+        bleLog('DISCOVER', `Verification attempt ${i + 1}/3...`);
         
-        if (writeCharFound) {
-          bleLog('DISCOVERY', `Write characteristic found on attempt ${i + 1}`);
-          break;
+        // Explicitly fetch all services to force the bridge to refresh
+        const services = await device.services();
+        for (const service of services) {
+          if (service.uuid.toLowerCase() === SHEARWATER_SERVICE_UUID.toLowerCase()) {
+            const chars = await service.characteristics();
+            if (chars.some((c: any) => c.uuid.toLowerCase() === SHEARWATER_WRITE_CHAR.toLowerCase())) {
+              charFound = true;
+              break;
+            }
+          }
         }
 
+        if (charFound) break;
+
+        // Verbatim Recovery: Nuclear Refresh
         bleLog('RECOVERY', `Attempt ${i + 1}: Char missing, forcing GATT refresh...`);
-        
-        // Verbatim Subsurface 'stubborn device' recovery:
-        // Disconnect, wait, and reconnect with refreshGatt set to true
         await this.manager.cancelDeviceConnection(deviceId);
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        
+        // Reconnect with explicit refreshGatt flag
         device = await this.manager.connectToDevice(deviceId, { refreshGatt: true });
         await device.discoverAllServicesAndCharacteristics();
+        await new Promise(resolve => setTimeout(resolve, 2000));
       }
 
-      if (!writeCharFound) {
-        throw new Error("Verbatim Discovery Failed: Write characteristic not found after 3 attempts");
-      }
+      if (!charFound) throw new Error("Verbatim Discovery Failed: Write characteristic not found");
 
       this.connectedDevice = device;
-      
-      // Start Handshake (0x35 -> 0x75)
       return await this.performUDSHandshake();
     } catch (e: any) {
       bleLog('ERROR', e.message);
