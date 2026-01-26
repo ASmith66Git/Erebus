@@ -14,7 +14,8 @@ import {
   calculateDivePlan, calculateMultiDivePlan, createGasMix, initializeTissues,
   DEFAULT_SETTINGS, GasMix, DivePlanResult, TissueState, DivePlanInput, DivePlanSettings,
   CircuitType, DecoModel, WaterType, UnitSystem, calculateCNS, calculateOTU, GasConsumption,
-  calculateMValueAtPressure, depthToPressure, calculateGFAtDepth, findFirstStop
+  calculateMValueAtPressure, depthToPressure, pressureToDepth, calculateGFAtDepth, findFirstStop,
+  calculateCeilingWithGF
 } from '@/services/divePlanner';
 import { calculateGasDensity } from '@/services/gasMath';
 import { CYLINDER_PRESETS_LEGACY as CYLINDER_PRESETS } from '@/services/cylinderCatalog';
@@ -554,22 +555,21 @@ export default function DivePlanningScreen() {
     const cnsAtTime = Math.round(currentResult.cns * progress);
     const otuAtTime = Math.round(currentResult.otu * progress);
     
-    // Calculate ceiling at this depth using proper GF interpolation
+    // Calculate ceiling at this depth using proper Bühlmann ZHL-16C formula with GF interpolation
     const firstStopDepth = findFirstStop(tissues, appliedSettings.gfLow, appliedSettings.decoStopInterval || 3, appliedSettings.waterType || 'salt');
     let ceilingDepth = 0;
     if (tissues.length > 0) {
-      const Pamb = depthToPressure(currentDepth, appliedSettings.waterType || 'salt');
-      let maxCeiling = 0;
+      const gf = calculateGFAtDepth(currentDepth, firstStopDepth, appliedSettings.gfLow, appliedSettings.gfHigh, appliedSettings.waterType || 'salt');
+      let maxCeilingPressure = 0;
       tissues.forEach((tissue, i) => {
-        const mValue = calculateMValueAtPressure(tissue, i, Pamb);
-        const gf = calculateGFAtDepth(currentDepth, firstStopDepth, appliedSettings.gfLow, appliedSettings.gfHigh, appliedSettings.waterType || 'salt');
-        const denominator = 1 - gf / 100;
-        if (Math.abs(denominator) > 0.001) {
-          const ceiling = (tissue.ppInert - Pamb * gf / 100) / denominator;
-          if (ceiling > maxCeiling) maxCeiling = ceiling;
+        // Use proper Bühlmann ceiling calculation with gradient factor
+        const ceilingPressure = calculateCeilingWithGF(tissue, i, gf);
+        if (ceilingPressure > maxCeilingPressure) {
+          maxCeilingPressure = ceilingPressure;
         }
       });
-      ceilingDepth = Math.max(0, (maxCeiling - 1) / (appliedSettings.waterType === 'fresh' ? 0.097 : 0.1));
+      // Convert pressure to depth using proper conversion
+      ceilingDepth = Math.max(0, pressureToDepth(maxCeilingPressure, appliedSettings.waterType || 'salt'));
     }
     
     // Calculate gas density at current depth
