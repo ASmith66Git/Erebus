@@ -2024,12 +2024,9 @@ export default function DivePlanningScreen() {
         {renderDiscreteSelector('Min Stop Time', ps.minStopTime, [1, 2, 3], (v) => setPs({ minStopTime: v }), ' min')}
         <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Minimum stop time intervals</Text>
 
-        {renderSlider(`45..99% = ${ps.ppo2High}`, ps.ppo2High, 1.4, 1.6, 0.1,
-          (v) => setPs({ ppo2High: Math.round(v * 10) / 10 }), '')}
-        {renderSlider(`28..45% = ${ps.ppo2Medium}`, ps.ppo2Medium, 1.3, 1.6, 0.1,
-          (v) => setPs({ ppo2Medium: Math.round(v * 10) / 10 }), '')}
-        {renderSlider(`up to 28% = ${ps.ppo2Low}`, ps.ppo2Low, 1.2, 1.6, 0.1,
-          (v) => setPs({ ppo2Low: Math.round(v * 10) / 10 }), '')}
+        {renderDiscreteSelector('PPO2 (45-99% O2)', ps.ppo2High, [1.4, 1.5, 1.6], (v) => setPs({ ppo2High: v }), '')}
+        {renderDiscreteSelector('PPO2 (28-45% O2)', ps.ppo2Medium, [1.3, 1.4, 1.5, 1.6], (v) => setPs({ ppo2Medium: v }), '')}
+        {renderDiscreteSelector('PPO2 (up to 28% O2)', ps.ppo2Low, [1.2, 1.3, 1.4, 1.5, 1.6], (v) => setPs({ ppo2Low: v }), '')}
         <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Deco mix switch depth - ppO2 threshold</Text>
 
         {renderDiscreteSelector('Max 100% O2 Depth', ps.maxO2Depth, [3, 6, 9], (v) => setPs({ maxO2Depth: v }), depthUnit)}
