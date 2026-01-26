@@ -2,8 +2,8 @@ module.exports = {
   expo: {
     name: "Erebus",
     slug: "erebus-dive-app",
-    version: "1.1.36",
-    runtimeVersion: "1.1.36",
+    version: "1.1.37",
+    runtimeVersion: "1.1.37",
     orientation: "default",
     icon: "./assets/images/icon.png",
     scheme: "myapp",
@@ -12,7 +12,7 @@ module.exports = {
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.erebus.diveapp",
-      buildNumber: "43",
+      buildNumber: "44",
       infoPlist: {
         NSBluetoothAlwaysUsageDescription: "Erebus needs Bluetooth access to connect to your dive computer and download dive logs.",
         NSBluetoothPeripheralUsageDescription: "Erebus needs Bluetooth access to connect to your dive computer."
@@ -22,7 +22,7 @@ module.exports = {
       }
     },
     android: {
-      versionCode: 43,
+      versionCode: 44,
       adaptiveIcon: {
         foregroundImage: "./assets/images/adaptive-icon.png",
         backgroundColor: "#000000"
