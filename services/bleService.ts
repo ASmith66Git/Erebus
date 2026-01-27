@@ -198,44 +198,47 @@ class BleService {
       this.manager.stopDeviceScan();
       bleLog('CONNECT', `Connecting to ${deviceId}...`);
       
+      // Verbatim libdc: Standard connection with long timeout
       let device = await this.manager.connectToDevice(deviceId, { timeout: 15000 });
       
-      // Step 1: Force Discovery & MTU negotiation
+      // Initial Interrogation
       await device.discoverAllServicesAndCharacteristics();
       await device.requestMTU(512);
 
-      // Step 2: Mandatory Settling (Mimics C-code hardware delay)
-      bleLog('STABILIZE', 'Waiting 3000ms for GATT warm-up...');
+      // Mandatory Subsurface-style stabilization window
       await new Promise(resolve => setTimeout(resolve, 3000));
 
-      // Step 3: Blocking Interrogation Loop
-      // We poll and wait, effectively stopping the app until the door is found
       let charFound = false;
       for (let i = 0; i < 5; i++) {
+        bleLog('DISCOVER', `Polling attempt ${i + 1}/5...`);
+        
         const services = await device.services();
-        const s = services.find((s: any) => s.uuid.toLowerCase() === SHEARWATER_SERVICE_UUID);
+        const s = services.find((serv: any) => serv.uuid.toLowerCase() === SHEARWATER_SERVICE_UUID.toLowerCase());
+        
         if (s) {
           const chars = await s.characteristics();
-          if (chars.some((c: any) => c.uuid.toLowerCase() === SHEARWATER_WRITE_CHAR)) {
+          // LOG EVERY CHAR FOUND TO FIND THE DISCREPANCY
+          chars.forEach((c: any) => bleLog('DEBUG_CHAR', `UUID: ${c.uuid}`));
+          
+          if (chars.some((c: any) => c.uuid.toLowerCase() === SHEARWATER_WRITE_CHAR.toLowerCase())) {
             charFound = true;
             break;
           }
         }
-        bleLog('RECOVERY', `Attempt ${i+1}: Still not visible. Forcing discovery...`);
+
+        bleLog('RECOVERY', 'Characteristic still missing. Re-discovering...');
         await device.discoverAllServicesAndCharacteristics();
-        await new Promise(r => setTimeout(r, 2000));
+        await new Promise(resolve => setTimeout(resolve, 2000));
       }
 
       if (!charFound) throw new Error("GATT Table Failed to populate (Cache Lock)");
 
       this.connectedDevice = device;
-
-      // Step 4: The Verbatim Handshake Transaction
-      // This line WILL NOT finish until the Perdix sends 0x75 back
-      bleLog('HANDSHAKE', 'Starting transactional handshake (0x35)...');
-      await this.executeUDSCommand(UDS.REQUEST_DOWNLOAD, [], '75');
       
-      bleLog('SUCCESS', 'UDS Session established via Stop-and-Wait.');
+      // TRANSACTIONAL HANDSHAKE: Forces the app to wait for the 0x75 ACK
+      bleLog('HANDSHAKE', 'Starting transactional 0x35 handshake...');
+      await this.executeUDSCommand(0x35, [], '75');
+      
       return true;
     } catch (e: any) {
       bleLog('ERROR', e.message);
