@@ -23,7 +23,7 @@
         "buildType": "apk"
       },
       "cache": {
-        "key": "force-rebuild-v5"
+        "key": "force-rebuild-v6"
       },
       "env": {
         "EXPO_PUBLIC_API_URL": "https://expo-erebus--anthony606.replit.app"
