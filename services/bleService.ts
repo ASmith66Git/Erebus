@@ -138,7 +138,60 @@ class BleService {
   }
 
   /**
-   * Main connection sequence mimicking Subsurface/libdivecomputer stability
+   * TRANSACTIONAL COMMAND (Verbatim Stop-and-Wait)
+   * This forces the JS thread to 'block' until the hardware responds.
+   */
+  async executeUDSCommand(command: number, payload: number[] = [], expectedAckHex: string): Promise<Buffer> {
+    return new Promise(async (resolve, reject) => {
+      let resolved = false;
+
+      // 1. Setup the 'Ear' (Listener) FIRST so we don't miss the ACK
+      const subscription = this.connectedDevice.monitorCharacteristicForService(
+        SHEARWATER_SERVICE_UUID,
+        SHEARWATER_NOTIFY_CHAR,
+        (error: any, char: any) => {
+          if (error || resolved) return;
+          
+          const data = Buffer.from(char.value, 'base64');
+          const hex = data.toString('hex');
+          
+          // Verbatim: Check for the SID + 0x40 ACK (e.g., 0x35 -> 0x75)
+          if (hex.includes(expectedAckHex)) {
+            bleLog('RX', `Verified ACK 0x${expectedAckHex} received.`);
+            resolved = true;
+            subscription.remove();
+            resolve(data); // This releases the 'await' in the calling function
+          }
+        }
+      );
+
+      // 2. Send the 'Voice' (Command)
+      try {
+        const frame = this.wrapUDSCommand(command, payload);
+        bleLog('TX', `Sending 0x${command.toString(16)}...`);
+        
+        await this.connectedDevice.writeCharacteristicWithoutResponseForService(
+          SHEARWATER_SERVICE_UUID,
+          SHEARWATER_WRITE_CHAR,
+          frame
+        );
+      } catch (e) {
+        subscription.remove();
+        reject(e);
+      }
+
+      // 3. Verbatim Timeout (Matching Subsurface 10s BLE window)
+      setTimeout(() => {
+        if (!resolved) {
+          subscription.remove();
+          reject(new Error(`Stop-and-Wait Timeout for cmd 0x${command.toString(16)}`));
+        }
+      }, 10000);
+    });
+  }
+
+  /**
+   * Main connection sequence with Synchronous Simulation
    */
   async connectAndEstablishSession(deviceId: string): Promise<boolean> {
     try {
@@ -147,101 +200,47 @@ class BleService {
       
       let device = await this.manager.connectToDevice(deviceId, { timeout: 15000 });
       
-      // Step 1: Initial Discovery + MTU negotiation
+      // Step 1: Force Discovery & MTU negotiation
       await device.discoverAllServicesAndCharacteristics();
       await device.requestMTU(512);
 
-      // Step 2: Mandatory Subsurface-style GATT stabilization
+      // Step 2: Mandatory Settling (Mimics C-code hardware delay)
       bleLog('STABILIZE', 'Waiting 3000ms for GATT warm-up...');
       await new Promise(resolve => setTimeout(resolve, 3000));
 
-      // Step 3: Explicit Interrogation Loop (3 attempts)
+      // Step 3: Blocking Interrogation Loop
+      // We poll and wait, effectively stopping the app until the door is found
       let charFound = false;
-      for (let i = 0; i < 3; i++) {
-        bleLog('DISCOVER', `Verification attempt ${i + 1}/3...`);
-        
+      for (let i = 0; i < 5; i++) {
         const services = await device.services();
-        const service = services.find((s: any) => 
-          s.uuid.toLowerCase() === SHEARWATER_SERVICE_UUID.toLowerCase()
-        );
-        
-        if (service) {
-          const chars = await service.characteristics();
-          if (chars.some((c: any) => c.uuid.toLowerCase() === SHEARWATER_WRITE_CHAR.toLowerCase())) {
+        const s = services.find((s: any) => s.uuid.toLowerCase() === SHEARWATER_SERVICE_UUID);
+        if (s) {
+          const chars = await s.characteristics();
+          if (chars.some((c: any) => c.uuid.toLowerCase() === SHEARWATER_WRITE_CHAR)) {
             charFound = true;
             break;
           }
         }
-
-        // Recovery: Re-discover with delay
-        bleLog('RECOVERY', `Attempt ${i + 1}: Char missing, re-discovering...`);
+        bleLog('RECOVERY', `Attempt ${i+1}: Still not visible. Forcing discovery...`);
         await device.discoverAllServicesAndCharacteristics();
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        await new Promise(r => setTimeout(r, 2000));
       }
 
-      if (!charFound) {
-        throw new Error("UDS characteristic not visible after 3 attempts");
-      }
+      if (!charFound) throw new Error("GATT Table Failed to populate (Cache Lock)");
 
       this.connectedDevice = device;
-      return await this.performUDSHandshake();
+
+      // Step 4: The Verbatim Handshake Transaction
+      // This line WILL NOT finish until the Perdix sends 0x75 back
+      bleLog('HANDSHAKE', 'Starting transactional handshake (0x35)...');
+      await this.executeUDSCommand(UDS.REQUEST_DOWNLOAD, [], '75');
+      
+      bleLog('SUCCESS', 'UDS Session established via Stop-and-Wait.');
+      return true;
     } catch (e: any) {
       bleLog('ERROR', e.message);
       return false;
     }
-  }
-
-  private async performUDSHandshake(): Promise<boolean> {
-    return new Promise(async (resolve, reject) => {
-      let resolved = false;
-
-      // 1. Subscribe FIRST so we don't miss the ACK
-      bleLog('HANDSHAKE', 'Setting up listener on ...9f');
-      const subscription = this.connectedDevice.monitorCharacteristicForService(
-        SHEARWATER_SERVICE_UUID,
-        SHEARWATER_NOTIFY_CHAR,
-        (error: any, char: any) => {
-          if (error) {
-            bleLog('RX_ERR', error.message);
-            return;
-          }
-          const hex = Buffer.from(char.value, 'base64').toString('hex');
-          bleLog('RX', `Data: ${hex}`);
-
-          // Check for 0x75 ACK (Positive response to 0x35)
-          if (hex.includes('75')) {
-            bleLog('HANDSHAKE', 'Success! 0x75 ACK received.');
-            resolved = true;
-            subscription.remove();
-            resolve(true);
-          }
-        }
-      );
-
-      // 2. Send the 0x35 Session Init frame
-      try {
-        const handshakeFrame = this.wrapUDSCommand(UDS.REQUEST_DOWNLOAD);
-        bleLog('TX', 'Sending 0x35 Handshake');
-
-        // Standard libdc behavior: use writeWithoutResponse
-        await this.connectedDevice.writeCharacteristicWithoutResponseForService(
-          SHEARWATER_SERVICE_UUID,
-          SHEARWATER_WRITE_CHAR,
-          handshakeFrame
-        );
-      } catch (e) {
-        subscription.remove();
-        reject(e);
-      }
-
-      // 3. Handshake timeout (10s)
-      setTimeout(() => {
-        if (!resolved) {
-          subscription.remove();
-          reject(new Error('Handshake Timeout'));
-        }
-      }, 10000);
-    });
   }
 
   /**
