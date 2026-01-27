@@ -154,8 +154,9 @@ class BleService {
   /**
    * TRANSACTIONAL COMMAND (Verbatim Stop-and-Wait)
    * This forces the JS thread to 'block' until the hardware responds.
+   * Uses numeric expectedAck for cleaner byte comparison (e.g., 0x75 for 0x35 handshake)
    */
-  async executeUDSCommand(command: number, payload: number[] = [], expectedAckHex: string): Promise<Buffer> {
+  async executeUDSCommand(command: number, payload: number[] = [], expectedAck: number): Promise<Buffer> {
     return new Promise(async (resolve, reject) => {
       let resolved = false;
 
@@ -167,11 +168,10 @@ class BleService {
           if (error || resolved) return;
           
           const data = Buffer.from(char.value, 'base64');
-          const hex = data.toString('hex');
           
-          // Verbatim: Check for the SID + 0x40 ACK (e.g., 0x35 -> 0x75)
-          if (hex.includes(expectedAckHex)) {
-            bleLog('RX', `ACK 0x${expectedAckHex} received.`);
+          // Check for SID + 0x40 ACK at byte position 4 (after FF 01 LEN 00)
+          if (data[4] === expectedAck) {
+            bleLog('RX', `ACK 0x${expectedAck.toString(16)} received (${data.length} bytes)`);
             resolved = true;
             subscription.remove();
             resolve(data);
@@ -198,7 +198,7 @@ class BleService {
       setTimeout(() => {
         if (!resolved) {
           subscription.remove();
-          reject(new Error(`Timeout for 0x${command.toString(16)}`));
+          reject(new Error(`Timeout waiting for ACK 0x${expectedAck.toString(16)}`));
         }
       }, 10000);
     });
@@ -263,7 +263,7 @@ class BleService {
       
       // TRANSACTIONAL HANDSHAKE: Forces the app to wait for the 0x75 ACK
       bleLog('HANDSHAKE', 'Starting transactional 0x35 handshake...');
-      await this.executeUDSCommand(0x35, [], '75');
+      await this.executeUDSCommand(0x35, [], UDS.HANDSHAKE_ACK);
       
       bleLog('SUCCESS', 'Session established.');
       return true;
@@ -298,7 +298,7 @@ class BleService {
    */
   async getLogManifest(): Promise<any> {
     bleLog('MANIFEST', 'Requesting dive list (0x22)...');
-    const data = await this.executeUDSCommand(0x22, [0x80, 0x20], '62');
+    const data = await this.executeUDSCommand(0x22, [0x80, 0x20], UDS.READ_ACK);
     return {
       diveCount: data.readUInt16BE(7),
       latestId: data.readUInt16BE(9),
