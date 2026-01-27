@@ -2441,8 +2441,8 @@ export default function DivePlanningScreen() {
   );
 
   const handleExportPdf = async () => {
-    // PDF export works on web and iOS, but not Android (latin1 encoding crash)
-    if (Platform.OS === 'android') return;
+    // PDF export only works on web - jsPDF requires DOM APIs not available on native
+    if (Platform.OS !== 'web') return;
     try {
       if (!currentResult || currentResult.segments.length === 0) {
         console.warn('No dive plan to export');
@@ -2488,7 +2488,7 @@ export default function DivePlanningScreen() {
       <PageHeader 
         title="Dive Planning" 
         rightAction={
-          Platform.OS !== 'android' && currentResult ? (
+          Platform.OS === 'web' && currentResult ? (
             <Pressable onPress={handleExportPdf} style={{ padding: 8 }}>
               <Feather name="download" size={22} color={colors.text} />
             </Pressable>
