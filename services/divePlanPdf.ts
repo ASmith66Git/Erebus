@@ -1,8 +1,12 @@
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
+// Web-only imports - these are dynamically imported on web platform only
+// DO NOT import jsPDF at top level - it crashes on native platforms
 import { Platform } from 'react-native';
 import { DivePlanResult, DivePlanSettings, GasMix, TissueState, calculateMValueAtPressure, depthToPressure } from './divePlanner';
 import { calculateGasDensity } from './gasMath';
+
+// Type-only import for TypeScript (doesn't generate runtime code)
+type jsPDFType = any;
+type autoTableType = any;
 
 interface DivePlanPdfInput {
   result: DivePlanResult;
@@ -77,7 +81,7 @@ const OTU_LINE_COLOR: [number, number, number] = [175, 82, 222]; // Purple #AF52
 const DENSITY_LINE_COLOR: [number, number, number] = [52, 199, 89]; // Green
 
 function drawDiveProfileWithMetrics(
-  doc: jsPDF, 
+  doc: any, 
   result: DivePlanResult, 
   settings: DivePlanSettings,
   x: number, 
@@ -369,7 +373,7 @@ function drawDiveProfileWithMetrics(
   return currentY - y;
 }
 
-export function generateDivePlanPdf(input: DivePlanPdfInput): { doc: jsPDF; filename: string } {
+function generateDivePlanPdfWeb(input: DivePlanPdfInput, jsPDF: any, autoTable: any): { doc: any; filename: string } {
   const { result, settings, depth, bottomTime, gases, userName, themeColor } = input;
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   
@@ -541,7 +545,7 @@ export function generateDivePlanPdf(input: DivePlanPdfInput): { doc: jsPDF; file
         8: { cellWidth: 14 },
         9: { cellWidth: 14 }
       },
-      didParseCell: function(data) {
+      didParseCell: function(data: any) {
         if (data.column.index === 5 && data.section === 'body') {
           const po2Val = parseFloat(data.cell.raw as string);
           if (po2Val > 1.6) {
@@ -637,7 +641,7 @@ export function generateDivePlanPdf(input: DivePlanPdfInput): { doc: jsPDF; file
       margin: { left: margin, right: margin },
       headStyles: { fillColor: themeRgb, fontSize: 9 },
       styles: { fontSize: 8, cellPadding: 2 },
-      didParseCell: function(data) {
+      didParseCell: function(data: any) {
         if (data.column.index === 5 && data.section === 'body') {
           const value = data.cell.raw as string;
           if (value === 'LOW') {
@@ -828,9 +832,17 @@ export async function downloadDivePlanPdf(input: DivePlanPdfInput): Promise<void
   
   try {
     if (Platform.OS === 'web') {
-      const { doc } = generateDivePlanPdf(input);
+      // Dynamic import jsPDF only on web to avoid crashes on native
+      const jsPDFModule = await import('jspdf');
+      const autoTableModule = await import('jspdf-autotable');
+      const jsPDF = jsPDFModule.default;
+      const autoTable = autoTableModule.default;
+      
+      // Generate PDF using dynamically imported jsPDF
+      const { doc } = generateDivePlanPdfWeb(input, jsPDF, autoTable);
       doc.save(filename + '.pdf');
     } else {
+      // Native platforms use HTML-to-PDF
       const RNHTMLtoPDF = require('react-native-html-to-pdf').default;
       const Sharing = require('expo-sharing');
       
