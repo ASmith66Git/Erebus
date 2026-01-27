@@ -843,7 +843,7 @@ export async function downloadDivePlanPdf(input: DivePlanPdfInput): Promise<void
       doc.save(filename + '.pdf');
     } else {
       // Native platforms use HTML-to-PDF
-      const RNHTMLtoPDF = require('react-native-html-to-pdf').default;
+      const { generatePDF } = require('react-native-html-to-pdf');
       const Sharing = require('expo-sharing');
       
       const html = generateNativeHtml(input);
@@ -854,7 +854,7 @@ export async function downloadDivePlanPdf(input: DivePlanPdfInput): Promise<void
         directory: 'Documents',
       };
       
-      const file = await RNHTMLtoPDF.convert(options);
+      const file = await generatePDF(options);
       
       if (file.filePath && await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync('file://' + file.filePath, {
