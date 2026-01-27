@@ -236,15 +236,18 @@ class BleService {
 
           if (isStandard || isVendor) {
             this.activeService = uuid;
-            this.activeWrite = isStandard ? UUID_RANGES.STANDARD.WRITE : UUID_RANGES.VENDOR.WRITE;
-            this.activeNotify = isStandard ? UUID_RANGES.STANDARD.NOTIFY : UUID_RANGES.VENDOR.NOTIFY;
-            
-            // Check if characteristic exists in this service
             const chars = await s.characteristics();
-            chars.forEach((c: any) => bleLog('DEBUG_CHAR', `UUID: ${c.uuid}`));
             
-            if (chars.some((c: any) => c.uuid.toLowerCase() === this.activeWrite.toLowerCase())) {
-              bleLog('AUTO_DETECT', `Mapped to ${isStandard ? 'Standard' : 'Vendor'} range.`);
+            // Find characteristics by what they DO, not just their UUIDs
+            const writeChar = chars.find((c: any) => c.isWritableWithoutResponse || c.isWritableWithResponse);
+            const notifyChar = chars.find((c: any) => c.isNotifiable || c.isIndicatable);
+            
+            chars.forEach((c: any) => bleLog('DEBUG_CHAR', `UUID: ${c.uuid.slice(-4)} W:${c.isWritableWithoutResponse || c.isWritableWithResponse} N:${c.isNotifiable || c.isIndicatable}`));
+
+            if (writeChar && notifyChar) {
+              this.activeWrite = writeChar.uuid;
+              this.activeNotify = notifyChar.uuid;
+              bleLog('AUTO_DETECT', `Found Write: ${this.activeWrite.slice(-4)}, Notify: ${this.activeNotify.slice(-4)}`);
               foundRange = true;
               break;
             }
