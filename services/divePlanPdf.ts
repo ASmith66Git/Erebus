@@ -1,5 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { Platform } from 'react-native';
 import { DivePlanResult, DivePlanSettings, GasMix, TissueState, calculateMValueAtPressure, depthToPressure } from './divePlanner';
 import { calculateGasDensity } from './gasMath';
 
@@ -368,7 +369,7 @@ function drawDiveProfileWithMetrics(
   return currentY - y;
 }
 
-export function generateDivePlanPdf(input: DivePlanPdfInput): void {
+export function generateDivePlanPdf(input: DivePlanPdfInput): { doc: jsPDF; filename: string } {
   const { result, settings, depth, bottomTime, gases, userName, themeColor } = input;
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   
@@ -697,12 +698,34 @@ export function generateDivePlanPdf(input: DivePlanPdfInput): void {
   doc.text('Erebus Dive Planner', pageWidth - margin, pageHeight - 10, { align: 'right' });
   
   const filename = `dive-plan-${depth}${depthUnit}-${bottomTime}min-${new Date().toISOString().split('T')[0]}.pdf`;
-  doc.save(filename);
+  
+  return { doc, filename };
 }
 
-export function downloadDivePlanPdf(input: DivePlanPdfInput): void {
+export async function downloadDivePlanPdf(input: DivePlanPdfInput): Promise<void> {
   try {
-    generateDivePlanPdf(input);
+    const { doc, filename } = generateDivePlanPdf(input);
+    
+    if (Platform.OS === 'web') {
+      doc.save(filename);
+    } else {
+      const FileSystem = require('expo-file-system');
+      const Sharing = require('expo-sharing');
+      
+      const base64 = doc.output('datauristring').split(',')[1];
+      const fileUri = FileSystem.documentDirectory + filename;
+      
+      await FileSystem.writeAsStringAsync(fileUri, base64, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+      
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(fileUri, {
+          mimeType: 'application/pdf',
+          dialogTitle: 'Share Dive Plan',
+        });
+      }
+    }
   } catch (error) {
     console.error('Error generating PDF:', error);
     throw error;

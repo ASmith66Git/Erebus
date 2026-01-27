@@ -2466,7 +2466,7 @@ export default function DivePlanningScreen() {
       
       // Dynamic import to prevent jsPDF from loading on Android (causes latin1 encoding crash)
       const { downloadDivePlanPdf } = await import('@/services/divePlanPdf');
-      downloadDivePlanPdf({
+      await downloadDivePlanPdf({
         result: currentResult,
         settings: appliedSettings,
         depth: selectedDive.depth,
