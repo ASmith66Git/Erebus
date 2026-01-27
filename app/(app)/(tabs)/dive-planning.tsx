@@ -2441,8 +2441,7 @@ export default function DivePlanningScreen() {
   );
 
   const handleExportPdf = async () => {
-    // PDF export only works on web - jsPDF requires DOM APIs not available on native
-    if (Platform.OS !== 'web') return;
+    // PDF export: jsPDF for web, react-native-html-to-pdf for native
     try {
       if (!currentResult || currentResult.segments.length === 0) {
         console.warn('No dive plan to export');
@@ -2488,7 +2487,7 @@ export default function DivePlanningScreen() {
       <PageHeader 
         title="Dive Planning" 
         rightAction={
-          Platform.OS === 'web' && currentResult ? (
+          currentResult ? (
             <Pressable onPress={handleExportPdf} style={{ padding: 8 }}>
               <Feather name="download" size={22} color={colors.text} />
             </Pressable>
