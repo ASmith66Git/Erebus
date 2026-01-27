@@ -10,11 +10,20 @@ let BleManager: any = null;
 let bleManagerInstance: any = null;
 
 // ============================================================================
-// SHEARWATER PROTOCOL CONSTANTS (libdivecomputer standard)
+// MULTI-RANGE UUID CONFIGURATION (Handles Standard and Vendor-Specific)
 // ============================================================================
-const SHEARWATER_SERVICE_UUID = 'fe25c237-0ece-443c-b0aa-e02033e7029d';
-const SHEARWATER_WRITE_CHAR = 'fe25c237-0ece-443c-b0aa-e02033e7029e';
-const SHEARWATER_NOTIFY_CHAR = 'fe25c237-0ece-443c-b0aa-e02033e7029f';
+const UUID_RANGES = {
+  STANDARD: {
+    SERVICE: 'fe25c237-0ece-443c-b0aa-e02033e7029d',
+    WRITE:   'fe25c237-0ece-443c-b0aa-e02033e7029e',
+    NOTIFY:  'fe25c237-0ece-443c-b0aa-e02033e7029f'
+  },
+  VENDOR: {
+    SERVICE: '27b7570b-359e-45a3-91bb-cf7e70049bd2',
+    WRITE:   '27b7570b-359e-45a3-91bb-cf7e70049bd3',
+    NOTIFY:  '27b7570b-359e-45a3-91bb-cf7e70049bd4'
+  }
+};
 
 const UDS = {
   REQUEST_DOWNLOAD: 0x35, // Session Init
@@ -41,6 +50,11 @@ class BleService {
   private manager: any = null;
   private connectedDevice: any = null;
   private isInitialized: boolean = false;
+  
+  // Dynamic state for the current session
+  private activeService = '';
+  private activeWrite = '';
+  private activeNotify = '';
 
   async initialize(): Promise<boolean> {
     if (!BleManager) return false;
@@ -147,8 +161,8 @@ class BleService {
 
       // 1. Setup the 'Ear' (Listener) FIRST so we don't miss the ACK
       const subscription = this.connectedDevice.monitorCharacteristicForService(
-        SHEARWATER_SERVICE_UUID,
-        SHEARWATER_NOTIFY_CHAR,
+        this.activeService,
+        this.activeNotify,
         (error: any, char: any) => {
           if (error || resolved) return;
           
@@ -157,10 +171,10 @@ class BleService {
           
           // Verbatim: Check for the SID + 0x40 ACK (e.g., 0x35 -> 0x75)
           if (hex.includes(expectedAckHex)) {
-            bleLog('RX', `Verified ACK 0x${expectedAckHex} received.`);
+            bleLog('RX', `ACK 0x${expectedAckHex} received.`);
             resolved = true;
             subscription.remove();
-            resolve(data); // This releases the 'await' in the calling function
+            resolve(data);
           }
         }
       );
@@ -168,11 +182,11 @@ class BleService {
       // 2. Send the 'Voice' (Command)
       try {
         const frame = this.wrapUDSCommand(command, payload);
-        bleLog('TX', `Sending 0x${command.toString(16)}...`);
+        bleLog('TX', `Sending 0x${command.toString(16)} to ${this.activeWrite.slice(-4)}`);
         
         await this.connectedDevice.writeCharacteristicWithoutResponseForService(
-          SHEARWATER_SERVICE_UUID,
-          SHEARWATER_WRITE_CHAR,
+          this.activeService,
+          this.activeWrite,
           frame
         );
       } catch (e) {
@@ -184,14 +198,14 @@ class BleService {
       setTimeout(() => {
         if (!resolved) {
           subscription.remove();
-          reject(new Error(`Stop-and-Wait Timeout for cmd 0x${command.toString(16)}`));
+          reject(new Error(`Timeout for 0x${command.toString(16)}`));
         }
       }, 10000);
     });
   }
 
   /**
-   * Main connection sequence with Synchronous Simulation
+   * Main connection sequence with Synchronous Simulation & Auto-Detection
    */
   async connectAndEstablishSession(deviceId: string): Promise<boolean> {
     try {
@@ -206,32 +220,44 @@ class BleService {
       await device.requestMTU(512);
 
       // Mandatory Subsurface-style stabilization window
+      bleLog('STABILIZE', 'Waiting 3000ms for warm-up...');
       await new Promise(resolve => setTimeout(resolve, 3000));
 
-      let charFound = false;
+      // INTERROGATION & AUTO-DETECTION LOOP
+      let foundRange = false;
       for (let i = 0; i < 5; i++) {
         bleLog('DISCOVER', `Polling attempt ${i + 1}/5...`);
         
         const services = await device.services();
-        const s = services.find((serv: any) => serv.uuid.toLowerCase() === SHEARWATER_SERVICE_UUID.toLowerCase());
-        
-        if (s) {
-          const chars = await s.characteristics();
-          // LOG EVERY CHAR FOUND TO FIND THE DISCREPANCY
-          chars.forEach((c: any) => bleLog('DEBUG_CHAR', `UUID: ${c.uuid}`));
-          
-          if (chars.some((c: any) => c.uuid.toLowerCase() === SHEARWATER_WRITE_CHAR.toLowerCase())) {
-            charFound = true;
-            break;
+        for (const s of services) {
+          const uuid = s.uuid.toLowerCase();
+          const isStandard = uuid === UUID_RANGES.STANDARD.SERVICE.toLowerCase();
+          const isVendor = uuid === UUID_RANGES.VENDOR.SERVICE.toLowerCase();
+
+          if (isStandard || isVendor) {
+            this.activeService = uuid;
+            this.activeWrite = isStandard ? UUID_RANGES.STANDARD.WRITE : UUID_RANGES.VENDOR.WRITE;
+            this.activeNotify = isStandard ? UUID_RANGES.STANDARD.NOTIFY : UUID_RANGES.VENDOR.NOTIFY;
+            
+            // Check if characteristic exists in this service
+            const chars = await s.characteristics();
+            chars.forEach((c: any) => bleLog('DEBUG_CHAR', `UUID: ${c.uuid}`));
+            
+            if (chars.some((c: any) => c.uuid.toLowerCase() === this.activeWrite.toLowerCase())) {
+              bleLog('AUTO_DETECT', `Mapped to ${isStandard ? 'Standard' : 'Vendor'} range.`);
+              foundRange = true;
+              break;
+            }
           }
         }
-
-        bleLog('RECOVERY', 'Characteristic still missing. Re-discovering...');
+        if (foundRange) break;
+        
+        bleLog('RECOVERY', 'Range not found. Retrying discovery...');
         await device.discoverAllServicesAndCharacteristics();
         await new Promise(resolve => setTimeout(resolve, 2000));
       }
 
-      if (!charFound) throw new Error("GATT Table Failed to populate (Cache Lock)");
+      if (!foundRange) throw new Error("Could not detect Shearwater UDS range.");
 
       this.connectedDevice = device;
       
@@ -239,6 +265,7 @@ class BleService {
       bleLog('HANDSHAKE', 'Starting transactional 0x35 handshake...');
       await this.executeUDSCommand(0x35, [], '75');
       
+      bleLog('SUCCESS', 'Session established.');
       return true;
     } catch (e: any) {
       bleLog('ERROR', e.message);
@@ -250,18 +277,18 @@ class BleService {
    * Dynamic Write Logic to satisfy iOS GATT permissions
    */
   private async safeWrite(charUUID: string, base64Data: string) {
-    const characteristics = await this.connectedDevice.characteristicsForService(SHEARWATER_SERVICE_UUID);
+    const characteristics = await this.connectedDevice.characteristicsForService(this.activeService);
     const char = characteristics.find((c: any) => c.uuid.toLowerCase() === charUUID.toLowerCase());
 
     if (!char) throw new Error(`Characteristic ${charUUID} not found`);
 
     if (char.isWritableWithoutResponse) {
       return await this.connectedDevice.writeCharacteristicWithoutResponseForService(
-        SHEARWATER_SERVICE_UUID, charUUID, base64Data
+        this.activeService, charUUID, base64Data
       );
     } else {
       return await this.connectedDevice.writeCharacteristicWithResponseForService(
-        SHEARWATER_SERVICE_UUID, charUUID, base64Data
+        this.activeService, charUUID, base64Data
       );
     }
   }
@@ -270,29 +297,13 @@ class BleService {
    * UDS Read Data (0x22) - Request Log Manifest
    */
   async getLogManifest(): Promise<any> {
-    return new Promise(async (resolve, reject) => {
-      const subscription = this.connectedDevice.monitorCharacteristicForService(
-        SHEARWATER_SERVICE_UUID,
-        SHEARWATER_NOTIFY_CHAR,
-        (error: any, char: any) => {
-          if (error) return;
-          const data = Buffer.from(char.value, 'base64');
-
-          // Look for 0x62 ACK (Positive response to 0x22)
-          if (data[4] === UDS.READ_ACK) {
-            subscription.remove();
-            resolve({
-              diveCount: data.readUInt16BE(7),
-              latestDiveId: data.readUInt16BE(9),
-              oldestDiveId: data.readUInt16BE(11)
-            });
-          }
-        }
-      );
-
-      const frame = this.wrapUDSCommand(UDS.READ_DATA, [0x80, 0x20]);
-      await this.safeWrite(SHEARWATER_WRITE_CHAR, frame);
-    });
+    bleLog('MANIFEST', 'Requesting dive list (0x22)...');
+    const data = await this.executeUDSCommand(0x22, [0x80, 0x20], '62');
+    return {
+      diveCount: data.readUInt16BE(7),
+      latestId: data.readUInt16BE(9),
+      oldestId: data.readUInt16BE(11)
+    };
   }
 
   async disconnect() {

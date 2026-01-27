@@ -1,0 +1,157 @@
+import { Platform } from 'react-native';
+import { Buffer } from 'buffer';
+
+if (typeof global.Buffer === 'undefined') { (global as any).Buffer = Buffer; }
+
+let BleManager: any = null;
+let bleManagerInstance: any = null;
+
+// ============================================================================
+// MULTI-RANGE UUID CONFIGURATION (Handles Standard and Vendor-Specific)
+// ============================================================================
+const UUID_RANGES = {
+  STANDARD: {
+    SERVICE: 'fe25c237-0ece-443c-b0aa-e02033e7029d',
+    WRITE:   'fe25c237-0ece-443c-b0aa-e02033e7029e',
+    NOTIFY:  'fe25c237-0ece-443c-b0aa-e02033e7029f'
+  },
+  VENDOR: {
+    [cite_start]SERVICE: '27b7570b-359e-45a3-91bb-cf7e70049bd2', // Found in your DEBUG logs [cite: 62, 64]
+    WRITE:   '27b7570b-359e-45a3-91bb-cf7e70049bd3', // Increment inferred from standard
+    NOTIFY:  '27b7570b-359e-45a3-91bb-cf7e70049bd4'
+  }
+};
+
+const bleLog = (category: string, message: string) => {
+  const timestamp = new Date().toISOString().split('T')[1].replace('Z', '');
+  console.warn(`[BLE ${timestamp}] [${category}] ${message}`);
+};
+
+if (Platform.OS !== 'web') {
+  try { BleManager = require('react-native-ble-plx').BleManager; } catch (e) { console.warn('BLE not available'); }
+}
+
+class BleService {
+  private manager: any = null;
+  private connectedDevice: any = null;
+  
+  // Dynamic state for the current session
+  private activeService = '';
+  private activeWrite = '';
+  private activeNotify = '';
+
+  async initialize(): Promise<boolean> {
+    if (!BleManager) return false;
+    if (!bleManagerInstance) bleManagerInstance = new BleManager();
+    this.manager = bleManagerInstance;
+    return true;
+  }
+
+  public wrapUDSCommand(command: number, payload: number[] = []): string {
+    const header = [0xFF, 0x01];
+    let frame = (command === 0x35) 
+      ? [...header, 0x0B, 0x00, 0x35, 0x00, 0x34, 0, 0, 0, 0, 0, 0, 1, 0xC0]
+      : [...header, payload.length + 1, 0x00, command, ...payload, 0xC0];
+    return Buffer.from(frame).toString('base64');
+  }
+
+  /**
+   * TRANSACTIONAL COMMAND (Verbatim Stop-and-Wait)
+   */
+  async executeUDSCommand(command: number, payload: number[] = [], expectedAckHex: string): Promise<Buffer> {
+    return new Promise(async (resolve, reject) => {
+      let resolved = false;
+
+      const sub = this.connectedDevice.monitorCharacteristicForService(
+        this.activeService, this.activeNotify, (err: any, char: any) => {
+          if (err || resolved) return;
+          const data = Buffer.from(char.value, 'base64');
+          if (data.toString('hex').includes(expectedAckHex)) {
+            bleLog('RX', `ACK 0x${expectedAckHex} received.`);
+            resolved = true; sub.remove(); resolve(data);
+          }
+        }
+      );
+
+      try {
+        const frame = this.wrapUDSCommand(command, payload);
+        bleLog('TX', `Sending 0x${command.toString(16)} to ${this.activeWrite.slice(-4)}`);
+        await this.connectedDevice.writeCharacteristicWithoutResponseForService(
+          this.activeService, this.activeWrite, frame
+        );
+      } catch (e) { sub.remove(); reject(e); }
+
+      setTimeout(() => {
+        if (!resolved) { sub.remove(); reject(new Error(`Timeout for 0x${command.toString(16)}`)); }
+      }, 10000);
+    });
+  }
+
+  async connectAndEstablishSession(deviceId: string): Promise<boolean> {
+    try {
+      this.manager.stopDeviceScan();
+      bleLog('CONNECT', `Connecting to ${deviceId}...`);
+      
+      let device = await this.manager.connectToDevice(deviceId, { timeout: 15000 });
+      await device.discoverAllServicesAndCharacteristics();
+      await device.requestMTU(512);
+
+      bleLog('STABILIZE', 'Waiting 3000ms for warm-up...');
+      await new Promise(r => setTimeout(r, 3000));
+
+      // INTERROGATION & AUTO-DETECTION LOOP
+      let foundRange = false;
+      for (let i = 0; i < 5; i++) {
+        const services = await device.services();
+        for (const s of services) {
+          const uuid = s.uuid.toLowerCase();
+          const isStandard = uuid === UUID_RANGES.STANDARD.SERVICE;
+          const isVendor = uuid === UUID_RANGES.VENDOR.SERVICE;
+
+          if (isStandard || isVendor) {
+            this.activeService = uuid;
+            this.activeWrite = isStandard ? UUID_RANGES.STANDARD.WRITE : UUID_RANGES.VENDOR.WRITE;
+            this.activeNotify = isStandard ? UUID_RANGES.STANDARD.NOTIFY : UUID_RANGES.VENDOR.NOTIFY;
+            
+            // Check if characteristic exists in this service
+            const chars = await s.characteristics();
+            if (chars.some((c: any) => c.uuid.toLowerCase() === this.activeWrite.toLowerCase())) {
+              bleLog('AUTO_DETECT', `Mapped to ${isStandard ? 'Standard' : 'Vendor'} range.`);
+              foundRange = true; break;
+            }
+          }
+        }
+        if (foundRange) break;
+        bleLog('RECOVERY', `Attempt ${i+1}: Retrying discovery...`);
+        await device.discoverAllServicesAndCharacteristics();
+        await new Promise(r => setTimeout(r, 2000));
+      }
+
+      if (!foundRange) throw new Error("Could not detect Shearwater UDS range.");
+
+      this.connectedDevice = device;
+
+      // TRANSACTIONAL HANDSHAKE (Verbatim Stop-and-Wait)
+      bleLog('HANDSHAKE', 'Starting transactional 0x35 handshake...');
+      await this.executeUDSCommand(0x35, [], '75');
+      
+      bleLog('SUCCESS', 'Session established.');
+      return true;
+    } catch (e: any) {
+      bleLog('ERROR', e.message);
+      return false;
+    }
+  }
+
+  async getLogManifest() {
+    bleLog('MANIFEST', 'Requesting dive list (0x22)...');
+    const data = await this.executeUDSCommand(0x22, [0x80, 0x20], '62');
+    return {
+      diveCount: data.readUInt16BE(7),
+      latestId: data.readUInt16BE(9)
+    };
+  }
+}
+
+export const bleService = new BleService();
+export default bleService;
