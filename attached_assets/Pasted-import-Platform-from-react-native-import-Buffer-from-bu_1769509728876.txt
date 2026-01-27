@@ -1,0 +1,111 @@
+import { Platform } from 'react-native';
+import { Buffer } from 'buffer';
+
+if (typeof global.Buffer === 'undefined') { (global as any).Buffer = Buffer; }
+
+let BleManager: any = null;
+let bleManagerInstance: any = null;
+
+const SHEARWATER_SERVICE_UUID = 'fe25c237-0ece-443c-b0aa-e02033e7029d';
+const SHEARWATER_WRITE_CHAR = 'fe25c237-0ece-443c-b0aa-e02033e7029e';
+const SHEARWATER_NOTIFY_CHAR = 'fe25c237-0ece-443c-b0aa-e02033e7029f';
+
+const bleLog = (category: string, message: string) => {
+  console.warn(`[BLE ${new Date().toISOString().split('T')[1]}] [${category}] ${message}`);
+};
+
+if (Platform.OS !== 'web') {
+  try { BleManager = require('react-native-ble-plx').BleManager; } catch (e) { console.warn('BLE not available'); }
+}
+
+class BleService {
+  private manager: any = null;
+  private connectedDevice: any = null;
+
+  async initialize(): Promise<boolean> {
+    if (!BleManager) return false;
+    if (!bleManagerInstance) bleManagerInstance = new BleManager();
+    this.manager = bleManagerInstance;
+    return true;
+  }
+
+  public wrapUDSCommand(command: number, payload: number[] = []): string {
+    const header = [0xFF, 0x01];
+    let frame = (command === 0x35) 
+      ? [...header, 0x0B, 0x00, 0x35, 0x00, 0x34, 0, 0, 0, 0, 0, 0, 1, 0xC0]
+      : [...header, payload.length + 1, 0x00, command, ...payload, 0xC0];
+    return Buffer.from(frame).toString('base64');
+  }
+
+  async connectAndEstablishSession(deviceId: string): Promise<boolean> {
+    try {
+      this.manager.stopDeviceScan();
+      bleLog('CONNECT', `Connecting to ${deviceId}...`);
+      let device = await this.manager.connectToDevice(deviceId, { timeout: 15000 });
+      
+      // Step 1: Initial Discovery + MTU
+      await device.discoverAllServicesAndCharacteristics();
+      await device.requestMTU(512);
+
+      // Step 2: Mandatory Subsurface-style stabilization
+      bleLog('STABILIZE', 'Waiting 3000ms for GATT warm-up...');
+      await new Promise(resolve => setTimeout(resolve, 3000));
+
+      // Step 3: Explicit Interrogation Loop
+      let charFound = false;
+      for (let i = 0; i < 3; i++) {
+        bleLog('DISCOVER', `Verification attempt ${i + 1}/3...`);
+        const services = await device.services();
+        const service = services.find((s: any) => s.uuid.toLowerCase() === SHEARWATER_SERVICE_UUID);
+        
+        if (service) {
+          const chars = await service.characteristics();
+          if (chars.some((c: any) => c.uuid.toLowerCase() === SHEARWATER_WRITE_CHAR)) {
+            charFound = true;
+            break;
+          }
+        }
+        
+        bleLog('RECOVERY', `Attempt ${i+1}: Char missing, re-discovering...`);
+        await device.discoverAllServicesAndCharacteristics();
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+
+      if (!charFound) throw new Error("UDS characteristic not visible");
+
+      this.connectedDevice = device;
+      return await this.performUDSHandshake();
+    } catch (e: any) {
+      bleLog('ERROR', e.message);
+      return false;
+    }
+  }
+
+  private async performUDSHandshake(): Promise<boolean> {
+    return new Promise(async (resolve, reject) => {
+      let resolved = false;
+      const sub = this.connectedDevice.monitorCharacteristicForService(
+        SHEARWATER_SERVICE_UUID, SHEARWATER_NOTIFY_CHAR, (err: any, char: any) => {
+          if (err) return;
+          if (Buffer.from(char.value, 'base64').toString('hex').includes('75')) {
+            bleLog('HANDSHAKE', 'Success! 0x75 ACK received.');
+            resolved = true; sub.remove(); resolve(true);
+          }
+        }
+      );
+
+      try {
+        const frame = this.wrapUDSCommand(0x35);
+        // Standard libdc behavior: try writeWithoutResponse first
+        await this.connectedDevice.writeCharacteristicWithoutResponseForService(
+          SHEARWATER_SERVICE_UUID, SHEARWATER_WRITE_CHAR, frame
+        );
+      } catch (e) { sub.remove(); reject(e); }
+
+      setTimeout(() => { if (!resolved) { sub.remove(); reject(new Error('Handshake Timeout')); } }, 10000);
+    });
+  }
+}
+
+export const bleService = new BleService();
+export default bleService;

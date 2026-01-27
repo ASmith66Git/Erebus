@@ -138,7 +138,7 @@ class BleService {
   }
 
   /**
-   * Main connection sequence mimicking Subsurface stability
+   * Main connection sequence mimicking Subsurface/libdivecomputer stability
    */
   async connectAndEstablishSession(deviceId: string): Promise<boolean> {
     try {
@@ -147,40 +147,41 @@ class BleService {
       
       let device = await this.manager.connectToDevice(deviceId, { timeout: 15000 });
       
-      // Initial Interrogation
+      // Step 1: Initial Discovery + MTU negotiation
       await device.discoverAllServicesAndCharacteristics();
       await device.requestMTU(512);
 
+      // Step 2: Mandatory Subsurface-style GATT stabilization
+      bleLog('STABILIZE', 'Waiting 3000ms for GATT warm-up...');
+      await new Promise(resolve => setTimeout(resolve, 3000));
+
+      // Step 3: Explicit Interrogation Loop (3 attempts)
       let charFound = false;
       for (let i = 0; i < 3; i++) {
         bleLog('DISCOVER', `Verification attempt ${i + 1}/3...`);
         
-        // Explicitly fetch all services to force the bridge to refresh
         const services = await device.services();
-        for (const service of services) {
-          if (service.uuid.toLowerCase() === SHEARWATER_SERVICE_UUID.toLowerCase()) {
-            const chars = await service.characteristics();
-            if (chars.some((c: any) => c.uuid.toLowerCase() === SHEARWATER_WRITE_CHAR.toLowerCase())) {
-              charFound = true;
-              break;
-            }
+        const service = services.find((s: any) => 
+          s.uuid.toLowerCase() === SHEARWATER_SERVICE_UUID.toLowerCase()
+        );
+        
+        if (service) {
+          const chars = await service.characteristics();
+          if (chars.some((c: any) => c.uuid.toLowerCase() === SHEARWATER_WRITE_CHAR.toLowerCase())) {
+            charFound = true;
+            break;
           }
         }
 
-        if (charFound) break;
-
-        // Verbatim Recovery: Nuclear Refresh
-        bleLog('RECOVERY', `Attempt ${i + 1}: Char missing, forcing GATT refresh...`);
-        await this.manager.cancelDeviceConnection(deviceId);
-        await new Promise(resolve => setTimeout(resolve, 3000));
-        
-        // Reconnect with explicit refreshGatt flag
-        device = await this.manager.connectToDevice(deviceId, { refreshGatt: true });
+        // Recovery: Re-discover with delay
+        bleLog('RECOVERY', `Attempt ${i + 1}: Char missing, re-discovering...`);
         await device.discoverAllServicesAndCharacteristics();
         await new Promise(resolve => setTimeout(resolve, 2000));
       }
 
-      if (!charFound) throw new Error("Verbatim Discovery Failed: Write characteristic not found");
+      if (!charFound) {
+        throw new Error("UDS characteristic not visible after 3 attempts");
+      }
 
       this.connectedDevice = device;
       return await this.performUDSHandshake();
@@ -209,7 +210,7 @@ class BleService {
 
           // Check for 0x75 ACK (Positive response to 0x35)
           if (hex.includes('75')) {
-            bleLog('HANDSHAKE', 'Success! Session initialized.');
+            bleLog('HANDSHAKE', 'Success! 0x75 ACK received.');
             resolved = true;
             subscription.remove();
             resolve(true);
@@ -222,20 +223,24 @@ class BleService {
         const handshakeFrame = this.wrapUDSCommand(UDS.REQUEST_DOWNLOAD);
         bleLog('TX', 'Sending 0x35 Handshake');
 
-        // Dynamic Write Selection: Fixes "Writing not permitted"
-        await this.safeWrite(SHEARWATER_WRITE_CHAR, handshakeFrame);
+        // Standard libdc behavior: use writeWithoutResponse
+        await this.connectedDevice.writeCharacteristicWithoutResponseForService(
+          SHEARWATER_SERVICE_UUID,
+          SHEARWATER_WRITE_CHAR,
+          handshakeFrame
+        );
       } catch (e) {
         subscription.remove();
         reject(e);
       }
 
-      // 3. Handshake timeout (Matching Subsurface 12s)
+      // 3. Handshake timeout (10s)
       setTimeout(() => {
         if (!resolved) {
           subscription.remove();
-          reject(new Error('UDS Handshake Timeout'));
+          reject(new Error('Handshake Timeout'));
         }
-      }, 12000);
+      }, 10000);
     });
   }
 
