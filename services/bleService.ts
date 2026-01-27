@@ -155,12 +155,13 @@ class BleService {
    * TRANSACTIONAL COMMAND (Verbatim Stop-and-Wait)
    * This forces the JS thread to 'block' until the hardware responds.
    * Uses numeric expectedAck for cleaner byte comparison (e.g., 0x75 for 0x35 handshake)
+   * Handles unified IDs where Write and Notify may share the same characteristic
    */
   async executeUDSCommand(command: number, payload: number[] = [], expectedAck: number): Promise<Buffer> {
     return new Promise(async (resolve, reject) => {
       let resolved = false;
 
-      // 1. Setup the 'Ear' (Listener) FIRST so we don't miss the ACK
+      // 1. Setup the listener FIRST so we don't miss the ACK
       const subscription = this.connectedDevice.monitorCharacteristicForService(
         this.activeService,
         this.activeNotify,
@@ -179,7 +180,11 @@ class BleService {
         }
       );
 
-      // 2. Send the 'Voice' (Command)
+      // 2. MANDATORY: Wait 500ms for the subscription to "settle"
+      // Since Write and Notify may share an ID, the radio needs a moment to switch modes
+      await new Promise(r => setTimeout(r, 500));
+
+      // 3. Send the command
       try {
         const frame = this.wrapUDSCommand(command, payload);
         bleLog('TX', `Sending 0x${command.toString(16)} to ${this.activeWrite.slice(-4)}`);
@@ -194,7 +199,7 @@ class BleService {
         reject(e);
       }
 
-      // 3. Verbatim Timeout (Matching Subsurface 10s BLE window)
+      // 4. Timeout (Matching Subsurface 10s BLE window)
       setTimeout(() => {
         if (!resolved) {
           subscription.remove();
