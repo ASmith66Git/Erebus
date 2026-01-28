@@ -616,7 +616,8 @@ export function calculateDecoSchedule(
   tissues: TissueState[],
   currentDepth: number,
   gases: GasMix[],
-  settings: DivePlanSettings
+  settings: DivePlanSettings,
+  originalFirstStopDepth?: number // Pass the original first stop for correct GF interpolation
 ): { stops: DecoStop[]; finalTissues: TissueState[]; tissueHistory: TissueState[][] } {
   const stops: DecoStop[] = [];
   const tissueHistory: TissueState[][] = [tissues.map(t => ({ ...t }))];
@@ -626,7 +627,9 @@ export function calculateDecoSchedule(
   // Determine last stop depth based on circuit type
   const lastStopDepth = settings.circuit === 'ccr' ? settings.lastCcrStopDepth : settings.lastOcStopDepth;
   
-  const firstStopDepth = findFirstStop(currentTissues, settings.gfLow, settings.decoStopInterval, settings.waterType);
+  // Use the original first stop depth for GF interpolation (passed from main calculation)
+  // This ensures GF interpolation is consistent from the actual first stop to surface
+  const firstStopDepth = originalFirstStopDepth ?? currentDepth;
   
   // Sort deco gases by switch depth ascending (shallowest first)
   // This ensures we pick the richest gas that's safe for the current depth
@@ -905,7 +908,8 @@ export function calculateDivePlan(input: DivePlanInput): DivePlanResult {
       tissues,
       firstStopDepth,
       gases,
-      settings
+      settings,
+      firstStopDepth // Pass original first stop for correct GF interpolation
     );
     
     tissueHistory.push(...decoHistory);
