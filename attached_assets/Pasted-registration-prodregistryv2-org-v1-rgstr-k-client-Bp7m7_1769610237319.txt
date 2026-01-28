@@ -1,0 +1,140 @@
+registration
+prodregistryv2.org/v1/rgstr?k=client-Bp7m7pNB6H0fnSGjVtxN5BeWQw4BSAat4OFsXa3VcTF&st=javascript-client&sv=3.26.0&t=1769610128860&sid=dd8b2998-de5e-4956-bc85-cf1208f9673f&ec=1&gz=1:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+logs.browser-intake-us5-datadoghq.com/api/v2/logs?ddsource=browser&ddtags=sdk_version%3A4.46.0%2Capi%3Afetch%2Cenv%3Aproduction%2Cservice%3Awebsite%2Cversion%3A26a06277&dd-api-key=pub31a5047a3a4692afb84a423db984dc57&dd-evp-origin-version=4.46.0&dd-evp-origin=browser&dd-request-id=acefdd67-8b77-42a2-8eed-041bd23fe4af:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+logs.browser-intake-us5-datadoghq.com/api/v2/logs?ddsource=browser&ddtags=sdk_version%3A4.46.0%2Capi%3Axhr%2Cenv%3Aproduction%2Cservice%3Awebsite%2Cversion%3A26a06277&dd-api-key=pub31a5047a3a4692afb84a423db984dc57&dd-evp-origin-version=4.46.0&dd-evp-origin=browser&dd-request-id=21218755-1e8e-42ca-9207-eb3816a817d4:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+ingest.app.coframe.com/ingest/v2/batched_events/68c9ad4d4cddb58cf3a1f93d/:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+injected.js:37 [DivePlanner] Running v2: depth=30m, bottomTime=25min, waterFactor=10.07
+prodregistryv2.org/v1/rgstr?k=client-Bp7m7pNB6H0fnSGjVtxN5BeWQw4BSAat4OFsXa3VcTF&st=javascript-client&sv=3.26.0&t=1769610133364&sid=dd8b2998-de5e-4956-bc85-cf1208f9673f&ec=1&gz=1:1  Failed to load resource: net::ERR_BLOCKED_BY_CLIENT
+b53e200464c97507.js:2  ERROR  [Statsig] A networking error occurred during POST request to https://prodregistryv2.org/v1/rgstr?k=client-Bp7m7pNB6H0fnSGjVtxN5BeWQw4BSAat4OFsXa3VcTF&st=javascript-client&sv=3.26.0&t=1769610133364&sid=dd8b2998-de5e-4956-bc85-cf1208f9673f&ec=1&gz=1. TypeError: Failed to fetch TypeError: Failed to fetch
+    at b53e200464c97507.js:2:107286
+    at t.<anonymous> (46061d11163a2f8e.js:2:45851)
+    at Object.next (b9b1394183766c81.js:2:10809)
+    at 46061d11163a2f8e.js:2:42953
+    at new Promise (<anonymous>)
+    at u (46061d11163a2f8e.js:2:42707)
+    at t.value (46061d11163a2f8e.js:2:44941)
+    at 46061d11163a2f8e.js:2:31769
+    at e.value (46061d11163a2f8e.js:2:32176)
+    at e.<computed> [as _sendRequest] (46061d11163a2f8e.js:2:31709)
+    at t.<anonymous> (46061d11163a2f8e.js:2:47327)
+    at Object.next (b9b1394183766c81.js:2:10809)
+    at s (46061d11163a2f8e.js:2:42763)
+(anonymous) @ b53e200464c97507.js:2
+b53e200464c97507.js:2   WARN  [Statsig] Failed to flush events.
+(anonymous) @ b53e200464c97507.js:2
+b53e200464c97507.js:2 task queue exceeded allotted deadline by 125ms
+(anonymous) @ b53e200464c97507.js:2
+value @ 1000ea0663868345.js:2
+(anonymous) @ 1000ea0663868345.js:2
+a @ b53e200464c97507.js:2
+setTimeout
+(anonymous) @ b53e200464c97507.js:2
+value @ 1000ea0663868345.js:2
+value @ 1000ea0663868345.js:2
+value @ 1000ea0663868345.js:2
+e @ 1000ea0663868345.js:2
+value @ 1000ea0663868345.js:2
+value @ 1000ea0663868345.js:2
+value @ 1000ea0663868345.js:2
+value @ 1000ea0663868345.js:2
+value @ 1000ea0663868345.js:2
+value @ 1000ea0663868345.js:2
+value @ 1000ea0663868345.js:2
+value @ 786787936ed6975f.js:2
+(anonymous) @ 786787936ed6975f.js:2
+value @ 786787936ed6975f.js:2
+value @ 786787936ed6975f.js:2
+value @ 786787936ed6975f.js:2
+(anonymous) @ 786787936ed6975f.js:2
+value @ 786787936ed6975f.js:2
+value @ 786787936ed6975f.js:2
+value @ 786787936ed6975f.js:2
+(anonymous) @ 786787936ed6975f.js:2
+a @ b53e200464c97507.js:2
+b53e200464c97507.js:2  POST https://logs.browser-intake-us5-datadoghq.com/api/v2/logs?ddsource=browser&ddtags=sdk_version%3A4.46.0%2Capi%3Afetch%2Cenv%3Aproduction%2Cservice%3Awebsite%2Cversion%3A26a06277&dd-api-key=pub31a5047a3a4692afb84a423db984dc57&dd-evp-origin-version=4.46.0&dd-evp-origin=browser&dd-request-id=ba923f62-e1d9-4ef5-8865-6829a2514963 net::ERR_BLOCKED_BY_CLIENT
+(anonymous) @ b53e200464c97507.js:2
+n @ 7c8d41db65f81268.js:2
+tt @ 7c8d41db65f81268.js:2
+tr @ 7c8d41db65f81268.js:2
+send @ 7c8d41db65f81268.js:2
+e.flush @ 7c8d41db65f81268.js:2
+(anonymous) @ 7c8d41db65f81268.js:2
+(anonymous) @ 7c8d41db65f81268.js:2
+e.notify @ 7c8d41db65f81268.js:2
+u @ 7c8d41db65f81268.js:2
+(anonymous) @ 7c8d41db65f81268.js:2
+U @ 7c8d41db65f81268.js:2
+(anonymous) @ 7c8d41db65f81268.js:2
+a @ b53e200464c97507.js:2
+b53e200464c97507.js:2  POST https://logs.browser-intake-us5-datadoghq.com/api/v2/logs?ddsource=browser&ddtags=sdk_version%3A4.46.0%2Capi%3Axhr%2Cenv%3Aproduction%2Cservice%3Awebsite%2Cversion%3A26a06277&dd-api-key=pub31a5047a3a4692afb84a423db984dc57&dd-evp-origin-version=4.46.0&dd-evp-origin=browser&dd-request-id=8533528b-e0bf-4e31-b1c7-241d9f3ea463 net::ERR_BLOCKED_BY_CLIENT
+(anonymous) @ b53e200464c97507.js:2
+(anonymous) @ b53e200464c97507.js:2
+tc @ 7c8d41db65f81268.js:2
+(anonymous) @ 7c8d41db65f81268.js:2
+U @ 7c8d41db65f81268.js:2
+(anonymous) @ 7c8d41db65f81268.js:2
+Promise.then
+n @ 7c8d41db65f81268.js:2
+tt @ 7c8d41db65f81268.js:2
+tr @ 7c8d41db65f81268.js:2
+send @ 7c8d41db65f81268.js:2
+e.flush @ 7c8d41db65f81268.js:2
+(anonymous) @ 7c8d41db65f81268.js:2
+(anonymous) @ 7c8d41db65f81268.js:2
+e.notify @ 7c8d41db65f81268.js:2
+u @ 7c8d41db65f81268.js:2
+(anonymous) @ 7c8d41db65f81268.js:2
+U @ 7c8d41db65f81268.js:2
+(anonymous) @ 7c8d41db65f81268.js:2
+a @ b53e200464c97507.js:2
+b53e200464c97507.js:2  POST https://events.launchdarkly.com/events/bulk/62b35a865152ab14c5942820 net::ERR_BLOCKED_BY_CLIENT
+(anonymous) @ b53e200464c97507.js:2
+(anonymous) @ b53e200464c97507.js:2
+promise @ 7c8d41db65f81268.js:2
+(anonymous) @ 7c8d41db65f81268.js:2
+t.httpRequest @ 7c8d41db65f81268.js:2
+r @ 7c8d41db65f81268.js:2
+i.sendChunk @ 7c8d41db65f81268.js:2
+i.sendEvents @ 7c8d41db65f81268.js:2
+c.flush @ 7c8d41db65f81268.js:2
+e @ 7c8d41db65f81268.js:2
+a @ b53e200464c97507.js:2
+setTimeout
+(anonymous) @ b53e200464c97507.js:2
+e @ 7c8d41db65f81268.js:2
+a @ b53e200464c97507.js:2
+setTimeout
+(anonymous) @ b53e200464c97507.js:2
+e @ 7c8d41db65f81268.js:2
+a @ b53e200464c97507.js:2
+setTimeout
+(anonymous) @ b53e200464c97507.js:2
+e @ 7c8d41db65f81268.js:2
+a @ b53e200464c97507.js:2
+b53e200464c97507.js:2  POST https://events.launchdarkly.com/events/bulk/62b35a865152ab14c5942820 net::ERR_BLOCKED_BY_CLIENT
+(anonymous) @ b53e200464c97507.js:2
+(anonymous) @ b53e200464c97507.js:2
+promise @ 7c8d41db65f81268.js:2
+(anonymous) @ 7c8d41db65f81268.js:2
+t.httpRequest @ 7c8d41db65f81268.js:2
+r @ 7c8d41db65f81268.js:2
+(anonymous) @ 7c8d41db65f81268.js:2
+Promise.catch
+r @ 7c8d41db65f81268.js:2
+i.sendChunk @ 7c8d41db65f81268.js:2
+i.sendEvents @ 7c8d41db65f81268.js:2
+c.flush @ 7c8d41db65f81268.js:2
+e @ 7c8d41db65f81268.js:2
+a @ b53e200464c97507.js:2
+setTimeout
+(anonymous) @ b53e200464c97507.js:2
+e @ 7c8d41db65f81268.js:2
+a @ b53e200464c97507.js:2
+setTimeout
+(anonymous) @ b53e200464c97507.js:2
+e @ 7c8d41db65f81268.js:2
+a @ b53e200464c97507.js:2
+setTimeout
+(anonymous) @ b53e200464c97507.js:2
+e @ 7c8d41db65f81268.js:2
+a @ b53e200464c97507.js:2
