@@ -161,18 +161,17 @@ class BleService {
     return new Promise(async (resolve, reject) => {
       let resolved = false;
 
-      // 1. Setup the listener FIRST so we don't miss the ACK
+      // 1. Setup 'Ear' (Listener)
       const subscription = this.connectedDevice.monitorCharacteristicForService(
         this.activeService,
         this.activeNotify,
         (error: any, char: any) => {
           if (error || resolved) return;
-          
           const data = Buffer.from(char.value, 'base64');
           
-          // Check for SID + 0x40 ACK at byte position 4 (after FF 01 LEN 00)
+          // Shearwater ACK: Check byte at index 4 (0x35 -> 0x75)
           if (data[4] === expectedAck) {
-            bleLog('RX', `ACK 0x${expectedAck.toString(16)} received (${data.length} bytes)`);
+            bleLog('RX', `ACK 0x${expectedAck.toString(16)} received.`);
             resolved = true;
             subscription.remove();
             resolve(data);
@@ -180,15 +179,16 @@ class BleService {
         }
       );
 
-      // 2. MANDATORY: Wait 500ms for the subscription to "settle"
-      // Since Write and Notify may share an ID, the radio needs a moment to switch modes
-      await new Promise(r => setTimeout(r, 500));
+      // 2. MANDATORY SETTLE: Wait 1000ms for subscription to activate
+      // Increased from 500ms to 1000ms to ensure iOS internal state is ready
+      await new Promise(r => setTimeout(r, 1000));
 
       // 3. Send the command
       try {
         const frame = this.wrapUDSCommand(command, payload);
         bleLog('TX', `Sending 0x${command.toString(16)} to ${this.activeWrite.slice(-4)}`);
         
+        // Use writeWithoutResponse for high-speed handshake
         await this.connectedDevice.writeCharacteristicWithoutResponseForService(
           this.activeService,
           this.activeWrite,
@@ -199,7 +199,7 @@ class BleService {
         reject(e);
       }
 
-      // 4. Timeout (Matching Subsurface 10s BLE window)
+      // 4. Verbatim 10s Timeout
       setTimeout(() => {
         if (!resolved) {
           subscription.remove();
