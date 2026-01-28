@@ -663,8 +663,8 @@ export function calculateDecoSchedule(
     
     // Calculate ceiling using the GF at the TARGET depth (next stop), not current depth
     // This checks: "would we be safe if we ascended to the next stop?"
-    // For last stop, check with ceiling at current depth
-    const targetDepthForGF = atLastStop ? depth : nextShallowestStop;
+    // For last stop, use GF at surface (0m = gfHigh) since we're checking if we can surface
+    const targetDepthForGF = atLastStop ? 0 : nextShallowestStop;
     const { ceiling, tissuesWithCeiling } = calculateCeiling(
       currentTissues, 
       settings.gfLow, 
