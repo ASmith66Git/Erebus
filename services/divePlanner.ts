@@ -665,18 +665,14 @@ export function calculateDecoSchedule(
     const nextShallowestStop = Math.max(lastStopDepth, depth - settings.decoStopInterval);
     const atLastStop = depth === lastStopDepth;
     
-    // Calculate ceiling using the GF at the TARGET depth (next stop), not current depth
-    // This checks: "would we be safe if we ascended to the next stop?"
-    // For last stop, use GF at surface (0m = gfHigh) since we're checking if we can surface
-    const gfTargetDepth = atLastStop ? 0 : nextShallowestStop;
+    // Calculate ceiling using GF at current depth (standard Bühlmann approach)
     const { ceiling, tissuesWithCeiling } = calculateCeiling(
       currentTissues, 
       settings.gfLow, 
       settings.gfHigh, 
-      depth,  // Actual current depth for M-value calculations
+      depth,
       firstStopDepth,
-      settings.waterType,
-      gfTargetDepth  // Use GF at target depth for ceiling check
+      settings.waterType
     );
     currentTissues = tissuesWithCeiling;
     
