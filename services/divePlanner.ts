@@ -421,9 +421,14 @@ export function calculateTissueLoadingSchreiner(
     });
   }
   
-  const { ppN2: startN2, ppHe: startHe } = getInspiredPressure(startPressure, gas);
-  const rateN2 = rate * (gas.n2Percent / 100);
-  const rateHe = rate * (gas.hePercent / 100);
+  // Calculate inspired pressures at start and end, then derive rates
+  // This is clearer and consistent with the CCR path above
+  const startInspired = getInspiredPressure(startPressure, gas);
+  const endInspired = getInspiredPressure(endPressure, gas);
+  const startN2 = startInspired.ppN2;
+  const startHe = startInspired.ppHe;
+  const rateN2 = (endInspired.ppN2 - startInspired.ppN2) / duration;
+  const rateHe = (endInspired.ppHe - startInspired.ppHe) / duration;
   
   return tissues.map((tissue, i) => {
     const kN2 = Math.LN2 / tissue.halfTimeN2;
