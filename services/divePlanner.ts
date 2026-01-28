@@ -672,18 +672,21 @@ export function calculateDecoSchedule(
     const atLastStop = depth === lastStopDepth;
     
     // Standard Bühlmann approach: use GF at CURRENT depth for ceiling calculation
+    // Exception: at last stop, use gfHigh for surfacing check (GF at surface = gfHigh)
+    const gfDepthForCeiling = atLastStop ? 0 : undefined;  // 0 = surface = gfHigh
     const { ceiling, tissuesWithCeiling } = calculateCeiling(
       currentTissues, 
       settings.gfLow, 
       settings.gfHigh, 
       depth,
       firstStopDepth,
-      settings.waterType
+      settings.waterType,
+      gfDepthForCeiling
     );
     currentTissues = tissuesWithCeiling;
     
     // Debug: log stop decisions
-    const usedGF = calculateGFAtDepth(depth, firstStopDepth, settings.gfLow, settings.gfHigh, settings.waterType);
+    const usedGF = calculateGFAtDepth(gfDepthForCeiling ?? depth, firstStopDepth, settings.gfLow, settings.gfHigh, settings.waterType);
     console.log(`[Deco] depth=${depth}m, nextStop=${nextShallowestStop}m, ceiling=${ceiling.toFixed(1)}m, GF=${usedGF.toFixed(0)}%, mustStay=${atLastStop ? ceiling > 0 : ceiling > nextShallowestStop}`);
     
     // At the last stop, we must wait until ceiling <= 0 (can surface safely)
