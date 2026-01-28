@@ -157,11 +157,11 @@ export interface DivePlanInput {
 }
 
 const ZHL16C_N2 = [
-  { halfTime: 4.0, a: 1.2599, b: 0.5050 },
+  { halfTime: 5.0, a: 1.2599, b: 0.5050 },   // Corrected from 4.0 to 5.0
   { halfTime: 8.0, a: 1.0000, b: 0.6514 },
   { halfTime: 12.5, a: 0.8618, b: 0.7222 },
-  { halfTime: 18.5, a: 0.7562, b: 0.7725 },
-  { halfTime: 27.0, a: 0.6667, b: 0.8125 },
+  { halfTime: 18.5, a: 0.7562, b: 0.7825 },  // Corrected from 0.7725 to 0.7825
+  { halfTime: 27.0, a: 0.6667, b: 0.8126 },  // Corrected from 0.8125 to 0.8126
   { halfTime: 38.3, a: 0.5933, b: 0.8434 },
   { halfTime: 54.3, a: 0.5282, b: 0.8693 },
   { halfTime: 77.0, a: 0.4701, b: 0.8910 },
@@ -176,7 +176,7 @@ const ZHL16C_N2 = [
 ];
 
 const ZHL16C_HE = [
-  { halfTime: 1.51, a: 1.7424, b: 0.4245 },
+  { halfTime: 1.88, a: 1.6189, b: 0.4770 },  // Corrected from 1.51/1.7424/0.4245
   { halfTime: 3.02, a: 1.3830, b: 0.5747 },
   { halfTime: 4.72, a: 1.1919, b: 0.6527 },
   { halfTime: 6.99, a: 1.0458, b: 0.7223 },
