@@ -488,11 +488,9 @@ export function calculateGFAtDepth(
   if (currentDepth >= firstStopDepth) return gfLow;
   if (currentDepth <= 0) return gfHigh;
   
-  const surfacePressure = SURFACE_PRESSURE;
-  const currentPressure = depthToPressure(currentDepth, waterType);
-  const firstStopPressure = depthToPressure(firstStopDepth, waterType);
-  
-  const gf = gfLow + (gfHigh - gfLow) * (firstStopPressure - currentPressure) / (firstStopPressure - surfacePressure);
+  // Interpolate by DEPTH (not pressure) to match MultiDeco behavior
+  // GF increases linearly from gfLow at firstStopDepth to gfHigh at surface (0m)
+  const gf = gfLow + (gfHigh - gfLow) * (firstStopDepth - currentDepth) / firstStopDepth;
   return Math.max(gfLow, Math.min(gfHigh, gf));
 }
 
