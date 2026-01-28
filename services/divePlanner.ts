@@ -829,6 +829,10 @@ export function calculateGasConsumption(
 
 export function calculateDivePlan(input: DivePlanInput): DivePlanResult {
   const { depth, bottomTime, gases, settings, initialTissues, surfaceIntervalMinutes } = input;
+  
+  // Debug: verify latest code is running (v2 - water density 10.07)
+  console.log('[DivePlanner] Running v2: depth=' + depth + 'm, bottomTime=' + bottomTime + 'min, waterFactor=10.07');
+  
   const segments: DiveSegment[] = [];
   const warnings: string[] = [];
   let runTime = 0;
