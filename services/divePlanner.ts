@@ -657,22 +657,26 @@ export function calculateDecoSchedule(
     iterations++;
     const gas = getGasForDepth(depth);
     
+    // Calculate the next shallower stop we want to ascend to
+    const nextShallowestStop = Math.max(lastStopDepth, depth - settings.decoStopInterval);
+    const atLastStop = depth === lastStopDepth;
+    
+    // Calculate ceiling using the GF at the TARGET depth (next stop), not current depth
+    // This checks: "would we be safe if we ascended to the next stop?"
+    // For last stop, check with ceiling at current depth
+    const targetDepthForGF = atLastStop ? depth : nextShallowestStop;
     const { ceiling, tissuesWithCeiling } = calculateCeiling(
       currentTissues, 
       settings.gfLow, 
       settings.gfHigh, 
-      depth, 
+      targetDepthForGF, 
       firstStopDepth,
       settings.waterType
     );
     currentTissues = tissuesWithCeiling;
     
-    // Calculate the next shallower stop we want to ascend to
-    const nextShallowestStop = Math.max(lastStopDepth, depth - settings.decoStopInterval);
-    
     // At the last stop, we must wait until ceiling <= 0 (can surface safely)
-    // At other stops, we can ascend when ceiling <= next shallower stop
-    const atLastStop = depth === lastStopDepth;
+    // At other stops, we can ascend when ceiling calculated at target depth <= target depth
     const mustStay = atLastStop ? (ceiling > 0) : (ceiling > nextShallowestStop);
     
     if (mustStay) {
