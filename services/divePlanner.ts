@@ -687,6 +687,10 @@ export function calculateDecoSchedule(
     );
     currentTissues = tissuesWithCeiling;
     
+    // Debug: log stop decisions
+    const usedGF = calculateGFAtDepth(gfDepthOverride ?? depth, firstStopDepth, settings.gfLow, settings.gfHigh, settings.waterType);
+    console.log(`[Deco] depth=${depth}m, nextStop=${nextShallowestStop}m, ceiling=${ceiling.toFixed(1)}m, GF=${usedGF.toFixed(0)}%, mustStay=${ceiling > nextShallowestStop}`);
+    
     // At the last stop, we must wait until ceiling <= 0 (can surface safely)
     // At other stops, we can ascend when ceiling calculated at target depth <= target depth
     const mustStay = atLastStop ? (ceiling > 0) : (ceiling > nextShallowestStop);
