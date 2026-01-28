@@ -706,6 +706,87 @@ function generateDivePlanPdfWeb(input: DivePlanPdfInput, jsPDF: any, autoTable: 
   return { doc, filename };
 }
 
+function generateDiveProfileSvg(segments: any[], maxDepth: number, totalRunTime: number, themeHex: string, depthUnit: string): string {
+  const width = 500;
+  const height = 150;
+  const padding = 30;
+  const chartWidth = width - padding * 2;
+  const chartHeight = height - padding * 2;
+  
+  if (segments.length === 0) return '';
+  
+  // Build path
+  let path = '';
+  segments.forEach((seg, i) => {
+    const x1 = padding + ((seg.runTime - seg.duration) / totalRunTime) * chartWidth;
+    const y1 = padding + (seg.startDepth / maxDepth) * chartHeight;
+    const x2 = padding + (seg.runTime / totalRunTime) * chartWidth;
+    const y2 = padding + (seg.endDepth / maxDepth) * chartHeight;
+    
+    if (i === 0) path += `M ${x1} ${padding} L ${x1} ${y1}`;
+    path += ` L ${x2} ${y2}`;
+  });
+  
+  // Grid lines
+  let gridLines = '';
+  for (let i = 0; i <= 4; i++) {
+    const y = padding + (i / 4) * chartHeight;
+    const depthLabel = Math.round((i / 4) * maxDepth);
+    gridLines += `<line x1="${padding}" y1="${y}" x2="${width - padding}" y2="${y}" stroke="#e0e0e0" stroke-width="1"/>`;
+    gridLines += `<text x="${padding - 5}" y="${y + 4}" text-anchor="end" font-size="8" fill="#666">${depthLabel}</text>`;
+  }
+  
+  // Time labels
+  for (let i = 0; i <= 4; i++) {
+    const x = padding + (i / 4) * chartWidth;
+    const timeLabel = Math.round((i / 4) * totalRunTime);
+    gridLines += `<text x="${x}" y="${height - 5}" text-anchor="middle" font-size="8" fill="#666">${timeLabel}m</text>`;
+  }
+  
+  return `
+    <svg width="${width}" height="${height}" style="background: #fafafa; border: 1px solid #ddd; border-radius: 4px;">
+      ${gridLines}
+      <path d="${path}" fill="none" stroke="${themeHex}" stroke-width="2"/>
+      <text x="${padding}" y="12" font-size="9" fill="#666">Depth (${depthUnit})</text>
+      <text x="${width - padding}" y="${height - 5}" text-anchor="end" font-size="9" fill="#666">Time (min)</text>
+    </svg>
+  `;
+}
+
+function generateTissueSvg(tissueState: any[], themeHex: string): string {
+  if (!tissueState || tissueState.length === 0) return '';
+  
+  const width = 500;
+  const height = 100;
+  const barWidth = 25;
+  const gap = 5;
+  const startX = 30;
+  const maxHeight = 60;
+  
+  let bars = '';
+  tissueState.forEach((tissue: any, i: number) => {
+    const saturation = Math.min(tissue.n2Saturation || 0, 1);
+    const barHeight = saturation * maxHeight;
+    const x = startX + i * (barWidth + gap);
+    const y = height - 20 - barHeight;
+    
+    // Color based on saturation
+    const r = Math.round(saturation * 255);
+    const g = Math.round((1 - saturation) * 150);
+    const color = `rgb(${r}, ${g}, 100)`;
+    
+    bars += `<rect x="${x}" y="${y}" width="${barWidth}" height="${barHeight}" fill="${color}" rx="2"/>`;
+    bars += `<text x="${x + barWidth/2}" y="${height - 8}" text-anchor="middle" font-size="7" fill="#666">${i + 1}</text>`;
+  });
+  
+  return `
+    <svg width="${width}" height="${height}" style="background: #fafafa; border: 1px solid #ddd; border-radius: 4px; margin-top: 10px;">
+      <text x="15" y="15" font-size="10" fill="#333">Tissue Compartment Saturation (N2)</text>
+      ${bars}
+    </svg>
+  `;
+}
+
 function generateNativeHtml(input: DivePlanPdfInput): string {
   const { result, settings, depth, bottomTime, gases, userName, themeColor } = input;
   const depthUnit = settings.units === 'metric' ? 'm' : 'ft';
@@ -714,8 +795,13 @@ function generateNativeHtml(input: DivePlanPdfInput): string {
   
   const segments = result.segments;
   const totalRunTime = segments.length > 0 ? segments[segments.length - 1].runTime : 0;
+  const maxDepth = segments.length > 0 ? Math.max(...segments.map(s => Math.max(s.startDepth, s.endDepth))) : depth;
   const decoStops = segments.filter(s => s.type === 'deco_stop');
   const totalDecoTime = decoStops.reduce((sum, s) => sum + s.duration, 0);
+  
+  // Generate SVG charts
+  const profileSvg = generateDiveProfileSvg(segments, maxDepth, totalRunTime, themeHex, depthUnit);
+  const tissueSvg = generateTissueSvg((result as any).tissueState || [], themeHex);
   
   let segmentRows = '';
   segments.forEach(seg => {
@@ -789,6 +875,11 @@ function generateNativeHtml(input: DivePlanPdfInput): string {
           <div class="summary-value">${Math.ceil(totalDecoTime)} min</div>
         </div>
       </div>
+
+      <h2>Dive Profile Chart</h2>
+      ${profileSvg}
+      
+      ${tissueSvg ? `<h2>Tissue Saturation</h2>${tissueSvg}` : ''}
 
       <h2>Dive Profile</h2>
       <table>
