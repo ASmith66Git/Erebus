@@ -863,7 +863,9 @@ export function calculateDivePlan(input: DivePlanInput): DivePlanResult {
   // Industry standard: "bottom time" includes descent time
   // So actual time at depth = bottomTime - descentTime
   // Round up descent time to nearest minute (matches MultiDeco)
-  const descentTime = Math.ceil(depth / settings.descentRate);
+  const rawDescentTime = depth / settings.descentRate;
+  const descentTime = Math.ceil(rawDescentTime);
+  console.log(`[Dive] descent: raw=${rawDescentTime.toFixed(2)}min, rounded=${descentTime}min, bottomTime=${bottomTime}min`);
   tissues = calculateTissueLoadingSchreiner(tissues, 0, depth, descentTime, bottomGas, settings.waterType, settings.circuit, settings.ccrSetpoint);
   tissueHistory.push(tissues.map(t => ({ ...t })));
   runTime += descentTime;
