@@ -934,11 +934,13 @@ export function calculateDivePlan(input: DivePlanInput): DivePlanResult {
       firstStopDepth // Pass original first stop for correct GF interpolation
     );
     
-    // Apply conservatism factor to deco stops (percentage increase)
+    // Apply conservatism factor to shallow deco stops only (12m and shallower)
     if (settings.conservatismFactor > 0) {
       const factor = 1 + (settings.conservatismFactor / 100);
       for (const stop of stops) {
-        stop.duration = Math.ceil(stop.duration * factor);
+        if (stop.depth <= 12) {
+          stop.duration = Math.ceil(stop.duration * factor);
+        }
       }
     }
     

@@ -1941,7 +1941,7 @@ export default function DivePlanningScreen() {
         
         {renderSlider('Conservatism', ps.conservatismFactor ?? 0, 0, 50, 5, (v) => setPs({ conservatismFactor: v }), '%')}
         <Text style={[styles.settingHint, { color: colors.textSecondary }]}>
-          Add extra time to deco stops (0% = standard, 30% = matches MultiDeco)
+          Add extra time to shallow stops (12m and above only)
         </Text>
       </View>
 
