@@ -836,6 +836,8 @@ export function calculateDivePlan(input: DivePlanInput): DivePlanResult {
     warnings.push(`DANGER: PPO2 is ${ppo2AtDepth.toFixed(2)} at ${depth}m - CNS oxygen toxicity risk!`);
   }
   
+  // Industry standard: "bottom time" includes descent time
+  // So actual time at depth = bottomTime - descentTime
   const descentTime = depth / settings.descentRate;
   tissues = calculateTissueLoadingSchreiner(tissues, 0, depth, descentTime, bottomGas, settings.waterType, settings.circuit, settings.ccrSetpoint);
   tissueHistory.push(tissues.map(t => ({ ...t })));
@@ -854,15 +856,21 @@ export function calculateDivePlan(input: DivePlanInput): DivePlanResult {
   totalCNS += descentTox.cns;
   totalOTU += descentTox.otu;
   
-  tissues = calculateTissueLoadingConstantDepth(tissues, depth, bottomTime, bottomGas, settings.waterType, settings.circuit, settings.ccrSetpoint);
+  // Calculate actual time at bottom (bottom time includes descent per industry standard)
+  const actualBottomTime = Math.max(0, bottomTime - descentTime);
+  if (actualBottomTime <= 0) {
+    warnings.push(`Bottom time (${bottomTime} min) is less than or equal to descent time (${descentTime.toFixed(1)} min)`);
+  }
+  
+  tissues = calculateTissueLoadingConstantDepth(tissues, depth, actualBottomTime, bottomGas, settings.waterType, settings.circuit, settings.ccrSetpoint);
   tissueHistory.push(tissues.map(t => ({ ...t })));
-  runTime += bottomTime;
+  runTime += actualBottomTime;
   
   const bottomSegment: DiveSegment = {
     type: 'bottom',
     startDepth: depth,
     endDepth: depth,
-    duration: bottomTime,
+    duration: actualBottomTime,
     gasMix: bottomGas,
     runTime,
   };
