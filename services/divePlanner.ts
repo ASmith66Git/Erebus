@@ -521,10 +521,14 @@ export function calculateCeiling(
   gfHigh: number,
   currentDepth: number,
   firstStopDepth: number,
-  waterType: WaterType = 'salt'
+  waterType: WaterType = 'salt',
+  gfDepthOverride?: number  // Optional: use GF at this depth instead of currentDepth
 ): { ceiling: number; tissuesWithCeiling: TissueState[] } {
-  const gf = calculateGFAtDepth(currentDepth, firstStopDepth, gfLow, gfHigh, waterType);
+  // Use gfDepthOverride for GF calculation if provided (for look-ahead ceiling checks)
+  const gfDepth = gfDepthOverride !== undefined ? gfDepthOverride : currentDepth;
+  const gf = calculateGFAtDepth(gfDepth, firstStopDepth, gfLow, gfHigh, waterType);
   let maxCeiling = 0;
+  // Always use actual current depth for M-value calculations
   const currentPressure = depthToPressure(currentDepth, waterType);
   
   const tissuesWithCeiling = tissues.map((tissue, i) => {
@@ -664,14 +668,15 @@ export function calculateDecoSchedule(
     // Calculate ceiling using the GF at the TARGET depth (next stop), not current depth
     // This checks: "would we be safe if we ascended to the next stop?"
     // For last stop, use GF at surface (0m = gfHigh) since we're checking if we can surface
-    const targetDepthForGF = atLastStop ? 0 : nextShallowestStop;
+    const gfTargetDepth = atLastStop ? 0 : nextShallowestStop;
     const { ceiling, tissuesWithCeiling } = calculateCeiling(
       currentTissues, 
       settings.gfLow, 
       settings.gfHigh, 
-      targetDepthForGF, 
+      depth,  // Actual current depth for M-value calculations
       firstStopDepth,
-      settings.waterType
+      settings.waterType,
+      gfTargetDepth  // Use GF at target depth for ceiling check
     );
     currentTissues = tissuesWithCeiling;
     
