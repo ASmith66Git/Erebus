@@ -394,7 +394,6 @@ export function calculateTissueLoadingSchreiner(
   
   const startPressure = depthToPressure(startDepth, waterType);
   const endPressure = depthToPressure(endDepth, waterType);
-  const rate = (endPressure - startPressure) / duration;
   
   if (circuit === 'ccr') {
     const startInspired = getInspiredPressureCCR(startPressure, gas, ccrSetpoint);
@@ -421,14 +420,15 @@ export function calculateTissueLoadingSchreiner(
     });
   }
   
-  // Calculate inspired pressures at start and end, then derive rates
-  // This is clearer and consistent with the CCR path above
-  const startInspired = getInspiredPressure(startPressure, gas);
-  const endInspired = getInspiredPressure(endPressure, gas);
-  const startN2 = startInspired.ppN2;
-  const startHe = startInspired.ppHe;
-  const rateN2 = (endInspired.ppN2 - startInspired.ppN2) / duration;
-  const rateHe = (endInspired.ppHe - startInspired.ppHe) / duration;
+  // Rate of change of AMBIENT pressure per minute
+  const R_amb = (endPressure - startPressure) / duration;
+  
+  // R for the specific gas (N2 or He) - rate of change of inspired partial pressure
+  const rateN2 = R_amb * (gas.n2Percent / 100);
+  const rateHe = R_amb * (gas.hePercent / 100);
+  
+  // Start inspired pressure (includes vapor pressure correction)
+  const { ppN2: startN2, ppHe: startHe } = getInspiredPressure(startPressure, gas);
   
   return tissues.map((tissue, i) => {
     const kN2 = Math.LN2 / tissue.halfTimeN2;
