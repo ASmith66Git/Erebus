@@ -664,9 +664,14 @@ export function calculateDecoSchedule(
     );
     currentTissues = tissuesWithCeiling;
     
-    const nextStopDepth = Math.ceil(ceiling / settings.decoStopInterval) * settings.decoStopInterval;
+    // Calculate the next shallower stop we want to ascend to
+    const nextShallowestStop = Math.max(lastStopDepth, depth - settings.decoStopInterval);
     
-    if (nextStopDepth >= depth && depth >= lastStopDepth) {
+    // Can we ascend? Only if the ceiling is shallower than or at the next stop
+    // We stay at current depth if ceiling > nextShallowestStop (can't safely reach next stop)
+    const mustStay = ceiling > nextShallowestStop && depth >= lastStopDepth;
+    
+    if (mustStay) {
       currentTissues = calculateTissueLoadingConstantDepth(currentTissues, depth, 1, gas, settings.waterType, settings.circuit, settings.ccrSetpoint);
       tissueHistory.push(currentTissues.map(t => ({ ...t })));
       
@@ -682,16 +687,15 @@ export function calculateDecoSchedule(
         break;
       }
     } else {
-      // Don't go below the last stop depth
-      const nextDepth = Math.max(lastStopDepth, depth - settings.decoStopInterval);
-      if (nextDepth === depth) {
+      // We can ascend to the next stop
+      if (nextShallowestStop === depth) {
         // We're stuck at last stop, need to wait for offgassing
         break;
       }
-      const ascentTime = (depth - nextDepth) / settings.ascentRate;
-      currentTissues = calculateTissueLoadingSchreiner(currentTissues, depth, nextDepth, ascentTime, gas, settings.waterType, settings.circuit, settings.ccrSetpoint);
+      const ascentTime = (depth - nextShallowestStop) / settings.ascentRate;
+      currentTissues = calculateTissueLoadingSchreiner(currentTissues, depth, nextShallowestStop, ascentTime, gas, settings.waterType, settings.circuit, settings.ccrSetpoint);
       tissueHistory.push(currentTissues.map(t => ({ ...t })));
-      depth = nextDepth;
+      depth = nextShallowestStop;
     }
   }
   
