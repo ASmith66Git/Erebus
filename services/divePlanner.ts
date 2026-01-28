@@ -665,14 +665,19 @@ export function calculateDecoSchedule(
     const nextShallowestStop = Math.max(lastStopDepth, depth - settings.decoStopInterval);
     const atLastStop = depth === lastStopDepth;
     
-    // Calculate ceiling using GF at current depth (standard Bühlmann approach)
+    // Hybrid approach: use GF at TARGET depth for intermediate stops (more like MultiDeco)
+    // but use GF at CURRENT depth for the last stop (more conservative for surfacing)
+    // For non-last stops: look-ahead to next stop's GF
+    // For last stop: use current depth's GF (not gfHigh at surface)
+    const gfDepthOverride = atLastStop ? undefined : nextShallowestStop;
     const { ceiling, tissuesWithCeiling } = calculateCeiling(
       currentTissues, 
       settings.gfLow, 
       settings.gfHigh, 
       depth,
       firstStopDepth,
-      settings.waterType
+      settings.waterType,
+      gfDepthOverride
     );
     currentTissues = tissuesWithCeiling;
     
