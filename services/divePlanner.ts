@@ -671,9 +671,10 @@ export function calculateDecoSchedule(
     const nextShallowestStop = Math.max(lastStopDepth, depth - settings.decoStopInterval);
     const atLastStop = depth === lastStopDepth;
     
-    // Standard Bühlmann approach: use GF at CURRENT depth for ceiling calculation
-    // Exception: at last stop, use gfHigh for surfacing check (GF at surface = gfHigh)
-    const gfDepthForCeiling = atLastStop ? 0 : undefined;  // 0 = surface = gfHigh
+    // Baker's original GF approach: use GF at TARGET depth for ceiling calculation
+    // The GF line represents the ceiling you're allowed to ascend TO, not AT
+    // At last stop, target is surface (0m) = gfHigh; otherwise target is next stop
+    const targetDepth = atLastStop ? 0 : nextShallowestStop;
     const { ceiling, tissuesWithCeiling } = calculateCeiling(
       currentTissues, 
       settings.gfLow, 
@@ -681,13 +682,13 @@ export function calculateDecoSchedule(
       depth,
       firstStopDepth,
       settings.waterType,
-      gfDepthForCeiling
+      targetDepth
     );
     currentTissues = tissuesWithCeiling;
     
     // Debug: log stop decisions
-    const usedGF = calculateGFAtDepth(gfDepthForCeiling ?? depth, firstStopDepth, settings.gfLow, settings.gfHigh, settings.waterType);
-    console.log(`[Deco] depth=${depth}m, nextStop=${nextShallowestStop}m, ceiling=${ceiling.toFixed(1)}m, GF=${usedGF.toFixed(0)}%, mustStay=${atLastStop ? ceiling > 0 : ceiling > nextShallowestStop}`);
+    const usedGF = calculateGFAtDepth(targetDepth, firstStopDepth, settings.gfLow, settings.gfHigh, settings.waterType);
+    console.log(`[Deco] depth=${depth}m, target=${targetDepth}m, ceiling=${ceiling.toFixed(1)}m, GF=${usedGF.toFixed(0)}%, mustStay=${atLastStop ? ceiling > 0 : ceiling > nextShallowestStop}`);
     
     // At the last stop, we must wait until ceiling <= 0 (can surface safely)
     // At other stops, we can ascend when ceiling calculated at target depth <= target depth
