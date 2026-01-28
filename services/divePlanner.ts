@@ -1099,37 +1099,51 @@ export function calculateMultiDivePlan(dives: DivePlanInput[]): DivePlanResult[]
   return results;
 }
 
-// CNS oxygen toxicity calculation table (NOAA single-exposure limits)
-// Corrected values based on NOAA Diving Manual exposure limits
-// CNS% per minute = 100 / (max exposure time in minutes)
-const CNS_TABLE: { minPpo2: number; maxPpo2: number; cnsPerMin: number }[] = [
-  { minPpo2: 0.5, maxPpo2: 0.6, cnsPerMin: 0.14 },   // 720 min max = 0.139%/min
-  { minPpo2: 0.6, maxPpo2: 0.7, cnsPerMin: 0.17 },   // 570 min max = 0.175%/min
-  { minPpo2: 0.7, maxPpo2: 0.8, cnsPerMin: 0.22 },   // 450 min max = 0.222%/min
-  { minPpo2: 0.8, maxPpo2: 0.9, cnsPerMin: 0.28 },   // 360 min max = 0.278%/min
-  { minPpo2: 0.9, maxPpo2: 1.0, cnsPerMin: 0.33 },   // 300 min max = 0.333%/min
-  { minPpo2: 1.0, maxPpo2: 1.1, cnsPerMin: 0.42 },   // 240 min max = 0.417%/min
-  { minPpo2: 1.1, maxPpo2: 1.2, cnsPerMin: 0.48 },   // 210 min max = 0.476%/min
-  { minPpo2: 1.2, maxPpo2: 1.3, cnsPerMin: 0.56 },   // 180 min max = 0.556%/min
-  { minPpo2: 1.3, maxPpo2: 1.4, cnsPerMin: 0.67 },   // 150 min max = 0.667%/min
-  { minPpo2: 1.4, maxPpo2: 1.5, cnsPerMin: 0.83 },   // 120 min max = 0.833%/min
-  { minPpo2: 1.5, maxPpo2: 1.6, cnsPerMin: 1.11 },   // 90 min max = 1.111%/min
-  { minPpo2: 1.6, maxPpo2: 2.0, cnsPerMin: 2.22 },   // 45 min max = 2.222%/min (NOAA max)
+// CNS oxygen toxicity calculation using NOAA limits with linear interpolation
+// NOAA limit points: { ppO2, maxExposureMinutes }
+const CNS_LIMITS: { ppo2: number; maxMinutes: number }[] = [
+  { ppo2: 0.50, maxMinutes: 720 },  // Unlimited practical limit
+  { ppo2: 0.60, maxMinutes: 720 },
+  { ppo2: 0.70, maxMinutes: 570 },
+  { ppo2: 0.80, maxMinutes: 450 },
+  { ppo2: 0.90, maxMinutes: 360 },
+  { ppo2: 1.00, maxMinutes: 300 },
+  { ppo2: 1.10, maxMinutes: 240 },
+  { ppo2: 1.20, maxMinutes: 210 },
+  { ppo2: 1.30, maxMinutes: 180 },
+  { ppo2: 1.40, maxMinutes: 150 },
+  { ppo2: 1.50, maxMinutes: 120 },
+  { ppo2: 1.60, maxMinutes: 45 },
 ];
 
-// Calculate CNS% for given PPO2 and duration
+// Calculate CNS% for given PPO2 and duration using linear interpolation
 export function calculateCNS(ppo2: number, durationMinutes: number): number {
   if (ppo2 < 0.5) return 0;
   
-  // Clamp to NOAA maximum rate for PPO2 > 1.6
-  if (ppo2 >= 1.6) {
-    return durationMinutes * 2.22;
+  // Find the two limit points to interpolate between
+  let lowerLimit = CNS_LIMITS[0];
+  let upperLimit = CNS_LIMITS[CNS_LIMITS.length - 1];
+  
+  for (let i = 0; i < CNS_LIMITS.length - 1; i++) {
+    if (ppo2 >= CNS_LIMITS[i].ppo2 && ppo2 < CNS_LIMITS[i + 1].ppo2) {
+      lowerLimit = CNS_LIMITS[i];
+      upperLimit = CNS_LIMITS[i + 1];
+      break;
+    }
   }
   
-  const entry = CNS_TABLE.find(e => ppo2 >= e.minPpo2 && ppo2 < e.maxPpo2);
-  if (!entry) return 0;
+  // Clamp to maximum NOAA rate for ppO2 >= 1.6
+  if (ppo2 >= 1.6) {
+    return durationMinutes * (100 / 45); // 2.222%/min
+  }
   
-  return durationMinutes * entry.cnsPerMin;
+  // Linear interpolation of max exposure time between the two limits
+  const fraction = (ppo2 - lowerLimit.ppo2) / (upperLimit.ppo2 - lowerLimit.ppo2);
+  const interpolatedMaxMinutes = lowerLimit.maxMinutes + fraction * (upperLimit.maxMinutes - lowerLimit.maxMinutes);
+  
+  // CNS% = (exposure time / max exposure time) * 100
+  const cnsPerMin = 100 / interpolatedMaxMinutes;
+  return durationMinutes * cnsPerMin;
 }
 
 // Calculate OTU (Oxygen Toxicity Units) using REPEX formula
