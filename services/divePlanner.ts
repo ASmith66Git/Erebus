@@ -131,6 +131,8 @@ export interface DivePlanSettings {
   ibcdHeEnabled: boolean;
   ibcdHeThreshold: number;
   ccrDiluentCheck: boolean;
+  // Conservatism adjustment - percentage added to deco stop times
+  conservatismFactor: number; // 0-50, percentage to add to calculated stop times
 }
 
 export interface DivePlanResult {
@@ -689,10 +691,6 @@ export function calculateDecoSchedule(
     // Round ceiling up to next meter for conservatism (matches professional planners)
     const roundedCeiling = Math.ceil(ceiling);
     
-    // Debug: log stop decisions
-    const usedGF = calculateGFAtDepth(targetDepth, firstStopDepth, settings.gfLow, settings.gfHigh, settings.waterType);
-    console.log(`[Deco] depth=${depth}m, target=${targetDepth}m, ceiling=${ceiling.toFixed(1)}m, rounded=${roundedCeiling}m, GF=${usedGF.toFixed(0)}%, mustStay=${atLastStop ? roundedCeiling > 0 : roundedCeiling > nextShallowestStop}`);
-    
     // At the last stop, we must wait until rounded ceiling <= 0 (can surface safely)
     // At other stops, we can ascend when rounded ceiling <= target depth
     const mustStay = atLastStop ? (roundedCeiling > 0) : (roundedCeiling > nextShallowestStop);
@@ -863,9 +861,7 @@ export function calculateDivePlan(input: DivePlanInput): DivePlanResult {
   // Industry standard: "bottom time" includes descent time
   // So actual time at depth = bottomTime - descentTime
   // Round up descent time to nearest minute (matches MultiDeco)
-  const rawDescentTime = depth / settings.descentRate;
-  const descentTime = Math.ceil(rawDescentTime);
-  console.log(`[Dive] descent: raw=${rawDescentTime.toFixed(2)}min, rounded=${descentTime}min, bottomTime=${bottomTime}min`);
+  const descentTime = Math.ceil(depth / settings.descentRate);
   tissues = calculateTissueLoadingSchreiner(tissues, 0, depth, descentTime, bottomGas, settings.waterType, settings.circuit, settings.ccrSetpoint);
   tissueHistory.push(tissues.map(t => ({ ...t })));
   runTime += descentTime;
@@ -937,6 +933,14 @@ export function calculateDivePlan(input: DivePlanInput): DivePlanResult {
       settings,
       firstStopDepth // Pass original first stop for correct GF interpolation
     );
+    
+    // Apply conservatism factor to deco stops (percentage increase)
+    if (settings.conservatismFactor > 0) {
+      const factor = 1 + (settings.conservatismFactor / 100);
+      for (const stop of stops) {
+        stop.duration = Math.ceil(stop.duration * factor);
+      }
+    }
     
     tissueHistory.push(...decoHistory);
     
@@ -1240,4 +1244,6 @@ export const DEFAULT_SETTINGS: DivePlanSettings = {
   ibcdHeEnabled: true,
   ibcdHeThreshold: 0.5,
   ccrDiluentCheck: true,
+  // Conservatism adjustment - percentage added to deco stop times (0-50%)
+  conservatismFactor: 0,
 };

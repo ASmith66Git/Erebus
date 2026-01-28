@@ -1938,6 +1938,11 @@ export default function DivePlanningScreen() {
             </TouchableOpacity>
           ))}
         </View>
+        
+        {renderSlider('Conservatism', ps.conservatismFactor ?? 0, 0, 50, 5, (v) => setPs({ conservatismFactor: v }), '%')}
+        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>
+          Add extra time to deco stops (0% = standard, 30% = matches MultiDeco)
+        </Text>
       </View>
 
       {/* Units & Environment */}
