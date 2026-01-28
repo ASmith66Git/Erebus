@@ -686,13 +686,16 @@ export function calculateDecoSchedule(
     );
     currentTissues = tissuesWithCeiling;
     
+    // Round ceiling up to next meter for conservatism (matches professional planners)
+    const roundedCeiling = Math.ceil(ceiling);
+    
     // Debug: log stop decisions
     const usedGF = calculateGFAtDepth(targetDepth, firstStopDepth, settings.gfLow, settings.gfHigh, settings.waterType);
-    console.log(`[Deco] depth=${depth}m, target=${targetDepth}m, ceiling=${ceiling.toFixed(1)}m, GF=${usedGF.toFixed(0)}%, mustStay=${atLastStop ? ceiling > 0 : ceiling > nextShallowestStop}`);
+    console.log(`[Deco] depth=${depth}m, target=${targetDepth}m, ceiling=${ceiling.toFixed(1)}m, rounded=${roundedCeiling}m, GF=${usedGF.toFixed(0)}%, mustStay=${atLastStop ? roundedCeiling > 0 : roundedCeiling > nextShallowestStop}`);
     
-    // At the last stop, we must wait until ceiling <= 0 (can surface safely)
-    // At other stops, we can ascend when ceiling calculated at target depth <= target depth
-    const mustStay = atLastStop ? (ceiling > 0) : (ceiling > nextShallowestStop);
+    // At the last stop, we must wait until rounded ceiling <= 0 (can surface safely)
+    // At other stops, we can ascend when rounded ceiling <= target depth
+    const mustStay = atLastStop ? (roundedCeiling > 0) : (roundedCeiling > nextShallowestStop);
     
     if (mustStay) {
       currentTissues = calculateTissueLoadingConstantDepth(currentTissues, depth, 1, gas, settings.waterType, settings.circuit, settings.ccrSetpoint);
