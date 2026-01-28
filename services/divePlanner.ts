@@ -255,12 +255,12 @@ export function createGasMix(
 }
 
 export function depthToPressure(depth: number, waterType: WaterType = 'salt'): number {
-  const factor = waterType === 'fresh' ? 10.3 : 10.0;
+  const factor = waterType === 'fresh' ? 10.33 : 10.07;
   return SURFACE_PRESSURE + (depth / factor);
 }
 
 export function pressureToDepth(pressure: number, waterType: WaterType = 'salt'): number {
-  const factor = waterType === 'fresh' ? 10.3 : 10.0;
+  const factor = waterType === 'fresh' ? 10.33 : 10.07;
   return (pressure - SURFACE_PRESSURE) * factor;
 }
 
