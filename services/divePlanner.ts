@@ -862,7 +862,8 @@ export function calculateDivePlan(input: DivePlanInput): DivePlanResult {
   
   // Industry standard: "bottom time" includes descent time
   // So actual time at depth = bottomTime - descentTime
-  const descentTime = depth / settings.descentRate;
+  // Round up descent time to nearest minute (matches MultiDeco)
+  const descentTime = Math.ceil(depth / settings.descentRate);
   tissues = calculateTissueLoadingSchreiner(tissues, 0, depth, descentTime, bottomGas, settings.waterType, settings.circuit, settings.ccrSetpoint);
   tissueHistory.push(tissues.map(t => ({ ...t })));
   runTime += descentTime;
@@ -881,7 +882,8 @@ export function calculateDivePlan(input: DivePlanInput): DivePlanResult {
   totalOTU += descentTox.otu;
   
   // Calculate actual time at bottom (bottom time includes descent per industry standard)
-  const actualBottomTime = Math.max(0, bottomTime - descentTime);
+  // Use integer minutes for segment durations (matches MultiDeco)
+  const actualBottomTime = Math.max(0, Math.floor(bottomTime - descentTime));
   if (actualBottomTime <= 0) {
     warnings.push(`Bottom time (${bottomTime} min) is less than or equal to descent time (${descentTime.toFixed(1)} min)`);
   }
