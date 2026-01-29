@@ -57,7 +57,7 @@ const SURFACE_CONDITIONS = ['Calm', 'Light chop', 'Moderate waves', 'Rough', 'St
 const WEATHER_CONDITIONS = ['Sunny', 'Partly cloudy', 'Overcast', 'Rainy', 'Windy'];
 const WORKLOAD_OPTIONS = ['Light', 'Moderate', 'Heavy', 'Exhausting'];
 const THERMAL_OPTIONS = ['Cold', 'Cool', 'Comfortable', 'Warm', 'Hot'];
-const DIVE_MODES = ['Open Circuit', 'CCR', 'Freedive'];
+const DIVE_MODES = ['Open Circuit', 'CCR'];
 const EQUIPMENT_OPTIONS = [
   'None', 'First Stages', 'Second Stages', 'Gas Hoses', 'Wing', 'Harness',
   'Torches', 'Weights', 'SMBs', 'Reels', 'Suit Inflation', 'Suit Venting',
