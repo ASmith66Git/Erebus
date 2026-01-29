@@ -167,9 +167,10 @@ class BleService {
         this.activeNotify,
         (error: any, char: any) => {
           if (error || resolved) return;
-          const data = Buffer.from(char.value, 'base64');
           
-          // Shearwater ACK: Check byte at index 4 (0x35 -> 0x75)
+          const data = Buffer.from(char.value, 'base64');
+          bleLog('DATA_IN', `Bytes: ${data.toString('hex')}`);
+
           if (data[4] === expectedAck) {
             bleLog('RX', `ACK 0x${expectedAck.toString(16)} received.`);
             resolved = true;
@@ -179,17 +180,17 @@ class BleService {
         }
       );
 
-      // 2. MANDATORY SETTLE: Wait 1000ms for subscription to activate
-      // Increased from 500ms to 1000ms to ensure iOS internal state is ready
-      await new Promise(r => setTimeout(r, 1000));
+      // 2. INCREASED SETTLE: 1500ms
+      // Unified handles on iOS often need more time to transition radio modes.
+      await new Promise(r => setTimeout(r, 1500));
 
-      // 3. Send the command
       try {
         const frame = this.wrapUDSCommand(command, payload);
         bleLog('TX', `Sending 0x${command.toString(16)} to ${this.activeWrite.slice(-4)}`);
         
-        // Use writeWithoutResponse for high-speed handshake
-        await this.connectedDevice.writeCharacteristicWithoutResponseForService(
+        // Verbatim: Switch to writeWithResponse for the handshake on Unified IDs
+        // This forces the iOS stack to wait for a hardware confirmation
+        await this.connectedDevice.writeCharacteristicWithResponseForService(
           this.activeService,
           this.activeWrite,
           frame
@@ -199,13 +200,12 @@ class BleService {
         reject(e);
       }
 
-      // 4. Verbatim 10s Timeout
       setTimeout(() => {
         if (!resolved) {
           subscription.remove();
           reject(new Error(`Timeout waiting for ACK 0x${expectedAck.toString(16)}`));
         }
-      }, 10000);
+      }, 12000); // 12s timeout to match libdc
     });
   }
 
