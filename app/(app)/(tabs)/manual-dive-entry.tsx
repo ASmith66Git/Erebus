@@ -1111,6 +1111,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 16,
+    minHeight: 48,
   },
   dropdown: {
     flexDirection: 'row',
@@ -1119,6 +1120,7 @@ const styles = StyleSheet.create({
   },
   dropdownText: {
     fontSize: 16,
+    flex: 1,
   },
   dropdownList: {
     position: 'absolute',
