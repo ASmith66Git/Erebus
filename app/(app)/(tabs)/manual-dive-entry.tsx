@@ -202,9 +202,12 @@ export default function ManualDiveEntryScreen() {
             'single_tank': 'Open Circuit',
             'twinset': 'Open Circuit',
             'sidemount': 'Sidemount',
-            'ccr': 'CCR'
+            'ccr': 'CCR',
+            'scr': 'SCR'
           };
-          setDiveMode(configToDiveMode[profile.configType] || 'Open Circuit');
+          const newDiveMode = configToDiveMode[profile.configType] || 'Open Circuit';
+          console.log('[ManualDiveEntry] Setting dive mode from configType:', profile.configType, '->', newDiveMode);
+          setDiveMode(newDiveMode);
         }
       }
     } catch (error) {
