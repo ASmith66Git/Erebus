@@ -57,7 +57,7 @@ const SURFACE_CONDITIONS = ['Calm', 'Light chop', 'Moderate waves', 'Rough', 'St
 const WEATHER_CONDITIONS = ['Sunny', 'Partly cloudy', 'Overcast', 'Rainy', 'Windy'];
 const WORKLOAD_OPTIONS = ['Light', 'Moderate', 'Heavy', 'Exhausting'];
 const THERMAL_OPTIONS = ['Cold', 'Cool', 'Comfortable', 'Warm', 'Hot'];
-const DIVE_MODES = ['Open Circuit', 'CCR', 'SCR', 'Sidemount', 'Freedive'];
+const DIVE_MODES = ['Open Circuit', 'CCR', 'Freedive'];
 const EQUIPMENT_OPTIONS = [
   'None', 'First Stages', 'Second Stages', 'Gas Hoses', 'Wing', 'Harness',
   'Torches', 'Weights', 'SMBs', 'Reels', 'Suit Inflation', 'Suit Venting',
@@ -201,9 +201,8 @@ export default function ManualDiveEntryScreen() {
           const configToDiveMode: Record<string, string> = {
             'single_tank': 'Open Circuit',
             'twinset': 'Open Circuit',
-            'sidemount': 'Sidemount',
-            'ccr': 'CCR',
-            'scr': 'SCR'
+            'sidemount': 'Open Circuit',
+            'ccr': 'CCR'
           };
           const newDiveMode = configToDiveMode[profile.configType] || 'Open Circuit';
           console.log('[ManualDiveEntry] Setting dive mode from configType:', profile.configType, '->', newDiveMode);
