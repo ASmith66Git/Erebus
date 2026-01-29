@@ -703,7 +703,7 @@ export default function GearProfileScreen() {
               onPress={() => handleConfigTypeChange(type.value)}
             >
               {React.createElement(getTankIcon(type.value), {
-                size: 28,
+                size: 40,
                 color: profile.configType === type.value ? '#FFFFFF' : colors.text,
               })}
               <Text

@@ -178,7 +178,7 @@ export default function GearProfilesScreen() {
       >
         <View style={styles.cardHeader}>
           <View style={[styles.configIcon, { backgroundColor: colors.primary + '20' }]}>
-            <TankIcon size={24} color={colors.primary} />
+            <TankIcon size={36} color={colors.primary} />
           </View>
           <View style={styles.cardTitleSection}>
             <Text style={[styles.profileName, { color: colors.text }]}>{profile.name}</Text>
