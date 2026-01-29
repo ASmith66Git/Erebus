@@ -236,21 +236,22 @@ class BleService {
         const services = await device.services();
         for (const s of services) {
           const uuid = s.uuid.toLowerCase();
-          const isStandard = uuid === UUID_RANGES.STANDARD.SERVICE.toLowerCase();
-          const isVendor = uuid === UUID_RANGES.VENDOR.SERVICE.toLowerCase();
-
-          if (isStandard || isVendor) {
-            // CRITICAL: Lock the activeService to the one actually found on the hardware
-            this.activeService = uuid;
-            bleLog('LOCK_SERVICE', `Locked to Service: ${this.activeService}`);
+          
+          // Check if this is a known Shearwater service
+          if (uuid === UUID_RANGES.STANDARD.SERVICE.toLowerCase() || 
+              uuid === UUID_RANGES.VENDOR.SERVICE.toLowerCase()) {
             
             const chars = await s.characteristics();
             const writeChar = chars.find((c: any) => c.isWritableWithoutResponse || c.isWritableWithResponse);
             const notifyChar = chars.find((c: any) => c.isNotifiable || c.isIndicatable);
 
+            // ONLY LOCK if BOTH characteristics are physically present in THIS service
             if (writeChar && notifyChar) {
+              this.activeService = uuid; // LOCKING HERE IS SAFE
               this.activeWrite = writeChar.uuid;
               this.activeNotify = notifyChar.uuid;
+              
+              bleLog('LOCK_SERVICE', `Verified & Locked to: ${this.activeService}`);
               bleLog('AUTO_DETECT', `Found Write: ${this.activeWrite.slice(-4)}, Notify: ${this.activeNotify.slice(-4)}`);
               foundRange = true;
               break;
