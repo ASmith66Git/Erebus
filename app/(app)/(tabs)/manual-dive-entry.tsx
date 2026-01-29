@@ -105,10 +105,12 @@ export default function ManualDiveEntryScreen() {
   const [skillsNotes, setSkillsNotes] = useState('');
 
   useEffect(() => {
-    loadDiveSites();
-    loadBuddies();
-    loadGearProfiles();
-  }, []);
+    if (token) {
+      loadDiveSites();
+      loadBuddies();
+      loadGearProfiles();
+    }
+  }, [token]);
 
   const loadDiveSites = async () => {
     try {
