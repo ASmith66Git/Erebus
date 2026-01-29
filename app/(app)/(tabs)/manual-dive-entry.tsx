@@ -188,11 +188,13 @@ export default function ManualDiveEntryScreen() {
       console.log('[ManualDiveEntry] Gear profile details:', data);
       
       const profile = data.profile || data;
-      if (profile && profile.cylinders) {
+      console.log('[ManualDiveEntry] Profile cylinders:', profile?.cylinders);
+      if (profile && profile.cylinders && profile.cylinders.length > 0) {
         const cylindersWithEndPressure = profile.cylinders.map((c: GearCylinder) => ({
           ...c,
           endPressure: ''
         }));
+        console.log('[ManualDiveEntry] Setting profileCylinders:', cylindersWithEndPressure);
         setProfileCylinders(cylindersWithEndPressure);
         
         if (profile.configType) {
@@ -587,7 +589,9 @@ export default function ManualDiveEntryScreen() {
     </ScrollView>
   );
 
-  const renderGasTab = () => (
+  const renderGasTab = () => {
+    console.log('[ManualDiveEntry] renderGasTab - profileCylinders:', profileCylinders.length);
+    return (
     <ScrollView style={styles.tabContent} contentContainerStyle={styles.tabContentContainer}>
       <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
         <Text style={[styles.cardTitle, { color: colors.text }]}>Dive Mode</Text>
@@ -740,6 +744,7 @@ export default function ManualDiveEntryScreen() {
       )}
     </ScrollView>
   );
+  }
 
   const renderProblemsTab = () => (
     <ScrollView style={styles.tabContent} contentContainerStyle={styles.tabContentContainer}>
