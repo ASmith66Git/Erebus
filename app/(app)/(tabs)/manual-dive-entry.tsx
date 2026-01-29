@@ -105,7 +105,9 @@ export default function ManualDiveEntryScreen() {
   const [skillsNotes, setSkillsNotes] = useState('');
 
   useEffect(() => {
+    console.log('[ManualDiveEntry] Token available:', !!token);
     if (token) {
+      console.log('[ManualDiveEntry] Loading dive sites and gear profiles...');
       loadDiveSites();
       loadBuddies();
       loadGearProfiles();
@@ -114,10 +116,12 @@ export default function ManualDiveEntryScreen() {
 
   const loadDiveSites = async () => {
     try {
+      console.log('[ManualDiveEntry] Fetching dive sites from:', `${getApiUrl()}/api/dive-sites`);
       const response = await fetch(`${getApiUrl()}/api/dive-sites`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
+      console.log('[ManualDiveEntry] Dive sites response:', data);
       setDiveSites(data.diveSites || []);
     } catch (error) {
       console.error('Error loading dive sites:', error);
@@ -142,10 +146,12 @@ export default function ManualDiveEntryScreen() {
 
   const loadGearProfiles = async () => {
     try {
+      console.log('[ManualDiveEntry] Fetching gear profiles from:', `${getApiUrl()}/api/gear-profiles`);
       const response = await fetch(`${getApiUrl()}/api/gear-profiles`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
+      console.log('[ManualDiveEntry] Gear profiles response:', data);
       setGearProfiles(data.profiles || []);
     } catch (error) {
       console.error('Error loading gear profiles:', error);
