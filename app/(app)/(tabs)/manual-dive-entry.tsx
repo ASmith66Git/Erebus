@@ -38,6 +38,21 @@ interface GearProfile {
   configType: string;
 }
 
+interface GearCylinder {
+  id: number;
+  cylinderSize: string;
+  cylinderMaterial: string;
+  cylinderRole: string;
+  gasMix: string;
+  o2Percent: number;
+  hePercent: number;
+  startPressure: number | null;
+  workingPressure: number | null;
+  nickname: string | null;
+  sortOrder: number;
+  endPressure?: string;
+}
+
 const SURFACE_CONDITIONS = ['Calm', 'Light chop', 'Moderate waves', 'Rough', 'Strong current'];
 const WEATHER_CONDITIONS = ['Sunny', 'Partly cloudy', 'Overcast', 'Rainy', 'Windy'];
 const WORKLOAD_OPTIONS = ['Light', 'Moderate', 'Heavy', 'Exhausting'];
@@ -66,6 +81,8 @@ export default function ManualDiveEntryScreen() {
   const [showGearProfileDropdown, setShowGearProfileDropdown] = useState(false);
   const [selectedGearProfileId, setSelectedGearProfileId] = useState<number | null>(null);
   const [selectedGearProfileName, setSelectedGearProfileName] = useState<string>('');
+  const [profileCylinders, setProfileCylinders] = useState<GearCylinder[]>([]);
+  const [loadingProfile, setLoadingProfile] = useState(false);
 
   const [diveDate, setDiveDate] = useState(() => {
     const now = new Date();
@@ -159,6 +176,61 @@ export default function ManualDiveEntryScreen() {
     } finally {
       setLoadingGearProfiles(false);
     }
+  };
+
+  const loadGearProfileDetails = async (profileId: number) => {
+    setLoadingProfile(true);
+    try {
+      const response = await fetch(`${getApiUrl()}/api/gear-profiles/${profileId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await response.json();
+      console.log('[ManualDiveEntry] Gear profile details:', data);
+      
+      if (data.profile && data.profile.cylinders) {
+        const cylindersWithEndPressure = data.profile.cylinders.map((c: GearCylinder) => ({
+          ...c,
+          endPressure: ''
+        }));
+        setProfileCylinders(cylindersWithEndPressure);
+        
+        if (data.profile.configType) {
+          const configToDiveMode: Record<string, string> = {
+            'single_tank': 'Open Circuit',
+            'twinset': 'Open Circuit',
+            'sidemount': 'Sidemount',
+            'ccr': 'CCR'
+          };
+          setDiveMode(configToDiveMode[data.profile.configType] || 'Open Circuit');
+        }
+      }
+    } catch (error) {
+      console.error('Error loading gear profile details:', error);
+    } finally {
+      setLoadingProfile(false);
+    }
+  };
+
+  const handleSelectGearProfile = (profileId: number, profileName: string) => {
+    setSelectedGearProfileId(profileId);
+    setSelectedGearProfileName(profileName);
+    setShowGearProfileDropdown(false);
+    loadGearProfileDetails(profileId);
+  };
+
+  const handleClearGearProfile = () => {
+    setSelectedGearProfileId(null);
+    setSelectedGearProfileName('');
+    setProfileCylinders([]);
+    setShowGearProfileDropdown(false);
+  };
+
+  const updateCylinderPressure = (cylinderId: number, field: 'startPressure' | 'endPressure', value: string) => {
+    setProfileCylinders(prev => prev.map(c => 
+      c.id === cylinderId 
+        ? { ...c, [field]: field === 'startPressure' ? (value ? parseInt(value) : null) : value }
+        : c
+    ));
   };
 
   const handleSave = async () => {
@@ -417,11 +489,7 @@ export default function ManualDiveEntryScreen() {
               <ScrollView style={{ maxHeight: 400 }}>
                 <Pressable
                   style={[styles.modalItem, { borderBottomColor: colors.border }]}
-                  onPress={() => {
-                    setSelectedGearProfileId(null);
-                    setSelectedGearProfileName('');
-                    setShowGearProfileDropdown(false);
-                  }}
+                  onPress={handleClearGearProfile}
                 >
                   <Text style={[styles.modalItemText, { color: colors.textSecondary }]}>No gear profile selected</Text>
                 </Pressable>
@@ -433,11 +501,7 @@ export default function ManualDiveEntryScreen() {
                       { borderBottomColor: colors.border },
                       selectedGearProfileId === profile.id && { backgroundColor: colors.primary + '15' }
                     ]}
-                    onPress={() => {
-                      setSelectedGearProfileId(profile.id);
-                      setSelectedGearProfileName(profile.name);
-                      setShowGearProfileDropdown(false);
-                    }}
+                    onPress={() => handleSelectGearProfile(profile.id, profile.name)}
                   >
                     <Text style={[styles.modalItemText, { color: colors.text }]}>{profile.name}</Text>
                   </Pressable>
@@ -555,59 +619,124 @@ export default function ManualDiveEntryScreen() {
         </View>
       </View>
 
-      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <Text style={[styles.cardTitle, { color: colors.text }]}>Gas Mix</Text>
-        
-        <View style={styles.row}>
-          <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: colors.textSecondary }]}>O2 %</Text>
-            <TextInput
-              style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
-              value={o2Percent}
-              onChangeText={setO2Percent}
-              placeholder="21"
-              placeholderTextColor={colors.textSecondary}
-              keyboardType="numeric"
-            />
+      {profileCylinders.length > 0 ? (
+        <>
+          {loadingProfile ? (
+            <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border, alignItems: 'center', padding: 20 }]}>
+              <ActivityIndicator size="small" color={colors.primary} />
+              <Text style={[styles.label, { color: colors.textSecondary, marginTop: 8 }]}>Loading cylinders...</Text>
+            </View>
+          ) : (
+            profileCylinders.map((cylinder, index) => (
+              <View key={cylinder.id} style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                  <Text style={[styles.cardTitle, { color: colors.text, marginBottom: 0 }]}>
+                    {cylinder.nickname || cylinder.cylinderRole || `Cylinder ${index + 1}`}
+                  </Text>
+                  <View style={{ flexDirection: 'row', gap: 8 }}>
+                    <View style={[styles.gasBadge, { backgroundColor: colors.primary + '20' }]}>
+                      <Text style={[styles.gasBadgeText, { color: colors.primary }]}>
+                        {cylinder.hePercent > 0 
+                          ? `${cylinder.o2Percent}/${cylinder.hePercent}` 
+                          : cylinder.o2Percent === 21 
+                            ? 'Air' 
+                            : `EAN${cylinder.o2Percent}`}
+                      </Text>
+                    </View>
+                    <View style={[styles.gasBadge, { backgroundColor: colors.border }]}>
+                      <Text style={[styles.gasBadgeText, { color: colors.textSecondary }]}>
+                        {cylinder.cylinderSize}L
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+                
+                <View style={styles.row}>
+                  <View style={styles.inputGroup}>
+                    <Text style={[styles.label, { color: colors.textSecondary }]}>Start Pressure (bar)</Text>
+                    <TextInput
+                      style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
+                      value={cylinder.startPressure?.toString() || ''}
+                      onChangeText={(val) => updateCylinderPressure(cylinder.id, 'startPressure', val)}
+                      placeholder={cylinder.workingPressure?.toString() || 'e.g. 200'}
+                      placeholderTextColor={colors.textSecondary}
+                      keyboardType="numeric"
+                    />
+                  </View>
+                  <View style={styles.inputGroup}>
+                    <Text style={[styles.label, { color: colors.textSecondary }]}>End Pressure (bar)</Text>
+                    <TextInput
+                      style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
+                      value={cylinder.endPressure || ''}
+                      onChangeText={(val) => updateCylinderPressure(cylinder.id, 'endPressure', val)}
+                      placeholder="e.g. 50"
+                      placeholderTextColor={colors.textSecondary}
+                      keyboardType="numeric"
+                    />
+                  </View>
+                </View>
+              </View>
+            ))
+          )}
+        </>
+      ) : (
+        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Text style={[styles.cardTitle, { color: colors.text }]}>Gas Mix</Text>
+          <Text style={[styles.label, { color: colors.textSecondary, marginBottom: 12 }]}>
+            Select a gear profile on the Dive tab to load cylinders, or enter gas mix manually below.
+          </Text>
+          
+          <View style={styles.row}>
+            <View style={styles.inputGroup}>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>O2 %</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
+                value={o2Percent}
+                onChangeText={setO2Percent}
+                placeholder="21"
+                placeholderTextColor={colors.textSecondary}
+                keyboardType="numeric"
+              />
+            </View>
+            <View style={styles.inputGroup}>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>He %</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
+                value={hePercent}
+                onChangeText={setHePercent}
+                placeholder="0"
+                placeholderTextColor={colors.textSecondary}
+                keyboardType="numeric"
+              />
+            </View>
           </View>
-          <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: colors.textSecondary }]}>He %</Text>
-            <TextInput
-              style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
-              value={hePercent}
-              onChangeText={setHePercent}
-              placeholder="0"
-              placeholderTextColor={colors.textSecondary}
-              keyboardType="numeric"
-            />
-          </View>
-        </View>
 
-        <View style={styles.row}>
-          <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: colors.textSecondary }]}>Start Pressure (bar)</Text>
-            <TextInput
-              style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
-              value={startPressure}
-              onChangeText={setStartPressure}
-              placeholder="e.g. 200"
-              placeholderTextColor={colors.textSecondary}
-              keyboardType="numeric"
-            />
-          </View>
-          <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: colors.textSecondary }]}>End Pressure (bar)</Text>
-            <TextInput
-              style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
-              value={endPressure}
-              onChangeText={setEndPressure}
-              placeholder="e.g. 50"
-              placeholderTextColor={colors.textSecondary}
-              keyboardType="numeric"
-            />
+          <View style={styles.row}>
+            <View style={styles.inputGroup}>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>Start Pressure (bar)</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
+                value={startPressure}
+                onChangeText={setStartPressure}
+                placeholder="e.g. 200"
+                placeholderTextColor={colors.textSecondary}
+                keyboardType="numeric"
+              />
+            </View>
+            <View style={styles.inputGroup}>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>End Pressure (bar)</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
+                value={endPressure}
+                onChangeText={setEndPressure}
+                placeholder="e.g. 50"
+                placeholderTextColor={colors.textSecondary}
+                keyboardType="numeric"
+              />
+            </View>
           </View>
         </View>
-      </View>
+      )}
     </ScrollView>
   );
 
@@ -1011,6 +1140,15 @@ const styles = StyleSheet.create({
   },
   modalItemText: {
     fontSize: 16,
+  },
+  gasBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  gasBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
   },
   textArea: {
     borderWidth: 1,
