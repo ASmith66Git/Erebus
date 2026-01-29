@@ -238,6 +238,15 @@ export default function ManualDiveEntryScreen() {
     ));
   };
 
+  const updateCylinderGas = (cylinderId: number, field: 'o2Percent' | 'hePercent', value: string) => {
+    const numValue = value ? parseInt(value) : 0;
+    setProfileCylinders(prev => prev.map(c => 
+      c.id === cylinderId 
+        ? { ...c, [field]: Math.min(100, Math.max(0, numValue)) }
+        : c
+    ));
+  };
+
   const handleSave = async () => {
     if (!diveDate || !diveTime) {
       Alert.alert('Required Field', 'Please enter the dive date and time.');
@@ -640,24 +649,35 @@ export default function ManualDiveEntryScreen() {
                   <Text style={[styles.cardTitle, { color: colors.text, marginBottom: 0 }]}>
                     {cylinder.nickname || cylinder.cylinderRole || `Cylinder ${index + 1}`}
                   </Text>
-                  <View style={{ flexDirection: 'row', gap: 8 }}>
-                    <View style={[styles.gasBadge, { backgroundColor: colors.primary + '20' }]}>
-                      <Text style={[styles.gasBadgeText, { color: colors.primary }]}>
-                        O2: {cylinder.o2Percent}%
-                      </Text>
-                    </View>
-                    {cylinder.hePercent > 0 && (
-                      <View style={[styles.gasBadge, { backgroundColor: '#9C27B0' + '20' }]}>
-                        <Text style={[styles.gasBadgeText, { color: '#9C27B0' }]}>
-                          He: {cylinder.hePercent}%
-                        </Text>
-                      </View>
-                    )}
-                    <View style={[styles.gasBadge, { backgroundColor: colors.border }]}>
-                      <Text style={[styles.gasBadgeText, { color: colors.textSecondary }]}>
-                        {cylinder.cylinderSize}
-                      </Text>
-                    </View>
+                  <View style={[styles.gasBadge, { backgroundColor: colors.border }]}>
+                    <Text style={[styles.gasBadgeText, { color: colors.textSecondary }]}>
+                      {cylinder.cylinderSize}
+                    </Text>
+                  </View>
+                </View>
+                
+                <View style={styles.row}>
+                  <View style={styles.inputGroup}>
+                    <Text style={[styles.label, { color: colors.textSecondary }]}>O2 %</Text>
+                    <TextInput
+                      style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
+                      value={cylinder.o2Percent?.toString() || '21'}
+                      onChangeText={(val) => updateCylinderGas(cylinder.id, 'o2Percent', val)}
+                      placeholder="21"
+                      placeholderTextColor={colors.textSecondary}
+                      keyboardType="numeric"
+                    />
+                  </View>
+                  <View style={styles.inputGroup}>
+                    <Text style={[styles.label, { color: colors.textSecondary }]}>He %</Text>
+                    <TextInput
+                      style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
+                      value={cylinder.hePercent?.toString() || '0'}
+                      onChangeText={(val) => updateCylinderGas(cylinder.id, 'hePercent', val)}
+                      placeholder="0"
+                      placeholderTextColor={colors.textSecondary}
+                      keyboardType="numeric"
+                    />
                   </View>
                 </View>
                 
