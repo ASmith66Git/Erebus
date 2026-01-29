@@ -122,7 +122,7 @@ export default function ManualDiveEntryScreen() {
       });
       const data = await response.json();
       console.log('[ManualDiveEntry] Dive sites response:', data);
-      setDiveSites(data.diveSites || []);
+      setDiveSites(data.sites || []);
     } catch (error) {
       console.error('Error loading dive sites:', error);
     } finally {
