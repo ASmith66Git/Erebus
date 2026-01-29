@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Alert,
   Platform,
+  Modal,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
@@ -316,48 +317,59 @@ export default function ManualDiveEntryScreen() {
           </View>
         </View>
 
-        <View style={[styles.inputGroup, showSiteDropdown && { zIndex: 1001 }]}>
+        <View style={styles.inputGroup}>
           <Text style={[styles.label, { color: colors.textSecondary }]}>Dive Site</Text>
           <Pressable
             style={[styles.input, styles.dropdown, { backgroundColor: colors.background, borderColor: colors.border }]}
-            onPress={() => {
-              setShowGearProfileDropdown(false);
-              setShowSiteDropdown(!showSiteDropdown);
-            }}
+            onPress={() => setShowSiteDropdown(true)}
           >
             <Text style={[styles.dropdownText, { color: selectedSiteName ? colors.text : colors.textSecondary }]}>
               {selectedSiteName || 'Select dive site...'}
             </Text>
-            <Feather name={showSiteDropdown ? 'chevron-up' : 'chevron-down'} size={18} color={colors.textSecondary} />
+            <Feather name="chevron-down" size={18} color={colors.textSecondary} />
           </Pressable>
-          {showSiteDropdown && (
-            <View style={[styles.dropdownList, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              <ScrollView style={{ maxHeight: 200 }} nestedScrollEnabled keyboardShouldPersistTaps="handled">
+        </View>
+
+        <Modal
+          visible={showSiteDropdown}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowSiteDropdown(false)}
+        >
+          <Pressable style={styles.modalOverlay} onPress={() => setShowSiteDropdown(false)}>
+            <View style={[styles.modalContent, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <View style={styles.modalHeader}>
+                <Text style={[styles.modalTitle, { color: colors.text }]}>Select Dive Site</Text>
+                <Pressable onPress={() => setShowSiteDropdown(false)}>
+                  <Feather name="x" size={24} color={colors.textSecondary} />
+                </Pressable>
+              </View>
+              <ScrollView style={{ maxHeight: 400 }}>
                 <Pressable
-                  style={[styles.dropdownItem, { borderBottomColor: colors.border }]}
+                  style={[styles.modalItem, { borderBottomColor: colors.border }]}
                   onPress={() => {
                     setSelectedSiteId(null);
                     setSelectedSiteName('');
                     setShowSiteDropdown(false);
                   }}
                 >
-                  <Text style={[styles.dropdownItemText, { color: colors.textSecondary }]}>No site selected</Text>
+                  <Text style={[styles.modalItemText, { color: colors.textSecondary }]}>No site selected</Text>
                 </Pressable>
                 <Pressable
-                  style={[styles.dropdownItem, { borderBottomColor: colors.border, flexDirection: 'row', alignItems: 'center', gap: 8 }]}
+                  style={[styles.modalItem, { borderBottomColor: colors.border, flexDirection: 'row', alignItems: 'center', gap: 8 }]}
                   onPress={() => {
                     setShowSiteDropdown(false);
                     router.push('/dive-site/new' as any);
                   }}
                 >
                   <Feather name="plus-circle" size={16} color={colors.primary} />
-                  <Text style={[styles.dropdownItemText, { color: colors.primary, fontWeight: '600' }]}>Add New Dive Site</Text>
+                  <Text style={[styles.modalItemText, { color: colors.primary, fontWeight: '600' }]}>Add New Dive Site</Text>
                 </Pressable>
                 {diveSites.map((site) => (
                   <Pressable
                     key={site.id}
                     style={[
-                      styles.dropdownItem,
+                      styles.modalItem,
                       { borderBottomColor: colors.border },
                       selectedSiteId === site.id && { backgroundColor: colors.primary + '15' }
                     ]}
@@ -367,46 +379,57 @@ export default function ManualDiveEntryScreen() {
                       setShowSiteDropdown(false);
                     }}
                   >
-                    <Text style={[styles.dropdownItemText, { color: colors.text }]}>{site.name}</Text>
+                    <Text style={[styles.modalItemText, { color: colors.text }]}>{site.name}</Text>
                   </Pressable>
                 ))}
               </ScrollView>
             </View>
-          )}
-        </View>
+          </Pressable>
+        </Modal>
 
-        <View style={[styles.inputGroup, showGearProfileDropdown && { zIndex: 1001 }]}>
+        <View style={styles.inputGroup}>
           <Text style={[styles.label, { color: colors.textSecondary }]}>Gear Profile</Text>
           <Pressable
             style={[styles.input, styles.dropdown, { backgroundColor: colors.background, borderColor: colors.border }]}
-            onPress={() => {
-              setShowSiteDropdown(false);
-              setShowGearProfileDropdown(!showGearProfileDropdown);
-            }}
+            onPress={() => setShowGearProfileDropdown(true)}
           >
             <Text style={[styles.dropdownText, { color: selectedGearProfileName ? colors.text : colors.textSecondary }]}>
               {selectedGearProfileName || 'Select gear profile...'}
             </Text>
-            <Feather name={showGearProfileDropdown ? 'chevron-up' : 'chevron-down'} size={18} color={colors.textSecondary} />
+            <Feather name="chevron-down" size={18} color={colors.textSecondary} />
           </Pressable>
-          {showGearProfileDropdown && (
-            <View style={[styles.dropdownList, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              <ScrollView style={{ maxHeight: 200 }} nestedScrollEnabled keyboardShouldPersistTaps="handled">
+        </View>
+
+        <Modal
+          visible={showGearProfileDropdown}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowGearProfileDropdown(false)}
+        >
+          <Pressable style={styles.modalOverlay} onPress={() => setShowGearProfileDropdown(false)}>
+            <View style={[styles.modalContent, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <View style={styles.modalHeader}>
+                <Text style={[styles.modalTitle, { color: colors.text }]}>Select Gear Profile</Text>
+                <Pressable onPress={() => setShowGearProfileDropdown(false)}>
+                  <Feather name="x" size={24} color={colors.textSecondary} />
+                </Pressable>
+              </View>
+              <ScrollView style={{ maxHeight: 400 }}>
                 <Pressable
-                  style={[styles.dropdownItem, { borderBottomColor: colors.border }]}
+                  style={[styles.modalItem, { borderBottomColor: colors.border }]}
                   onPress={() => {
                     setSelectedGearProfileId(null);
                     setSelectedGearProfileName('');
                     setShowGearProfileDropdown(false);
                   }}
                 >
-                  <Text style={[styles.dropdownItemText, { color: colors.textSecondary }]}>No gear profile selected</Text>
+                  <Text style={[styles.modalItemText, { color: colors.textSecondary }]}>No gear profile selected</Text>
                 </Pressable>
                 {gearProfiles.map((profile) => (
                   <Pressable
                     key={profile.id}
                     style={[
-                      styles.dropdownItem,
+                      styles.modalItem,
                       { borderBottomColor: colors.border },
                       selectedGearProfileId === profile.id && { backgroundColor: colors.primary + '15' }
                     ]}
@@ -416,13 +439,13 @@ export default function ManualDiveEntryScreen() {
                       setShowGearProfileDropdown(false);
                     }}
                   >
-                    <Text style={[styles.dropdownItemText, { color: colors.text }]}>{profile.name}</Text>
+                    <Text style={[styles.modalItemText, { color: colors.text }]}>{profile.name}</Text>
                   </Pressable>
                 ))}
               </ScrollView>
             </View>
-          )}
-        </View>
+          </Pressable>
+        </Modal>
       </View>
 
       <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -953,6 +976,40 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   dropdownItemText: {
+    fontSize: 16,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    width: '100%',
+    maxWidth: 400,
+    borderRadius: 12,
+    borderWidth: 1,
+    maxHeight: '80%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.1)',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  modalItem: {
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+  },
+  modalItemText: {
     fontSize: 16,
   },
   textArea: {
