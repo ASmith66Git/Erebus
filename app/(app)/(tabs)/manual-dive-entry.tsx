@@ -890,16 +890,19 @@ const styles = StyleSheet.create({
   },
   tabContent: {
     flex: 1,
+    overflow: 'visible',
   },
   tabContentContainer: {
     padding: 16,
     paddingBottom: 40,
+    overflow: 'visible',
   },
   card: {
     borderRadius: 12,
     borderWidth: 1,
     padding: 16,
     marginBottom: 16,
+    overflow: 'visible',
   },
   cardTitle: {
     fontSize: 16,
