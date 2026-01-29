@@ -20,6 +20,7 @@ import { getApiUrl } from '@/utils/apiConfig';
 import { DrawerActions, useNavigation, useFocusEffect } from '@react-navigation/native';
 import PageHeader from '@/components/PageHeader';
 import ThemedBackground from '@/components/ThemedBackground';
+import { getTankIcon } from '@/components/TankIcons';
 
 interface GearProfile {
   id: number;
@@ -32,13 +33,6 @@ interface GearProfile {
   status: 'live' | 'archived';
   updatedAt: string;
 }
-
-const CONFIG_TYPE_ICONS: { [key: string]: string } = {
-  single_tank: 'circle',
-  twinset: 'pause',
-  sidemount: 'more-horizontal',
-  ccr: 'refresh-cw',
-};
 
 const CONFIG_TYPE_LABELS: { [key: string]: string } = {
   single_tank: 'Single Tank',
@@ -173,8 +167,8 @@ export default function GearProfilesScreen() {
   };
 
   const renderProfileCard = (profile: GearProfile) => {
-    const configIcon = CONFIG_TYPE_ICONS[profile.configType] || 'disc';
     const configLabel = CONFIG_TYPE_LABELS[profile.configType] || profile.configType;
+    const TankIcon = getTankIcon(profile.configType);
 
     return (
       <Pressable
@@ -184,7 +178,7 @@ export default function GearProfilesScreen() {
       >
         <View style={styles.cardHeader}>
           <View style={[styles.configIcon, { backgroundColor: colors.primary + '20' }]}>
-            <Feather name={configIcon as any} size={24} color={colors.primary} />
+            <TankIcon size={24} color={colors.primary} />
           </View>
           <View style={styles.cardTitleSection}>
             <Text style={[styles.profileName, { color: colors.text }]}>{profile.name}</Text>

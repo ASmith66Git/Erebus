@@ -18,6 +18,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useSettings } from '@/contexts/SettingsContext';
 import { getApiUrl } from '@/utils/apiConfig';
 import ThemedBackground from '@/components/ThemedBackground';
+import { getTankIcon } from '@/components/TankIcons';
 
 interface Cylinder {
   id?: number;
@@ -85,10 +86,10 @@ interface GearProfile {
 }
 
 const CONFIG_TYPES = [
-  { value: 'single_tank', label: 'Single Tank', icon: 'circle' },
-  { value: 'twinset', label: 'Twinset', icon: 'pause' },
-  { value: 'sidemount', label: 'Sidemount', icon: 'more-horizontal' },
-  { value: 'ccr', label: 'CCR', icon: 'refresh-cw' },
+  { value: 'single_tank', label: 'Single Tank' },
+  { value: 'twinset', label: 'Twinset' },
+  { value: 'sidemount', label: 'Sidemount' },
+  { value: 'ccr', label: 'CCR' },
 ];
 
 const SUIT_TYPES = ['Wetsuit', 'Drysuit', 'Rash Suit'];
@@ -701,11 +702,10 @@ export default function GearProfileScreen() {
               ]}
               onPress={() => handleConfigTypeChange(type.value)}
             >
-              <Feather
-                name={type.icon as any}
-                size={28}
-                color={profile.configType === type.value ? '#FFFFFF' : colors.text}
-              />
+              {React.createElement(getTankIcon(type.value), {
+                size: 28,
+                color: profile.configType === type.value ? '#FFFFFF' : colors.text,
+              })}
               <Text
                 style={[
                   styles.configTypeLabel,
