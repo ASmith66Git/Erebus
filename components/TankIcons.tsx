@@ -52,9 +52,9 @@ export const getTankIcon = (configType: string): React.FC<TankIconProps> => {
     case 'single_tank':
       return SingleTankIcon;
     case 'twinset':
-      return TwinsetIcon;
-    case 'sidemount':
       return SidemountIcon;
+    case 'sidemount':
+      return TwinsetIcon;
     case 'ccr':
       return CCRIcon;
     default:
