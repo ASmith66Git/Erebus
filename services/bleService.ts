@@ -240,14 +240,13 @@ class BleService {
           const isVendor = uuid === UUID_RANGES.VENDOR.SERVICE.toLowerCase();
 
           if (isStandard || isVendor) {
+            // CRITICAL: Lock the activeService to the one actually found on the hardware
             this.activeService = uuid;
-            const chars = await s.characteristics();
+            bleLog('LOCK_SERVICE', `Locked to Service: ${this.activeService}`);
             
-            // Find characteristics by what they DO, not just their UUIDs
+            const chars = await s.characteristics();
             const writeChar = chars.find((c: any) => c.isWritableWithoutResponse || c.isWritableWithResponse);
             const notifyChar = chars.find((c: any) => c.isNotifiable || c.isIndicatable);
-            
-            chars.forEach((c: any) => bleLog('DEBUG_CHAR', `UUID: ${c.uuid.slice(-4)} W:${c.isWritableWithoutResponse || c.isWritableWithResponse} N:${c.isNotifiable || c.isIndicatable}`));
 
             if (writeChar && notifyChar) {
               this.activeWrite = writeChar.uuid;
