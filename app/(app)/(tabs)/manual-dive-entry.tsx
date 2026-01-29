@@ -31,6 +31,12 @@ interface DiveBuddy {
   photoUrl: string | null;
 }
 
+interface GearProfile {
+  id: number;
+  name: string;
+  configType: string;
+}
+
 const SURFACE_CONDITIONS = ['Calm', 'Light chop', 'Moderate waves', 'Rough', 'Strong current'];
 const WEATHER_CONDITIONS = ['Sunny', 'Partly cloudy', 'Overcast', 'Rainy', 'Windy'];
 const WORKLOAD_OPTIONS = ['Light', 'Moderate', 'Heavy', 'Exhausting'];
@@ -54,6 +60,11 @@ export default function ManualDiveEntryScreen() {
   const [buddies, setBuddies] = useState<DiveBuddy[]>([]);
   const [loadingBuddies, setLoadingBuddies] = useState(true);
   const [showSiteDropdown, setShowSiteDropdown] = useState(false);
+  const [gearProfiles, setGearProfiles] = useState<GearProfile[]>([]);
+  const [loadingGearProfiles, setLoadingGearProfiles] = useState(true);
+  const [showGearProfileDropdown, setShowGearProfileDropdown] = useState(false);
+  const [selectedGearProfileId, setSelectedGearProfileId] = useState<number | null>(null);
+  const [selectedGearProfileName, setSelectedGearProfileName] = useState<string>('');
 
   const [diveDate, setDiveDate] = useState(() => {
     const now = new Date();
@@ -96,6 +107,7 @@ export default function ManualDiveEntryScreen() {
   useEffect(() => {
     loadDiveSites();
     loadBuddies();
+    loadGearProfiles();
   }, []);
 
   const loadDiveSites = async () => {
@@ -123,6 +135,20 @@ export default function ManualDiveEntryScreen() {
       console.error('Error loading buddies:', error);
     } finally {
       setLoadingBuddies(false);
+    }
+  };
+
+  const loadGearProfiles = async () => {
+    try {
+      const response = await fetch(`${getApiUrl()}/api/gear-profiles`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await response.json();
+      setGearProfiles(data.profiles || []);
+    } catch (error) {
+      console.error('Error loading gear profiles:', error);
+    } finally {
+      setLoadingGearProfiles(false);
     }
   };
 
@@ -163,6 +189,7 @@ export default function ManualDiveEntryScreen() {
           hePercent: parseInt(hePercent) || 0,
         }] : null,
         buddyIds: selectedBuddyIds.length > 0 ? selectedBuddyIds : null,
+        gearProfileId: selectedGearProfileId,
       };
 
       const response = await fetch(`${getApiUrl()}/api/dive-logs`, {
@@ -305,6 +332,16 @@ export default function ManualDiveEntryScreen() {
                 >
                   <Text style={[styles.dropdownItemText, { color: colors.textSecondary }]}>No site selected</Text>
                 </Pressable>
+                <Pressable
+                  style={[styles.dropdownItem, { borderBottomColor: colors.border, flexDirection: 'row', alignItems: 'center', gap: 8 }]}
+                  onPress={() => {
+                    setShowSiteDropdown(false);
+                    router.push('/dive-site/new' as any);
+                  }}
+                >
+                  <Feather name="plus-circle" size={16} color={colors.primary} />
+                  <Text style={[styles.dropdownItemText, { color: colors.primary, fontWeight: '600' }]}>Add New Dive Site</Text>
+                </Pressable>
                 {diveSites.map((site) => (
                   <Pressable
                     key={site.id}
@@ -320,6 +357,52 @@ export default function ManualDiveEntryScreen() {
                     }}
                   >
                     <Text style={[styles.dropdownItemText, { color: colors.text }]}>{site.name}</Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+        </View>
+
+        <View style={styles.inputGroup}>
+          <Text style={[styles.label, { color: colors.textSecondary }]}>Gear Profile</Text>
+          <Pressable
+            style={[styles.input, styles.dropdown, { backgroundColor: colors.background, borderColor: colors.border }]}
+            onPress={() => setShowGearProfileDropdown(!showGearProfileDropdown)}
+          >
+            <Text style={[styles.dropdownText, { color: selectedGearProfileName ? colors.text : colors.textSecondary }]}>
+              {selectedGearProfileName || 'Select gear profile...'}
+            </Text>
+            <Feather name={showGearProfileDropdown ? 'chevron-up' : 'chevron-down'} size={18} color={colors.textSecondary} />
+          </Pressable>
+          {showGearProfileDropdown && (
+            <View style={[styles.dropdownList, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <ScrollView style={{ maxHeight: 200 }} nestedScrollEnabled keyboardShouldPersistTaps="handled">
+                <Pressable
+                  style={[styles.dropdownItem, { borderBottomColor: colors.border }]}
+                  onPress={() => {
+                    setSelectedGearProfileId(null);
+                    setSelectedGearProfileName('');
+                    setShowGearProfileDropdown(false);
+                  }}
+                >
+                  <Text style={[styles.dropdownItemText, { color: colors.textSecondary }]}>No gear profile selected</Text>
+                </Pressable>
+                {gearProfiles.map((profile) => (
+                  <Pressable
+                    key={profile.id}
+                    style={[
+                      styles.dropdownItem,
+                      { borderBottomColor: colors.border },
+                      selectedGearProfileId === profile.id && { backgroundColor: colors.primary + '15' }
+                    ]}
+                    onPress={() => {
+                      setSelectedGearProfileId(profile.id);
+                      setSelectedGearProfileName(profile.name);
+                      setShowGearProfileDropdown(false);
+                    }}
+                  >
+                    <Text style={[styles.dropdownItemText, { color: colors.text }]}>{profile.name}</Text>
                   </Pressable>
                 ))}
               </ScrollView>
