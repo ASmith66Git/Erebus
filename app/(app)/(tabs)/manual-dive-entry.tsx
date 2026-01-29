@@ -308,11 +308,14 @@ export default function ManualDiveEntryScreen() {
           </View>
         </View>
 
-        <View style={styles.inputGroup}>
+        <View style={[styles.inputGroup, showSiteDropdown && { zIndex: 1001 }]}>
           <Text style={[styles.label, { color: colors.textSecondary }]}>Dive Site</Text>
           <Pressable
             style={[styles.input, styles.dropdown, { backgroundColor: colors.background, borderColor: colors.border }]}
-            onPress={() => setShowSiteDropdown(!showSiteDropdown)}
+            onPress={() => {
+              setShowGearProfileDropdown(false);
+              setShowSiteDropdown(!showSiteDropdown);
+            }}
           >
             <Text style={[styles.dropdownText, { color: selectedSiteName ? colors.text : colors.textSecondary }]}>
               {selectedSiteName || 'Select dive site...'}
@@ -364,11 +367,14 @@ export default function ManualDiveEntryScreen() {
           )}
         </View>
 
-        <View style={styles.inputGroup}>
+        <View style={[styles.inputGroup, showGearProfileDropdown && { zIndex: 1001 }]}>
           <Text style={[styles.label, { color: colors.textSecondary }]}>Gear Profile</Text>
           <Pressable
             style={[styles.input, styles.dropdown, { backgroundColor: colors.background, borderColor: colors.border }]}
-            onPress={() => setShowGearProfileDropdown(!showGearProfileDropdown)}
+            onPress={() => {
+              setShowSiteDropdown(false);
+              setShowGearProfileDropdown(!showGearProfileDropdown);
+            }}
           >
             <Text style={[styles.dropdownText, { color: selectedGearProfileName ? colors.text : colors.textSecondary }]}>
               {selectedGearProfileName || 'Select gear profile...'}
