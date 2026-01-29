@@ -187,21 +187,22 @@ export default function ManualDiveEntryScreen() {
       const data = await response.json();
       console.log('[ManualDiveEntry] Gear profile details:', data);
       
-      if (data.profile && data.profile.cylinders) {
-        const cylindersWithEndPressure = data.profile.cylinders.map((c: GearCylinder) => ({
+      const profile = data.profile || data;
+      if (profile && profile.cylinders) {
+        const cylindersWithEndPressure = profile.cylinders.map((c: GearCylinder) => ({
           ...c,
           endPressure: ''
         }));
         setProfileCylinders(cylindersWithEndPressure);
         
-        if (data.profile.configType) {
+        if (profile.configType) {
           const configToDiveMode: Record<string, string> = {
             'single_tank': 'Open Circuit',
             'twinset': 'Open Circuit',
             'sidemount': 'Sidemount',
             'ccr': 'CCR'
           };
-          setDiveMode(configToDiveMode[data.profile.configType] || 'Open Circuit');
+          setDiveMode(configToDiveMode[profile.configType] || 'Open Circuit');
         }
       }
     } catch (error) {
