@@ -650,7 +650,7 @@ export default function ManualDiveEntryScreen() {
                     </View>
                     <View style={[styles.gasBadge, { backgroundColor: colors.border }]}>
                       <Text style={[styles.gasBadgeText, { color: colors.textSecondary }]}>
-                        {cylinder.cylinderSize}L
+                        {cylinder.cylinderSize}
                       </Text>
                     </View>
                   </View>
