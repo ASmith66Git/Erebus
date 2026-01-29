@@ -644,13 +644,16 @@ export default function ManualDiveEntryScreen() {
                   <View style={{ flexDirection: 'row', gap: 8 }}>
                     <View style={[styles.gasBadge, { backgroundColor: colors.primary + '20' }]}>
                       <Text style={[styles.gasBadgeText, { color: colors.primary }]}>
-                        {cylinder.hePercent > 0 
-                          ? `${cylinder.o2Percent}/${cylinder.hePercent}` 
-                          : cylinder.o2Percent === 21 
-                            ? 'Air' 
-                            : `EAN${cylinder.o2Percent}`}
+                        O2: {cylinder.o2Percent}%
                       </Text>
                     </View>
+                    {cylinder.hePercent > 0 && (
+                      <View style={[styles.gasBadge, { backgroundColor: '#9C27B0' + '20' }]}>
+                        <Text style={[styles.gasBadgeText, { color: '#9C27B0' }]}>
+                          He: {cylinder.hePercent}%
+                        </Text>
+                      </View>
+                    )}
                     <View style={[styles.gasBadge, { backgroundColor: colors.border }]}>
                       <Text style={[styles.gasBadgeText, { color: colors.textSecondary }]}>
                         {cylinder.cylinderSize}
