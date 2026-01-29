@@ -913,6 +913,7 @@ const styles = StyleSheet.create({
   inputGroup: {
     flex: 1,
     marginBottom: 12,
+    position: 'relative',
   },
   label: {
     fontSize: 13,
