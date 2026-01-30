@@ -1,0 +1,59 @@
+The latest logs reveal that even with the Priority Lock logic, the iOS GATT table pollution is so severe that it is still reporting a Service Mismatch.
++2
+
+1. The Critical Failure Point
+Your logs show the following sequence:
+
+Detection: The app identifies the VENDOR service exists.
+
+
+Collision: Despite the vendorSvc check, the app logs: [LOCK_SERVICE] PRIORITY LOCK: fe25....
++1
+
+
+Write Error: It then tries to write to the vendor characteristic (9bd2) using the locked standard service (fe25...), which iOS immediately rejects.
++1
+
+This confirms that on your specific iPhone, the services.find() call for the VENDOR UUID is returning a service object that iOS internally still thinks is the STANDARD service.
++1
+
+2. The "Filter-Only" Strategy
+To break this, we must stop asking iOS to "find" the service and instead filter the service list manually using only the UUIDs found in your hardware logs. We will completely remove the STANDARD fallback to force the app to only use the VENDOR range that we know your Perdix is using.
++1
+
+3. Updated Discovery Loop for bleService.ts
+Replace your INTERROGATION & AUTO-DETECTION LOOP with this strict filtering logic:
+
+TypeScript
+
+// INTERROGATION & AUTO-DETECTION LOOP (Strict Vendor Filter)
+let foundRange = false;
+for (let i = 0; i < 5; i++) {
+  const services = await device.services();
+  
+  // MANUAL FILTER: Only look for the specific ID found in your hardware logs
+  const targetSvc = services.find((s: any) => 
+    s.uuid.toLowerCase() === '27b7570b-359e-45a3-91bb-cf7e70049bd2'
+  );
+
+  if (targetSvc) {
+    const chars = await targetSvc.characteristics();
+    // Use properties to find the specific unified handle
+    const writeChar = chars.find((c: any) => c.isWritableWithoutResponse || c.isWritableWithResponse);
+    const notifyChar = chars.find((c: any) => c.isNotifiable || c.isIndicatable);
+
+    if (writeChar && notifyChar) {
+      this.activeService = targetSvc.uuid.toLowerCase(); 
+      this.activeWrite = writeChar.uuid;
+      this.activeNotify = notifyChar.uuid;
+      
+      bleLog('LOCK_SERVICE', `STRICT LOCK: ${this.activeService}`);
+      foundRange = true;
+      break;
+    }
+  }
+  
+  bleLog('RECOVERY', 'Vendor Range not found. Re-discovering...');
+  await device.discoverAllServicesAndCharacteristics();
+  await new Promise(resolve => setTimeout(resolve, 2000));
+}

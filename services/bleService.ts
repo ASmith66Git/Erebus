@@ -228,22 +228,24 @@ class BleService {
       bleLog('STABILIZE', 'Waiting 3000ms for warm-up...');
       await new Promise(resolve => setTimeout(resolve, 3000));
 
-      // INTERROGATION & AUTO-DETECTION LOOP
+      // INTERROGATION & AUTO-DETECTION LOOP (Strict Vendor Filter)
+      // iOS GATT table pollution fix: ONLY look for VENDOR service, no STANDARD fallback
+      // This prevents iOS from mixing characteristics between services
       let foundRange = false;
       for (let i = 0; i < 5; i++) {
-        bleLog('DISCOVER', `Polling attempt ${i + 1}/5...`);
+        bleLog('DISCOVER', `Polling attempt ${i + 1}/5 (Strict Vendor Filter)...`);
         
         const services = await device.services();
         
-        // STEP 1: Look for VENDOR service first to avoid iOS GATT table pollution
-        const vendorSvc = services.find((s: any) => s.uuid.toLowerCase() === UUID_RANGES.VENDOR.SERVICE.toLowerCase());
-        const standardSvc = services.find((s: any) => s.uuid.toLowerCase() === UUID_RANGES.STANDARD.SERVICE.toLowerCase());
-        
-        // Use VENDOR if it exists, otherwise fallback to STANDARD
-        const targetSvc = vendorSvc || standardSvc;
+        // MANUAL FILTER: Only look for the specific VENDOR UUID - no STANDARD fallback
+        // This prevents iOS GATT table pollution where services.find() returns wrong service
+        const targetSvc = services.find((s: any) => 
+          s.uuid.toLowerCase() === UUID_RANGES.VENDOR.SERVICE.toLowerCase()
+        );
 
         if (targetSvc) {
           const chars = await targetSvc.characteristics();
+          // Use properties to find the specific unified handles
           const writeChar = chars.find((c: any) => c.isWritableWithoutResponse || c.isWritableWithResponse);
           const notifyChar = chars.find((c: any) => c.isNotifiable || c.isIndicatable);
 
@@ -252,19 +254,19 @@ class BleService {
             this.activeWrite = writeChar.uuid;
             this.activeNotify = notifyChar.uuid;
             
-            bleLog('LOCK_SERVICE', `PRIORITY LOCK: ${this.activeService}`);
+            bleLog('LOCK_SERVICE', `STRICT LOCK: ${this.activeService}`);
             bleLog('AUTO_DETECT', `Found Write: ${this.activeWrite.slice(-4)}, Notify: ${this.activeNotify.slice(-4)}`);
             foundRange = true;
             break;
           }
         }
         
-        bleLog('RECOVERY', 'Range not found. Retrying discovery...');
+        bleLog('RECOVERY', 'Vendor Range not found. Re-discovering...');
         await device.discoverAllServicesAndCharacteristics();
         await new Promise(resolve => setTimeout(resolve, 2000));
       }
 
-      if (!foundRange) throw new Error("Could not detect Shearwater UDS range.");
+      if (!foundRange) throw new Error("Could not detect Shearwater VENDOR UDS range. Ensure firmware v93+.");
 
       this.connectedDevice = device;
       
