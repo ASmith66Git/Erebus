@@ -399,6 +399,8 @@ async function initDatabase() {
     await client.query(`ALTER TABLE dive_logs ADD COLUMN IF NOT EXISTS decompression_symptoms BOOLEAN DEFAULT FALSE;`).catch(() => {});
     await client.query(`ALTER TABLE dive_logs ADD COLUMN IF NOT EXISTS problem_notes TEXT;`).catch(() => {});
     await client.query(`ALTER TABLE dive_logs ADD COLUMN IF NOT EXISTS gear_profile_id INTEGER REFERENCES gear_profiles(id) ON DELETE SET NULL;`).catch(() => {});
+    await client.query(`ALTER TABLE dive_logs ADD COLUMN IF NOT EXISTS source_file_url TEXT;`).catch(() => {});
+    await client.query(`ALTER TABLE dive_logs ADD COLUMN IF NOT EXISTS source_file_name TEXT;`).catch(() => {});
     
     await client.query(`
       CREATE TABLE IF NOT EXISTS push_tokens (
@@ -4936,6 +4938,100 @@ app.put('/api/dive-logs/:id', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     console.error('Update dive log error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Attach source file (UDDF, CSV, etc.) to an existing dive log
+app.post('/api/dive-logs/:id/source-file', authenticateToken, upload.single('file'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+    
+    // Verify dive log belongs to user
+    const existingResult = await pool.query(
+      'SELECT id FROM dive_logs WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL',
+      [id, req.user.id]
+    );
+    
+    if (existingResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Dive log not found' });
+    }
+    
+    const filename = req.file.originalname;
+    const buffer = req.file.buffer;
+    const mimeType = req.file.mimetype;
+    
+    // Validate file type
+    const ext = filename.toLowerCase().split('.').pop();
+    const validExtensions = ['uddf', 'xml', 'csv', 'ssrf'];
+    if (!validExtensions.includes(ext)) {
+      return res.status(400).json({ error: `Unsupported file format: ${ext}. Supported: UDDF, XML, CSV, SSRF` });
+    }
+    
+    // Upload to object storage
+    const objectPath = `dive-source-files/${req.user.id}/${id}_${Date.now()}_${filename}`;
+    const { Client } = await import('@replit/object-storage');
+    const storageClient = new Client();
+    await storageClient.uploadFromBuffer(objectPath, buffer, { contentType: mimeType });
+    
+    // Update dive log with file reference
+    await pool.query(
+      'UPDATE dive_logs SET source_file_url = $1, source_file_name = $2 WHERE id = $3',
+      [objectPath, filename, id]
+    );
+    
+    res.json({ 
+      message: 'Source file attached successfully',
+      sourceFileUrl: objectPath,
+      sourceFileName: filename
+    });
+  } catch (error) {
+    console.error('Attach source file error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Remove source file from a dive log
+app.delete('/api/dive-logs/:id/source-file', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Verify dive log belongs to user and get current file
+    const existingResult = await pool.query(
+      'SELECT source_file_url FROM dive_logs WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL',
+      [id, req.user.id]
+    );
+    
+    if (existingResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Dive log not found' });
+    }
+    
+    const sourceFileUrl = existingResult.rows[0].source_file_url;
+    
+    if (sourceFileUrl) {
+      // Delete from object storage
+      try {
+        const { Client } = require('@replit/object-storage');
+        const objectStorage = new Client();
+        await objectStorage.delete(sourceFileUrl);
+      } catch (storageError) {
+        console.error('Failed to delete source file from storage:', storageError);
+      }
+    }
+    
+    // Clear file reference from dive log
+    await pool.query(
+      'UPDATE dive_logs SET source_file_url = NULL, source_file_name = NULL WHERE id = $1',
+      [id]
+    );
+    
+    res.json({ message: 'Source file removed successfully' });
+  } catch (error) {
+    console.error('Remove source file error:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });
