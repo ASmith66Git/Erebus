@@ -234,31 +234,30 @@ class BleService {
         bleLog('DISCOVER', `Polling attempt ${i + 1}/5...`);
         
         const services = await device.services();
-        for (const s of services) {
-          const uuid = s.uuid.toLowerCase();
-          
-          // Check if this is a known Shearwater service
-          if (uuid === UUID_RANGES.STANDARD.SERVICE.toLowerCase() || 
-              uuid === UUID_RANGES.VENDOR.SERVICE.toLowerCase()) {
-            
-            const chars = await s.characteristics();
-            const writeChar = chars.find((c: any) => c.isWritableWithoutResponse || c.isWritableWithResponse);
-            const notifyChar = chars.find((c: any) => c.isNotifiable || c.isIndicatable);
+        
+        // STEP 1: Look for VENDOR service first to avoid iOS GATT table pollution
+        const vendorSvc = services.find((s: any) => s.uuid.toLowerCase() === UUID_RANGES.VENDOR.SERVICE.toLowerCase());
+        const standardSvc = services.find((s: any) => s.uuid.toLowerCase() === UUID_RANGES.STANDARD.SERVICE.toLowerCase());
+        
+        // Use VENDOR if it exists, otherwise fallback to STANDARD
+        const targetSvc = vendorSvc || standardSvc;
 
-            // ONLY LOCK if BOTH characteristics are physically present in THIS service
-            if (writeChar && notifyChar) {
-              this.activeService = uuid; // LOCKING HERE IS SAFE
-              this.activeWrite = writeChar.uuid;
-              this.activeNotify = notifyChar.uuid;
-              
-              bleLog('LOCK_SERVICE', `Verified & Locked to: ${this.activeService}`);
-              bleLog('AUTO_DETECT', `Found Write: ${this.activeWrite.slice(-4)}, Notify: ${this.activeNotify.slice(-4)}`);
-              foundRange = true;
-              break;
-            }
+        if (targetSvc) {
+          const chars = await targetSvc.characteristics();
+          const writeChar = chars.find((c: any) => c.isWritableWithoutResponse || c.isWritableWithResponse);
+          const notifyChar = chars.find((c: any) => c.isNotifiable || c.isIndicatable);
+
+          if (writeChar && notifyChar) {
+            this.activeService = targetSvc.uuid.toLowerCase(); 
+            this.activeWrite = writeChar.uuid;
+            this.activeNotify = notifyChar.uuid;
+            
+            bleLog('LOCK_SERVICE', `PRIORITY LOCK: ${this.activeService}`);
+            bleLog('AUTO_DETECT', `Found Write: ${this.activeWrite.slice(-4)}, Notify: ${this.activeNotify.slice(-4)}`);
+            foundRange = true;
+            break;
           }
         }
-        if (foundRange) break;
         
         bleLog('RECOVERY', 'Range not found. Retrying discovery...');
         await device.discoverAllServicesAndCharacteristics();
