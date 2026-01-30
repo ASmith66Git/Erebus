@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
+import * as DocumentPicker from 'expo-document-picker';
 import Svg, { Circle, Path, Line, Text as SvgText, Rect, G } from 'react-native-svg';
 import { GestureResponderEvent, PanResponder } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -1536,6 +1537,7 @@ export default function DiveLogDetailScreen() {
   const tabScrollRef = useRef<ScrollView>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
+  const [merging, setMerging] = useState(false);
 
   const fetchDiveLog = useCallback(async () => {
     if (!id || !token) return;
@@ -1654,6 +1656,74 @@ export default function DiveLogDetailScreen() {
           { text: 'Delete', style: 'destructive', onPress: confirmDelete },
         ]
       );
+    }
+  };
+
+  const handleMergeFile = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: '*/*',
+        copyToCacheDirectory: true,
+      });
+
+      if (result.canceled || !result.assets || result.assets.length === 0) {
+        return;
+      }
+
+      const file = result.assets[0];
+      const ext = file.name.toLowerCase().split('.').pop();
+      const validExtensions = ['uddf', 'xml', 'csv', 'ssrf'];
+      
+      if (!validExtensions.includes(ext || '')) {
+        const errorMsg = `Unsupported file format: ${ext}. Supported: UDDF, XML, CSV, SSRF`;
+        if (Platform.OS === 'web') {
+          alert(errorMsg);
+        } else {
+          Alert.alert('Error', errorMsg);
+        }
+        return;
+      }
+
+      setMerging(true);
+
+      const formData = new FormData();
+      formData.append('file', {
+        uri: file.uri,
+        name: file.name,
+        type: file.mimeType || 'application/octet-stream',
+      } as any);
+
+      const response = await fetch(`${getApiUrl()}/api/dive-logs/${id}/merge-file`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to merge file data');
+      }
+
+      const successMsg = `Successfully merged data from ${file.name}:\n${data.samplesCount} depth samples\n${data.gasesCount} gas mixes\n${data.eventsCount} events`;
+      if (Platform.OS === 'web') {
+        alert(successMsg);
+      } else {
+        Alert.alert('Success', successMsg);
+      }
+
+      fetchDiveLog();
+    } catch (err: any) {
+      const errorMsg = err.message || 'Failed to merge file data';
+      if (Platform.OS === 'web') {
+        alert(errorMsg);
+      } else {
+        Alert.alert('Error', errorMsg);
+      }
+    } finally {
+      setMerging(false);
     }
   };
 
@@ -1859,6 +1929,17 @@ export default function DiveLogDetailScreen() {
         </Pressable>
         <Text style={[styles.headerTitle, { color: colors.text }]}>Dive Details</Text>
         <View style={styles.headerActions}>
+          <Pressable 
+            style={styles.headerButton} 
+            onPress={handleMergeFile}
+            disabled={merging}
+          >
+            {merging ? (
+              <ActivityIndicator size="small" color={colors.primary} />
+            ) : (
+              <Feather name="file-plus" size={18} color={colors.primary} />
+            )}
+          </Pressable>
           <Pressable style={styles.headerButton} onPress={() => router.push(`/dive-log/${id}/edit`)}>
             <Feather name="edit-2" size={18} color={colors.primary} />
           </Pressable>

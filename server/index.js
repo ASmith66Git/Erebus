@@ -4942,8 +4942,8 @@ app.put('/api/dive-logs/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// Attach source file (UDDF, CSV, etc.) to an existing dive log
-app.post('/api/dive-logs/:id/source-file', authenticateToken, upload.single('file'), async (req, res) => {
+// Merge data from uploaded file (UDDF, CSV, etc.) into an existing dive log
+app.post('/api/dive-logs/:id/merge-file', authenticateToken, upload.single('file'), async (req, res) => {
   try {
     const { id } = req.params;
     
@@ -4953,7 +4953,7 @@ app.post('/api/dive-logs/:id/source-file', authenticateToken, upload.single('fil
     
     // Verify dive log belongs to user
     const existingResult = await pool.query(
-      'SELECT id FROM dive_logs WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL',
+      'SELECT * FROM dive_logs WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL',
       [id, req.user.id]
     );
     
@@ -4961,78 +4961,195 @@ app.post('/api/dive-logs/:id/source-file', authenticateToken, upload.single('fil
       return res.status(404).json({ error: 'Dive log not found' });
     }
     
+    const existingLog = existingResult.rows[0];
+    const fileContent = req.file.buffer.toString('utf-8');
     const filename = req.file.originalname;
-    const buffer = req.file.buffer;
     const mimeType = req.file.mimetype;
     
-    // Validate file type
-    const ext = filename.toLowerCase().split('.').pop();
-    const validExtensions = ['uddf', 'xml', 'csv', 'ssrf'];
-    if (!validExtensions.includes(ext)) {
-      return res.status(400).json({ error: `Unsupported file format: ${ext}. Supported: UDDF, XML, CSV, SSRF` });
+    // Parse the uploaded file
+    const dtos = await diveLogParserV2.parseFile(fileContent, filename, mimeType);
+    
+    if (!dtos || dtos.length === 0) {
+      return res.status(400).json({ error: 'No dive data found in file' });
     }
     
-    // Upload to object storage
-    const objectPath = `dive-source-files/${req.user.id}/${id}_${Date.now()}_${filename}`;
-    const { Client } = await import('@replit/object-storage');
-    const storageClient = new Client();
-    await storageClient.uploadFromBuffer(objectPath, buffer, { contentType: mimeType });
+    // Use the first dive from the file (or closest match by date if multiple)
+    const dto = dtos[0];
     
-    // Update dive log with file reference
-    await pool.query(
-      'UPDATE dive_logs SET source_file_url = $1, source_file_name = $2 WHERE id = $3',
-      [objectPath, filename, id]
-    );
-    
-    res.json({ 
-      message: 'Source file attached successfully',
-      sourceFileUrl: objectPath,
-      sourceFileName: filename
-    });
-  } catch (error) {
-    console.error('Attach source file error:', error);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
-// Remove source file from a dive log
-app.delete('/api/dive-logs/:id/source-file', authenticateToken, async (req, res) => {
-  try {
-    const { id } = req.params;
-    
-    // Verify dive log belongs to user and get current file
-    const existingResult = await pool.query(
-      'SELECT source_file_url FROM dive_logs WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL',
-      [id, req.user.id]
-    );
-    
-    if (existingResult.rows.length === 0) {
-      return res.status(404).json({ error: 'Dive log not found' });
-    }
-    
-    const sourceFileUrl = existingResult.rows[0].source_file_url;
-    
-    if (sourceFileUrl) {
-      // Delete from object storage
-      try {
-        const { Client } = require('@replit/object-storage');
-        const objectStorage = new Client();
-        await objectStorage.delete(sourceFileUrl);
-      } catch (storageError) {
-        console.error('Failed to delete source file from storage:', storageError);
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      
+      // Update dive log with parsed data (only update fields that are empty or have better data)
+      const updateFields = [];
+      const updateValues = [];
+      let paramIndex = 1;
+      
+      // Update duration if we have it and existing is null or zero
+      if (dto.header.duration_seconds && (!existingLog.duration_seconds || existingLog.duration_seconds === 0)) {
+        updateFields.push(`duration_seconds = $${paramIndex++}`);
+        updateValues.push(dto.header.duration_seconds);
       }
+      
+      // Update max depth if we have it and existing is null or zero
+      if (dto.header.max_depth_meters && (!existingLog.max_depth_meters || parseFloat(existingLog.max_depth_meters) === 0)) {
+        updateFields.push(`max_depth_meters = $${paramIndex++}`);
+        updateValues.push(dto.header.max_depth_meters);
+      }
+      
+      // Update avg depth if we have it and existing is null
+      if (dto.header.avg_depth_meters && !existingLog.avg_depth_meters) {
+        updateFields.push(`avg_depth_meters = $${paramIndex++}`);
+        updateValues.push(dto.header.avg_depth_meters);
+      }
+      
+      // Update temperatures if we have them and existing are null
+      if (dto.header.min_temperature_celsius && !existingLog.min_temperature_celsius) {
+        updateFields.push(`min_temperature_celsius = $${paramIndex++}`);
+        updateValues.push(dto.header.min_temperature_celsius);
+      }
+      if (dto.header.max_temperature_celsius && !existingLog.max_temperature_celsius) {
+        updateFields.push(`max_temperature_celsius = $${paramIndex++}`);
+        updateValues.push(dto.header.max_temperature_celsius);
+      }
+      
+      // Update device info if we have it and existing is null
+      if (dto.device.manufacturer && !existingLog.device_manufacturer) {
+        updateFields.push(`device_manufacturer = $${paramIndex++}`);
+        updateValues.push(dto.device.manufacturer);
+      }
+      if (dto.device.model && !existingLog.device_model) {
+        updateFields.push(`device_model = $${paramIndex++}`);
+        updateValues.push(dto.device.model);
+      }
+      if (dto.device.serial && !existingLog.device_serial) {
+        updateFields.push(`device_serial = $${paramIndex++}`);
+        updateValues.push(dto.device.serial);
+      }
+      
+      // Always update samples if we have them (this is the main data from dive computer)
+      if (dto.samples && dto.samples.length > 0) {
+        const samplesJson = JSON.stringify(dto.samples.map(s => ({
+          time_seconds: s.sample_time_seconds,
+          depth_meters: s.depth_meters,
+          temperature_celsius: s.temperature_celsius,
+          ndl_seconds: s.metrics?.ndl_seconds || null,
+          ndl_min: s.metrics?.ndl_min || null,
+          gf99_percent: s.metrics?.gf99_percent || s.metrics?.gf99_pct || null,
+          ceiling_meters: s.metrics?.ceiling_meters || s.metrics?.ceiling_m || null,
+          tts_seconds: s.metrics?.tts_seconds || null,
+          tts_min: s.metrics?.tts_min || null,
+          ppo2_bar: s.metrics?.ppo2_bar || null,
+          sac_lpm: s.metrics?.sac_lpm || null,
+          heartrate_bpm: s.metrics?.heartrate_bpm || null,
+          cns_percent: s.metrics?.cns_percent || s.metrics?.cns_pct || null
+        })));
+        updateFields.push(`samples = $${paramIndex++}`);
+        updateValues.push(samplesJson);
+      }
+      
+      // Always update gas mixes if we have them
+      if (dto.gases && dto.gases.length > 0) {
+        const gasMixesJson = JSON.stringify(dto.gases.map(g => ({
+          label: g.gas_name || 'Unknown',
+          o2Percent: g.o2_percent,
+          hePercent: g.he_percent || 0,
+          startBar: g.start_pressure_bar || null,
+          endBar: g.end_pressure_bar || null
+        })));
+        updateFields.push(`gas_mixes = $${paramIndex++}`);
+        updateValues.push(gasMixesJson);
+      }
+      
+      // Store import metadata
+      updateFields.push(`import_source = $${paramIndex++}`);
+      updateValues.push(dto.import_metadata.source_format || 'file');
+      updateFields.push(`import_filename = $${paramIndex++}`);
+      updateValues.push(filename);
+      updateFields.push(`source_file_name = $${paramIndex++}`);
+      updateValues.push(filename);
+      
+      if (updateFields.length > 0) {
+        updateValues.push(id);
+        await client.query(
+          `UPDATE dive_logs SET ${updateFields.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE id = $${paramIndex}`,
+          updateValues
+        );
+      }
+      
+      // Only delete and replace data if the file actually contains that data type
+      // This prevents wiping manual data if the file is missing certain arrays
+      
+      // Insert new samples (only if file has samples)
+      if (dto.samples && dto.samples.length > 0) {
+        await client.query('DELETE FROM dive_log_samples WHERE dive_log_id = $1', [id]);
+        for (const sample of dto.samples) {
+          await client.query(
+            `INSERT INTO dive_log_samples (dive_log_id, sample_time_seconds, depth_meters, temperature_celsius, 
+             ndl_seconds, gf99_percent, ceiling_meters, tts_seconds, ppo2_bar, sac_lpm, heartrate_bpm, cns_percent)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+            [id, sample.sample_time_seconds, sample.depth_meters, sample.temperature_celsius,
+             sample.metrics?.ndl_seconds, sample.metrics?.gf99_percent, sample.metrics?.ceiling_meters,
+             sample.metrics?.tts_seconds, sample.metrics?.ppo2_bar, sample.metrics?.sac_lpm,
+             sample.metrics?.heartrate_bpm, sample.metrics?.cns_percent]
+          );
+        }
+      }
+      
+      // Insert new gases (only if file has gases)
+      if (dto.gases && dto.gases.length > 0) {
+        await client.query('DELETE FROM dive_log_gases WHERE dive_log_id = $1', [id]);
+        for (const gas of dto.gases) {
+          await client.query(
+            `INSERT INTO dive_log_gases (dive_log_id, gas_name, o2_percent, he_percent, start_pressure_bar, end_pressure_bar, is_active)
+             VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+            [id, gas.gas_name, gas.o2_percent, gas.he_percent || 0, gas.start_pressure_bar, gas.end_pressure_bar, gas.is_active !== false]
+          );
+        }
+      }
+      
+      // Insert new events (only if file has events)
+      if (dto.events && dto.events.length > 0) {
+        await client.query('DELETE FROM dive_log_events WHERE dive_log_id = $1', [id]);
+        for (const event of dto.events) {
+          await client.query(
+            `INSERT INTO dive_log_events (dive_log_id, event_time_seconds, event_type, event_value, event_description)
+             VALUES ($1, $2, $3, $4, $5)`,
+            [id, event.event_time_seconds, event.event_type, event.event_value, event.event_description]
+          );
+        }
+      }
+      
+      // Insert new tank pressures (only if file has tank pressures)
+      if (dto.tank_pressures && dto.tank_pressures.length > 0) {
+        await client.query('DELETE FROM dive_log_tank_pressures WHERE dive_log_id = $1', [id]);
+        for (const tp of dto.tank_pressures) {
+          await client.query(
+            `INSERT INTO dive_log_tank_pressures (dive_log_id, sample_time_seconds, tank_index, pressure_bar)
+             VALUES ($1, $2, $3, $4)`,
+            [id, tp.sample_time_seconds, tp.tank_index || 0, tp.pressure_bar]
+          );
+        }
+      }
+      
+      await client.query('COMMIT');
+      
+      res.json({ 
+        message: 'File data merged successfully',
+        samplesCount: dto.samples?.length || 0,
+        gasesCount: dto.gases?.length || 0,
+        eventsCount: dto.events?.length || 0,
+        sourceFileName: filename
+      });
+    } catch (dbError) {
+      await client.query('ROLLBACK');
+      throw dbError;
+    } finally {
+      client.release();
     }
-    
-    // Clear file reference from dive log
-    await pool.query(
-      'UPDATE dive_logs SET source_file_url = NULL, source_file_name = NULL WHERE id = $1',
-      [id]
-    );
-    
-    res.json({ message: 'Source file removed successfully' });
   } catch (error) {
-    console.error('Remove source file error:', error);
-    res.status(500).json({ error: 'Server error' });
+    console.error('Merge file data error:', error);
+    res.status(500).json({ error: error.message || 'Server error' });
   }
 });
 
