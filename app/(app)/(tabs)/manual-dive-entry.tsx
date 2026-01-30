@@ -403,7 +403,7 @@ export default function ManualDiveEntryScreen() {
           </View>
         </View>
 
-        <View style={styles.inputGroup}>
+        <View style={styles.inputGroupStandalone}>
           <Text style={[styles.label, { color: colors.textSecondary }]}>Dive Site</Text>
           <Pressable
             style={[styles.input, styles.dropdown, { backgroundColor: colors.background, borderColor: colors.border }]}
@@ -473,7 +473,7 @@ export default function ManualDiveEntryScreen() {
           </Pressable>
         </Modal>
 
-        <View style={styles.inputGroup}>
+        <View style={styles.inputGroupStandalone}>
           <Text style={[styles.label, { color: colors.textSecondary }]}>Gear Profile</Text>
           <Pressable
             style={[styles.input, styles.dropdown, { backgroundColor: colors.background, borderColor: colors.border }]}
@@ -529,7 +529,7 @@ export default function ManualDiveEntryScreen() {
       <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
         <Text style={[styles.cardTitle, { color: colors.text }]}>Dive Statistics</Text>
         
-        <View style={styles.inputGroup}>
+        <View style={styles.inputGroupStandalone}>
           <Text style={[styles.label, { color: colors.textSecondary }]}>Duration (minutes)</Text>
           <TextInput
             style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
@@ -612,7 +612,7 @@ export default function ManualDiveEntryScreen() {
       <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
         <Text style={[styles.cardTitle, { color: colors.text }]}>Device Information</Text>
         
-        <View style={styles.inputGroup}>
+        <View style={styles.inputGroupStandalone}>
           <Text style={[styles.label, { color: colors.textSecondary }]}>Manufacturer</Text>
           <TextInput
             style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
@@ -623,7 +623,7 @@ export default function ManualDiveEntryScreen() {
           />
         </View>
 
-        <View style={styles.inputGroup}>
+        <View style={styles.inputGroupStandalone}>
           <Text style={[styles.label, { color: colors.textSecondary }]}>Model</Text>
           <TextInput
             style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
@@ -1099,7 +1099,9 @@ const styles = StyleSheet.create({
   inputGroup: {
     flex: 1,
     marginBottom: 12,
-    position: 'relative',
+  },
+  inputGroupStandalone: {
+    marginBottom: 12,
   },
   label: {
     fontSize: 13,
