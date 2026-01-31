@@ -210,78 +210,67 @@ class BleService {
   }
 
   /**
-   * Main connection sequence with Synchronous Simulation & Auto-Detection
+   * Main connection sequence (Build 12) - Cleaner Aggregator Loop
    */
   async connectAndEstablishSession(deviceId: string): Promise<boolean> {
     try {
       this.manager.stopDeviceScan();
       bleLog('CONNECT', `Connecting to ${deviceId}...`);
       
-      // Verbatim libdc: Standard connection with long timeout
       let device = await this.manager.connectToDevice(deviceId, { timeout: 15000 });
-      
-      // Initial Interrogation
+      this.connectedDevice = device;
+
+      // STEP 1: Aggressive Discovery
+      bleLog('DISCOVER', 'Forcing fresh GATT discovery...');
       await device.discoverAllServicesAndCharacteristics();
-      await device.requestMTU(512);
+      
+      // STEP 2: Stabilization Delay
+      await new Promise(resolve => setTimeout(resolve, 2000));
 
-      // Mandatory Subsurface-style stabilization window
-      bleLog('STABILIZE', 'Waiting 3000ms for warm-up...');
-      await new Promise(resolve => setTimeout(resolve, 3000));
-
-      // DISCOVERY AGGREGATOR: Dual-Service Hybrid Fix
-      // Pre-scans everything and picks the best available path
-      // Prioritizes Vendor range, falls back to Standard if Vendor is truly missing
+      // STEP 3: The Aggregator Loop
       let foundRange = false;
-      for (let i = 0; i < 5; i++) {
-        bleLog('DISCOVER', `Polling attempt ${i + 1}/5 (Discovery Aggregator)...`);
+      const services = await device.services();
+      
+      // Log the actual map for debugging
+      services.forEach((s: any) => bleLog('GATT_MAP', `Detected Service: ${s.uuid}`));
+
+      for (const s of services) {
+        const svcUUID = (s as any).uuid.toLowerCase();
         
-        const services = await device.services();
-        
-        // Log every service UUID found to help debug exactly what the phone sees
-        services.forEach((s: any) => bleLog('GATT_MAP', `Found Service: ${s.uuid}`));
-        
-        // Prioritize Vendor (27b7), fallback to Standard (fe25) only if Vendor is truly missing
-        const vendorSvc = services.find((s: any) => s.uuid.toLowerCase().includes('27b7'));
-        const standardSvc = services.find((s: any) => s.uuid.toLowerCase().includes('fe25'));
-        const targetSvc = vendorSvc || standardSvc;
-        
-        if (targetSvc) {
-          const chars = await targetSvc.characteristics();
-          // Find the characteristic by properties, not just ID
+        // We only care about Shearwater-related folders
+        if (svcUUID.includes('27b7') || svcUUID.includes('fe25')) {
+          const chars = await (s as any).characteristics();
+          
+          // Find a characteristic that has both Write and Notify permissions
           const unifiedChar = chars.find((c: any) => 
             (c.isWritableWithResponse || c.isWritableWithoutResponse) && 
             (c.isNotifiable || c.isIndicatable)
           );
 
           if (unifiedChar) {
-            this.activeService = targetSvc.uuid.toLowerCase(); 
+            this.activeService = svcUUID; // Lock to the parent service of THIS char
             this.activeWrite = unifiedChar.uuid;
             this.activeNotify = unifiedChar.uuid;
             
-            const svcType = vendorSvc ? 'VENDOR' : 'STANDARD';
-            bleLog('LOCK_SUCCESS', `${svcType} Service: ${this.activeService.slice(-4)}, Char: ${this.activeWrite.slice(-4)}`);
+            bleLog('LOCK_SUCCESS', `Mapped to Service: ${this.activeService.slice(-4)}, Char: ${this.activeWrite.slice(-4)}`);
             foundRange = true;
             break;
           }
         }
-        
-        bleLog('RECOVERY', 'No suitable service found. Re-discovering...');
-        await device.discoverAllServicesAndCharacteristics();
-        await new Promise(resolve => setTimeout(resolve, 2000));
       }
 
-      if (!foundRange) throw new Error("Could not detect Shearwater UDS range. Ensure firmware v93+.");
+      if (!foundRange) {
+        throw new Error("Could not find a valid Shearwater UDS channel on this device.");
+      }
 
-      this.connectedDevice = device;
-      
-      // TRANSACTIONAL HANDSHAKE: Forces the app to wait for the 0x75 ACK
-      bleLog('HANDSHAKE', 'Starting transactional 0x35 handshake...');
-      await this.executeUDSCommand(0x35, [], UDS.HANDSHAKE_ACK);
+      // STEP 4: Handshake
+      bleLog('HANDSHAKE', 'Starting 0x35 handshake...');
+      await this.executeUDSCommand(UDS.REQUEST_DOWNLOAD, [], UDS.HANDSHAKE_ACK);
       
       bleLog('SUCCESS', 'Session established.');
       return true;
     } catch (e: any) {
-      bleLog('ERROR', e.message);
+      bleLog('SESSION_ERR', e.message);
       return false;
     }
   }
