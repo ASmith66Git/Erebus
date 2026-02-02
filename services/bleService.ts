@@ -152,7 +152,7 @@ class BleService {
   }
 
   /**
-   * TRANSACTIONAL COMMAND (Build 14 - Hybrid Write)
+   * TRANSACTIONAL COMMAND (Build 15 - Hybrid Write)
    * Uses the locked activeService to prevent iOS folder-mismatch errors.
    * Uses writeWithoutResponse for 0x35 handshake (no GATT-level ACK from Shearwater).
    */
@@ -221,7 +221,10 @@ class BleService {
   }
 
   /**
-   * Main connection sequence (Build 14) - Strict Aggregator Lock + Hybrid Write
+   * Main connection sequence (Build 15) - Supervision Timeout Fixes
+   * - Connection Priority High (Android)
+   * - MTU negotiation (256)
+   * - Settle delay before handshake
    */
   async connectAndEstablishSession(deviceId: string): Promise<boolean> {
     try {
@@ -234,6 +237,18 @@ class BleService {
       bleLog('DISCOVER', 'Forcing fresh GATT discovery...');
       await device.discoverAllServicesAndCharacteristics();
       
+      // Build 15: Request high priority to prevent supervision timeout (Android only)
+      if (Platform.OS === 'android') {
+        bleLog('PRIORITY', 'Requesting high connection priority...');
+        await device.requestConnectionPriority(1); // 1 = ConnectionPriority.High
+      }
+      
+      // Build 15: MTU negotiation - request 256 to prevent large packet drops
+      bleLog('MTU', 'Requesting MTU 256...');
+      await device.requestMTU(256);
+      
+      // Build 15: Settle delay - give Perdix time to transition from Advertising to Connected mode
+      bleLog('SETTLE', 'Waiting 2s for firmware to settle...');
       await new Promise(resolve => setTimeout(resolve, 2000));
 
       const services = await device.services();
