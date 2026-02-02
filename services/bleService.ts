@@ -152,7 +152,7 @@ class BleService {
   }
 
   /**
-   * TRANSACTIONAL COMMAND (Build 15 - Hybrid Write)
+   * TRANSACTIONAL COMMAND (Build 16 - Hybrid Write)
    * Uses the locked activeService to prevent iOS folder-mismatch errors.
    * Uses writeWithoutResponse for 0x35 handshake (no GATT-level ACK from Shearwater).
    */
@@ -221,10 +221,10 @@ class BleService {
   }
 
   /**
-   * Main connection sequence (Build 15) - Supervision Timeout Fixes
-   * - Connection Priority High (Android)
-   * - MTU negotiation (256)
-   * - Settle delay before handshake
+   * Main connection sequence (Build 16) - Fast Discovery Lock
+   * - No settle delay (was causing us to miss hardware's "Ready" window)
+   * - MTU negotiation moved after handshake
+   * - Instant write once target service 029d is found
    */
   async connectAndEstablishSession(deviceId: string): Promise<boolean> {
     try {
@@ -234,49 +234,45 @@ class BleService {
       let device = await this.manager.connectToDevice(deviceId, { timeout: 15000 });
       this.connectedDevice = device;
 
-      bleLog('DISCOVER', 'Forcing fresh GATT discovery...');
-      await device.discoverAllServicesAndCharacteristics();
-      
-      // Build 15: Request high priority to prevent supervision timeout (Android only)
+      // Build 16: Request high priority immediately after connect (Android only)
       if (Platform.OS === 'android') {
         bleLog('PRIORITY', 'Requesting high connection priority...');
         await device.requestConnectionPriority(1); // 1 = ConnectionPriority.High
       }
+
+      bleLog('DISCOVER', 'Forcing fresh GATT discovery...');
+      await device.discoverAllServicesAndCharacteristics();
       
-      // Build 15: MTU negotiation - request 256 to prevent large packet drops
-      bleLog('MTU', 'Requesting MTU 256...');
-      await device.requestMTU(256);
-      
-      // Build 15: Settle delay - give Perdix time to transition from Advertising to Connected mode
-      bleLog('SETTLE', 'Waiting 2s for firmware to settle...');
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Build 16: No settle delay - instantly lock and write
 
       const services = await device.services();
       let foundValidPath = false;
 
       for (const s of services) {
         const svcUUID = (s as any).uuid.toLowerCase();
-        bleLog('GATT_MAP', `Inspecting Service: ${svcUUID.slice(-4)}`);
-
-        const chars = await (s as any).characteristics();
         
-        // Find the characteristic that supports both Notify and Write
-        // Also filter by known Shearwater char UUIDs (9bd2 or 29e)
-        const unifiedChar = chars.find((c: any) => 
-          (c.isWritableWithResponse || c.isWritableWithoutResponse) && 
-          (c.isNotifiable || c.isIndicatable) &&
-          (c.uuid.toLowerCase().includes('9bd2') || c.uuid.toLowerCase().includes('29e'))
-        );
-
-        if (unifiedChar) {
-          // THE CRITICAL FIX: Explicitly bind the service to the characteristic
-          this.activeService = svcUUID; 
-          this.activeWrite = unifiedChar.uuid;
-          this.activeNotify = unifiedChar.uuid;
+        // Build 16: Explicit discovery lock - look for target service 029d
+        if (svcUUID.includes('029d') || svcUUID.includes('27b7') || svcUUID.includes('fe25')) {
+          bleLog('GATT_MAP', `Found target Service: ${svcUUID.slice(-4)}`);
           
-          bleLog('LOCK_SUCCESS', `Strict Lock -> Svc: ${this.activeService.slice(-4)}, Char: ${this.activeWrite.slice(-4)}`);
-          foundValidPath = true;
-          break; 
+          const chars = await (s as any).characteristics();
+          
+          // Find the characteristic that supports both Notify and Write
+          const unifiedChar = chars.find((c: any) => 
+            (c.isWritableWithResponse || c.isWritableWithoutResponse) && 
+            (c.isNotifiable || c.isIndicatable) &&
+            (c.uuid.toLowerCase().includes('9bd2') || c.uuid.toLowerCase().includes('29e'))
+          );
+
+          if (unifiedChar) {
+            this.activeService = svcUUID; 
+            this.activeWrite = unifiedChar.uuid;
+            this.activeNotify = unifiedChar.uuid;
+            
+            bleLog('LOCK_SUCCESS', `Instant Lock -> Svc: ${this.activeService.slice(-4)}, Char: ${this.activeWrite.slice(-4)}`);
+            foundValidPath = true;
+            break; 
+          }
         }
       }
 
@@ -284,12 +280,16 @@ class BleService {
         throw new Error("No compatible Shearwater GATT path found on this device.");
       }
 
+      // Build 16: Handshake immediately after discovery lock
       bleLog('HANDSHAKE', 'Starting 0x35 handshake...');
-      return await this.executeUDSCommand(UDS.REQUEST_DOWNLOAD, [], UDS.HANDSHAKE_ACK)
-        .then(() => {
-          bleLog('SUCCESS', 'Session established.');
-          return true;
-        });
+      const result = await this.executeUDSCommand(UDS.REQUEST_DOWNLOAD, [], UDS.HANDSHAKE_ACK);
+      
+      // Build 16: MTU negotiation AFTER handshake (initial handshake is small enough)
+      bleLog('MTU', 'Requesting MTU 256...');
+      await device.requestMTU(256);
+      
+      bleLog('SUCCESS', 'Session established.');
+      return true;
 
     } catch (e: any) {
       bleLog('SESSION_ERR', e.message);
