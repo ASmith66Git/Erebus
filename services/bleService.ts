@@ -152,8 +152,9 @@ class BleService {
   }
 
   /**
-   * TRANSACTIONAL COMMAND (Build 13 - Strict Lock)
+   * TRANSACTIONAL COMMAND (Build 14 - Hybrid Write)
    * Uses the locked activeService to prevent iOS folder-mismatch errors.
+   * Uses writeWithoutResponse for 0x35 handshake (no GATT-level ACK from Shearwater).
    */
   async executeUDSCommand(command: number, payload: number[] = [], expectedAck: number): Promise<Buffer> {
     return new Promise(async (resolve, reject) => {
@@ -189,12 +190,22 @@ class BleService {
         const frame = this.wrapUDSCommand(command, payload);
         bleLog('TX', `Sending 0x${command.toString(16)} via Service: ${this.activeService.slice(-4)}`);
         
-        // Build 13: Explicitly use the service that contains this characteristic
-        await this.connectedDevice.writeCharacteristicWithResponseForService(
-          this.activeService,
-          this.activeWrite,
-          frame
-        );
+        // Build 14: Use WITHOUT response for the 0x35 handshake command
+        // Many Shearwater firmware versions don't send a GATT-level ACK for 0x35,
+        // causing iOS to think "connection failed" when using withResponse
+        if (command === UDS.REQUEST_DOWNLOAD) {
+          await this.connectedDevice.writeCharacteristicWithoutResponseForService(
+            this.activeService,
+            this.activeWrite,
+            frame
+          );
+        } else {
+          await this.connectedDevice.writeCharacteristicWithResponseForService(
+            this.activeService,
+            this.activeWrite,
+            frame
+          );
+        }
       } catch (e) {
         subscription.remove();
         reject(e);
@@ -210,7 +221,7 @@ class BleService {
   }
 
   /**
-   * Main connection sequence (Build 13) - Strict Aggregator Lock
+   * Main connection sequence (Build 14) - Strict Aggregator Lock + Hybrid Write
    */
   async connectAndEstablishSession(deviceId: string): Promise<boolean> {
     try {
