@@ -152,16 +152,19 @@ class BleService {
   }
 
   /**
-   * TRANSACTIONAL COMMAND (Verbatim Stop-and-Wait)
-   * This forces the JS thread to 'block' until the hardware responds.
-   * Uses numeric expectedAck for cleaner byte comparison (e.g., 0x75 for 0x35 handshake)
-   * Handles unified IDs where Write and Notify may share the same characteristic
+   * TRANSACTIONAL COMMAND (Build 13 - Strict Lock)
+   * Uses the locked activeService to prevent iOS folder-mismatch errors.
    */
   async executeUDSCommand(command: number, payload: number[] = [], expectedAck: number): Promise<Buffer> {
     return new Promise(async (resolve, reject) => {
       let resolved = false;
 
-      // 1. Setup 'Ear' (Listener)
+      // Ensure we have a valid locked path before starting
+      if (!this.activeService || !this.activeNotify) {
+        return reject(new Error("GATT path not locked. Discovery failed."));
+      }
+
+      // 1. Setup Listener using the locked service/notify pair
       const subscription = this.connectedDevice.monitorCharacteristicForService(
         this.activeService,
         this.activeNotify,
@@ -180,16 +183,13 @@ class BleService {
         }
       );
 
-      // 2. INCREASED SETTLE: 1500ms
-      // Unified handles on iOS often need more time to transition radio modes.
       await new Promise(r => setTimeout(r, 1500));
 
       try {
         const frame = this.wrapUDSCommand(command, payload);
-        bleLog('TX', `Sending 0x${command.toString(16)} to ${this.activeWrite.slice(-4)}`);
+        bleLog('TX', `Sending 0x${command.toString(16)} via Service: ${this.activeService.slice(-4)}`);
         
-        // Verbatim: Switch to writeWithResponse for the handshake on Unified IDs
-        // This forces the iOS stack to wait for a hardware confirmation
+        // Build 13: Explicitly use the service that contains this characteristic
         await this.connectedDevice.writeCharacteristicWithResponseForService(
           this.activeService,
           this.activeWrite,
@@ -205,12 +205,12 @@ class BleService {
           subscription.remove();
           reject(new Error(`Timeout waiting for ACK 0x${expectedAck.toString(16)}`));
         }
-      }, 12000); // 12s timeout to match libdc
+      }, 12000);
     });
   }
 
   /**
-   * Main connection sequence (Build 12) - Cleaner Aggregator Loop
+   * Main connection sequence (Build 13) - Strict Aggregator Lock
    */
   async connectAndEstablishSession(deviceId: string): Promise<boolean> {
     try {
@@ -220,55 +220,51 @@ class BleService {
       let device = await this.manager.connectToDevice(deviceId, { timeout: 15000 });
       this.connectedDevice = device;
 
-      // STEP 1: Aggressive Discovery
       bleLog('DISCOVER', 'Forcing fresh GATT discovery...');
       await device.discoverAllServicesAndCharacteristics();
       
-      // STEP 2: Stabilization Delay
       await new Promise(resolve => setTimeout(resolve, 2000));
 
-      // STEP 3: The Aggregator Loop
-      let foundRange = false;
       const services = await device.services();
-      
-      // Log the actual map for debugging
-      services.forEach((s: any) => bleLog('GATT_MAP', `Detected Service: ${s.uuid}`));
+      let foundValidPath = false;
 
       for (const s of services) {
         const svcUUID = (s as any).uuid.toLowerCase();
-        
-        // We only care about Shearwater-related folders
-        if (svcUUID.includes('27b7') || svcUUID.includes('fe25')) {
-          const chars = await (s as any).characteristics();
-          
-          // Find a characteristic that has both Write and Notify permissions
-          const unifiedChar = chars.find((c: any) => 
-            (c.isWritableWithResponse || c.isWritableWithoutResponse) && 
-            (c.isNotifiable || c.isIndicatable)
-          );
+        bleLog('GATT_MAP', `Inspecting Service: ${svcUUID.slice(-4)}`);
 
-          if (unifiedChar) {
-            this.activeService = svcUUID; // Lock to the parent service of THIS char
-            this.activeWrite = unifiedChar.uuid;
-            this.activeNotify = unifiedChar.uuid;
-            
-            bleLog('LOCK_SUCCESS', `Mapped to Service: ${this.activeService.slice(-4)}, Char: ${this.activeWrite.slice(-4)}`);
-            foundRange = true;
-            break;
-          }
+        const chars = await (s as any).characteristics();
+        
+        // Find the characteristic that supports both Notify and Write
+        // Also filter by known Shearwater char UUIDs (9bd2 or 29e)
+        const unifiedChar = chars.find((c: any) => 
+          (c.isWritableWithResponse || c.isWritableWithoutResponse) && 
+          (c.isNotifiable || c.isIndicatable) &&
+          (c.uuid.toLowerCase().includes('9bd2') || c.uuid.toLowerCase().includes('29e'))
+        );
+
+        if (unifiedChar) {
+          // THE CRITICAL FIX: Explicitly bind the service to the characteristic
+          this.activeService = svcUUID; 
+          this.activeWrite = unifiedChar.uuid;
+          this.activeNotify = unifiedChar.uuid;
+          
+          bleLog('LOCK_SUCCESS', `Strict Lock -> Svc: ${this.activeService.slice(-4)}, Char: ${this.activeWrite.slice(-4)}`);
+          foundValidPath = true;
+          break; 
         }
       }
 
-      if (!foundRange) {
-        throw new Error("Could not find a valid Shearwater UDS channel on this device.");
+      if (!foundValidPath) {
+        throw new Error("No compatible Shearwater GATT path found on this device.");
       }
 
-      // STEP 4: Handshake
       bleLog('HANDSHAKE', 'Starting 0x35 handshake...');
-      await this.executeUDSCommand(UDS.REQUEST_DOWNLOAD, [], UDS.HANDSHAKE_ACK);
-      
-      bleLog('SUCCESS', 'Session established.');
-      return true;
+      return await this.executeUDSCommand(UDS.REQUEST_DOWNLOAD, [], UDS.HANDSHAKE_ACK)
+        .then(() => {
+          bleLog('SUCCESS', 'Session established.');
+          return true;
+        });
+
     } catch (e: any) {
       bleLog('SESSION_ERR', e.message);
       return false;
