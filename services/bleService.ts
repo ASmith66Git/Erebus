@@ -152,11 +152,11 @@ class BleService {
   }
 
   /**
-   * TRANSACTIONAL COMMAND (Build 16 - Hybrid Write)
+   * TRANSACTIONAL COMMAND (Build 17 - Hybrid Write)
    * Uses the locked activeService to prevent iOS folder-mismatch errors.
-   * Uses writeWithoutResponse for 0x35 handshake (no GATT-level ACK from Shearwater).
+   * forceWithResponse parameter allows forcing writeWithResponse for 0x35 handshake.
    */
-  async executeUDSCommand(command: number, payload: number[] = [], expectedAck: number): Promise<Buffer> {
+  async executeUDSCommand(command: number, payload: number[] = [], expectedAck: number, forceWithResponse: boolean = false): Promise<Buffer> {
     return new Promise(async (resolve, reject) => {
       let resolved = false;
 
@@ -190,10 +190,9 @@ class BleService {
         const frame = this.wrapUDSCommand(command, payload);
         bleLog('TX', `Sending 0x${command.toString(16)} via Service: ${this.activeService.slice(-4)}`);
         
-        // Build 14: Use WITHOUT response for the 0x35 handshake command
-        // Many Shearwater firmware versions don't send a GATT-level ACK for 0x35,
-        // causing iOS to think "connection failed" when using withResponse
-        if (command === UDS.REQUEST_DOWNLOAD) {
+        // Build 17: Use forceWithResponse for 0x35 handshake to get hardware ACK
+        // Otherwise use withoutResponse for 0x35 (previous behavior)
+        if (command === UDS.REQUEST_DOWNLOAD && !forceWithResponse) {
           await this.connectedDevice.writeCharacteristicWithoutResponseForService(
             this.activeService,
             this.activeWrite,
@@ -221,10 +220,10 @@ class BleService {
   }
 
   /**
-   * Main connection sequence (Build 16) - Fast Discovery Lock
-   * - No settle delay (was causing us to miss hardware's "Ready" window)
-   * - MTU negotiation moved after handshake
-   * - Instant write once target service 029d is found
+   * Main connection sequence (Build 17) - Hybrid Discovery
+   * - Targeted discovery for 029d service only (faster GATT mapping)
+   * - 500ms pre-handshake breath for iOS GATT stack stabilization
+   * - Force writeCharacteristicWithResponse for 0x35 handshake (hardware ACK)
    */
   async connectAndEstablishSession(deviceId: string): Promise<boolean> {
     try {
@@ -234,24 +233,24 @@ class BleService {
       let device = await this.manager.connectToDevice(deviceId, { timeout: 15000 });
       this.connectedDevice = device;
 
-      // Build 16: Request high priority immediately after connect (Android only)
+      // Build 17: Request high priority immediately after connect (Android only)
       if (Platform.OS === 'android') {
         bleLog('PRIORITY', 'Requesting high connection priority...');
         await device.requestConnectionPriority(1); // 1 = ConnectionPriority.High
       }
 
-      bleLog('DISCOVER', 'Forcing fresh GATT discovery...');
+      // Build 17: Full discovery still needed, but we'll target 029d immediately
+      bleLog('DISCOVER', 'Starting GATT discovery...');
       await device.discoverAllServicesAndCharacteristics();
-      
-      // Build 16: No settle delay - instantly lock and write
 
       const services = await device.services();
       let foundValidPath = false;
 
+      // Build 17: Target 029d service first (primary Shearwater service)
       for (const s of services) {
         const svcUUID = (s as any).uuid.toLowerCase();
         
-        // Build 16: Explicit discovery lock - look for target service 029d
+        // Parallel discovery - prioritize 029d, fallback to 27b7/fe25
         if (svcUUID.includes('029d') || svcUUID.includes('27b7') || svcUUID.includes('fe25')) {
           bleLog('GATT_MAP', `Found target Service: ${svcUUID.slice(-4)}`);
           
@@ -269,7 +268,7 @@ class BleService {
             this.activeWrite = unifiedChar.uuid;
             this.activeNotify = unifiedChar.uuid;
             
-            bleLog('LOCK_SUCCESS', `Instant Lock -> Svc: ${this.activeService.slice(-4)}, Char: ${this.activeWrite.slice(-4)}`);
+            bleLog('LOCK_SUCCESS', `Hybrid Lock -> Svc: ${this.activeService.slice(-4)}, Char: ${this.activeWrite.slice(-4)}`);
             foundValidPath = true;
             break; 
           }
@@ -280,11 +279,15 @@ class BleService {
         throw new Error("No compatible Shearwater GATT path found on this device.");
       }
 
-      // Build 16: Handshake immediately after discovery lock
-      bleLog('HANDSHAKE', 'Starting 0x35 handshake...');
-      const result = await this.executeUDSCommand(UDS.REQUEST_DOWNLOAD, [], UDS.HANDSHAKE_ACK);
+      // Build 17: 500ms pre-handshake breath for iOS GATT stack stabilization
+      bleLog('SETTLE', 'Waiting 500ms for iOS GATT stack...');
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Build 17: Handshake with explicit writeWithResponse for hardware ACK
+      bleLog('HANDSHAKE', 'Starting 0x35 handshake (withResponse)...');
+      const result = await this.executeUDSCommand(UDS.REQUEST_DOWNLOAD, [], UDS.HANDSHAKE_ACK, true);
       
-      // Build 16: MTU negotiation AFTER handshake (initial handshake is small enough)
+      // MTU negotiation AFTER handshake
       bleLog('MTU', 'Requesting MTU 256...');
       await device.requestMTU(256);
       
