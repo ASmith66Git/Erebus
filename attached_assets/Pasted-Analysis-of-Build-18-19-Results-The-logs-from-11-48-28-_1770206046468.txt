@@ -1,0 +1,45 @@
+Analysis of Build 18/19 Results
+The logs from 11:48:28 show that your "Range-Sync" logic is working perfectly from a coding perspective, but the physical hardware is still rejecting the connection.
+
+
+Range Synchronization Success: The log confirms [LOCK_SUCCESS] Range-Sync Lock -> Svc: 029d, Char: 9bd2, Range: 029d. This proves your code in bleService (13).ts correctly identified that it was in the "Standard" range and attempted to use the matching characteristic.
++1
+
+
+The Mismatch is Still Present: Surprisingly, the error message still reports a cross-contamination: Characteristic 27b7...9bd2 write failed for... service fe25...029d.
+
+
+The Disconnect: At 11:48:30, the session failed with the familiar "Failed to connect to device" message.
+
+Why it is Still Failing: The "Ghost" UUID
+The deduction from bleService (13).ts is that your UUID_RANGES constants contain a subtle but critical error that is causing the "Standard" and "Vendor" ranges to bleed into each other.
+
+Look at your UUID_RANGES in the code:
+
+TypeScript
+
+const UUID_RANGES = {
+  STANDARD: {
+    SERVICE: 'fe25c237-0ece-443c-b0aa-e02033e7029d',
+    WRITE:   'fe25c237-0ece-443c-b0aa-e02033e7029e', // Correct (Ends in 29e)
+    NOTIFY:  'fe25c237-0ece-443c-b0aa-e02033e7029f'
+  },
+  VENDOR: {
+    SERVICE: '27b7570b-359e-45a3-91bb-cf7e70049bd2',
+    WRITE:   '27b7570b-359e-45a3-91bb-cf7e70049bd3', // Correct (Ends in bd3)
+    NOTIFY:  '27b7570b-359e-45a3-91bb-cf7e70049bd4'
+  }
+};
+The Diagnostic Smoking Gun: In your logs, the app reports it is trying to write to characteristic ...9bd2. However, according to your code, 9bd2 is a Service UUID, not a Write Characteristic UUID.
++1
+
+You are effectively telling the Perdix: "I want to write data to the folder itself" instead of "I want to write data to the file inside the folder." iOS sees you trying to perform a "Write" operation on a "Service" (which is a container, not a writable endpoint) and immediately kills the connection with "Failed to connect to device".
+
+Solution for Build 20: Correcting the Endpoint
+You must update your executeUDSCommand logic to use the WRITE characteristic ID from the range, rather than the SERVICE ID.
+
+
+Correct the Handshake Target: Ensure the app writes to ...29e (Standard) or ...bd3 (Vendor).
+
+
+Update Range-Sync: The activeWrite and activeNotify must point to the specific characteristic UUIDs, not the parent service UUID.

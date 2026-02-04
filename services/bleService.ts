@@ -152,8 +152,8 @@ class BleService {
   }
 
   /**
-   * TRANSACTIONAL COMMAND (Build 18 - Range Synchronized Write)
-   * Uses the locked activeService to prevent iOS folder-mismatch errors.
+   * TRANSACTIONAL COMMAND (Build 20 - Correct Endpoint Write)
+   * Uses the locked activeService + activeWrite (029e/9bd3) for proper targeting.
    * forceWithResponse parameter allows forcing writeWithResponse for 0x35 handshake.
    */
   async executeUDSCommand(command: number, payload: number[] = [], expectedAck: number, forceWithResponse: boolean = false): Promise<Buffer> {
@@ -220,9 +220,9 @@ class BleService {
   }
 
   /**
-   * Main connection sequence (Build 18) - Range Synchronization
-   * - Ensures characteristic UUID always belongs to its parent service range
-   * - Prevents cross-contamination between vendor (27b7) and standard (fe25) ranges
+   * Main connection sequence (Build 20) - Correct Endpoint Targeting
+   * - Uses WRITE characteristic UUIDs (029e, 9bd3), NOT service UUIDs (029d, 9bd2)
+   * - Service UUID = folder, Write Characteristic = file inside folder
    * - 500ms pre-handshake breath for iOS GATT stack stabilization
    */
   async connectAndEstablishSession(deviceId: string): Promise<boolean> {
@@ -233,7 +233,7 @@ class BleService {
       let device = await this.manager.connectToDevice(deviceId, { timeout: 15000 });
       this.connectedDevice = device;
 
-      // Build 18: Request high priority immediately after connect (Android only)
+      // Build 20: Request high priority immediately after connect (Android only)
       if (Platform.OS === 'android') {
         bleLog('PRIORITY', 'Requesting high connection priority...');
         await device.requestConnectionPriority(1); // 1 = ConnectionPriority.High
@@ -245,46 +245,60 @@ class BleService {
       const services = await device.services();
       let foundValidPath = false;
 
-      // Build 18: Range-aware discovery - service and characteristic must share same range
-      // Priority order: 029d (primary vendor) > 27b7 (secondary vendor) > fe25 (standard)
-      const targetRanges = ['029d', '27b7', 'fe25'];
+      // Build 20: Use the defined UUID_RANGES for proper endpoint targeting
+      // Priority: STANDARD (fe25/029d) first, then VENDOR (27b7/9bd2)
+      const rangeConfigs = [
+        { 
+          name: 'STANDARD', 
+          serviceId: '029d',  // Service ends in 029d
+          writeId: '029e',    // WRITE char ends in 029e (NOT 029d!)
+          notifyId: '029f'    // NOTIFY char ends in 029f
+        },
+        { 
+          name: 'VENDOR', 
+          serviceId: '9bd2',  // Service ends in 9bd2
+          writeId: '9bd3',    // WRITE char ends in 9bd3 (NOT 9bd2!)
+          notifyId: '9bd4'    // NOTIFY char ends in 9bd4
+        }
+      ];
       
-      for (const targetRange of targetRanges) {
+      for (const range of rangeConfigs) {
         if (foundValidPath) break;
         
         for (const s of services) {
           const svcUUID = (s as any).uuid.toLowerCase();
           
-          // Only process services matching current target range
-          if (!svcUUID.includes(targetRange)) continue;
+          // Only process services matching this range's service ID
+          if (!svcUUID.includes(range.serviceId)) continue;
           
-          bleLog('GATT_MAP', `Checking ${targetRange} range -> Service: ${svcUUID.slice(-4)}`);
+          bleLog('GATT_MAP', `Found ${range.name} Service: ${svcUUID.slice(-4)}`);
           
           const chars = await (s as any).characteristics();
           
-          // Build 18: Find characteristic that BELONGS to this same service range
-          // The characteristic must share the same range prefix as its parent service
-          const rangeMatchedChar = chars.find((c: any) => {
+          // Build 20: Find the WRITE characteristic (NOT the service UUID!)
+          const writeChar = chars.find((c: any) => {
             const charUUID = c.uuid.toLowerCase();
             const isWritable = c.isWritableWithResponse || c.isWritableWithoutResponse;
+            return isWritable && charUUID.includes(range.writeId);
+          });
+          
+          // Build 20: Find the NOTIFY characteristic
+          const notifyChar = chars.find((c: any) => {
+            const charUUID = c.uuid.toLowerCase();
             const isNotifiable = c.isNotifiable || c.isIndicatable;
-            
-            // Range synchronization: char must contain same range identifier as service
-            // OR be one of the known Shearwater char UUIDs that belong to this service
-            const sameRange = charUUID.includes(targetRange) || 
-                              (targetRange === '029d' && (charUUID.includes('9bd2') || charUUID.includes('29e')));
-            
-            return isWritable && isNotifiable && sameRange;
+            return isNotifiable && charUUID.includes(range.notifyId);
           });
 
-          if (rangeMatchedChar) {
+          if (writeChar && notifyChar) {
             this.activeService = svcUUID; 
-            this.activeWrite = rangeMatchedChar.uuid;
-            this.activeNotify = rangeMatchedChar.uuid;
+            this.activeWrite = writeChar.uuid;
+            this.activeNotify = notifyChar.uuid;
             
-            bleLog('LOCK_SUCCESS', `Range-Sync Lock -> Svc: ${this.activeService.slice(-4)}, Char: ${this.activeWrite.slice(-4)}, Range: ${targetRange}`);
+            bleLog('LOCK_SUCCESS', `Endpoint Lock -> Svc: ${svcUUID.slice(-4)}, Write: ${writeChar.uuid.slice(-4)}, Notify: ${notifyChar.uuid.slice(-4)}, Range: ${range.name}`);
             foundValidPath = true;
             break; 
+          } else {
+            bleLog('GATT_MAP', `${range.name} incomplete -> Write: ${writeChar ? 'found' : 'missing'}, Notify: ${notifyChar ? 'found' : 'missing'}`);
           }
         }
       }
@@ -293,11 +307,11 @@ class BleService {
         throw new Error("No compatible Shearwater GATT path found on this device.");
       }
 
-      // Build 18: 500ms pre-handshake breath for iOS GATT stack stabilization
+      // Build 20: 500ms pre-handshake breath for iOS GATT stack stabilization
       bleLog('SETTLE', 'Waiting 500ms for iOS GATT stack...');
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      // Build 18: Handshake with explicit writeWithResponse for hardware ACK
+      // Build 20: Handshake with explicit writeWithResponse for hardware ACK
       bleLog('HANDSHAKE', 'Starting 0x35 handshake (withResponse)...');
       const result = await this.executeUDSCommand(UDS.REQUEST_DOWNLOAD, [], UDS.HANDSHAKE_ACK, true);
       
