@@ -152,9 +152,9 @@ class BleService {
   }
 
   /**
-   * TRANSACTIONAL COMMAND (Build 25 - Blind Write / Proxy Method)
-   * - iOS blocks writes due to invalid GATT handle (Vendor char in Standard service)
-   * - Solution: Use writeWithoutResponse to bypass iOS handle validation
+   * TRANSACTIONAL COMMAND (Build 26 - Range Swap Write)
+   * - Uses manually injected Vendor UUIDs to bypass Standard service entirely
+   * - writeWithoutResponse for handshake to bypass iOS handle validation
    * - Subscribe to notify BEFORE write so we catch immediate response
    */
   async executeUDSCommand(command: number, payload: number[] = [], expectedAck: number, forceWithResponse: boolean = false): Promise<Buffer> {
@@ -231,11 +231,10 @@ class BleService {
   }
 
   /**
-   * Main connection sequence (Build 25) - Blind Write / Proxy Method
-   * - Perdix presents Standard service (029d) with Vendor char (9bd2) inside
-   * - iOS blocks writes due to invalid GATT handle (out of bounds for service)
-   * - Solution: Use writeWithoutResponse to bypass iOS handle validation
-   * - Subscribe to notify BEFORE write to catch immediate hardware response
+   * Main connection sequence (Build 26) - Range Swap / Manual Service Injection
+   * - iOS cancels all operations when Standard service contains Vendor char
+   * - Solution: Ignore Standard service entirely, force Vendor service path
+   * - Manually inject Vendor UUIDs even if discovery only shows Standard
    */
   async connectAndEstablishSession(deviceId: string): Promise<boolean> {
     try {
@@ -245,93 +244,82 @@ class BleService {
       let device = await this.manager.connectToDevice(deviceId, { timeout: 15000 });
       this.connectedDevice = device;
 
-      // Build 24: Request high priority immediately after connect (Android only)
+      // Build 26: Request high priority immediately after connect (Android only)
       if (Platform.OS === 'android') {
         bleLog('PRIORITY', 'Requesting high connection priority...');
         await device.requestConnectionPriority(1); // 1 = ConnectionPriority.High
       }
 
-      // Build 24: Shearwater service suffixes (either range is valid)
-      const SHEARWATER_SERVICE_SUFFIXES = ['029d', '9bd2'];
-      // Build 24: Known Shearwater characteristic suffixes (write OR notify capable)
-      const SHEARWATER_CHAR_SUFFIXES = ['029e', '029f', '9bd2', '9bd3', '9bd4'];
+      // Build 26: Hardcoded Vendor UUIDs - the Perdix actually responds to these
+      const VENDOR_SERVICE = '27b7570b-359e-45a3-91bb-cf7e70049bd2';
+      const VENDOR_WRITE   = '27b7570b-359e-45a3-91bb-cf7e70049bd3';
+      const VENDOR_NOTIFY  = '27b7570b-359e-45a3-91bb-cf7e70049bd4';
 
       let foundValidPath = false;
       const MAX_DISCOVERY_ATTEMPTS = 3;
 
-      // Build 24: Deep Scan with retry logic
+      // Build 26: First attempt - try to discover Vendor service directly
       for (let attempt = 1; attempt <= MAX_DISCOVERY_ATTEMPTS && !foundValidPath; attempt++) {
         bleLog('DISCOVER', `GATT discovery attempt ${attempt}/${MAX_DISCOVERY_ATTEMPTS}...`);
         await device.discoverAllServicesAndCharacteristics();
         
-        // Build 24: Small delay to let iOS GATT table settle on retries
         if (attempt > 1) {
           bleLog('SETTLE', 'Waiting 1s for GATT table to populate...');
           await new Promise(resolve => setTimeout(resolve, 1000));
         }
 
         const services = await device.services();
+        bleLog('GATT_MAP', `Found ${services.length} services`);
         
-        // Build 24: Find ANY Shearwater service
-        for (const s of services) {
-          if (foundValidPath) break;
+        // Build 26: Log all services for debugging
+        services.forEach((s: any) => {
+          bleLog('SVC_DETAIL', `Service: ${s.uuid.slice(-4)} (full: ${s.uuid})`);
+        });
+        
+        // Build 26: Look specifically for Vendor service (9bd2)
+        const vendorService = services.find((s: any) => 
+          s.uuid.toLowerCase().includes('9bd2')
+        );
+        
+        if (vendorService) {
+          bleLog('VENDOR_FOUND', 'Native Vendor service discovered!');
+          const svcUUID = (vendorService as any).uuid.toLowerCase();
           
-          const svcUUID = (s as any).uuid.toLowerCase();
-          const isShearwater = SHEARWATER_SERVICE_SUFFIXES.some(suffix => svcUUID.includes(suffix));
-          if (!isShearwater) continue;
-          
-          bleLog('GATT_MAP', `Found Shearwater Service: ${svcUUID.slice(-4)} (full: ${svcUUID})`);
-          
-          // Force explicit characteristic discovery for this service
           let chars;
           try {
             chars = await device.characteristicsForService(svcUUID);
           } catch (e) {
-            chars = await (s as any).characteristics();
+            chars = await (vendorService as any).characteristics();
           }
           
-          // Log all discovered characteristics for debugging
-          bleLog('GATT_MAP', `Service has ${chars.length} characteristics`);
+          bleLog('GATT_MAP', `Vendor service has ${chars.length} characteristics`);
           chars.forEach((c: any) => {
-            const uuid = c.uuid.toLowerCase();
-            bleLog('CHAR_DETAIL', `  -> ${uuid.slice(-4)} | Write: ${c.isWritableWithResponse || c.isWritableWithoutResponse} | Notify: ${c.isNotifiable || c.isIndicatable}`);
+            bleLog('CHAR_DETAIL', `  -> ${c.uuid.slice(-4)} | Write: ${c.isWritableWithResponse || c.isWritableWithoutResponse} | Notify: ${c.isNotifiable || c.isIndicatable}`);
           });
           
-          // Build 24: Ghost Service - find ANY writable Shearwater characteristic
-          // No range enforcement! Use whatever the device presents
-          const writeChar = chars.find((c: any) => {
-            const charUUID = c.uuid.toLowerCase();
-            const isWritable = c.isWritableWithResponse || c.isWritableWithoutResponse;
-            const isShearwaterChar = SHEARWATER_CHAR_SUFFIXES.some(suffix => charUUID.includes(suffix));
-            return isWritable && isShearwaterChar;
-          });
+          const writeChar = chars.find((c: any) => c.uuid.toLowerCase().includes('9bd3'));
+          const notifyChar = chars.find((c: any) => c.uuid.toLowerCase().includes('9bd4'));
           
-          // Build 24: Ghost Service - find ANY notifiable Shearwater characteristic
-          const notifyChar = chars.find((c: any) => {
-            const charUUID = c.uuid.toLowerCase();
-            const isNotifiable = c.isNotifiable || c.isIndicatable;
-            const isShearwaterChar = SHEARWATER_CHAR_SUFFIXES.some(suffix => charUUID.includes(suffix));
-            return isNotifiable && isShearwaterChar;
-          });
-
           if (writeChar && notifyChar) {
-            // Build 24: Store EXACT discovered UUIDs - no hardcoded substitution!
-            this.activeService = svcUUID; 
-            this.activeWrite = writeChar.uuid;  // Exact UUID from discovery
-            this.activeNotify = notifyChar.uuid; // Exact UUID from discovery
-            
-            bleLog('LOCK_SUCCESS', `Ghost Service Lock -> Svc: ${svcUUID.slice(-4)}, Write: ${writeChar.uuid.slice(-4)}, Notify: ${notifyChar.uuid.slice(-4)}`);
-            bleLog('LOCK_DETAIL', `Full UUIDs -> Svc: ${svcUUID}, Write: ${writeChar.uuid}, Notify: ${notifyChar.uuid}`);
+            this.activeService = svcUUID;
+            this.activeWrite = writeChar.uuid;
+            this.activeNotify = notifyChar.uuid;
+            bleLog('LOCK_SUCCESS', `Vendor Lock -> Svc: ${svcUUID.slice(-4)}, Write: ${writeChar.uuid.slice(-4)}, Notify: ${notifyChar.uuid.slice(-4)}`);
             foundValidPath = true;
-            break; 
-          } else {
-            bleLog('GATT_MAP', `Service incomplete -> Write: ${writeChar ? 'found' : 'missing'}, Notify: ${notifyChar ? 'found' : 'missing'}`);
           }
         }
       }
 
+      // Build 26: If no Vendor service found, INJECT it manually
       if (!foundValidPath) {
-        throw new Error("No compatible Shearwater GATT path found after " + MAX_DISCOVERY_ATTEMPTS + " attempts.");
+        bleLog('INJECT', 'No native Vendor service found - injecting manual Vendor path...');
+        bleLog('INJECT', `Forcing: Svc=${VENDOR_SERVICE.slice(-4)}, Write=${VENDOR_WRITE.slice(-4)}, Notify=${VENDOR_NOTIFY.slice(-4)}`);
+        
+        // Build 26: Attempt to use hardcoded Vendor UUIDs directly
+        this.activeService = VENDOR_SERVICE;
+        this.activeWrite = VENDOR_WRITE;
+        this.activeNotify = VENDOR_NOTIFY;
+        foundValidPath = true; // Optimistic - will fail at handshake if wrong
       }
 
       // Build 24: 500ms pre-handshake breath for iOS GATT stack stabilization
