@@ -152,9 +152,10 @@ class BleService {
   }
 
   /**
-   * TRANSACTIONAL COMMAND (Build 24 - Ghost Service Write)
-   * Uses exact discovered UUIDs (no range enforcement) for iOS compatibility.
-   * forceWithResponse parameter allows forcing writeWithResponse for 0x35 handshake.
+   * TRANSACTIONAL COMMAND (Build 25 - Blind Write / Proxy Method)
+   * - iOS blocks writes due to invalid GATT handle (Vendor char in Standard service)
+   * - Solution: Use writeWithoutResponse to bypass iOS handle validation
+   * - Subscribe to notify BEFORE write so we catch immediate response
    */
   async executeUDSCommand(command: number, payload: number[] = [], expectedAck: number, forceWithResponse: boolean = false): Promise<Buffer> {
     return new Promise(async (resolve, reject) => {
@@ -165,12 +166,17 @@ class BleService {
         return reject(new Error("GATT path not locked. Discovery failed."));
       }
 
-      // 1. Setup Listener using the locked service/notify pair
+      // Build 25: Setup Listener FIRST - must be ready before blind write
+      bleLog('SUBSCRIBE', `Setting up notify listener on ${this.activeNotify.slice(-4)}...`);
       const subscription = this.connectedDevice.monitorCharacteristicForService(
         this.activeService,
         this.activeNotify,
         (error: any, char: any) => {
-          if (error || resolved) return;
+          if (error) {
+            bleLog('NOTIFY_ERR', error.message);
+            return;
+          }
+          if (resolved) return;
           
           const data = Buffer.from(char.value, 'base64');
           bleLog('DATA_IN', `Bytes: ${data.toString('hex')}`);
@@ -184,28 +190,33 @@ class BleService {
         }
       );
 
-      await new Promise(r => setTimeout(r, 1500));
+      // Build 25: Short delay to ensure subscription is active
+      await new Promise(r => setTimeout(r, 500));
 
       try {
         const frame = this.wrapUDSCommand(command, payload);
-        bleLog('TX', `Sending 0x${command.toString(16)} via Service: ${this.activeService.slice(-4)}`);
+        bleLog('TX', `Sending 0x${command.toString(16)} via blind write to ${this.activeWrite.slice(-4)}`);
         
-        // Build 17: Use forceWithResponse for 0x35 handshake to get hardware ACK
-        // Otherwise use withoutResponse for 0x35 (previous behavior)
-        if (command === UDS.REQUEST_DOWNLOAD && !forceWithResponse) {
+        // Build 25: ALWAYS use writeWithoutResponse for handshake (0x35)
+        // This bypasses iOS's handle validation that was blocking us
+        if (command === UDS.REQUEST_DOWNLOAD) {
+          bleLog('BLIND_WRITE', 'Using writeWithoutResponse to bypass iOS handle validation...');
           await this.connectedDevice.writeCharacteristicWithoutResponseForService(
             this.activeService,
             this.activeWrite,
             frame
           );
+          bleLog('BLIND_WRITE', 'Write sent (no iOS ACK required)');
         } else {
+          // For other commands after session established, use withResponse
           await this.connectedDevice.writeCharacteristicWithResponseForService(
             this.activeService,
             this.activeWrite,
             frame
           );
         }
-      } catch (e) {
+      } catch (e: any) {
+        bleLog('WRITE_ERR', e.message);
         subscription.remove();
         reject(e);
       }
@@ -220,11 +231,11 @@ class BleService {
   }
 
   /**
-   * Main connection sequence (Build 24) - Ghost Service / Dynamic UUID
+   * Main connection sequence (Build 25) - Blind Write / Proxy Method
    * - Perdix presents Standard service (029d) with Vendor char (9bd2) inside
-   * - iOS rejects writes when char UUID "doesn't belong" to service range
-   * - Solution: Use exact discovered UUIDs, no range enforcement
-   * - Accept ANY writable + notifiable characteristics found in Shearwater service
+   * - iOS blocks writes due to invalid GATT handle (out of bounds for service)
+   * - Solution: Use writeWithoutResponse to bypass iOS handle validation
+   * - Subscribe to notify BEFORE write to catch immediate hardware response
    */
   async connectAndEstablishSession(deviceId: string): Promise<boolean> {
     try {
