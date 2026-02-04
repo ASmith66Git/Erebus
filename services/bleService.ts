@@ -152,7 +152,7 @@ class BleService {
   }
 
   /**
-   * TRANSACTIONAL COMMAND (Build 20 - Correct Endpoint Write)
+   * TRANSACTIONAL COMMAND (Build 21 - Deep Scan Write)
    * Uses the locked activeService + activeWrite (029e/9bd3) for proper targeting.
    * forceWithResponse parameter allows forcing writeWithResponse for 0x35 handshake.
    */
@@ -220,10 +220,10 @@ class BleService {
   }
 
   /**
-   * Main connection sequence (Build 20) - Correct Endpoint Targeting
-   * - Uses WRITE characteristic UUIDs (029e, 9bd3), NOT service UUIDs (029d, 9bd2)
-   * - Service UUID = folder, Write Characteristic = file inside folder
-   * - 500ms pre-handshake breath for iOS GATT stack stabilization
+   * Main connection sequence (Build 21) - Deep Scan Discovery
+   * - Retry logic: if characteristics missing, wait 1s and re-discover
+   * - Explicit discovery: force iOS to refresh its GATT cache
+   * - Uses WRITE characteristic UUIDs (029e, 9bd3), NOT service UUIDs
    */
   async connectAndEstablishSession(deviceId: string): Promise<boolean> {
     try {
@@ -233,20 +233,13 @@ class BleService {
       let device = await this.manager.connectToDevice(deviceId, { timeout: 15000 });
       this.connectedDevice = device;
 
-      // Build 20: Request high priority immediately after connect (Android only)
+      // Build 21: Request high priority immediately after connect (Android only)
       if (Platform.OS === 'android') {
         bleLog('PRIORITY', 'Requesting high connection priority...');
         await device.requestConnectionPriority(1); // 1 = ConnectionPriority.High
       }
 
-      bleLog('DISCOVER', 'Starting GATT discovery...');
-      await device.discoverAllServicesAndCharacteristics();
-
-      const services = await device.services();
-      let foundValidPath = false;
-
-      // Build 20: Use the defined UUID_RANGES for proper endpoint targeting
-      // Priority: STANDARD (fe25/029d) first, then VENDOR (27b7/9bd2)
+      // Build 21: Range configurations for proper endpoint targeting
       const rangeConfigs = [
         { 
           name: 'STANDARD', 
@@ -261,57 +254,87 @@ class BleService {
           notifyId: '9bd4'    // NOTIFY char ends in 9bd4
         }
       ];
-      
-      for (const range of rangeConfigs) {
-        if (foundValidPath) break;
-        
-        for (const s of services) {
-          const svcUUID = (s as any).uuid.toLowerCase();
-          
-          // Only process services matching this range's service ID
-          if (!svcUUID.includes(range.serviceId)) continue;
-          
-          bleLog('GATT_MAP', `Found ${range.name} Service: ${svcUUID.slice(-4)}`);
-          
-          const chars = await (s as any).characteristics();
-          
-          // Build 20: Find the WRITE characteristic (NOT the service UUID!)
-          const writeChar = chars.find((c: any) => {
-            const charUUID = c.uuid.toLowerCase();
-            const isWritable = c.isWritableWithResponse || c.isWritableWithoutResponse;
-            return isWritable && charUUID.includes(range.writeId);
-          });
-          
-          // Build 20: Find the NOTIFY characteristic
-          const notifyChar = chars.find((c: any) => {
-            const charUUID = c.uuid.toLowerCase();
-            const isNotifiable = c.isNotifiable || c.isIndicatable;
-            return isNotifiable && charUUID.includes(range.notifyId);
-          });
 
-          if (writeChar && notifyChar) {
-            this.activeService = svcUUID; 
-            this.activeWrite = writeChar.uuid;
-            this.activeNotify = notifyChar.uuid;
+      let foundValidPath = false;
+      const MAX_DISCOVERY_ATTEMPTS = 3;
+
+      // Build 21: Deep Scan with retry logic
+      for (let attempt = 1; attempt <= MAX_DISCOVERY_ATTEMPTS && !foundValidPath; attempt++) {
+        bleLog('DISCOVER', `GATT discovery attempt ${attempt}/${MAX_DISCOVERY_ATTEMPTS}...`);
+        await device.discoverAllServicesAndCharacteristics();
+        
+        // Build 21: Small delay to let iOS GATT table settle
+        if (attempt > 1) {
+          bleLog('SETTLE', 'Waiting 1s for GATT table to populate...');
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+
+        const services = await device.services();
+        
+        for (const range of rangeConfigs) {
+          if (foundValidPath) break;
+          
+          for (const s of services) {
+            const svcUUID = (s as any).uuid.toLowerCase();
             
-            bleLog('LOCK_SUCCESS', `Endpoint Lock -> Svc: ${svcUUID.slice(-4)}, Write: ${writeChar.uuid.slice(-4)}, Notify: ${notifyChar.uuid.slice(-4)}, Range: ${range.name}`);
-            foundValidPath = true;
-            break; 
-          } else {
-            bleLog('GATT_MAP', `${range.name} incomplete -> Write: ${writeChar ? 'found' : 'missing'}, Notify: ${notifyChar ? 'found' : 'missing'}`);
+            // Only process services matching this range's service ID
+            if (!svcUUID.includes(range.serviceId)) continue;
+            
+            bleLog('GATT_MAP', `Found ${range.name} Service: ${svcUUID.slice(-4)}`);
+            
+            // Build 21: Force explicit characteristic discovery for this service
+            let chars;
+            try {
+              chars = await device.characteristicsForService(svcUUID);
+            } catch (e) {
+              chars = await (s as any).characteristics();
+            }
+            
+            // Log all discovered characteristics for debugging
+            bleLog('GATT_MAP', `${range.name} has ${chars.length} characteristics`);
+            chars.forEach((c: any) => {
+              const uuid = c.uuid.toLowerCase();
+              bleLog('CHAR_DETAIL', `  -> ${uuid.slice(-4)} | Write: ${c.isWritableWithResponse || c.isWritableWithoutResponse} | Notify: ${c.isNotifiable || c.isIndicatable}`);
+            });
+            
+            // Build 21: Find the WRITE characteristic (NOT the service UUID!)
+            const writeChar = chars.find((c: any) => {
+              const charUUID = c.uuid.toLowerCase();
+              const isWritable = c.isWritableWithResponse || c.isWritableWithoutResponse;
+              return isWritable && charUUID.includes(range.writeId);
+            });
+            
+            // Build 21: Find the NOTIFY characteristic
+            const notifyChar = chars.find((c: any) => {
+              const charUUID = c.uuid.toLowerCase();
+              const isNotifiable = c.isNotifiable || c.isIndicatable;
+              return isNotifiable && charUUID.includes(range.notifyId);
+            });
+
+            if (writeChar && notifyChar) {
+              this.activeService = svcUUID; 
+              this.activeWrite = writeChar.uuid;
+              this.activeNotify = notifyChar.uuid;
+              
+              bleLog('LOCK_SUCCESS', `Endpoint Lock -> Svc: ${svcUUID.slice(-4)}, Write: ${writeChar.uuid.slice(-4)}, Notify: ${notifyChar.uuid.slice(-4)}, Range: ${range.name}`);
+              foundValidPath = true;
+              break; 
+            } else {
+              bleLog('GATT_MAP', `${range.name} incomplete -> Write: ${writeChar ? 'found' : 'missing'}, Notify: ${notifyChar ? 'found' : 'missing'}`);
+            }
           }
         }
       }
 
       if (!foundValidPath) {
-        throw new Error("No compatible Shearwater GATT path found on this device.");
+        throw new Error("No compatible Shearwater GATT path found after " + MAX_DISCOVERY_ATTEMPTS + " attempts.");
       }
 
-      // Build 20: 500ms pre-handshake breath for iOS GATT stack stabilization
+      // Build 21: 500ms pre-handshake breath for iOS GATT stack stabilization
       bleLog('SETTLE', 'Waiting 500ms for iOS GATT stack...');
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      // Build 20: Handshake with explicit writeWithResponse for hardware ACK
+      // Build 21: Handshake with explicit writeWithResponse for hardware ACK
       bleLog('HANDSHAKE', 'Starting 0x35 handshake (withResponse)...');
       const result = await this.executeUDSCommand(UDS.REQUEST_DOWNLOAD, [], UDS.HANDSHAKE_ACK, true);
       
