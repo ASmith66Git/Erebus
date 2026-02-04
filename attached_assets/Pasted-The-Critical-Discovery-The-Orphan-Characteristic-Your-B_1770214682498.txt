@@ -1,0 +1,27 @@
+The Critical Discovery: The "Orphan" Characteristic
+Your Build 23 code successfully implemented the "Vendor-First" override, but the logs reveal a physical GATT structure that is technically invalid according to iOS standards.
+
+Discovery Result: The app found the Standard Service (029d) but explicitly noted: [GATT_MAP] VENDOR service (9bd2) not found.
+
+The Conflict: Inside that Standard Service, it found exactly one characteristic: 9bd2.
+
+The Error: [SESSION_ERR] Characteristic 27b7...9bd2 write failed for service fe25...029d.
+
+What this means
+Your Perdix is in a "Hybrid" state where it is using the Standard Service UUID as a container, but it has placed the Vendor Characteristic UUID inside it.
+
+iOS is a "Strict Observer" of the Bluetooth specification. When the app tells iOS to write to a characteristic that starts with 27b7 (Vendor) but tells it the parent service starts with fe25 (Standard), the iOS Bluetooth daemon (bluetoothd) rejects the command before it even reaches the Perdix. It assumes the app is making a mistake because, by definition, a characteristic "belongs" to its parent's range.
+
+The Solution: Build 24 (The "Ghost Service" Approach)
+Since we cannot change the Perdix firmware to move the characteristic, we must trick iOS into thinking the characteristic belongs to the service it is currently inside.
+
+We will stop using the UUID_RANGES constants for the actual write call. Instead, we will use the Full UUID string that was discovered dynamically during the scan.
+
+Changes for Build 24:
+Dynamic UUID Mapping: Instead of forcing activeWrite = VENDOR.WRITE, we will set activeWrite to the exact UUID string of the characteristic found inside the service, regardless of what its prefix is.
+
+Remove Range Enforcement: We will allow the app to pair Service: Standard with Char: Vendor by treating them as raw strings rather than members of a specific range.
+
+The "0x35" Force: We will send the handshake to whatever characteristic was discovered that has the write property enabled.
+
+Why this will work: By using the characteristic.uuid property directly from the discovered object rather than our hardcoded constants, we provide iOS with the "handle" it just discovered, which satisfies its internal validation.
