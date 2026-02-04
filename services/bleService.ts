@@ -152,8 +152,8 @@ class BleService {
   }
 
   /**
-   * TRANSACTIONAL COMMAND (Build 22 - Universal Bridge Write)
-   * Uses the locked activeService + activeWrite (any valid suffix) for cross-range targeting.
+   * TRANSACTIONAL COMMAND (Build 23 - Vendor-First Write)
+   * Uses the locked activeService + activeWrite (same-range only) for iOS compatibility.
    * forceWithResponse parameter allows forcing writeWithResponse for 0x35 handshake.
    */
   async executeUDSCommand(command: number, payload: number[] = [], expectedAck: number, forceWithResponse: boolean = false): Promise<Buffer> {
@@ -220,10 +220,11 @@ class BleService {
   }
 
   /**
-   * Main connection sequence (Build 22) - Universal Bridge
-   * - Perdix cross-links ranges: Standard service (029d) may contain Vendor char (9bd2)
-   * - Match by SUFFIX only: service 029d OR 9bd2, write 029e OR 9bd3, notify 029f OR 9bd4
-   * - Accepts any valid combination regardless of which "range" they belong to
+   * Main connection sequence (Build 23) - Vendor-First Override
+   * - iOS blocks cross-range writes (Vendor char inside Standard service)
+   * - Solution: Prioritize Vendor service (9bd2) over Standard (029d)
+   * - Only use characteristics that match their parent service's range
+   * - MTU negotiation BEFORE handshake for full readiness
    */
   async connectAndEstablishSession(deviceId: string): Promise<boolean> {
     try {
@@ -233,29 +234,38 @@ class BleService {
       let device = await this.manager.connectToDevice(deviceId, { timeout: 15000 });
       this.connectedDevice = device;
 
-      // Build 22: Request high priority immediately after connect (Android only)
+      // Build 23: Request high priority immediately after connect (Android only)
       if (Platform.OS === 'android') {
         bleLog('PRIORITY', 'Requesting high connection priority...');
         await device.requestConnectionPriority(1); // 1 = ConnectionPriority.High
       }
 
-      // Build 22: Universal Bridge - suffix-based matching (not range-exclusive)
-      // Service suffixes: 029d (Standard) OR 9bd2 (Vendor)
-      // Write suffixes: 029e (Standard) OR 9bd3 (Vendor)  
-      // Notify suffixes: 029f (Standard) OR 9bd4 (Vendor)
-      const SERVICE_SUFFIXES = ['029d', '9bd2'];
-      const WRITE_SUFFIXES = ['029e', '9bd3'];
-      const NOTIFY_SUFFIXES = ['029f', '9bd4'];
+      // Build 23: Vendor-First Override - prioritize Vendor range
+      // iOS won't allow cross-range writes, so we must match service to characteristics
+      const RANGE_CONFIGS = [
+        { 
+          name: 'VENDOR',      // Try Vendor first (Perdix firmware prefers this)
+          serviceSuffix: '9bd2',
+          writeSuffix: '9bd3', // Must match service range!
+          notifySuffix: '9bd4'
+        },
+        { 
+          name: 'STANDARD',    // Fallback to Standard
+          serviceSuffix: '029d',
+          writeSuffix: '029e', // Must match service range!
+          notifySuffix: '029f'
+        }
+      ];
 
       let foundValidPath = false;
       const MAX_DISCOVERY_ATTEMPTS = 3;
 
-      // Build 22: Deep Scan with retry logic
+      // Build 23: Deep Scan with retry logic
       for (let attempt = 1; attempt <= MAX_DISCOVERY_ATTEMPTS && !foundValidPath; attempt++) {
         bleLog('DISCOVER', `GATT discovery attempt ${attempt}/${MAX_DISCOVERY_ATTEMPTS}...`);
         await device.discoverAllServicesAndCharacteristics();
         
-        // Build 22: Small delay to let iOS GATT table settle on retries
+        // Build 23: Small delay to let iOS GATT table settle on retries
         if (attempt > 1) {
           bleLog('SETTLE', 'Waiting 1s for GATT table to populate...');
           await new Promise(resolve => setTimeout(resolve, 1000));
@@ -263,44 +273,50 @@ class BleService {
 
         const services = await device.services();
         
-        for (const s of services) {
+        // Build 23: Vendor-First - try each range in priority order
+        for (const range of RANGE_CONFIGS) {
           if (foundValidPath) break;
           
-          const svcUUID = (s as any).uuid.toLowerCase();
+          // Find service matching this range
+          const targetService = services.find((s: any) => 
+            s.uuid.toLowerCase().includes(range.serviceSuffix)
+          );
           
-          // Build 22: Universal Bridge - accept ANY Shearwater service suffix
-          const isShearwaterService = SERVICE_SUFFIXES.some(suffix => svcUUID.includes(suffix));
-          if (!isShearwaterService) continue;
+          if (!targetService) {
+            bleLog('GATT_MAP', `${range.name} service (${range.serviceSuffix}) not found`);
+            continue;
+          }
           
-          bleLog('GATT_MAP', `Found Shearwater Service: ${svcUUID.slice(-4)}`);
+          const svcUUID = (targetService as any).uuid.toLowerCase();
+          bleLog('GATT_MAP', `Found ${range.name} Service: ${svcUUID.slice(-4)}`);
           
           // Force explicit characteristic discovery for this service
           let chars;
           try {
             chars = await device.characteristicsForService(svcUUID);
           } catch (e) {
-            chars = await (s as any).characteristics();
+            chars = await (targetService as any).characteristics();
           }
           
           // Log all discovered characteristics for debugging
-          bleLog('GATT_MAP', `Service has ${chars.length} characteristics`);
+          bleLog('GATT_MAP', `${range.name} service has ${chars.length} characteristics`);
           chars.forEach((c: any) => {
             const uuid = c.uuid.toLowerCase();
             bleLog('CHAR_DETAIL', `  -> ${uuid.slice(-4)} | Write: ${c.isWritableWithResponse || c.isWritableWithoutResponse} | Notify: ${c.isNotifiable || c.isIndicatable}`);
           });
           
-          // Build 22: Universal Bridge - find WRITE char matching ANY write suffix
+          // Build 23: Find WRITE char matching THIS RANGE ONLY (no cross-linking!)
           const writeChar = chars.find((c: any) => {
             const charUUID = c.uuid.toLowerCase();
             const isWritable = c.isWritableWithResponse || c.isWritableWithoutResponse;
-            return isWritable && WRITE_SUFFIXES.some(suffix => charUUID.includes(suffix));
+            return isWritable && charUUID.includes(range.writeSuffix);
           });
           
-          // Build 22: Universal Bridge - find NOTIFY char matching ANY notify suffix
+          // Build 23: Find NOTIFY char matching THIS RANGE ONLY
           const notifyChar = chars.find((c: any) => {
             const charUUID = c.uuid.toLowerCase();
             const isNotifiable = c.isNotifiable || c.isIndicatable;
-            return isNotifiable && NOTIFY_SUFFIXES.some(suffix => charUUID.includes(suffix));
+            return isNotifiable && charUUID.includes(range.notifySuffix);
           });
 
           if (writeChar && notifyChar) {
@@ -308,11 +324,11 @@ class BleService {
             this.activeWrite = writeChar.uuid;
             this.activeNotify = notifyChar.uuid;
             
-            bleLog('LOCK_SUCCESS', `Universal Bridge Lock -> Svc: ${svcUUID.slice(-4)}, Write: ${writeChar.uuid.slice(-4)}, Notify: ${notifyChar.uuid.slice(-4)}`);
+            bleLog('LOCK_SUCCESS', `${range.name} Range Lock -> Svc: ${svcUUID.slice(-4)}, Write: ${writeChar.uuid.slice(-4)}, Notify: ${notifyChar.uuid.slice(-4)}`);
             foundValidPath = true;
             break; 
           } else {
-            bleLog('GATT_MAP', `Service incomplete -> Write: ${writeChar ? 'found' : 'missing'}, Notify: ${notifyChar ? 'found' : 'missing'}`);
+            bleLog('GATT_MAP', `${range.name} incomplete -> Write: ${writeChar ? 'found' : 'missing'}, Notify: ${notifyChar ? 'found' : 'missing'}`);
           }
         }
       }
@@ -321,17 +337,17 @@ class BleService {
         throw new Error("No compatible Shearwater GATT path found after " + MAX_DISCOVERY_ATTEMPTS + " attempts.");
       }
 
-      // Build 22: 500ms pre-handshake breath for iOS GATT stack stabilization
+      // Build 23: 500ms pre-handshake breath for iOS GATT stack stabilization
       bleLog('SETTLE', 'Waiting 500ms for iOS GATT stack...');
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      // Build 22: Handshake with explicit writeWithResponse for hardware ACK
-      bleLog('HANDSHAKE', 'Starting 0x35 handshake (withResponse)...');
-      const result = await this.executeUDSCommand(UDS.REQUEST_DOWNLOAD, [], UDS.HANDSHAKE_ACK, true);
-      
-      // MTU negotiation AFTER handshake
+      // Build 23: MTU negotiation BEFORE handshake for full device readiness
       bleLog('MTU', 'Requesting MTU 256...');
       await device.requestMTU(256);
+
+      // Build 23: Handshake with explicit writeWithResponse for hardware ACK
+      bleLog('HANDSHAKE', 'Starting 0x35 handshake (withResponse)...');
+      const result = await this.executeUDSCommand(UDS.REQUEST_DOWNLOAD, [], UDS.HANDSHAKE_ACK, true);
       
       bleLog('SUCCESS', 'Session established.');
       return true;
