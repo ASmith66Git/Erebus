@@ -214,6 +214,7 @@ export default function GasCalculatorScreen() {
           onChangeText={onChangeText}
           keyboardType={keyboardType}
           placeholderTextColor={colors.textSecondary}
+          selectTextOnFocus={true}
         />
         {unit ? <Text style={[styles.unitText, { color: colors.textSecondary }]}>{unit}</Text> : null}
       </View>
@@ -257,6 +258,7 @@ export default function GasCalculatorScreen() {
               onChangeText={handleTextChange}
               keyboardType="numeric"
               maxLength={5}
+              selectTextOnFocus={true}
             />
             <Text style={[styles.unitText, { color: colors.textSecondary }]}>{unit}</Text>
           </View>
