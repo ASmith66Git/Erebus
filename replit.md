@@ -36,6 +36,7 @@ The application is built using Expo React Native, targeting both iOS and Android
 - **Certifications Tracker**: Manages diving certifications with a pre-seeded database of agencies and courses. Features card scanning with auto-detection and image management, plus a course wishlist.
 - **Dive Trips**: Tracks dive holidays with various trip types, date ranges, operator/location details, and linking to dive logs.
 - **App Settings**: Manages user preferences for unit systems, date formats, and language selection.
+- **Internationalization (i18n)**: Full multi-language support using i18next + react-i18next + expo-localization. Supports English, French, German, Spanish, and Italian. Auto-detects device language on first launch; user can override in Settings. Translation files stored in `locales/` directory as JSON. All screens use `useTranslation` hook with `t()` calls. Language changes sync between SettingsContext and i18next via `i18n.changeLanguage()`.
 - **Dive Buddies**: Manages social dive buddies with names, photos, notes, and the ability to link to dive logs.
 - **Data Export**: Two export options from profile - data-only (XLSX spreadsheet) or full export with media (ZIP archive containing JSON data plus all photos and videos from object storage).
 
