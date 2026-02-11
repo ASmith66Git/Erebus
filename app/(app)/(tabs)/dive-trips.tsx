@@ -18,6 +18,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { getApiUrl } from '@/utils/apiConfig';
 import PageHeader from '@/components/PageHeader';
 import ThemedBackground from '@/components/ThemedBackground';
+import { useTranslation } from 'react-i18next';
 
 interface DiveTrip {
   id: number;
@@ -46,6 +47,7 @@ export default function DiveTripsScreen() {
   const { colors } = useTheme();
   const { token, isLoading: authLoading } = useAuth();
   const router = useRouter();
+  const { t } = useTranslation();
 
   const [trips, setTrips] = useState<DiveTrip[]>([]);
   const [loading, setLoading] = useState(true);
@@ -162,14 +164,14 @@ export default function DiveTripsScreen() {
     return (
       <ThemedBackground style={[styles.container, styles.centered]}>
         <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Loading trips...</Text>
+        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>{t('diveTrips.loadingTrips')}</Text>
       </ThemedBackground>
     );
   }
 
   return (
     <ThemedBackground>
-      <PageHeader title="Dive Trips" />
+      <PageHeader title={t('diveTrips.title')} />
 
       <FlatList
         data={trips}
@@ -185,16 +187,16 @@ export default function DiveTripsScreen() {
         ListEmptyComponent={
           <View style={styles.emptyState}>
             <Feather name="navigation" size={48} color={colors.textSecondary} />
-            <Text style={[styles.emptyStateTitle, { color: colors.text }]}>No Dive Trips Yet</Text>
+            <Text style={[styles.emptyStateTitle, { color: colors.text }]}>{t('diveTrips.noTripsYet')}</Text>
             <Text style={[styles.emptyStateText, { color: colors.textSecondary }]}>
-              Start tracking your diving holidays, liveaboard adventures, and dive center visits.
+              {t('diveTrips.emptyDescription')}
             </Text>
             <Pressable
               style={[styles.emptyStateBtn, { backgroundColor: colors.primary }]}
               onPress={() => router.push('/dive-trip/new' as any)}
             >
               <Feather name="plus" size={18} color="#FFF" />
-              <Text style={styles.emptyStateBtnText}>Add Dive Trip</Text>
+              <Text style={styles.emptyStateBtnText}>{t('diveTrips.addTrip')}</Text>
             </Pressable>
           </View>
         }

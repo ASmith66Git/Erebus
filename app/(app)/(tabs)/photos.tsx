@@ -20,6 +20,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { Video, ResizeMode } from 'expo-av';
 import { getApiUrl } from '@/utils/apiConfig';
 import { compressVideo, formatBytes, isCompressionAvailable, CompressionProgress } from '@/services/videoService';
+import { useTranslation } from 'react-i18next';
 import PageHeader from '@/components/PageHeader';
 import ThemedBackground from '@/components/ThemedBackground';
 
@@ -59,6 +60,7 @@ const NUM_COLUMNS = 3;
 const GAP = 2;
 
 export default function PhotosScreen() {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const { token, isLoading: authLoading } = useAuth();
   const { diveLogId } = useLocalSearchParams<{ diveLogId?: string }>();
@@ -206,10 +208,10 @@ export default function PhotosScreen() {
     } catch (error) {
       console.error('Error linking photos:', error);
       if (Platform.OS === 'web') {
-        window.alert('Failed to link photos');
+        window.alert(t('photos.failedToLinkPhotos'));
       } else {
         const { Alert } = require('react-native');
-        Alert.alert('Error', 'Failed to link photos');
+        Alert.alert(t('common.error'), t('photos.failedToLinkPhotos'));
       }
     } finally {
       setLinking(false);
@@ -224,7 +226,7 @@ export default function PhotosScreen() {
       : await ImagePicker.requestMediaLibraryPermissionsAsync();
       
     if (!permissionResult.granted) {
-      alert(useCamera ? 'Camera permission is required' : 'Media library permission is required');
+      alert(useCamera ? t('photos.cameraPermissionRequired') : t('photos.mediaLibraryPermissionRequired'));
       return;
     }
     
@@ -395,7 +397,7 @@ export default function PhotosScreen() {
     } catch (error: any) {
       console.error('Upload error:', error?.message || error?.toString() || 'Unknown error');
       console.error('Upload error details:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
-      alert(`Failed to upload media: ${error?.message || 'Unknown error'}`);
+      alert(t('photos.failedToUploadMedia', { error: error?.message || 'Unknown error' }));
     } finally {
       setUploading(false);
       setCompressionProgress(null);
@@ -721,7 +723,7 @@ export default function PhotosScreen() {
               </Text>
             )}
             {selectedPhoto.diveNumber && (
-              <Text style={styles.viewerDive}>Dive #{selectedPhoto.diveNumber}</Text>
+              <Text style={styles.viewerDive}>{t('photos.diveNumber', { number: selectedPhoto.diveNumber })}</Text>
             )}
             {selectedPhoto.caption && (
               <Text style={styles.viewerCaption}>{selectedPhoto.caption}</Text>
@@ -744,12 +746,12 @@ export default function PhotosScreen() {
         <View style={[styles.uploadMenu, { backgroundColor: colors.surface }]}>
           <Pressable style={styles.uploadMenuItem} onPress={() => pickMedia(true)}>
             <Ionicons name="camera" size={24} color={colors.primary} />
-            <Text style={[styles.uploadMenuText, { color: colors.text }]}>Take Photo/Video</Text>
+            <Text style={[styles.uploadMenuText, { color: colors.text }]}>{t('photos.takePhotoVideo')}</Text>
           </Pressable>
           <View style={[styles.menuDivider, { backgroundColor: colors.border }]} />
           <Pressable style={styles.uploadMenuItem} onPress={() => pickMedia(false)}>
             <Ionicons name="images" size={24} color={colors.primary} />
-            <Text style={[styles.uploadMenuText, { color: colors.text }]}>Choose from Library</Text>
+            <Text style={[styles.uploadMenuText, { color: colors.text }]}>{t('photos.chooseFromLibrary')}</Text>
           </Pressable>
         </View>
       </Pressable>
@@ -759,7 +761,7 @@ export default function PhotosScreen() {
   if (loading) {
     return (
       <ThemedBackground>
-        <PageHeader title="Photos" />
+        <PageHeader title={t('photos.title')} />
         <View style={[styles.container, styles.centered]}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
@@ -769,18 +771,18 @@ export default function PhotosScreen() {
 
   return (
     <ThemedBackground>
-      <PageHeader title={filterByDiveLogId ? "Dive Photos" : "Photos"} />
+      <PageHeader title={filterByDiveLogId ? t('photos.divePhotos') : t('photos.title')} />
       
       {filterByDiveLogId && (
         <View style={[styles.filterBanner, { backgroundColor: colors.primary + '20', borderBottomColor: colors.border }]}>
           <View style={styles.filterBannerContent}>
             <Ionicons name="water" size={16} color={colors.primary} />
             <Text style={[styles.filterBannerText, { color: colors.text }]}>
-              Showing photos linked to this dive
+              {t('photos.showingLinkedPhotos')}
             </Text>
           </View>
           <Pressable onPress={() => router.replace('/(app)/(tabs)/photos')}>
-            <Text style={[styles.filterClearText, { color: colors.primary }]}>View All</Text>
+            <Text style={[styles.filterClearText, { color: colors.primary }]}>{t('photos.viewAll')}</Text>
           </Pressable>
         </View>
       )}
@@ -789,9 +791,9 @@ export default function PhotosScreen() {
         {selectionMode ? (
           <>
             <Pressable onPress={() => { setSelectionMode(false); setSelectedIds(new Set()); }}>
-              <Text style={[styles.toolbarText, { color: colors.primary }]}>Cancel</Text>
+              <Text style={[styles.toolbarText, { color: colors.primary }]}>{t('common.cancel')}</Text>
             </Pressable>
-            <Text style={[styles.toolbarTitle, { color: colors.text }]}>{selectedIds.size} selected</Text>
+            <Text style={[styles.toolbarTitle, { color: colors.text }]}>{t('photos.selectedCount2', { count: selectedIds.size })}</Text>
             <View style={{ flexDirection: 'row', gap: 16 }}>
               <Pressable 
                 onPress={() => { fetchDiveLogs(); fetchDiveTrips(); setLinkTab('logs'); setShowLinkModal(true); }}
@@ -814,13 +816,13 @@ export default function PhotosScreen() {
                   onPress={() => setFilter(f)}
                 >
                   <Text style={[styles.filterText, { color: filter === f ? colors.primary : colors.textSecondary }]}>
-                    {f === 'all' ? 'All' : f === 'favorites' ? 'Favorites' : 'Unlinked'}
+                    {f === 'all' ? t('common.all') : f === 'favorites' ? t('photos.favorites') : t('photos.unlinked')}
                   </Text>
                 </Pressable>
               ))}
             </View>
             <Pressable onPress={() => setSelectionMode(true)}>
-              <Text style={[styles.toolbarText, { color: colors.primary }]}>Select</Text>
+              <Text style={[styles.toolbarText, { color: colors.primary }]}>{t('photos.select')}</Text>
             </Pressable>
           </>
         )}
@@ -844,9 +846,9 @@ export default function PhotosScreen() {
           {photos.length === 0 ? (
             <View style={styles.emptyState}>
               <Ionicons name="images-outline" size={64} color={colors.textSecondary} />
-              <Text style={[styles.emptyTitle, { color: colors.text }]}>No Photos Yet</Text>
+              <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('photos.noPhotosYet')}</Text>
               <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-                Tap the + button to add photos from your camera or underwater camera
+                {t('photos.addPhotoHint')}
               </Text>
             </View>
           ) : (
@@ -857,7 +859,7 @@ export default function PhotosScreen() {
               <View style={[styles.helpSection, { backgroundColor: colors.surface, borderColor: colors.border }]}>
                 <Ionicons name="information-circle-outline" size={20} color={colors.textSecondary} />
                 <Text style={[styles.helpText, { color: colors.textSecondary }]}>
-                  To link photos to a dive: tap "Select", choose photos, then tap the link icon. Or tap a photo and use the info button to edit its details.
+                  {t('photos.linkHelpText')}
                 </Text>
               </View>
             </>
@@ -871,10 +873,10 @@ export default function PhotosScreen() {
             <ActivityIndicator size="large" color={colors.primary} />
             <Text style={[styles.compressionText, { color: colors.text }]}>
               {compressionProgress.stage === 'compressing' 
-                ? `Compressing video... ${Math.round(compressionProgress.progress * 100)}%`
+                ? t('photos.compressingVideoPercent', { percent: Math.round(compressionProgress.progress * 100) })
                 : compressionProgress.stage === 'thumbnail'
-                ? 'Generating thumbnail...'
-                : 'Complete'}
+                ? t('photos.generatingThumbnail')
+                : t('photos.completeStatus')}
             </Text>
             <View style={styles.progressBarContainer}>
               <View 
@@ -914,13 +916,13 @@ export default function PhotosScreen() {
         <View style={styles.modalOverlay}>
           <View style={[styles.linkModal, { backgroundColor: colors.surface }]}>
             <View style={styles.linkModalHeader}>
-              <Text style={[styles.linkModalTitle, { color: colors.text }]}>Link Photos</Text>
+              <Text style={[styles.linkModalTitle, { color: colors.text }]}>{t('photos.linkPhotos')}</Text>
               <Pressable onPress={() => setShowLinkModal(false)}>
                 <Ionicons name="close" size={24} color={colors.textSecondary} />
               </Pressable>
             </View>
             <Text style={[styles.linkModalSubtitle, { color: colors.textSecondary }]}>
-              Link {selectedIds.size} photo{selectedIds.size !== 1 ? 's' : ''} to a dive log or trip
+              {t('photos.linkPhotosCount', { count: selectedIds.size })}
             </Text>
             
             <View style={[styles.linkTabsContainer, { borderBottomColor: colors.border }]}>
@@ -932,7 +934,7 @@ export default function PhotosScreen() {
                 onPress={() => setLinkTab('logs')}
               >
                 <Text style={[styles.linkTabText, { color: linkTab === 'logs' ? colors.primary : colors.textSecondary }]}>
-                  Dive Logs
+                  {t('diveLogs.title')}
                 </Text>
               </Pressable>
               <Pressable
@@ -943,7 +945,7 @@ export default function PhotosScreen() {
                 onPress={() => setLinkTab('trips')}
               >
                 <Text style={[styles.linkTabText, { color: linkTab === 'trips' ? colors.primary : colors.textSecondary }]}>
-                  Dive Trips
+                  {t('photos.diveTrips')}
                 </Text>
               </Pressable>
             </View>
@@ -957,7 +959,7 @@ export default function PhotosScreen() {
                   >
                     <View style={styles.diveLogItemContent}>
                       <Ionicons name="close-circle-outline" size={24} color={colors.textSecondary} />
-                      <Text style={[styles.diveLogItemText, { color: colors.textSecondary }]}>Unlink from dive log</Text>
+                      <Text style={[styles.diveLogItemText, { color: colors.textSecondary }]}>{t('photos.unlinkFromDiveLog')}</Text>
                     </View>
                   </Pressable>
                   
@@ -992,7 +994,7 @@ export default function PhotosScreen() {
                   >
                     <View style={styles.diveLogItemContent}>
                       <Ionicons name="close-circle-outline" size={24} color={colors.textSecondary} />
-                      <Text style={[styles.diveLogItemText, { color: colors.textSecondary }]}>Unlink from dive trip</Text>
+                      <Text style={[styles.diveLogItemText, { color: colors.textSecondary }]}>{t('photos.unlinkFromDiveTrip')}</Text>
                     </View>
                   </Pressable>
                   
@@ -1039,16 +1041,16 @@ export default function PhotosScreen() {
         <View style={styles.modalOverlay}>
           <View style={[styles.deleteConfirmModal, { backgroundColor: colors.surface }]}>
             <Ionicons name="warning" size={48} color="#FF3B30" style={{ marginBottom: 16 }} />
-            <Text style={[styles.deleteConfirmTitle, { color: colors.text }]}>Delete Photos?</Text>
+            <Text style={[styles.deleteConfirmTitle, { color: colors.text }]}>{t('photos.deletePhotosTitle')}</Text>
             <Text style={[styles.deleteConfirmText, { color: colors.textSecondary }]}>
-              Are you sure you want to delete {selectedIds.size} photo{selectedIds.size !== 1 ? 's' : ''}? This action cannot be undone.
+              {t('photos.deletePhotosConfirm', { count: selectedIds.size })}
             </Text>
             <View style={styles.deleteConfirmButtons}>
               <Pressable
                 style={[styles.deleteConfirmButton, { backgroundColor: colors.background, borderColor: colors.border, borderWidth: 1 }]}
                 onPress={() => setShowDeleteConfirm(false)}
               >
-                <Text style={[styles.deleteConfirmButtonText, { color: colors.text }]}>Cancel</Text>
+                <Text style={[styles.deleteConfirmButtonText, { color: colors.text }]}>{t('common.cancel')}</Text>
               </Pressable>
               <Pressable
                 style={[styles.deleteConfirmButton, { backgroundColor: '#FF3B30' }]}
@@ -1057,7 +1059,7 @@ export default function PhotosScreen() {
                   deleteSelected();
                 }}
               >
-                <Text style={[styles.deleteConfirmButtonText, { color: '#FFF' }]}>Delete</Text>
+                <Text style={[styles.deleteConfirmButtonText, { color: '#FFF' }]}>{t('common.delete')}</Text>
               </Pressable>
             </View>
           </View>

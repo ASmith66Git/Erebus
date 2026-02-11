@@ -20,6 +20,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { getApiUrl } from '@/utils/apiConfig';
 import * as DocumentPicker from 'expo-document-picker';
+import { useTranslation } from 'react-i18next';
 import PageHeader from '@/components/PageHeader';
 import ThemedBackground from '@/components/ThemedBackground';
 
@@ -96,6 +97,7 @@ function getImageUrl(imageUrl: string | null): string | null {
 }
 
 function DiveLogCard({ log, onPress, colors }: { log: DiveLog; onPress: () => void; colors: any }) {
+  const { t } = useTranslation();
   const sourceIcons: { [key: string]: string } = {
     uddf: 'download',
     subsurface: 'download',
@@ -168,7 +170,7 @@ function DiveLogCard({ log, onPress, colors }: { log: DiveLog; onPress: () => vo
         <View style={styles.sourceRow}>
           <Feather name={sourceIcon as any} size={10} color={colors.textSecondary} />
           <Text style={[styles.sourceText, { color: colors.textSecondary }]}>
-            {log.importSource === 'manual' ? 'Manual entry' : `Imported (${log.importSource.toUpperCase()})`}
+            {log.importSource === 'manual' ? t('diveLogs.manualEntrySource') : t('diveLogs.importedSource', { format: log.importSource.toUpperCase() })}
           </Text>
           {log.photoCount > 0 && (
             <View style={styles.photoIndicator}>
@@ -184,6 +186,7 @@ function DiveLogCard({ log, onPress, colors }: { log: DiveLog; onPress: () => vo
 }
 
 function StatsCard({ stats, colors }: { stats: DiveStats; colors: any }) {
+  const { t } = useTranslation();
   const totalHours = Math.floor(stats.totalDurationSeconds / 3600);
   const totalMins = Math.floor((stats.totalDurationSeconds % 3600) / 60);
 
@@ -192,21 +195,21 @@ function StatsCard({ stats, colors }: { stats: DiveStats; colors: any }) {
       <View style={styles.statsRow}>
         <View style={styles.statBlock}>
           <Text style={[styles.statBlockValue, { color: colors.primary }]}>{stats.totalDives}</Text>
-          <Text style={[styles.statBlockLabel, { color: colors.textSecondary }]}>Total Dives</Text>
+          <Text style={[styles.statBlockLabel, { color: colors.textSecondary }]}>{t('diveLogs.totalDives')}</Text>
         </View>
         <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
         <View style={styles.statBlock}>
           <Text style={[styles.statBlockValue, { color: colors.primary }]}>
             {stats.deepestDiveMeters ? `${stats.deepestDiveMeters.toFixed(1)}m` : '--'}
           </Text>
-          <Text style={[styles.statBlockLabel, { color: colors.textSecondary }]}>Deepest</Text>
+          <Text style={[styles.statBlockLabel, { color: colors.textSecondary }]}>{t('diveLogs.deepest')}</Text>
         </View>
         <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
         <View style={styles.statBlock}>
           <Text style={[styles.statBlockValue, { color: colors.primary }]}>
             {totalHours > 0 ? `${totalHours}h ${totalMins}m` : `${totalMins}m`}
           </Text>
-          <Text style={[styles.statBlockLabel, { color: colors.textSecondary }]}>Total Time</Text>
+          <Text style={[styles.statBlockLabel, { color: colors.textSecondary }]}>{t('diveLogs.totalTime')}</Text>
         </View>
       </View>
     </View>
@@ -214,6 +217,7 @@ function StatsCard({ stats, colors }: { stats: DiveStats; colors: any }) {
 }
 
 export default function DiveLogsScreen() {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const { token, isLoading: authLoading } = useAuth();
   const router = useRouter();
@@ -342,14 +346,14 @@ export default function DiveLogsScreen() {
       const data = await uploadResponse.json();
 
       if (uploadResponse.ok) {
-        alert(`Import Successful: Imported ${data.dives?.length || 0} dive(s)`);
+        alert(`${t('diveLogs.importSuccessful')}: ${t('diveLogs.importCount', { count: data.dives?.length || 0 })}`);
         onRefresh();
       } else {
-        alert(`Import Failed: ${data.error || 'Failed to import dive logs'}`);
+        alert(`${t('diveLogs.importFailed')}: ${data.error || t('diveLogs.failedToImport')}`);
       }
     } catch (error) {
       console.error('Import error:', error);
-      alert('Import Error: An error occurred while importing the file');
+      alert(`${t('diveLogs.importError')}: ${t('diveLogs.importErrorMessage')}`);
     } finally {
       setImporting(false);
       event.target.value = '';
@@ -403,16 +407,16 @@ export default function DiveLogsScreen() {
 
       if (uploadResponse.ok) {
         Alert.alert(
-          'Import Successful',
-          data.message || `Imported ${data.dives?.length || 0} dive(s)`,
+          t('diveLogs.importSuccessful'),
+          data.message || t('diveLogs.importCount', { count: data.dives?.length || 0 }),
           [{ text: 'OK', onPress: onRefresh }]
         );
       } else {
-        Alert.alert('Import Failed', data.error || 'Failed to import dive logs');
+        Alert.alert(t('diveLogs.importFailed'), data.error || t('diveLogs.failedToImport'));
       }
     } catch (error) {
       console.error('Import error:', error);
-      Alert.alert('Import Error', 'An error occurred while importing the file');
+      Alert.alert(t('diveLogs.importError'), t('diveLogs.importErrorMessage'));
     } finally {
       setImporting(false);
     }
@@ -425,8 +429,8 @@ export default function DiveLogsScreen() {
   const handleBluetoothConnect = () => {
     if (Platform.OS === 'web') {
       Alert.alert(
-        'Bluetooth Sync',
-        'Bluetooth connectivity is not available on web. Please use the mobile app to connect to your dive computer.',
+        t('importDiveLog.bluetoothSync'),
+        t('diveLogs.bluetoothNotAvailable'),
         [{ text: 'OK' }]
       );
       return;
@@ -441,22 +445,22 @@ export default function DiveLogsScreen() {
 
   const getImportGuidance = () => {
     if (!diveComputer?.model) {
-      return 'Select your dive computer in Profile settings for personalized import options.';
+      return t('diveLogs.selectDiveComputerGuidance');
     }
     if (hasBleSupport) {
-      return `Your ${diveComputerName} supports Bluetooth sync. Use the native app build to connect directly.`;
+      return t('diveLogs.bleGuidance', { name: diveComputerName });
     }
-    return `Your ${diveComputerName} requires file import. Export your dives from ${diveComputer.brand?.name}'s software.`;
+    return t('diveLogs.fileImportGuidance', { name: diveComputerName, brand: diveComputer.brand?.name });
   };
 
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
       <Feather name="book" size={64} color={colors.textSecondary} />
-      <Text style={[styles.emptyTitle, { color: colors.text }]}>No Dive Logs Yet</Text>
+      <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('diveLogs.noDiveLogs')}</Text>
       <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
         {searchQuery
-          ? 'Try adjusting your search'
-          : 'Import from your dive computer or add a manual entry'}
+          ? t('diveLogs.tryAdjustingSearch')
+          : t('diveLogs.importFromComputer')}
       </Text>
       {!searchQuery && (
         <>
@@ -467,7 +471,7 @@ export default function DiveLogsScreen() {
                 onPress={handleBluetoothConnect}
               >
                 <Feather name="bluetooth" size={20} color="#FFFFFF" />
-                <Text style={styles.importButtonText}>Connect via Bluetooth</Text>
+                <Text style={styles.importButtonText}>{t('diveLogs.connectBluetooth')}</Text>
               </Pressable>
             )}
             <Pressable
@@ -475,14 +479,14 @@ export default function DiveLogsScreen() {
               onPress={handleImport}
             >
               <Feather name="upload" size={20} color="#FFFFFF" />
-              <Text style={styles.importButtonText}>Import from File</Text>
+              <Text style={styles.importButtonText}>{t('diveLogs.importFromFile')}</Text>
             </Pressable>
             <Pressable
               style={[styles.manualButton, { borderColor: colors.primary }]}
               onPress={handleAddManual}
             >
               <Feather name="plus" size={20} color={colors.primary} />
-              <Text style={[styles.manualButtonText, { color: colors.primary }]}>Add Manual Entry</Text>
+              <Text style={[styles.manualButtonText, { color: colors.primary }]}>{t('diveLogs.addManualEntry')}</Text>
             </Pressable>
           </View>
           <View style={[styles.guidanceBox, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -504,13 +508,13 @@ export default function DiveLogsScreen() {
 
   return (
     <ThemedBackground style={styles.container}>
-      <PageHeader title="Dive Logs" />
+      <PageHeader title={t('diveLogs.title')} />
       <View style={styles.searchContainer}>
         <View style={[styles.searchBar, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <Feather name="search" size={20} color={colors.textSecondary} />
           <TextInput
             style={[styles.searchInput, { color: colors.text }]}
-            placeholder="Search dive logs..."
+            placeholder={t('diveLogs.searchDiveLogs')}
             placeholderTextColor={colors.textSecondary}
             value={searchQuery}
             onChangeText={setSearchQuery}

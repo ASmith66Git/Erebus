@@ -21,6 +21,7 @@ import { DrawerActions, useNavigation, useFocusEffect } from '@react-navigation/
 import PageHeader from '@/components/PageHeader';
 import ThemedBackground from '@/components/ThemedBackground';
 import { getTankIcon } from '@/components/TankIcons';
+import { useTranslation } from 'react-i18next';
 
 interface GearProfile {
   id: number;
@@ -48,6 +49,7 @@ export default function GearProfilesScreen() {
   const router = useRouter();
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
 
   const [profiles, setProfiles] = useState<GearProfile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -104,16 +106,16 @@ export default function GearProfilesScreen() {
     };
 
     if (Platform.OS === 'web') {
-      if (window.confirm(`Are you sure you want to delete "${profile.name}"?`)) {
+      if (window.confirm(t('gearProfiles.deleteProfileConfirm', { name: profile.name }))) {
         doDelete();
       }
     } else {
       Alert.alert(
-        'Delete Profile',
-        `Are you sure you want to delete "${profile.name}"?`,
+        t('gearProfiles.deleteProfile'),
+        t('gearProfiles.deleteProfileConfirm', { name: profile.name }),
         [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Delete', style: 'destructive', onPress: doDelete },
+          { text: t('common.cancel'), style: 'cancel' },
+          { text: t('common.delete'), style: 'destructive', onPress: doDelete },
         ]
       );
     }
@@ -137,9 +139,9 @@ export default function GearProfilesScreen() {
     } catch (error) {
       console.error('Error duplicating profile:', error);
       if (Platform.OS === 'web') {
-        window.alert('Failed to duplicate profile');
+        window.alert(t('gearProfiles.failedToDuplicate'));
       } else {
-        Alert.alert('Error', 'Failed to duplicate profile');
+        Alert.alert(t('common.error'), t('gearProfiles.failedToDuplicate'));
       }
     }
   };
@@ -220,14 +222,14 @@ export default function GearProfilesScreen() {
           <View style={styles.detailRow}>
             <Feather name="database" size={14} color={colors.textSecondary} />
             <Text style={[styles.detailText, { color: colors.textSecondary }]}>
-              {profile.cylinderCount} cylinder{profile.cylinderCount !== 1 ? 's' : ''}
+              {profile.cylinderCount !== 1 ? t('gearProfiles.cylinderCount', { count: profile.cylinderCount }) : t('gearProfiles.cylinderCountSingular', { count: profile.cylinderCount })}
             </Text>
           </View>
           {profile.totalWeight > 0 && (
             <View style={styles.detailRow}>
               <Feather name="anchor" size={14} color={colors.textSecondary} />
               <Text style={[styles.detailText, { color: colors.textSecondary }]}>
-                {formatWeight(profile.totalWeight)} total weight
+                {formatWeight(profile.totalWeight)} {t('gearProfiles.totalWeightSuffix')}
               </Text>
             </View>
           )}
@@ -252,7 +254,7 @@ export default function GearProfilesScreen() {
             styles.statusBadgeText,
             { color: profile.status === 'live' ? colors.success : colors.textSecondary }
           ]}>
-            {profile.status === 'live' ? 'Live' : 'Archived'}
+            {profile.status === 'live' ? t('gearProfiles.live') : t('gearProfiles.archived')}
           </Text>
         </Pressable>
       </Pressable>
@@ -261,12 +263,12 @@ export default function GearProfilesScreen() {
 
   return (
     <ThemedBackground>
-      <PageHeader title="Gear Profiles" />
+      <PageHeader title={t('gearProfiles.title')} />
 
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Loading profiles...</Text>
+          <Text style={[styles.loadingText, { color: colors.textSecondary }]}>{t('gearProfiles.loadingProfiles')}</Text>
         </View>
       ) : (
         <ScrollView
@@ -279,16 +281,16 @@ export default function GearProfilesScreen() {
           {profiles.length === 0 ? (
             <View style={styles.emptyState}>
               <Feather name="tool" size={48} color={colors.textSecondary} />
-              <Text style={[styles.emptyTitle, { color: colors.text }]}>No Gear Profiles Yet</Text>
+              <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('gearProfiles.noProfilesYet')}</Text>
               <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
-                Create your first gear profile to save your equipment configurations
+                {t('gearProfiles.emptyDescription')}
               </Text>
               <Pressable
                 style={[styles.createButton, { backgroundColor: colors.primary }]}
                 onPress={() => router.push('/gear-profile/new' as any)}
               >
                 <Feather name="plus" size={18} color="#FFFFFF" />
-                <Text style={styles.createButtonText}>Create Profile</Text>
+                <Text style={styles.createButtonText}>{t('gearProfiles.createProfile')}</Text>
               </Pressable>
             </View>
           ) : (

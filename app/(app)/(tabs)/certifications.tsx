@@ -25,6 +25,7 @@ import EmbeddedMapPicker from '@/components/EmbeddedMapPicker';
 import DatePickerField from '@/components/DatePickerField';
 import PageHeader from '@/components/PageHeader';
 import ThemedBackground from '@/components/ThemedBackground';
+import { useTranslation } from 'react-i18next';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -107,6 +108,7 @@ export default function CertificationsScreen() {
   const { token, isLoading: authLoading } = useAuth();
   const router = useRouter();
   const navigation = useNavigation();
+  const { t } = useTranslation();
   
   const [activeTab, setActiveTab] = useState<TabType>('completed');
   const [certifications, setCertifications] = useState<Certification[]>([]);
@@ -248,7 +250,7 @@ export default function CertificationsScreen() {
 
   const handleSaveCertification = async () => {
     if (!token || !selectedCourse) {
-      Alert.alert('Error', 'Please select a course');
+      Alert.alert(t('common.error'), t('certifications.selectCourseError'));
       return;
     }
     
@@ -286,17 +288,17 @@ export default function CertificationsScreen() {
           await uploadPendingImages(savedCert.id);
         }
         
-        Alert.alert('Success', editingCertification ? 'Certification updated' : 'Certification added');
+        Alert.alert(t('common.success'), editingCertification ? t('certifications.certificationUpdated') : t('certifications.certificationAdded'));
         setShowAddModal(false);
         resetForm();
         fetchData();
       } else {
         const error = await response.json();
-        Alert.alert('Error', error.error || 'Failed to save certification');
+        Alert.alert(t('common.error'), error.error || t('certifications.failedToSaveCertification'));
       }
     } catch (error) {
       console.error('Error saving certification:', error);
-      Alert.alert('Error', 'Failed to save certification');
+      Alert.alert(t('common.error'), t('certifications.failedToSaveCertification'));
     } finally {
       setSaving(false);
     }
@@ -314,9 +316,9 @@ export default function CertificationsScreen() {
         
         if (response.ok) {
           if (Platform.OS === 'web') {
-            window.alert('Certification deleted');
+            window.alert(t('certifications.certificationDeleted'));
           } else {
-            Alert.alert('Success', 'Certification deleted');
+            Alert.alert(t('common.success'), t('certifications.certificationDeleted'));
           }
           setShowDetailModal(false);
           fetchData();
@@ -324,28 +326,28 @@ export default function CertificationsScreen() {
       } catch (error) {
         console.error('Error deleting certification:', error);
         if (Platform.OS === 'web') {
-          window.alert('Failed to delete certification');
+          window.alert(t('certifications.failedToDeleteCertification'));
         } else {
-          Alert.alert('Error', 'Failed to delete certification');
+          Alert.alert(t('common.error'), t('certifications.failedToDeleteCertification'));
         }
       }
     };
     
     if (Platform.OS === 'web') {
-      if (window.confirm('Are you sure you want to delete this certification?')) {
+      if (window.confirm(t('certifications.deleteCertConfirm'))) {
         doDelete();
       }
     } else {
-      Alert.alert('Delete Certification', 'Are you sure you want to delete this certification?', [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete', style: 'destructive', onPress: doDelete },
+      Alert.alert(t('certifications.deleteCertification'), t('certifications.deleteCertConfirm'), [
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('common.delete'), style: 'destructive', onPress: doDelete },
       ]);
     }
   };
 
   const handleAddToWishlist = async () => {
     if (!token || (!wishlistCourse && !editingWishlistItem)) {
-      Alert.alert('Error', 'Please select a course');
+      Alert.alert(t('common.error'), t('certifications.selectCourseError'));
       return;
     }
     
@@ -368,7 +370,7 @@ export default function CertificationsScreen() {
       });
       
       if (response.ok) {
-        Alert.alert('Success', editingWishlistItem ? 'Wishlist item updated' : `${wishlistCourse?.name} added to wishlist`);
+        Alert.alert(t('common.success'), editingWishlistItem ? t('certifications.wishlistItemUpdated') : t('certifications.addedToWishlist', { name: wishlistCourse?.name }));
         setShowAddWishlistModal(false);
         setWishlistCourse(null);
         setWishlistDiveCenter('');
@@ -493,7 +495,7 @@ export default function CertificationsScreen() {
       }
       
       console.log('Step 5: Image record saved to database');
-      Alert.alert('Success', `${side === 'front' ? 'Front' : 'Back'} of card scanned`);
+      Alert.alert(t('common.success'), side === 'front' ? t('certifications.frontOfCardScanned') : t('certifications.backOfCardScanned'));
       
       // Refetch certifications and update selected certification with fresh data
       const freshCertsResponse = await fetch(`${getApiUrl()}/api/certifications`, {
@@ -509,7 +511,7 @@ export default function CertificationsScreen() {
       }
     } catch (error) {
       console.error('Error scanning card:', error);
-      Alert.alert('Error', 'Failed to scan card. Please try again.');
+      Alert.alert(t('common.error'), t('certifications.failedToScanCard'));
     } finally {
       setUploadingImage(false);
     }
@@ -648,7 +650,7 @@ export default function CertificationsScreen() {
         );
         
         if (response.ok) {
-          Alert.alert('Success', 'Image deleted');
+          Alert.alert(t('common.success'), t('certifications.imageDeleted'));
           setShowImageViewer(false);
           setViewingImage(null);
           
@@ -665,19 +667,19 @@ export default function CertificationsScreen() {
             }
           }
         } else {
-          Alert.alert('Error', 'Failed to delete image');
+          Alert.alert(t('common.error'), t('certifications.failedToDeleteImage'));
         }
       } catch (error) {
         console.error('Error deleting image:', error);
-        Alert.alert('Error', 'Failed to delete image');
+        Alert.alert(t('common.error'), t('certifications.failedToDeleteImage'));
       } finally {
         setDeletingImageId(null);
       }
     };
     
-    Alert.alert('Delete Image', 'Are you sure you want to delete this card image?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: doDelete },
+    Alert.alert(t('certifications.deleteImage'), t('certifications.deleteImageConfirmMsg'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('common.delete'), style: 'destructive', onPress: doDelete },
     ]);
   };
 
@@ -709,7 +711,7 @@ export default function CertificationsScreen() {
       await handleScanCard(side);
     } catch (error) {
       console.error('Error replacing image:', error);
-      Alert.alert('Error', 'Failed to replace image');
+      Alert.alert(t('common.error'), t('certifications.failedToReplaceImage'));
       setDeletingImageId(null);
     }
   };
@@ -720,7 +722,7 @@ export default function CertificationsScreen() {
   };
 
   const formatDate = (dateStr: string | null) => {
-    if (!dateStr) return 'Not recorded';
+    if (!dateStr) return t('certifications.notRecorded');
     const date = new Date(dateStr);
     return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
   };
@@ -745,7 +747,7 @@ export default function CertificationsScreen() {
     >
       <View style={styles.certCardHeader}>
         <View style={styles.certCardAgency}>
-          <Text style={[styles.agencyName, { color: colors.primary }]}>{cert.agency_name || 'Unknown Agency'}</Text>
+          <Text style={[styles.agencyName, { color: colors.primary }]}>{cert.agency_name || t('certifications.unknownAgency')}</Text>
         </View>
         <View style={styles.certCardHeaderRight}>
           <View style={[styles.levelBadge, { backgroundColor: getLevelColor(cert.course_level || '') + '20' }]}>
@@ -766,7 +768,7 @@ export default function CertificationsScreen() {
         </View>
       </View>
       
-      <Text style={[styles.certCourseName, { color: colors.text }]}>{cert.course_name || 'Unknown Course'}</Text>
+      <Text style={[styles.certCourseName, { color: colors.text }]}>{cert.course_name || t('certifications.unknownCourse')}</Text>
       
       <View style={styles.certCardDetails}>
         <View style={styles.certDetailRow}>
@@ -789,7 +791,7 @@ export default function CertificationsScreen() {
       {cert.images && cert.images.length > 0 && (
         <View style={styles.cardImageIndicator}>
           <Feather name="credit-card" size={14} color={colors.primary} />
-          <Text style={[styles.cardImageText, { color: colors.primary }]}>Card scanned</Text>
+          <Text style={[styles.cardImageText, { color: colors.primary }]}>{t('certifications.cardScanned')}</Text>
         </View>
       )}
     </Pressable>
@@ -826,7 +828,7 @@ export default function CertificationsScreen() {
           <View style={[styles.certDetailRow, { marginTop: 8 }]}>
             <Feather name="target" size={14} color={colors.textSecondary} />
             <Text style={[styles.certDetailText, { color: colors.textSecondary }]}>
-              Target: {formatDate(item.target_date)}
+              {t('certifications.target')}: {formatDate(item.target_date)}
             </Text>
           </View>
         )}
@@ -845,14 +847,14 @@ export default function CertificationsScreen() {
     return (
       <ThemedBackground style={[styles.container, styles.centered]}>
         <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Loading certifications...</Text>
+        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>{t('certifications.loadingCertifications')}</Text>
       </ThemedBackground>
     );
   }
 
   return (
     <ThemedBackground>
-      <PageHeader title="Certifications" />
+      <PageHeader title={t('certifications.title')} />
 
       <View style={[styles.tabBar, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <Pressable
@@ -861,7 +863,7 @@ export default function CertificationsScreen() {
         >
           <Feather name="award" size={18} color={activeTab === 'completed' ? colors.primary : colors.textSecondary} />
           <Text style={[styles.tabText, { color: activeTab === 'completed' ? colors.primary : colors.textSecondary }]}>
-            Completed ({certifications.length})
+            {t('certifications.completedCount', { count: certifications.length })}
           </Text>
         </Pressable>
         
@@ -871,7 +873,7 @@ export default function CertificationsScreen() {
         >
           <Feather name="star" size={18} color={activeTab === 'wishlist' ? colors.primary : colors.textSecondary} />
           <Text style={[styles.tabText, { color: activeTab === 'wishlist' ? colors.primary : colors.textSecondary }]}>
-            Wishlist ({wishlist.length})
+            {t('certifications.wishlistCount', { count: wishlist.length })}
           </Text>
         </Pressable>
       </View>
@@ -887,16 +889,16 @@ export default function CertificationsScreen() {
           certifications.length === 0 ? (
             <View style={styles.emptyState}>
               <Feather name="award" size={48} color={colors.textSecondary} />
-              <Text style={[styles.emptyStateTitle, { color: colors.text }]}>No Certifications Yet</Text>
+              <Text style={[styles.emptyStateTitle, { color: colors.text }]}>{t('certifications.noCertificationsYet')}</Text>
               <Text style={[styles.emptyStateText, { color: colors.textSecondary }]}>
-                Add your diving certifications to keep track of your training history.
+                {t('certifications.emptyDescription')}
               </Text>
               <Pressable
                 style={[styles.emptyStateBtn, { backgroundColor: colors.primary }]}
                 onPress={() => { resetForm(); setShowAddModal(true); }}
               >
                 <Feather name="plus" size={18} color="#FFF" />
-                <Text style={styles.emptyStateBtnText}>Add Certification</Text>
+                <Text style={styles.emptyStateBtnText}>{t('certifications.addCertification')}</Text>
               </Pressable>
             </View>
           ) : (
@@ -906,9 +908,9 @@ export default function CertificationsScreen() {
           wishlist.length === 0 ? (
             <View style={styles.emptyState}>
               <Feather name="star" size={48} color={colors.textSecondary} />
-              <Text style={[styles.emptyStateTitle, { color: colors.text }]}>Wishlist Empty</Text>
+              <Text style={[styles.emptyStateTitle, { color: colors.text }]}>{t('certifications.wishlistEmpty')}</Text>
               <Text style={[styles.emptyStateText, { color: colors.textSecondary }]}>
-                Add courses you'd like to take in the future.
+                {t('certifications.wishlistEmptyDescription')}
               </Text>
               <Pressable
                 style={[styles.emptyStateBtn, { backgroundColor: colors.primary }]}
@@ -921,7 +923,7 @@ export default function CertificationsScreen() {
                 }}
               >
                 <Feather name="plus" size={18} color="#FFF" />
-                <Text style={styles.emptyStateBtnText}>Add to Wishlist</Text>
+                <Text style={styles.emptyStateBtnText}>{t('certifications.addToWishlist')}</Text>
               </Pressable>
             </View>
           ) : (
@@ -955,7 +957,7 @@ export default function CertificationsScreen() {
           <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
             <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
               <Text style={[styles.modalTitle, { color: colors.text }]}>
-                {editingCertification ? 'Edit Certification' : 'Add Certification'}
+                {editingCertification ? t('certifications.editCertification') : t('certifications.addCertification')}
               </Text>
               <Pressable onPress={() => { setShowAddModal(false); resetForm(); }}>
                 <Feather name="x" size={24} color={colors.text} />
@@ -967,80 +969,80 @@ export default function CertificationsScreen() {
                 style={[styles.pickerButton, { backgroundColor: colors.background, borderColor: colors.border }]}
                 onPress={() => setShowCoursePickerModal(true)}
               >
-                <Text style={[styles.pickerLabel, { color: colors.textSecondary }]}>Course *</Text>
+                <Text style={[styles.pickerLabel, { color: colors.textSecondary }]}>{t('certifications.courseRequired')}</Text>
                 <View style={styles.pickerValue}>
                   <Text style={[styles.pickerValueText, { color: selectedCourse ? colors.text : colors.textSecondary }]}>
-                    {selectedCourse ? `${selectedCourse.agency_name} - ${selectedCourse.name}` : 'Select a course...'}
+                    {selectedCourse ? `${selectedCourse.agency_name} - ${selectedCourse.name}` : t('certifications.selectCoursePlaceholder')}
                   </Text>
                   <Feather name="chevron-right" size={20} color={colors.textSecondary} />
                 </View>
               </Pressable>
               
               <DatePickerField
-                label="Date Certified"
+                label={t('certifications.certificationDate')}
                 value={formData.certificationDate}
                 onChange={(v) => setFormData({ ...formData, certificationDate: v })}
-                placeholder="Select certification date"
+                placeholder={t('certifications.selectCertDate')}
               />
               
               <View style={styles.formGroup}>
-                <Text style={[styles.formLabel, { color: colors.text }]}>Certification Number</Text>
+                <Text style={[styles.formLabel, { color: colors.text }]}>{t('certifications.certificationNumber')}</Text>
                 <TextInput
                   style={[styles.formInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
                   value={formData.certificationNumber}
                   onChangeText={(v) => setFormData({ ...formData, certificationNumber: v })}
-                  placeholder="e.g., 12345678"
+                  placeholder={t('certifications.certNumberPlaceholder')}
                   placeholderTextColor={colors.textSecondary}
                 />
               </View>
               
               <View style={styles.formRow}>
                 <View style={[styles.formGroup, { flex: 1 }]}>
-                  <Text style={[styles.formLabel, { color: colors.text }]}>Instructor Name</Text>
+                  <Text style={[styles.formLabel, { color: colors.text }]}>{t('certifications.instructorName')}</Text>
                   <TextInput
                     style={[styles.formInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
                     value={formData.instructorName}
                     onChangeText={(v) => setFormData({ ...formData, instructorName: v })}
-                    placeholder="Name"
+                    placeholder={t('certifications.namePlaceholder')}
                     placeholderTextColor={colors.textSecondary}
                   />
                 </View>
                 <View style={[styles.formGroup, { flex: 1 }]}>
-                  <Text style={[styles.formLabel, { color: colors.text }]}>Instructor #</Text>
+                  <Text style={[styles.formLabel, { color: colors.text }]}>{t('certifications.instructorHash')}</Text>
                   <TextInput
                     style={[styles.formInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
                     value={formData.instructorNumber}
                     onChangeText={(v) => setFormData({ ...formData, instructorNumber: v })}
-                    placeholder="Number"
+                    placeholder={t('certifications.numberPlaceholder')}
                     placeholderTextColor={colors.textSecondary}
                   />
                 </View>
               </View>
               
               <View style={styles.formGroup}>
-                <Text style={[styles.formLabel, { color: colors.text }]}>Dive Center</Text>
+                <Text style={[styles.formLabel, { color: colors.text }]}>{t('certifications.diveCenter')}</Text>
                 <TextInput
                   style={[styles.formInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
                   value={formData.diveCenter}
                   onChangeText={(v) => setFormData({ ...formData, diveCenter: v })}
-                  placeholder="Where you trained"
+                  placeholder={t('certifications.whereYouTrained')}
                   placeholderTextColor={colors.textSecondary}
                 />
               </View>
               
               <View style={styles.formGroup}>
-                <Text style={[styles.formLabel, { color: colors.text }]}>Location Name</Text>
+                <Text style={[styles.formLabel, { color: colors.text }]}>{t('certifications.locationName')}</Text>
                 <TextInput
                   style={[styles.formInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
                   value={formData.location}
                   onChangeText={(v) => setFormData({ ...formData, location: v })}
-                  placeholder="e.g., Koh Tao, Thailand"
+                  placeholder={t('certifications.locationPlaceholder')}
                   placeholderTextColor={colors.textSecondary}
                 />
               </View>
               
               <View style={styles.formGroup}>
-                <Text style={[styles.formLabel, { color: colors.text }]}>Map Location</Text>
+                <Text style={[styles.formLabel, { color: colors.text }]}>{t('certifications.mapLocation')}</Text>
                 <EmbeddedMapPicker
                   latitude={formData.latitude || 0}
                   longitude={formData.longitude || 0}
@@ -1072,7 +1074,7 @@ export default function CertificationsScreen() {
               
               {!editingCertification && (
                 <View style={styles.formGroup}>
-                  <Text style={[styles.formLabel, { color: colors.text }]}>Certification Card</Text>
+                  <Text style={[styles.formLabel, { color: colors.text }]}>{t('certifications.certificationCard')}</Text>
                   <View style={styles.cardScanButtons}>
                     <Pressable
                       style={[styles.scanBtn, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}
@@ -1083,7 +1085,7 @@ export default function CertificationsScreen() {
                       ) : (
                         <>
                           <Feather name="camera" size={24} color={colors.primary} />
-                          <Text style={[styles.scanBtnText, { color: colors.text }]}>Scan Front</Text>
+                          <Text style={[styles.scanBtnText, { color: colors.text }]}>{t('certifications.scanFront')}</Text>
                         </>
                       )}
                     </Pressable>
@@ -1096,7 +1098,7 @@ export default function CertificationsScreen() {
                       ) : (
                         <>
                           <Feather name="camera" size={24} color={colors.primary} />
-                          <Text style={[styles.scanBtnText, { color: colors.text }]}>Scan Back</Text>
+                          <Text style={[styles.scanBtnText, { color: colors.text }]}>{t('certifications.scanBack')}</Text>
                         </>
                       )}
                     </Pressable>
@@ -1106,19 +1108,19 @@ export default function CertificationsScreen() {
                       style={{ marginTop: 8 }}
                       onPress={() => setPendingCardImages({ front: null, back: null })}
                     >
-                      <Text style={{ color: colors.primary, fontSize: 14 }}>Clear scanned images</Text>
+                      <Text style={{ color: colors.primary, fontSize: 14 }}>{t('certifications.clearScannedImages')}</Text>
                     </Pressable>
                   )}
                 </View>
               )}
 
               <View style={styles.formGroup}>
-                <Text style={[styles.formLabel, { color: colors.text }]}>Notes</Text>
+                <Text style={[styles.formLabel, { color: colors.text }]}>{t('certifications.notes')}</Text>
                 <TextInput
                   style={[styles.formInput, styles.formTextarea, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
                   value={formData.notes}
                   onChangeText={(v) => setFormData({ ...formData, notes: v })}
-                  placeholder="Additional notes..."
+                  placeholder={t('certifications.additionalNotesPlaceholder')}
                   placeholderTextColor={colors.textSecondary}
                   multiline
                   numberOfLines={3}
@@ -1131,7 +1133,7 @@ export default function CertificationsScreen() {
                 style={[styles.modalBtn, styles.modalBtnSecondary, { borderColor: colors.border }]}
                 onPress={() => { setShowAddModal(false); resetForm(); }}
               >
-                <Text style={[styles.modalBtnText, { color: colors.text }]}>Cancel</Text>
+                <Text style={[styles.modalBtnText, { color: colors.text }]}>{t('common.cancel')}</Text>
               </Pressable>
               <Pressable
                 style={[styles.modalBtn, styles.modalBtnPrimary, { backgroundColor: colors.primary }]}
@@ -1141,7 +1143,7 @@ export default function CertificationsScreen() {
                 {saving ? (
                   <ActivityIndicator size="small" color="#FFF" />
                 ) : (
-                  <Text style={[styles.modalBtnText, { color: '#FFF' }]}>Save</Text>
+                  <Text style={[styles.modalBtnText, { color: '#FFF' }]}>{t('common.save')}</Text>
                 )}
               </Pressable>
             </View>
@@ -1167,7 +1169,7 @@ export default function CertificationsScreen() {
                 <Feather name="arrow-left" size={24} color={colors.text} />
               </Pressable>
               <Text style={[styles.modalTitle, { color: colors.text }]}>
-                {selectedAgency && agencyCourses.length > 0 ? selectedAgency.name + ' Courses' : 'Select Agency'}
+                {selectedAgency && agencyCourses.length > 0 ? selectedAgency.name + ' ' + t('certifications.courses') : t('certifications.selectAgency')}
               </Text>
               <View style={{ width: 24 }} />
             </View>
@@ -1177,7 +1179,7 @@ export default function CertificationsScreen() {
                 agencies.length === 0 ? (
                   <View style={{ padding: 20, alignItems: 'center' }}>
                     <ActivityIndicator size="small" color={colors.primary} />
-                    <Text style={{ color: colors.textSecondary, marginTop: 8 }}>Loading agencies...</Text>
+                    <Text style={{ color: colors.textSecondary, marginTop: 8 }}>{t('certifications.loadingAgencies')}</Text>
                   </View>
                 ) : (
                   agencies.map((agency) => (
@@ -1197,7 +1199,7 @@ export default function CertificationsScreen() {
               ) : agencyCourses.length === 0 ? (
                 <View style={{ padding: 20, alignItems: 'center' }}>
                   <ActivityIndicator size="small" color={colors.primary} />
-                  <Text style={{ color: colors.textSecondary, marginTop: 8 }}>Loading courses...</Text>
+                  <Text style={{ color: colors.textSecondary, marginTop: 8 }}>{t('certifications.loadingCourses')}</Text>
                 </View>
               ) : (
                 agencyCourses.map((course) => (
@@ -1233,7 +1235,7 @@ export default function CertificationsScreen() {
         <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
           <View style={[styles.modalContent, { backgroundColor: colors.surface, height: '85%' }]}>
             <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>Certification Details</Text>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>{t('certifications.certificationDetails')}</Text>
               <View style={{ flexDirection: 'row', gap: 16 }}>
                 <Pressable onPress={() => {
                   if (selectedCertification) {
@@ -1287,18 +1289,18 @@ export default function CertificationsScreen() {
                 
                 <View style={[styles.detailCard, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
                   <View style={styles.detailRow}>
-                    <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Date</Text>
+                    <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>{t('certifications.date')}</Text>
                     <Text style={[styles.detailValue, { color: colors.text }]}>{formatDate(selectedCertification.certification_date)}</Text>
                   </View>
                   {selectedCertification.certification_number && (
                     <View style={styles.detailRow}>
-                      <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Cert #</Text>
+                      <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>{t('certifications.certHash')}</Text>
                       <Text style={[styles.detailValue, { color: colors.text }]}>{selectedCertification.certification_number}</Text>
                     </View>
                   )}
                   {selectedCertification.instructor_name && (
                     <View style={styles.detailRow}>
-                      <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Instructor</Text>
+                      <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>{t('certifications.instructor')}</Text>
                       <Text style={[styles.detailValue, { color: colors.text }]}>
                         {selectedCertification.instructor_name}
                         {selectedCertification.instructor_number && ` (#${selectedCertification.instructor_number})`}
@@ -1307,13 +1309,13 @@ export default function CertificationsScreen() {
                   )}
                   {selectedCertification.dive_center && (
                     <View style={styles.detailRow}>
-                      <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Dive Center</Text>
+                      <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>{t('certifications.diveCenter')}</Text>
                       <Text style={[styles.detailValue, { color: colors.text }]}>{selectedCertification.dive_center}</Text>
                     </View>
                   )}
                   {selectedCertification.location && (
                     <View style={styles.detailRow}>
-                      <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Location</Text>
+                      <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>{t('certifications.locationName')}</Text>
                       <Text style={[styles.detailValue, { color: colors.text }]}>{selectedCertification.location}</Text>
                     </View>
                   )}
@@ -1321,7 +1323,7 @@ export default function CertificationsScreen() {
                 
                 {selectedCertification.latitude && selectedCertification.longitude && (
                   <View style={{ marginTop: 16, marginBottom: 8 }}>
-                    <Text style={[styles.sectionTitle, { color: colors.text }]}>Training Location</Text>
+                    <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('certifications.trainingLocation')}</Text>
                     <EmbeddedMapPicker
                       latitude={selectedCertification.latitude}
                       longitude={selectedCertification.longitude}
@@ -1338,7 +1340,7 @@ export default function CertificationsScreen() {
                   </View>
                 )}
                 
-                <Text style={[styles.sectionTitle, { color: colors.text }]}>Certification Card</Text>
+                <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('certifications.certificationCard')}</Text>
                 <View style={styles.cardScanButtons}>
                   <Pressable
                     style={[styles.scanBtn, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}
@@ -1350,7 +1352,7 @@ export default function CertificationsScreen() {
                     ) : (
                       <>
                         <Feather name="camera" size={24} color={colors.primary} />
-                        <Text style={[styles.scanBtnText, { color: colors.text }]}>Scan Front</Text>
+                        <Text style={[styles.scanBtnText, { color: colors.text }]}>{t('certifications.scanFront')}</Text>
                       </>
                     )}
                   </Pressable>
@@ -1364,7 +1366,7 @@ export default function CertificationsScreen() {
                     ) : (
                       <>
                         <Feather name="camera" size={24} color={colors.primary} />
-                        <Text style={[styles.scanBtnText, { color: colors.text }]}>Scan Back</Text>
+                        <Text style={[styles.scanBtnText, { color: colors.text }]}>{t('certifications.scanBack')}</Text>
                       </>
                     )}
                   </Pressable>
@@ -1381,7 +1383,7 @@ export default function CertificationsScreen() {
                         <View key={img.id} style={styles.scannedImageContainer}>
                           <View style={styles.scannedImageHeader}>
                             <Text style={[styles.scannedImageLabel, { color: colors.textSecondary }]}>
-                              {img.image_side === 'front' ? 'Front' : 'Back'}
+                              {img.image_side === 'front' ? t('certifications.frontOfCard') : t('certifications.backOfCard')}
                             </Text>
                             <View style={styles.scannedImageActions}>
                               <Pressable
@@ -1412,7 +1414,7 @@ export default function CertificationsScreen() {
                             />
                             <View style={[styles.tapToViewOverlay, { backgroundColor: 'rgba(0,0,0,0.3)' }]}>
                               <Feather name="maximize-2" size={20} color="#FFF" />
-                              <Text style={styles.tapToViewText}>Tap to view</Text>
+                              <Text style={styles.tapToViewText}>{t('certifications.tapToView')}</Text>
                             </View>
                           </Pressable>
                         </View>
@@ -1423,7 +1425,7 @@ export default function CertificationsScreen() {
                 
                 {selectedCertification.notes && (
                   <>
-                    <Text style={[styles.sectionTitle, { color: colors.text, marginTop: 16 }]}>Notes</Text>
+                    <Text style={[styles.sectionTitle, { color: colors.text, marginTop: 16 }]}>{t('certifications.notes')}</Text>
                     <Text style={[styles.notesText, { color: colors.textSecondary }]}>{selectedCertification.notes}</Text>
                   </>
                 )}
@@ -1439,7 +1441,7 @@ export default function CertificationsScreen() {
           <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
             <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
               <Text style={[styles.modalTitle, { color: colors.text }]}>
-                {editingWishlistItem ? 'Edit Wishlist Item' : 'Add to Wishlist'}
+                {editingWishlistItem ? t('certifications.editWishlistItem') : t('certifications.addToWishlist')}
               </Text>
               <Pressable onPress={() => {
                 setShowAddWishlistModal(false);
@@ -1457,7 +1459,7 @@ export default function CertificationsScreen() {
               {!wishlistCourse ? (
                 <>
                   <Text style={[styles.formLabel, { color: colors.text, marginBottom: 12 }]}>
-                    {!selectedAgency ? 'Select Agency' : `${selectedAgency.name} Courses`}
+                    {!selectedAgency ? t('certifications.selectAgency') : `${selectedAgency.name} ${t('certifications.courses')}`}
                   </Text>
                   {!selectedAgency ? (
                     agencies.map((agency) => (
@@ -1482,7 +1484,7 @@ export default function CertificationsScreen() {
                         onPress={() => { setSelectedAgency(null); setAgencyCourses([]); }}
                       >
                         <Feather name="arrow-left" size={20} color={colors.primary} />
-                        <Text style={{ color: colors.primary, marginLeft: 8 }}>Back to agencies</Text>
+                        <Text style={{ color: colors.primary, marginLeft: 8 }}>{t('certifications.backToAgencies')}</Text>
                       </Pressable>
                       {agencyCourses.map((course) => (
                         <Pressable
@@ -1510,18 +1512,18 @@ export default function CertificationsScreen() {
                         onPress={() => setWishlistCourse(null)}
                         style={{ marginTop: 8 }}
                       >
-                        <Text style={{ color: colors.primary }}>Change course</Text>
+                        <Text style={{ color: colors.primary }}>{t('certifications.changeCourse')}</Text>
                       </Pressable>
                     )}
                   </View>
                   
                   <View style={styles.formGroup}>
-                    <Text style={[styles.formLabel, { color: colors.text }]}>Dive Center (Optional)</Text>
+                    <Text style={[styles.formLabel, { color: colors.text }]}>{t('certifications.diveCenterOptional')}</Text>
                     <TextInput
                       style={[styles.formInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
                       value={wishlistDiveCenter}
                       onChangeText={setWishlistDiveCenter}
-                      placeholder="Where you plan to train"
+                      placeholder={t('certifications.whereYouPlanToTrain')}
                       placeholderTextColor={colors.textSecondary}
                     />
                   </View>
@@ -1542,7 +1544,7 @@ export default function CertificationsScreen() {
                     setAgencyCourses([]);
                   }}
                 >
-                  <Text style={[styles.modalBtnText, { color: colors.text }]}>Cancel</Text>
+                  <Text style={[styles.modalBtnText, { color: colors.text }]}>{t('common.cancel')}</Text>
                 </Pressable>
                 <Pressable
                   style={[styles.modalBtn, styles.modalBtnPrimary, { backgroundColor: colors.primary }]}
@@ -1553,7 +1555,7 @@ export default function CertificationsScreen() {
                     <ActivityIndicator size="small" color="#FFF" />
                   ) : (
                     <Text style={[styles.modalBtnText, { color: '#FFF' }]}>
-                      {editingWishlistItem ? 'Save Changes' : 'Add to Wishlist'}
+                      {editingWishlistItem ? t('certifications.saveChanges') : t('certifications.addToWishlist')}
                     </Text>
                   )}
                 </Pressable>
@@ -1568,7 +1570,7 @@ export default function CertificationsScreen() {
         <View style={styles.imageViewerOverlay}>
           <View style={styles.imageViewerHeader}>
             <Text style={styles.imageViewerTitle}>
-              {viewingImage?.image_side === 'front' ? 'Front of Card' : 'Back of Card'}
+              {viewingImage?.image_side === 'front' ? t('certifications.frontOfCard') : t('certifications.backOfCard')}
             </Text>
             <Pressable
               style={styles.imageViewerCloseBtn}
@@ -1601,14 +1603,14 @@ export default function CertificationsScreen() {
               onPress={() => viewingImage && handleReplaceImage(viewingImage)}
             >
               <Feather name="refresh-cw" size={20} color="#FFF" />
-              <Text style={styles.imageViewerActionText}>Replace</Text>
+              <Text style={styles.imageViewerActionText}>{t('certifications.replace')}</Text>
             </Pressable>
             <Pressable
               style={[styles.imageViewerActionBtn, { backgroundColor: colors.danger }]}
               onPress={() => viewingImage && handleDeleteImage(viewingImage.id)}
             >
               <Feather name="trash-2" size={20} color="#FFF" />
-              <Text style={styles.imageViewerActionText}>Delete</Text>
+              <Text style={styles.imageViewerActionText}>{t('common.delete')}</Text>
             </Pressable>
           </View>
         </View>

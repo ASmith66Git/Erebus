@@ -17,6 +17,7 @@ import { Feather } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { getApiUrl } from '@/utils/apiConfig';
+import { useTranslation } from 'react-i18next';
 import PageHeader from '@/components/PageHeader';
 import ThemedBackground from '@/components/ThemedBackground';
 
@@ -124,6 +125,7 @@ function DiveSiteCard({ site, onPress, colors }: { site: DiveSite; onPress: () =
 }
 
 export default function DiveSitesScreen() {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const { token, isLoading: authLoading } = useAuth();
   const router = useRouter();
@@ -188,11 +190,11 @@ export default function DiveSitesScreen() {
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
       <Feather name="map-pin" size={64} color={colors.textSecondary} />
-      <Text style={[styles.emptyTitle, { color: colors.text }]}>No Dive Sites Found</Text>
+      <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('diveSites.noSitesFound')}</Text>
       <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
         {searchQuery
-          ? 'Try adjusting your search'
-          : 'Add your first dive site to get started'}
+          ? t('diveSites.tryAdjustingSearch')
+          : t('diveSites.addFirstSite')}
       </Text>
       {!searchQuery && (
         <Pressable
@@ -200,7 +202,7 @@ export default function DiveSitesScreen() {
           onPress={handleAddSite}
         >
           <Feather name="plus" size={20} color="#FFFFFF" />
-          <Text style={styles.addButtonText}>Add Dive Site</Text>
+          <Text style={styles.addButtonText}>{t('diveSites.addDiveSite')}</Text>
         </Pressable>
       )}
     </View>
@@ -213,7 +215,7 @@ export default function DiveSitesScreen() {
   return (
     <ThemedBackground>
       <PageHeader 
-        title="Dive Sites" 
+        title={t('diveSites.title')} 
         rightAction={
           <Pressable onPress={handleMapPress} style={styles.mapButton}>
             <Feather name="map" size={22} color={colors.text} />
@@ -225,7 +227,7 @@ export default function DiveSitesScreen() {
           <Feather name="search" size={20} color={colors.textSecondary} />
           <TextInput
             style={[styles.searchInput, { color: colors.text }]}
-            placeholder="Search dive sites..."
+            placeholder={t('diveSites.searchSites')}
             placeholderTextColor={colors.textSecondary}
             value={searchQuery}
             onChangeText={setSearchQuery}

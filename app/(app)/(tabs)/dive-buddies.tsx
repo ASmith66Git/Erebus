@@ -22,6 +22,7 @@ import { getApiUrl } from '@/utils/apiConfig';
 import * as ImagePicker from 'expo-image-picker';
 import PageHeader from '@/components/PageHeader';
 import ThemedBackground from '@/components/ThemedBackground';
+import { useTranslation } from 'react-i18next';
 
 interface Buddy {
   id: number;
@@ -49,6 +50,7 @@ export default function DiveBuddiesScreen() {
   const { colors } = useTheme();
   const { token, isLoading: authLoading } = useAuth();
   const navigation = useNavigation();
+  const { t } = useTranslation();
 
   const [buddies, setBuddies] = useState<Buddy[]>([]);
   const [loading, setLoading] = useState(true);
@@ -117,7 +119,7 @@ export default function DiveBuddiesScreen() {
 
   const handleSave = async () => {
     if (!formData.name.trim()) {
-      Alert.alert('Error', 'Please enter a name');
+      Alert.alert(t('common.error'), t('diveBuddies.pleaseEnterName'));
       return;
     }
     setSaving(true);
@@ -147,11 +149,11 @@ export default function DiveBuddiesScreen() {
         fetchBuddies();
       } else {
         const err = await res.json();
-        Alert.alert('Error', err.error || 'Failed to save buddy');
+        Alert.alert(t('common.error'), err.error || t('diveBuddies.failedToSaveBuddy'));
       }
     } catch (error) {
       console.error('Save buddy error:', error);
-      Alert.alert('Error', 'Failed to save buddy');
+      Alert.alert(t('common.error'), t('diveBuddies.failedToSaveBuddy'));
     } finally {
       setSaving(false);
     }
@@ -159,18 +161,18 @@ export default function DiveBuddiesScreen() {
 
   const handleDelete = async (id: number) => {
     if (Platform.OS === 'web') {
-      const confirmed = window.confirm('Are you sure you want to remove this buddy?');
+      const confirmed = window.confirm(t('diveBuddies.deleteBuddyConfirm'));
       if (confirmed) {
         await performDelete(id);
       }
     } else {
       Alert.alert(
-        'Delete Buddy',
-        'Are you sure you want to remove this buddy?',
+        t('diveBuddies.deleteBuddy'),
+        t('diveBuddies.deleteBuddyConfirm'),
         [
-          { text: 'Cancel', style: 'cancel' },
+          { text: t('common.cancel'), style: 'cancel' },
           {
-            text: 'Delete',
+            text: t('common.delete'),
             style: 'destructive',
             onPress: () => performDelete(id),
           },
@@ -191,18 +193,18 @@ export default function DiveBuddiesScreen() {
         fetchBuddies();
       } else {
         const err = await res.json();
-        Alert.alert('Error', err.error || 'Failed to delete buddy');
+        Alert.alert(t('common.error'), err.error || t('diveBuddies.failedToDeleteBuddy'));
       }
     } catch (error) {
       console.error('Delete buddy error:', error);
-      Alert.alert('Error', 'Failed to delete buddy');
+      Alert.alert(t('common.error'), t('diveBuddies.failedToDeleteBuddy'));
     }
   };
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission Required', 'Please grant access to your photo library.');
+      Alert.alert(t('common.permissionRequired'), t('common.grantPhotoAccess'));
       return;
     }
 
@@ -221,7 +223,7 @@ export default function DiveBuddiesScreen() {
   const takePhoto = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission Required', 'Please grant access to your camera.');
+      Alert.alert(t('common.permissionRequired'), t('common.grantCameraAccess'));
       return;
     }
 
@@ -265,7 +267,7 @@ export default function DiveBuddiesScreen() {
       setFormData({ ...formData, photo_url: objectPath });
     } catch (error) {
       console.error('Upload photo error:', error);
-      Alert.alert('Error', 'Failed to upload photo');
+      Alert.alert(t('common.error'), t('diveBuddies.failedToUploadPhoto'));
     } finally {
       setUploading(false);
     }
@@ -336,7 +338,7 @@ export default function DiveBuddiesScreen() {
           {buddy.linked_username && (
             <View style={styles.linkedBadge}>
               <Feather name="link" size={12} color={colors.primary} />
-              <Text style={[styles.linkedText, { color: colors.primary }]}>Connected</Text>
+              <Text style={[styles.linkedText, { color: colors.primary }]}>{t('diveBuddies.connected')}</Text>
             </View>
           )}
           {buddy.notes && (
@@ -354,14 +356,14 @@ export default function DiveBuddiesScreen() {
     return (
       <ThemedBackground style={[styles.container, styles.centered]}>
         <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Loading buddies...</Text>
+        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>{t('diveBuddies.loadingBuddies')}</Text>
       </ThemedBackground>
     );
   }
 
   return (
     <ThemedBackground>
-      <PageHeader title="Dive Buddies" />
+      <PageHeader title={t('diveBuddies.title')} />
 
       <FlatList
         data={buddies}
@@ -377,16 +379,16 @@ export default function DiveBuddiesScreen() {
         ListEmptyComponent={
           <View style={styles.emptyState}>
             <Feather name="users" size={64} color={colors.textSecondary} />
-            <Text style={[styles.emptyStateTitle, { color: colors.text }]}>No Dive Buddies Yet</Text>
+            <Text style={[styles.emptyStateTitle, { color: colors.text }]}>{t('diveBuddies.noBuddiesYet')}</Text>
             <Text style={[styles.emptyStateText, { color: colors.textSecondary }]}>
-              Add your dive buddies to easily track who you dive with
+              {t('diveBuddies.emptyDescription')}
             </Text>
             <Pressable
               style={[styles.emptyStateBtn, { backgroundColor: colors.primary }]}
               onPress={() => setShowAddModal(true)}
             >
               <Feather name="plus" size={20} color="#FFF" />
-              <Text style={styles.emptyStateBtnText}>Add Buddy</Text>
+              <Text style={styles.emptyStateBtnText}>{t('diveBuddies.addBuddy')}</Text>
             </Pressable>
           </View>
         }
@@ -406,7 +408,7 @@ export default function DiveBuddiesScreen() {
           <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
             <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
               <Text style={[styles.modalTitle, { color: colors.text }]}>
-                {editingBuddy ? 'Edit Buddy' : 'Add Buddy'}
+                {editingBuddy ? t('diveBuddies.editBuddy') : t('diveBuddies.addBuddyTitle')}
               </Text>
               <Pressable onPress={() => { setShowAddModal(false); resetForm(); }}>
                 <Feather name="x" size={24} color={colors.text} />
@@ -437,7 +439,7 @@ export default function DiveBuddiesScreen() {
                     disabled={uploading}
                   >
                     <Feather name="image" size={18} color={colors.text} />
-                    <Text style={[styles.photoBtnText, { color: colors.text }]}>Gallery</Text>
+                    <Text style={[styles.photoBtnText, { color: colors.text }]}>{t('diveBuddies.gallery')}</Text>
                   </Pressable>
                   <Pressable
                     style={[styles.photoBtn, { backgroundColor: colors.background, borderColor: colors.border }]}
@@ -445,7 +447,7 @@ export default function DiveBuddiesScreen() {
                     disabled={uploading}
                   >
                     <Feather name="camera" size={18} color={colors.text} />
-                    <Text style={[styles.photoBtnText, { color: colors.text }]}>Camera</Text>
+                    <Text style={[styles.photoBtnText, { color: colors.text }]}>{t('diveBuddies.camera')}</Text>
                   </Pressable>
                 </View>
               </View>
@@ -455,13 +457,13 @@ export default function DiveBuddiesScreen() {
                 onPress={() => setShowSearchModal(true)}
               >
                 <Feather name="search" size={18} color={colors.primary} />
-                <Text style={[styles.findUserBtnText, { color: colors.primary }]}>Find Diver on Erebus</Text>
+                <Text style={[styles.findUserBtnText, { color: colors.primary }]}>{t('diveBuddies.findDiverOnErebus')}</Text>
               </Pressable>
 
               {formData.linked_user_id && (
                 <View style={[styles.linkedUserBox, { backgroundColor: colors.primary + '10', borderColor: colors.primary }]}>
                   <Feather name="link" size={16} color={colors.primary} />
-                  <Text style={[styles.linkedUserText, { color: colors.primary }]}>Linked to Erebus user</Text>
+                  <Text style={[styles.linkedUserText, { color: colors.primary }]}>{t('diveBuddies.linkedToErebusUser')}</Text>
                   <Pressable onPress={() => setFormData({ ...formData, linked_user_id: null })}>
                     <Feather name="x-circle" size={18} color={colors.primary} />
                   </Pressable>
@@ -469,23 +471,23 @@ export default function DiveBuddiesScreen() {
               )}
 
               <View style={styles.formGroup}>
-                <Text style={[styles.formLabel, { color: colors.text }]}>Name *</Text>
+                <Text style={[styles.formLabel, { color: colors.text }]}>{t('diveBuddies.buddyName')} *</Text>
                 <TextInput
                   style={[styles.formInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
                   value={formData.name}
                   onChangeText={(v) => setFormData({ ...formData, name: v })}
-                  placeholder="Buddy's name"
+                  placeholder={t('diveBuddies.buddyNamePlaceholder')}
                   placeholderTextColor={colors.textSecondary}
                 />
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={[styles.formLabel, { color: colors.text }]}>Notes</Text>
+                <Text style={[styles.formLabel, { color: colors.text }]}>{t('diveBuddies.notes')}</Text>
                 <TextInput
                   style={[styles.formInput, styles.formTextarea, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
                   value={formData.notes}
                   onChangeText={(v) => setFormData({ ...formData, notes: v })}
-                  placeholder="How you know them, their certifications, etc."
+                  placeholder={t('diveBuddies.notesPlaceholder')}
                   placeholderTextColor={colors.textSecondary}
                   multiline
                   numberOfLines={4}
@@ -498,7 +500,7 @@ export default function DiveBuddiesScreen() {
                 style={[styles.modalBtn, styles.modalBtnSecondary, { borderColor: colors.border }]}
                 onPress={() => { setShowAddModal(false); resetForm(); }}
               >
-                <Text style={[styles.modalBtnText, { color: colors.text }]}>Cancel</Text>
+                <Text style={[styles.modalBtnText, { color: colors.text }]}>{t('common.cancel')}</Text>
               </Pressable>
               <Pressable
                 style={[styles.modalBtn, styles.modalBtnPrimary, { backgroundColor: colors.primary }]}
@@ -509,7 +511,7 @@ export default function DiveBuddiesScreen() {
                   <ActivityIndicator size="small" color="#FFF" />
                 ) : (
                   <Text style={[styles.modalBtnText, { color: '#FFF' }]}>
-                    {editingBuddy ? 'Update' : 'Save'}
+                    {editingBuddy ? t('diveBuddies.saveChanges') : t('common.save')}
                   </Text>
                 )}
               </Pressable>
@@ -522,7 +524,7 @@ export default function DiveBuddiesScreen() {
         <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
           <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
             <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>Buddy Details</Text>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>{t('diveBuddies.buddyDetails')}</Text>
               <View style={{ flexDirection: 'row', gap: 12 }}>
                 <Pressable onPress={() => selectedBuddy && handleEdit(selectedBuddy)}>
                   <Feather name="edit-2" size={22} color={colors.primary} />
@@ -548,7 +550,7 @@ export default function DiveBuddiesScreen() {
                     <View style={[styles.connectedBadge, { backgroundColor: colors.primary + '15' }]}>
                       <Feather name="link" size={14} color={colors.primary} />
                       <Text style={[styles.connectedText, { color: colors.primary }]}>
-                        Connected: @{selectedBuddy.linked_username}
+                        {t('diveBuddies.connectedAt', { username: selectedBuddy.linked_username })}
                       </Text>
                     </View>
                   )}
@@ -556,7 +558,7 @@ export default function DiveBuddiesScreen() {
 
                 {selectedBuddy.notes && (
                   <View style={[styles.detailCard, { backgroundColor: colors.background, borderColor: colors.border }]}>
-                    <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Notes</Text>
+                    <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>{t('diveBuddies.notes')}</Text>
                     <Text style={[styles.detailNotes, { color: colors.text }]}>{selectedBuddy.notes}</Text>
                   </View>
                 )}
@@ -566,7 +568,7 @@ export default function DiveBuddiesScreen() {
                   onPress={() => handleDelete(selectedBuddy.id)}
                 >
                   <Feather name="trash-2" size={18} color={colors.error} />
-                  <Text style={[styles.deleteBtnText, { color: colors.error }]}>Remove Buddy</Text>
+                  <Text style={[styles.deleteBtnText, { color: colors.error }]}>{t('diveBuddies.deleteBuddy')}</Text>
                 </Pressable>
               </ScrollView>
             )}
@@ -578,7 +580,7 @@ export default function DiveBuddiesScreen() {
         <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
           <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
             <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>Find Diver</Text>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>{t('diveBuddies.findDiver')}</Text>
               <Pressable onPress={() => { setShowSearchModal(false); setSearchQuery(''); setSearchResults([]); }}>
                 <Feather name="x" size={24} color={colors.text} />
               </Pressable>
@@ -591,7 +593,7 @@ export default function DiveBuddiesScreen() {
                   style={[styles.searchInput, { color: colors.text }]}
                   value={searchQuery}
                   onChangeText={setSearchQuery}
-                  placeholder="Search by username or email"
+                  placeholder={t('diveBuddies.searchUserPlaceholder')}
                   placeholderTextColor={colors.textSecondary}
                   autoFocus
                 />
@@ -599,7 +601,7 @@ export default function DiveBuddiesScreen() {
               </View>
 
               <Text style={[styles.searchHint, { color: colors.textSecondary }]}>
-                Only users who have made their profile searchable will appear here.
+                {t('diveBuddies.searchHint')}
               </Text>
 
               <ScrollView style={styles.searchResults}>
@@ -621,7 +623,7 @@ export default function DiveBuddiesScreen() {
                 ))}
                 {searchQuery.length >= 2 && !searching && searchResults.length === 0 && (
                   <Text style={[styles.noResults, { color: colors.textSecondary }]}>
-                    No divers found matching "{searchQuery}"
+                    {t('diveBuddies.noDiversFound', { query: searchQuery })}
                   </Text>
                 )}
               </ScrollView>

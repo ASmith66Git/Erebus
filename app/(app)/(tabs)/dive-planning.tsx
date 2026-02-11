@@ -23,6 +23,7 @@ import PageHeader from '@/components/PageHeader';
 import ThemedBackground from '@/components/ThemedBackground';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 
 const CHART_HEIGHT = 280;
 const TISSUE_CHART_HEIGHT = 180;
@@ -194,6 +195,7 @@ export default function DivePlanningScreen() {
   const { colors: themeColors, isDark } = useTheme();
   const { user } = useAuth();
   const navigation = useNavigation();
+  const { t } = useTranslation();
 
   const colors = {
     background: themeColors.background,
@@ -403,10 +405,10 @@ export default function DivePlanningScreen() {
   
   const getTabLabel = (tab: TabType): string => {
     switch (tab) {
-      case 'plan': return 'Plan';
-      case 'gases': return 'Gases';
-      case 'settings': return 'Settings';
-      case 'saved': return 'Saved';
+      case 'plan': return t('divePlanning.plan');
+      case 'gases': return t('divePlanning.gases');
+      case 'settings': return t('divePlanning.settings');
+      case 'saved': return t('divePlanning.saved');
       default: return tab;
     }
   };
@@ -673,9 +675,9 @@ export default function DivePlanningScreen() {
           style={[styles.chartContainer, { backgroundColor: colors.card }]}
           onLayout={(e) => setChartWidth(e.nativeEvent.layout.width - 32)}
         >
-          <Text style={[styles.chartTitle, { color: colors.text }]}>Dive Profile with Tissue Loading</Text>
+          <Text style={[styles.chartTitle, { color: colors.text }]}>{t('divePlanning.diveProfileWithTissueLoading')}</Text>
           <View style={styles.emptyChart}>
-            <Text style={{ color: colors.textSecondary }}>Configure dive parameters to see profile</Text>
+            <Text style={{ color: colors.textSecondary }}>{t('divePlanning.configureToSeeProfile')}</Text>
           </View>
         </View>
       );
@@ -826,39 +828,39 @@ export default function DivePlanningScreen() {
         style={[styles.chartContainer, { backgroundColor: colors.card }]}
         onLayout={(e) => setChartWidth(e.nativeEvent.layout.width - 32)}
       >
-        <Text style={[styles.chartTitle, { color: colors.text }]}>Dive Profile</Text>
+        <Text style={[styles.chartTitle, { color: colors.text }]}>{t('divePlanning.diveProfile')}</Text>
         
         {scrubberValues && (
           <View style={styles.scrubberDataDisplay}>
             <View style={styles.scrubberDataRow}>
               <View style={styles.scrubberDataItem}>
-                <Text style={[styles.scrubberDataLabel, { color: colors.textSecondary }]}>Time</Text>
+                <Text style={[styles.scrubberDataLabel, { color: colors.textSecondary }]}>{t('divePlanning.time')}</Text>
                 <Text style={[styles.scrubberDataValue, { color: colors.text }]}>{scrubberValues.time} min</Text>
               </View>
               <View style={styles.scrubberDataItem}>
-                <Text style={[styles.scrubberDataLabel, { color: colors.textSecondary }]}>Depth</Text>
+                <Text style={[styles.scrubberDataLabel, { color: colors.textSecondary }]}>{t('divePlanning.depth')}</Text>
                 <Text style={[styles.scrubberDataValue, { color: '#007AFF' }]}>{scrubberValues.depth}{depthUnit}</Text>
               </View>
               <View style={styles.scrubberDataItem}>
-                <Text style={[styles.scrubberDataLabel, { color: colors.textSecondary }]}>Gas</Text>
+                <Text style={[styles.scrubberDataLabel, { color: colors.textSecondary }]}>{t('divePlanning.gas')}</Text>
                 <Text style={[styles.scrubberDataValue, { color: colors.text }]}>{scrubberValues.gas}</Text>
               </View>
               <View style={styles.scrubberDataItem}>
-                <Text style={[styles.scrubberDataLabel, { color: colors.textSecondary }]}>CNS</Text>
+                <Text style={[styles.scrubberDataLabel, { color: colors.textSecondary }]}>{t('divePlanning.cns')}</Text>
                 <Text style={[styles.scrubberDataValue, { color: scrubberValues.cns > 80 ? colors.danger : '#FF9500' }]}>{scrubberValues.cns}%</Text>
               </View>
             </View>
             <View style={styles.scrubberDataRow}>
               <View style={styles.scrubberDataItem}>
-                <Text style={[styles.scrubberDataLabel, { color: colors.textSecondary }]}>OTU</Text>
+                <Text style={[styles.scrubberDataLabel, { color: colors.textSecondary }]}>{t('divePlanning.otu')}</Text>
                 <Text style={[styles.scrubberDataValue, { color: '#AF52DE' }]}>{scrubberValues.otu}</Text>
               </View>
               <View style={styles.scrubberDataItem}>
-                <Text style={[styles.scrubberDataLabel, { color: colors.textSecondary }]}>Density</Text>
+                <Text style={[styles.scrubberDataLabel, { color: colors.textSecondary }]}>{t('divePlanning.density')}</Text>
                 <Text style={[styles.scrubberDataValue, { color: scrubberValues.gasDensity > 5.2 ? colors.danger : colors.success }]}>{scrubberValues.gasDensity.toFixed(2)} g/L</Text>
               </View>
               <View style={styles.scrubberDataItem}>
-                <Text style={[styles.scrubberDataLabel, { color: colors.textSecondary }]}>Ceiling</Text>
+                <Text style={[styles.scrubberDataLabel, { color: colors.textSecondary }]}>{t('divePlanning.ceiling')}</Text>
                 <Text style={[styles.scrubberDataValue, { color: colors.danger }]}>{scrubberValues.ceiling}{depthUnit}</Text>
               </View>
               <View style={styles.scrubberDataItem}>
@@ -1045,23 +1047,23 @@ export default function DivePlanningScreen() {
         <View style={styles.chartLegend}>
           <View style={styles.legendItem}>
             <View style={[styles.legendLine, { backgroundColor: '#007AFF', height: 4 }]} />
-            <Text style={[styles.legendText, { color: colors.textSecondary }]}>Depth</Text>
+            <Text style={[styles.legendText, { color: colors.textSecondary }]}>{t('divePlanning.depth')}</Text>
           </View>
           <View style={styles.legendItem}>
             <View style={[styles.legendLine, { backgroundColor: colors.danger }]} />
-            <Text style={[styles.legendText, { color: colors.textSecondary }]}>Ceiling</Text>
+            <Text style={[styles.legendText, { color: colors.textSecondary }]}>{t('divePlanning.ceiling')}</Text>
           </View>
           <View style={styles.legendItem}>
             <View style={[styles.legendLine, { backgroundColor: '#FF9500' }]} />
-            <Text style={[styles.legendText, { color: colors.textSecondary }]}>CNS</Text>
+            <Text style={[styles.legendText, { color: colors.textSecondary }]}>{t('divePlanning.cns')}</Text>
           </View>
           <View style={styles.legendItem}>
             <View style={[styles.legendLine, { backgroundColor: '#AF52DE' }]} />
-            <Text style={[styles.legendText, { color: colors.textSecondary }]}>OTU</Text>
+            <Text style={[styles.legendText, { color: colors.textSecondary }]}>{t('divePlanning.otu')}</Text>
           </View>
           <View style={styles.legendItem}>
             <View style={[styles.legendLine, { backgroundColor: colors.success }]} />
-            <Text style={[styles.legendText, { color: colors.textSecondary }]}>Density</Text>
+            <Text style={[styles.legendText, { color: colors.textSecondary }]}>{t('divePlanning.density')}</Text>
           </View>
         </View>
       </View>
@@ -1198,7 +1200,7 @@ export default function DivePlanningScreen() {
         style={[styles.chartContainer, { backgroundColor: colors.card }]}
       >
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-          <Text style={[styles.chartTitle, { color: colors.text, marginBottom: 0 }]}>Tissue Saturation</Text>
+          <Text style={[styles.chartTitle, { color: colors.text, marginBottom: 0 }]}>{t('divePlanning.tissueSaturation')}</Text>
           <Text style={[styles.chartSubtitle, { color: colors.accent, marginTop: 0 }]}>
             @ {formatTime(chartScrubberTime)}
           </Text>
@@ -1222,33 +1224,33 @@ export default function DivePlanningScreen() {
 
     return (
       <View style={[styles.summaryContainer, { backgroundColor: colors.card }]}>
-        <Text style={[styles.summaryTitle, { color: colors.text }]}>Plan Summary</Text>
+        <Text style={[styles.summaryTitle, { color: colors.text }]}>{t('divePlanning.planSummary')}</Text>
         <View style={styles.summaryGrid}>
           <View style={styles.summaryItem}>
             <Text style={[styles.summaryValue, { color: colors.text }]}>{currentResult.totalRunTime}</Text>
-            <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>Total Run Time</Text>
+            <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>{t('divePlanning.totalRuntime')}</Text>
           </View>
           <View style={styles.summaryItem}>
             <Text style={[styles.summaryValue, { color: colors.text }]}>{currentResult.totalDecoTime}</Text>
-            <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>Deco Time (min)</Text>
+            <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>{t('divePlanning.totalDecoTime')} (min)</Text>
           </View>
           <View style={styles.summaryItem}>
             <Text style={[styles.summaryValue, { color: colors.text }]}>{currentResult.maxDepth}</Text>
-            <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>Max Depth ({depthUnit})</Text>
+            <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>{t('divePlanning.maxDepth')} ({depthUnit})</Text>
           </View>
           <View style={styles.summaryItem}>
             <Text style={[styles.summaryValue, { color: currentResult.ndl !== null ? colors.success : colors.textSecondary }]}>
               {currentResult.ndl !== null ? currentResult.ndl : 'N/A'}
             </Text>
-            <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>NDL (min)</Text>
+            <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>{t('divePlanning.ndl')} (min)</Text>
           </View>
           <View style={styles.summaryItem}>
             <Text style={[styles.summaryValue, { color: cnsColor }]}>{currentResult.cns}%</Text>
-            <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>CNS O2 Toxicity</Text>
+            <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>{t('divePlanning.cnsO2Toxicity')}</Text>
           </View>
           <View style={styles.summaryItem}>
             <Text style={[styles.summaryValue, { color: otuColor }]}>{currentResult.otu}</Text>
-            <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>OTU (Pulmonary)</Text>
+            <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>{t('divePlanning.otuPulmonary')}</Text>
           </View>
         </View>
 
@@ -1266,15 +1268,15 @@ export default function DivePlanningScreen() {
 
         {/* Dive Profile Table */}
         <View style={[styles.decoStopsContainer, { borderTopColor: colors.border }]}>
-          <Text style={[styles.decoStopsTitle, { color: colors.text }]}>Dive Profile</Text>
+          <Text style={[styles.decoStopsTitle, { color: colors.text }]}>{t('divePlanning.diveProfile')}</Text>
           
           {/* Table Header */}
           <View style={[styles.profileTableHeader, { borderBottomColor: colors.border }]}>
             <Text style={[styles.profileHeaderCell, { flex: 0.4, color: colors.textSecondary }]}></Text>
-            <Text style={[styles.profileHeaderCell, { flex: 1, color: colors.textSecondary }]}>Depth</Text>
-            <Text style={[styles.profileHeaderCell, { flex: 1.1, color: colors.textSecondary }]}>Stop</Text>
-            <Text style={[styles.profileHeaderCell, { flex: 1.1, color: colors.textSecondary }]}>Run</Text>
-            <Text style={[styles.profileHeaderCell, { flex: 1.2, color: colors.textSecondary }]}>Gas</Text>
+            <Text style={[styles.profileHeaderCell, { flex: 1, color: colors.textSecondary }]}>{t('divePlanning.depth')}</Text>
+            <Text style={[styles.profileHeaderCell, { flex: 1.1, color: colors.textSecondary }]}>{t('divePlanning.stop')}</Text>
+            <Text style={[styles.profileHeaderCell, { flex: 1.1, color: colors.textSecondary }]}>{t('divePlanning.run')}</Text>
+            <Text style={[styles.profileHeaderCell, { flex: 1.2, color: colors.textSecondary }]}>{t('divePlanning.gas')}</Text>
             <Text style={[styles.profileHeaderCell, { flex: 0.9, color: colors.textSecondary }]}>PO2</Text>
             <Text style={[styles.profileHeaderCell, { flex: 0.7, color: colors.textSecondary }]}>EAD</Text>
           </View>
@@ -1345,7 +1347,7 @@ export default function DivePlanningScreen() {
                 onPress={() => setSelectedDiveIndex(i)}
               >
                 <Text style={[styles.diveSelectorText, { color: selectedDiveIndex === i ? '#FFF' : colors.text }]}>
-                  Dive {i + 1}
+                  {t('divePlanning.diveNumber', { number: i + 1 })}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -1356,7 +1358,7 @@ export default function DivePlanningScreen() {
       <View style={[styles.section, { backgroundColor: colors.card }]}>
         <View style={styles.sectionHeader}>
           <View style={styles.sectionTitleRow}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Dive Parameters</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('divePlanning.diveParameters')}</Text>
             <View style={[styles.modeBadge, { backgroundColor: settings.circuit === 'ccr' ? colors.primary : colors.accent }]}>
               <Feather name={settings.circuit === 'ccr' ? 'refresh-cw' : 'wind'} size={12} color="#FFF" />
               <Text style={styles.modeBadgeText}>{settings.circuit === 'ccr' ? 'CCR' : 'OC'}</Text>
@@ -1364,7 +1366,7 @@ export default function DivePlanningScreen() {
           </View>
           <TouchableOpacity onPress={addDive} style={[styles.addButton, { backgroundColor: colors.primary }]}>
             <Feather name="plus" size={16} color="#FFF" />
-            <Text style={styles.addButtonText}>Add Dive</Text>
+            <Text style={styles.addButtonText}>{t('divePlanning.addDive')}</Text>
           </TouchableOpacity>
         </View>
 
@@ -1372,7 +1374,7 @@ export default function DivePlanningScreen() {
           <View key={dive.id} style={[styles.diveCard, { borderColor: colors.border }]}>
             {index > 0 && (
               <View style={styles.inputRow}>
-                <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Surface Interval</Text>
+                <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>{t('divePlanning.surfaceInterval')}</Text>
                 <View style={styles.inputGroup}>
                   <NumericInput
                     style={[styles.input, { color: colors.text, borderColor: colors.border }]}
@@ -1386,7 +1388,7 @@ export default function DivePlanningScreen() {
               </View>
             )}
             <View style={styles.inputRow}>
-              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Depth</Text>
+              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>{t('divePlanning.depth')}</Text>
               <View style={styles.inputGroup}>
                 <NumericInput
                   style={[styles.input, { color: colors.text, borderColor: colors.border }]}
@@ -1400,7 +1402,7 @@ export default function DivePlanningScreen() {
               </View>
             </View>
             <View style={styles.inputRow}>
-              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Bottom Time</Text>
+              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>{t('divePlanning.bottomTime')}</Text>
               <View style={styles.inputGroup}>
                 <NumericInput
                   style={[styles.input, { color: colors.text, borderColor: colors.border }]}
@@ -1425,11 +1427,11 @@ export default function DivePlanningScreen() {
       </View>
 
       <View style={[styles.section, { backgroundColor: colors.card }]}>
-        <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 16 }]}>Gradient Factors</Text>
-        {renderSlider('GF Low', settings.gfLow, 10, 100, 5, (v) => updateGF('gfLow', v), '%')}
-        {renderSlider('GF High', settings.gfHigh, 10, 100, 5, (v) => updateGF('gfHigh', v), '%')}
+        <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 16 }]}>{t('divePlanning.gradientFactors')}</Text>
+        {renderSlider(t('divePlanning.gfLow'), settings.gfLow, 10, 100, 5, (v) => updateGF('gfLow', v), '%')}
+        {renderSlider(t('divePlanning.gfHigh'), settings.gfHigh, 10, 100, 5, (v) => updateGF('gfHigh', v), '%')}
         <Text style={[styles.settingHint, { color: colors.textSecondary, marginTop: 4 }]}>
-          Adjust gradient factors in real-time to see their effect on decompression
+          {t('divePlanning.adjustGfHint')}
         </Text>
       </View>
 
@@ -1441,13 +1443,13 @@ export default function DivePlanningScreen() {
 
   const getRoleLabel = (role: GasRole): string => {
     const labels: Record<GasRole, string> = {
-      bottom: 'Bottom Gas',
-      travel: 'Travel Gas',
-      deco: 'Deco Gas',
-      o2: 'O2 Cylinder',
-      diluent: 'Diluent',
-      bailout: 'Bailout',
-      extension: 'Extension'
+      bottom: t('divePlanning.bottomGasLabel'),
+      travel: t('divePlanning.travelGasLabel'),
+      deco: t('divePlanning.decoGasLabel'),
+      o2: t('divePlanning.o2CylinderLabel'),
+      diluent: t('divePlanning.diluentLabel'),
+      bailout: t('divePlanning.bailoutLabel'),
+      extension: t('divePlanning.extensionLabel')
     };
     return labels[role] || role;
   };
@@ -1547,7 +1549,7 @@ export default function DivePlanningScreen() {
         
         {/* Cylinder Type Dropdown */}
         <View style={styles.cylinderDropdownContainer}>
-          <Text style={[styles.gasInputLabel, { color: colors.textSecondary }]}>Cylinder Type</Text>
+          <Text style={[styles.gasInputLabel, { color: colors.textSecondary }]}>{t('divePlanning.cylinderType')}</Text>
           <TouchableOpacity
             style={[styles.cylinderDropdownButton, { borderColor: colors.border, backgroundColor: colors.background }]}
             onPress={() => setShowCylinderDropdown(showCylinderDropdown === gas.id ? null : gas.id)}
@@ -1555,7 +1557,7 @@ export default function DivePlanningScreen() {
             <Text style={[styles.cylinderDropdownText, { color: colors.text }]}>
               {CYLINDER_PRESETS.find(p => 
                 Math.abs(p.volumeL - gas.cylinderVolume) < 0.5 && Math.abs(p.fillBar - gas.fillPressure) < 10
-              )?.label || 'Custom'}
+              )?.label || t('divePlanning.custom')}
             </Text>
             <Feather name={showCylinderDropdown === gas.id ? "chevron-up" : "chevron-down"} size={18} color={colors.textSecondary} />
           </TouchableOpacity>
@@ -1601,7 +1603,7 @@ export default function DivePlanningScreen() {
         <View style={styles.gasInputRow}>
           <View style={styles.gasInputGroup}>
             <Text style={[styles.gasInputLabel, { color: colors.textSecondary }]}>
-              {settings.units === 'imperial' ? 'Volume (cu ft)' : 'Volume (L)'}
+              {settings.units === 'imperial' ? t('divePlanning.volumeCuFt') : t('divePlanning.volumeL')}
             </Text>
             <TextInput
               style={[styles.gasInput, { color: colors.text, borderColor: colors.border }]}
@@ -1622,7 +1624,7 @@ export default function DivePlanningScreen() {
           </View>
           <View style={styles.gasInputGroup}>
             <Text style={[styles.gasInputLabel, { color: colors.textSecondary }]}>
-              {settings.units === 'imperial' ? 'Fill (PSI)' : 'Fill (bar)'}
+              {settings.units === 'imperial' ? t('divePlanning.fillPsi') : t('divePlanning.fillBar')}
             </Text>
             <TextInput
               style={[styles.gasInput, { color: colors.text, borderColor: colors.border }]}
@@ -1643,7 +1645,7 @@ export default function DivePlanningScreen() {
           </View>
           <View style={styles.gasInputGroup}>
             <Text style={[styles.gasInputLabel, { color: colors.textSecondary }]}>
-              {settings.units === 'imperial' ? 'Reserve (PSI)' : 'Reserve (bar)'}
+              {settings.units === 'imperial' ? t('divePlanning.reservePsi') : t('divePlanning.reserveBar')}
             </Text>
             <TextInput
               style={[styles.gasInput, { color: colors.text, borderColor: colors.border }]}
@@ -1679,13 +1681,13 @@ export default function DivePlanningScreen() {
           <View style={[styles.gasConsumptionBar, { backgroundColor: colors.background }]}>
             <View style={styles.gasConsumptionLabels}>
               <Text style={[styles.gasConsumptionText, { color: colors.text }]}>
-                Required: {gasConsumption.gasRequired}L
+                {t('divePlanning.required')}: {gasConsumption.gasRequired}L
               </Text>
               <Text style={[
                 styles.gasConsumptionText, 
                 { color: gasConsumption.isSufficient ? colors.success : colors.danger }
               ]}>
-                {gasConsumption.isSufficient ? `Remaining: ${gasConsumption.gasRemaining}L` : 'INSUFFICIENT'}
+                {gasConsumption.isSufficient ? `${t('divePlanning.remaining')}: ${gasConsumption.gasRemaining}L` : t('divePlanning.insufficient')}
               </Text>
             </View>
             <View style={[styles.consumptionTrack, { backgroundColor: colors.border }]}>
@@ -1733,13 +1735,13 @@ export default function DivePlanningScreen() {
           <View style={[styles.circuitBadge, { backgroundColor: isCCR ? colors.primary + '20' : colors.accent + '20' }]}>
             <Feather name={isCCR ? 'refresh-cw' : 'wind'} size={14} color={isCCR ? colors.primary : colors.accent} />
             <Text style={[styles.circuitBadgeText, { color: isCCR ? colors.primary : colors.accent }]}>
-              {isCCR ? 'CCR Mode' : 'Open Circuit'}
+              {isCCR ? t('divePlanning.ccrMode') : t('divePlanning.openCircuit')}
             </Text>
           </View>
           <Text style={[styles.settingHint, { color: colors.textSecondary, flex: 1 }]}>
             {isCCR 
-              ? 'Configure O2, Diluent, and backup gases' 
-              : 'Configure bottom, travel, and deco gases'}
+              ? t('divePlanning.configureCcrGases') 
+              : t('divePlanning.configureOcGases')}
           </Text>
         </View>
 
@@ -1747,9 +1749,9 @@ export default function DivePlanningScreen() {
           <>
             {/* CCR Loop Gases */}
             <View style={[styles.section, { backgroundColor: colors.card }]}>
-              <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 8 }]}>Loop Gases</Text>
+              <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 8 }]}>{t('divePlanning.loopGases')}</Text>
               <Text style={[styles.settingHint, { color: colors.textSecondary, marginBottom: 12 }]}>
-                Onboard O2 and Diluent cylinders
+                {t('divePlanning.onboardO2AndDiluent')}
               </Text>
               
               {o2Cylinder && renderGasCard(o2Cylinder, false, true)}
@@ -1764,38 +1766,38 @@ export default function DivePlanningScreen() {
               {!diluentCylinder && (
                 <TouchableOpacity onPress={() => addGas('diluent')} style={[styles.addGasButton, { borderColor: '#4ECDC4' }]}>
                   <Feather name="plus" size={16} color="#4ECDC4" />
-                  <Text style={[styles.addGasText, { color: '#4ECDC4' }]}>Add Diluent Cylinder</Text>
+                  <Text style={[styles.addGasText, { color: '#4ECDC4' }]}>{t('divePlanning.addDiluentCylinder')}</Text>
                 </TouchableOpacity>
               )}
             </View>
 
             {/* CCR Bailout Gases */}
             <View style={[styles.section, { backgroundColor: colors.card }]}>
-              <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 8 }]}>Bailout Gases</Text>
+              <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 8 }]}>{t('divePlanning.bailoutGases')}</Text>
               <Text style={[styles.settingHint, { color: colors.textSecondary, marginBottom: 12 }]}>
-                Open circuit bailout in case of loop failure
+                {t('divePlanning.bailoutDescription')}
               </Text>
               
               {bailoutGases.map(gas => renderGasCard(gas, bailoutGases.length > 0, false))}
               
               <TouchableOpacity onPress={() => addGas('bailout')} style={[styles.addGasButton, { borderColor: colors.warning }]}>
                 <Feather name="plus" size={16} color={colors.warning} />
-                <Text style={[styles.addGasText, { color: colors.warning }]}>Add Bailout Gas</Text>
+                <Text style={[styles.addGasText, { color: colors.warning }]}>{t('divePlanning.addBailoutGas')}</Text>
               </TouchableOpacity>
             </View>
 
             {/* CCR Extension Gases */}
             <View style={[styles.section, { backgroundColor: colors.card }]}>
-              <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 8 }]}>Extension Gases</Text>
+              <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 8 }]}>{t('divePlanning.extensionGases')}</Text>
               <Text style={[styles.settingHint, { color: colors.textSecondary, marginBottom: 12 }]}>
-                Extra O2 or Diluent to extend dive duration
+                {t('divePlanning.extensionDescription')}
               </Text>
               
               {extensionGases.map(gas => renderGasCard(gas, true, false))}
               
               <TouchableOpacity onPress={() => addGas('extension')} style={[styles.addGasButton, { borderColor: colors.textSecondary }]}>
                 <Feather name="plus" size={16} color={colors.textSecondary} />
-                <Text style={[styles.addGasText, { color: colors.textSecondary }]}>Add Extension Gas</Text>
+                <Text style={[styles.addGasText, { color: colors.textSecondary }]}>{t('divePlanning.addExtensionGas')}</Text>
               </TouchableOpacity>
             </View>
           </>
@@ -1803,46 +1805,46 @@ export default function DivePlanningScreen() {
           <>
             {/* OC Bottom Gases */}
             <View style={[styles.section, { backgroundColor: colors.card }]}>
-              <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 8 }]}>Bottom Gases</Text>
+              <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 8 }]}>{t('divePlanning.bottomGases')}</Text>
               <Text style={[styles.settingHint, { color: colors.textSecondary, marginBottom: 12 }]}>
-                Primary gases for the bottom phase of the dive
+                {t('divePlanning.bottomGasesDescription')}
               </Text>
               
               {bottomGases.map(gas => renderGasCard(gas, bottomGases.length > 1, false))}
               
               <TouchableOpacity onPress={() => addGas('bottom')} style={[styles.addGasButton, { borderColor: colors.primary }]}>
                 <Feather name="plus" size={16} color={colors.primary} />
-                <Text style={[styles.addGasText, { color: colors.primary }]}>Add Bottom Gas</Text>
+                <Text style={[styles.addGasText, { color: colors.primary }]}>{t('divePlanning.addBottomGas')}</Text>
               </TouchableOpacity>
             </View>
 
             {/* OC Travel Gases */}
             <View style={[styles.section, { backgroundColor: colors.card }]}>
-              <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 8 }]}>Travel Gases</Text>
+              <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 8 }]}>{t('divePlanning.travelGases')}</Text>
               <Text style={[styles.settingHint, { color: colors.textSecondary, marginBottom: 12 }]}>
-                Gases used during descent (optional)
+                {t('divePlanning.travelGasesDescription')}
               </Text>
               
               {travelGases.map(gas => renderGasCard(gas, true, false))}
               
               <TouchableOpacity onPress={() => addGas('travel')} style={[styles.addGasButton, { borderColor: colors.accent }]}>
                 <Feather name="plus" size={16} color={colors.accent} />
-                <Text style={[styles.addGasText, { color: colors.accent }]}>Add Travel Gas</Text>
+                <Text style={[styles.addGasText, { color: colors.accent }]}>{t('divePlanning.addTravelGas')}</Text>
               </TouchableOpacity>
             </View>
 
             {/* OC Deco Gases */}
             <View style={[styles.section, { backgroundColor: colors.card }]}>
-              <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 8 }]}>Deco Gases</Text>
+              <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 8 }]}>{t('divePlanning.decoGases')}</Text>
               <Text style={[styles.settingHint, { color: colors.textSecondary, marginBottom: 12 }]}>
-                Gases used during ascent and decompression stops
+                {t('divePlanning.decoGasesDescription')}
               </Text>
               
               {decoGases.map(gas => renderGasCard(gas, true, false))}
               
               <TouchableOpacity onPress={() => addGas('deco')} style={[styles.addGasButton, { borderColor: colors.success }]}>
                 <Feather name="plus" size={16} color={colors.success} />
-                <Text style={[styles.addGasText, { color: colors.success }]}>Add Deco Gas</Text>
+                <Text style={[styles.addGasText, { color: colors.success }]}>{t('divePlanning.addDecoGas')}</Text>
               </TouchableOpacity>
             </View>
           </>
@@ -1880,41 +1882,41 @@ export default function DivePlanningScreen() {
     
       {/* Model Settings */}
       <View style={[styles.section, { backgroundColor: colors.card }]}>
-        <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>Model Settings</Text>
+        <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>{t('divePlanning.modelSettings')}</Text>
         
-        {renderPicker('Circuit', [
+        {renderPicker(t('divePlanning.circuit'), [
           { value: 'open', label: 'OC' },
           { value: 'ccr', label: 'CCR' },
         ], ps.circuit, (v) => setPs({ circuit: v as CircuitType }))}
 
-        {renderPicker('Deco Model', DECO_MODELS.map(m => ({ value: m.value, label: m.label })), 
+        {renderPicker(t('divePlanning.decoModel'), DECO_MODELS.map(m => ({ value: m.value, label: m.label })), 
           ps.decoModel, (v) => setPs({ decoModel: v as DecoModel }))}
         <Text style={[styles.settingHint, { color: colors.textSecondary }]}>
           {DECO_MODELS.find(m => m.value === ps.decoModel)?.description || ''}
         </Text>
 
-        {renderToggle('O2 narcotic', ps.o2Narcotic, 
+        {renderToggle(t('divePlanning.o2Narcotic'), ps.o2Narcotic, 
           (v) => setPs({ o2Narcotic: v }),
-          'END calculation - Consider O2 as narcotic?'
+          t('divePlanning.o2NarcoticHint')
         )}
       </View>
 
       {/* Gradient Factors */}
       <View style={[styles.section, { backgroundColor: colors.card }]}>
-        <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>Gradient Factors</Text>
+        <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>{t('divePlanning.gradientFactors')}</Text>
         
-        {renderSlider('GF Low', ps.gfLow, 10, 100, 5, (v) => setPs({ gfLow: v }), '%')}
+        {renderSlider(t('divePlanning.gfLow'), ps.gfLow, 10, 100, 5, (v) => setPs({ gfLow: v }), '%')}
         <Text style={[styles.settingHint, { color: colors.textSecondary }]}>
-          Conservatism at depth - lower values = more conservative
+          {t('divePlanning.gfLowHint')}
         </Text>
         
-        {renderSlider('GF High', ps.gfHigh, 10, 100, 5, (v) => setPs({ gfHigh: v }), '%')}
+        {renderSlider(t('divePlanning.gfHigh'), ps.gfHigh, 10, 100, 5, (v) => setPs({ gfHigh: v }), '%')}
         <Text style={[styles.settingHint, { color: colors.textSecondary }]}>
-          Conservatism at surface - lower values = more conservative
+          {t('divePlanning.gfHighHint')}
         </Text>
         
         <View style={[styles.gfPresetRow, { borderTopColor: colors.border }]}>
-          <Text style={[styles.gfPresetLabel, { color: colors.textSecondary }]}>Presets:</Text>
+          <Text style={[styles.gfPresetLabel, { color: colors.textSecondary }]}>{t('divePlanning.presets')}:</Text>
           {[
             { label: '30/70', low: 30, high: 70 },
             { label: '35/75', low: 35, high: 75 },
@@ -1939,120 +1941,120 @@ export default function DivePlanningScreen() {
           ))}
         </View>
         
-        {renderSlider('Conservatism', ps.conservatismFactor ?? 0, 0, 50, 5, (v) => setPs({ conservatismFactor: v }), '%')}
+        {renderSlider(t('divePlanning.conservatism'), ps.conservatismFactor ?? 0, 0, 50, 5, (v) => setPs({ conservatismFactor: v }), '%')}
         <Text style={[styles.settingHint, { color: colors.textSecondary }]}>
-          Add extra time to shallow stops (12m and above only)
+          {t('divePlanning.conservatismHint')}
         </Text>
       </View>
 
       {/* Units & Environment */}
       <View style={[styles.section, { backgroundColor: colors.card }]}>
-        <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>Units</Text>
+        <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>{t('divePlanning.units')}</Text>
         
-        {renderPicker('Depth', [
-          { value: 'imperial', label: 'Feet' },
-          { value: 'metric', label: 'Meter' },
+        {renderPicker(t('divePlanning.depth'), [
+          { value: 'imperial', label: t('divePlanning.feet') },
+          { value: 'metric', label: t('divePlanning.meter') },
         ], ps.units, (v) => setPs({ units: v as UnitSystem }))}
-        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Depth shown in feet or meters</Text>
+        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>{t('divePlanning.depthUnitsHint')}</Text>
 
-        {renderPicker('Water', [
-          { value: 'salt', label: 'Salt' },
-          { value: 'fresh', label: 'Fresh' },
+        {renderPicker(t('divePlanning.water'), [
+          { value: 'salt', label: t('divePlanning.salt') },
+          { value: 'fresh', label: t('divePlanning.fresh') },
         ], ps.waterType, (v) => setPs({ waterType: v as WaterType }))}
-        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Type of water - salt or fresh</Text>
+        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>{t('divePlanning.waterTypeHint')}</Text>
 
-        {renderPicker('Gas volume', [
-          { value: 'cuft', label: 'CuFt.' },
-          { value: 'ltr', label: 'Ltr.' },
+        {renderPicker(t('divePlanning.gasVolume'), [
+          { value: 'cuft', label: t('divePlanning.cuFt') },
+          { value: 'ltr', label: t('divePlanning.ltr') },
         ], ps.gasVolumeUnits, (v) => setPs({ gasVolumeUnits: v as 'cuft' | 'ltr' }))}
-        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>RMV or SAC gas units - cubic ft or liter</Text>
+        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>{t('divePlanning.gasVolumeHint')}</Text>
       </View>
 
       {/* Gas Consumption */}
       <View style={[styles.section, { backgroundColor: colors.card }]}>
         <View style={styles.sectionHeader}>
           <View style={styles.sectionTitleRow}>
-            <Text style={[styles.settingsSectionTitle, { color: colors.text, marginBottom: 0 }]}>Gas Consumption</Text>
+            <Text style={[styles.settingsSectionTitle, { color: colors.text, marginBottom: 0 }]}>{t('divePlanning.gasConsumption')}</Text>
             <View style={[styles.modeBadge, { backgroundColor: ps.circuit === 'ccr' ? colors.warning : colors.accent }]}>
               <Feather name={ps.circuit === 'ccr' ? 'alert-triangle' : 'wind'} size={12} color="#FFF" />
-              <Text style={styles.modeBadgeText}>{ps.circuit === 'ccr' ? 'Bailout' : 'OC'}</Text>
+              <Text style={styles.modeBadgeText}>{ps.circuit === 'ccr' ? t('divePlanning.bailout') : 'OC'}</Text>
             </View>
           </View>
         </View>
         
-        {renderSlider('Bottom', ps.circuit === 'ccr' ? ps.bailoutSacRateBottom : ps.sacRateBottom, 5, 40, 1,
+        {renderSlider(t('divePlanning.bottom'), ps.circuit === 'ccr' ? ps.bailoutSacRateBottom : ps.sacRateBottom, 5, 40, 1,
           (v) => ps.circuit === 'ccr' ? setPs({ bailoutSacRateBottom: v }) : setPs({ sacRateBottom: v }), '')}
         <Text style={[styles.settingHint, { color: colors.textSecondary }]}>
-          {ps.circuit === 'ccr' ? 'Bailout SAC rate (stress factor included)' : 'Bottom mix SAC/RMV rate'}
+          {ps.circuit === 'ccr' ? t('divePlanning.bailoutSacRateHint') : t('divePlanning.bottomSacRateHint')}
         </Text>
 
-        {renderSlider('Deco', ps.circuit === 'ccr' ? ps.bailoutSacRateDeco : ps.sacRateDeco, 5, 30, 1,
+        {renderSlider(t('divePlanning.deco'), ps.circuit === 'ccr' ? ps.bailoutSacRateDeco : ps.sacRateDeco, 5, 30, 1,
           (v) => ps.circuit === 'ccr' ? setPs({ bailoutSacRateDeco: v }) : setPs({ sacRateDeco: v }), '')}
         <Text style={[styles.settingHint, { color: colors.textSecondary }]}>
-          {ps.circuit === 'ccr' ? 'Bailout deco SAC rate (stress factor)' : 'Deco mix SAC/RMV rate'}
+          {ps.circuit === 'ccr' ? t('divePlanning.bailoutDecoSacRateHint') : t('divePlanning.decoSacRateHint')}
         </Text>
       </View>
 
       {/* CCR Settings */}
       {ps.circuit === 'ccr' && (
         <View style={[styles.section, { backgroundColor: colors.card }]}>
-          <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>CCR Settings</Text>
+          <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>{t('divePlanning.ccrSettings')}</Text>
           
-          {renderPicker('Setpoint Units', [
+          {renderPicker(t('divePlanning.setpointUnits'), [
             { value: 'bar', label: 'BAR' },
             { value: 'ata', label: 'ATA' },
           ], ps.ccrSetpointUnits, (v) => setPs({ ccrSetpointUnits: v as 'bar' | 'ata' }))}
-          <Text style={[styles.settingHint, { color: colors.textSecondary }]}>CCR setpoint base units</Text>
+          <Text style={[styles.settingHint, { color: colors.textSecondary }]}>{t('divePlanning.setpointUnitsHint')}</Text>
 
-          {renderSlider('Bottom Setpoint', ps.ccrSetpoint, 0.7, 1.6, 0.1, 
+          {renderSlider(t('divePlanning.bottomSetpoint'), ps.ccrSetpoint, 0.7, 1.6, 0.1, 
             (v) => setPs({ ccrSetpoint: Math.round(v * 10) / 10 }), ps.ccrSetpointUnits === 'bar' ? ' bar' : ' ATA')}
-          <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Setpoint during bottom phase</Text>
+          <Text style={[styles.settingHint, { color: colors.textSecondary }]}>{t('divePlanning.bottomSetpointHint')}</Text>
 
-          {renderSlider('Deco Setpoint', ps.decoSetpoint, 0.7, 1.6, 0.1, 
+          {renderSlider(t('divePlanning.decoSetpoint'), ps.decoSetpoint, 0.7, 1.6, 0.1, 
             (v) => setPs({ decoSetpoint: Math.round(v * 10) / 10 }), ps.ccrSetpointUnits === 'bar' ? ' bar' : ' ATA')}
-          <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Higher setpoint during ascent to reduce deco</Text>
+          <Text style={[styles.settingHint, { color: colors.textSecondary }]}>{t('divePlanning.decoSetpointHint')}</Text>
 
-          {renderSlider('Scrubber Duration', ps.scrubberDuration, 60, 300, 30,
+          {renderSlider(t('divePlanning.scrubberDuration'), ps.scrubberDuration, 60, 300, 30,
             (v) => setPs({ scrubberDuration: v }), ' min')}
         </View>
       )}
 
       {/* Deco Stop Settings */}
       <View style={[styles.section, { backgroundColor: colors.card }]}>
-        <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>Deco Stop, Deco Mix Settings</Text>
+        <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>{t('divePlanning.decoStopSettings')}</Text>
         
-        {renderDiscreteSelector('Stop Size', ps.stopSize, [3, 6], (v) => setPs({ stopSize: v }), depthUnit)}
-        {renderDiscreteSelector('Last OC Stop', ps.lastOcStopDepth, [3, 6], (v) => setPs({ lastOcStopDepth: v }), depthUnit)}
-        {renderDiscreteSelector('Last CCR Stop', ps.lastCcrStopDepth, [3, 6, 9], (v) => setPs({ lastCcrStopDepth: v }), depthUnit)}
-        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Stop size dimensions, last stop depths</Text>
+        {renderDiscreteSelector(t('divePlanning.stopSize'), ps.stopSize, [3, 6], (v) => setPs({ stopSize: v }), depthUnit)}
+        {renderDiscreteSelector(t('divePlanning.lastOcStop'), ps.lastOcStopDepth, [3, 6], (v) => setPs({ lastOcStopDepth: v }), depthUnit)}
+        {renderDiscreteSelector(t('divePlanning.lastCcrStop'), ps.lastCcrStopDepth, [3, 6, 9], (v) => setPs({ lastCcrStopDepth: v }), depthUnit)}
+        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>{t('divePlanning.stopSizeHint')}</Text>
 
-        {renderDiscreteSelector('Min Stop Time', ps.minStopTime, [1, 2, 3], (v) => setPs({ minStopTime: v }), ' min')}
-        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Minimum stop time intervals</Text>
+        {renderDiscreteSelector(t('divePlanning.minStopTime'), ps.minStopTime, [1, 2, 3], (v) => setPs({ minStopTime: v }), ' min')}
+        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>{t('divePlanning.minStopTimeHint')}</Text>
 
         {renderDiscreteSelector('PPO2 (45-99% O2)', ps.ppo2High, [1.4, 1.5, 1.6], (v) => setPs({ ppo2High: v }), '')}
         {renderDiscreteSelector('PPO2 (28-45% O2)', ps.ppo2Medium, [1.3, 1.4, 1.5, 1.6], (v) => setPs({ ppo2Medium: v }), '')}
         {renderDiscreteSelector('PPO2 (up to 28% O2)', ps.ppo2Low, [1.2, 1.3, 1.4, 1.5, 1.6], (v) => setPs({ ppo2Low: v }), '')}
-        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Deco mix switch depth - ppO2 threshold</Text>
+        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>{t('divePlanning.ppo2ThresholdHint')}</Text>
 
-        {renderDiscreteSelector('Max 100% O2 Depth', ps.maxO2Depth, [3, 6, 9], (v) => setPs({ maxO2Depth: v }), depthUnit)}
-        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Maximum depth for 100% O2 use</Text>
+        {renderDiscreteSelector(t('divePlanning.maxO2Depth'), ps.maxO2Depth, [3, 6, 9], (v) => setPs({ maxO2Depth: v }), depthUnit)}
+        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>{t('divePlanning.maxO2DepthHint')}</Text>
 
-        {renderToggle('30 sec stops', ps.use30SecStops, 
+        {renderToggle(t('divePlanning.thirtySecStops'), ps.use30SecStops, 
           (v) => setPs({ use30SecStops: v })
         )}
-        {renderToggle('6 m steps', ps.use6mSteps, 
+        {renderToggle(t('divePlanning.sixMSteps'), ps.use6mSteps, 
           (v) => setPs({ use6mSteps: v }),
-          'Controls initial (deepest) stop dimensions'
+          t('divePlanning.sixMStepsHint')
         )}
       </View>
 
       {/* Extended Stops */}
       <View style={[styles.section, { backgroundColor: colors.card }]}>
-        <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>Extended Stops</Text>
+        <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>{t('divePlanning.extendedStops')}</Text>
         
-        {renderToggle('Extended stops', ps.extendedStops, 
+        {renderToggle(t('divePlanning.extendedStops'), ps.extendedStops, 
           (v) => setPs({ extendedStops: v }),
-          'Include extended stops with deco mix swaps'
+          t('divePlanning.extendedStopsHint')
         )}
 
         {ps.extendedStops && (
@@ -2061,44 +2063,44 @@ export default function DivePlanningScreen() {
               (v) => setPs({ extendedStopShallow: v }), '')}
             {renderSlider(`30 + m = ${ps.extendedStopDeep}min`, ps.extendedStopDeep, 1, 5, 1,
               (v) => setPs({ extendedStopDeep: v }), '')}
-            <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Extra stop time with deco mix changes</Text>
+            <Text style={[styles.settingHint, { color: colors.textSecondary }]}>{t('divePlanning.extraStopTimeHint')}</Text>
           </>
         )}
 
-        {renderToggle('Add time to stop', ps.addTimeToStop, 
+        {renderToggle(t('divePlanning.addTimeToStop'), ps.addTimeToStop, 
           (v) => setPs({ addTimeToStop: v })
         )}
-        {renderToggle('All mix changes', ps.allMixChanges, 
+        {renderToggle(t('divePlanning.allMixChanges'), ps.allMixChanges, 
           (v) => setPs({ allMixChanges: v })
         )}
-        {renderToggle('O2 window effect', ps.o2WindowEffect, 
+        {renderToggle(t('divePlanning.o2WindowEffect'), ps.o2WindowEffect, 
           (v) => setPs({ o2WindowEffect: v }),
-          'Controls extended stop time behavior'
+          t('divePlanning.o2WindowEffectHint')
         )}
       </View>
 
       {/* Descent/Ascent Rates */}
       <View style={[styles.section, { backgroundColor: colors.card }]}>
-        <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>Descent / Ascent Rates</Text>
+        <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>{t('divePlanning.descentAscentRates')}</Text>
         
-        {renderSlider(`Descent`, ps.descentRate, 3, 18, 1,
+        {renderSlider(t('divePlanning.descent'), ps.descentRate, 3, 18, 1,
           (v) => setPs({ descentRate: v }), ` ${rateUnit}`)}
-        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Descent rate to bottom</Text>
+        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>{t('divePlanning.descentRateHint')}</Text>
 
-        {renderSlider(`Deco`, ps.decoRate, 3, 18, 1,
+        {renderSlider(t('divePlanning.deco'), ps.decoRate, 3, 18, 1,
           (v) => setPs({ decoRate: v }), ` ${rateUnit}`)}
-        {renderSlider(`Ascent`, ps.ascentRate, 3, 18, 1,
+        {renderSlider(t('divePlanning.ascent'), ps.ascentRate, 3, 18, 1,
           (v) => setPs({ ascentRate: v }), ` ${rateUnit}`)}
-        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Ascent rates during decompression</Text>
+        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>{t('divePlanning.ascentRateHint')}</Text>
       </View>
 
       {/* Dive Site Elevation */}
       <View style={[styles.section, { backgroundColor: colors.card }]}>
-        <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>Dive Site Elevation</Text>
+        <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>{t('divePlanning.diveSiteElevation')}</Text>
         
         <View style={styles.sliderWithInfo}>
           <View style={{ flex: 1 }}>
-            {renderSlider(`Elevation`, ps.elevation, 0, 3000, 100,
+            {renderSlider(t('divePlanning.elevation'), ps.elevation, 0, 3000, 100,
               (v) => setPs({ elevation: v }), 'm')}
           </View>
           <TouchableOpacity 
@@ -2108,11 +2110,11 @@ export default function DivePlanningScreen() {
             <Feather name="info" size={18} color={colors.textSecondary} />
           </TouchableOpacity>
         </View>
-        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Dive site elevation above sea level</Text>
+        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>{t('divePlanning.elevationHint')}</Text>
 
         <View style={styles.sliderWithInfo}>
           <View style={{ flex: 1 }}>
-            {renderSlider(`Acclimatized`, ps.acclimatizedElevation, 0, 3000, 100,
+            {renderSlider(t('divePlanning.acclimatized'), ps.acclimatizedElevation, 0, 3000, 100,
               (v) => setPs({ acclimatizedElevation: v }), 'm')}
           </View>
           <TouchableOpacity 
@@ -2122,21 +2124,21 @@ export default function DivePlanningScreen() {
             <Feather name="info" size={18} color={colors.textSecondary} />
           </TouchableOpacity>
         </View>
-        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Your home elevation for acclimatization</Text>
+        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>{t('divePlanning.acclimatizedHint')}</Text>
       </View>
 
       {/* Gas Switch Time - moved from removed Display section */}
       <View style={[styles.section, { backgroundColor: colors.card }]}>
-        <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>Gas Switch</Text>
+        <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>{t('divePlanning.gasSwitch')}</Text>
         
-        {renderSlider('Gas Switch Time', ps.gasSwitchTime, 0, 5, 1, 
+        {renderSlider(t('divePlanning.gasSwitchTime'), ps.gasSwitchTime, 0, 5, 1, 
           (v) => setPs({ gasSwitchTime: v }), ' min')}
-        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Time added for gas switches during deco</Text>
+        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>{t('divePlanning.gasSwitchTimeHint')}</Text>
       </View>
 
       {/* Dive Monitor Controls */}
       <View style={[styles.section, { backgroundColor: colors.card }]}>
-        <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>Dive Monitor Controls</Text>
+        <Text style={[styles.settingsSectionTitle, { color: colors.text }]}>{t('divePlanning.diveMonitorControls')}</Text>
         
         <View style={styles.monitorRowWithInfo}>
           <View style={{ flex: 1 }}>
@@ -2156,7 +2158,7 @@ export default function DivePlanningScreen() {
             <Feather name="info" size={18} color={colors.textSecondary} />
           </TouchableOpacity>
         </View>
-        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Warn when ppO2 exceeds threshold</Text>
+        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>{t('divePlanning.ppo2AboveHint')}</Text>
 
         <View style={styles.monitorRowWithInfo}>
           <View style={{ flex: 1 }}>
@@ -2176,7 +2178,7 @@ export default function DivePlanningScreen() {
             <Feather name="info" size={18} color={colors.textSecondary} />
           </TouchableOpacity>
         </View>
-        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Warn when ppO2 drops below threshold</Text>
+        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>{t('divePlanning.ppo2BelowHint')}</Text>
 
         <View style={styles.monitorRowWithInfo}>
           <View style={{ flex: 1 }}>
@@ -2196,7 +2198,7 @@ export default function DivePlanningScreen() {
             <Feather name="info" size={18} color={colors.textSecondary} />
           </TouchableOpacity>
         </View>
-        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Warn when OTU accumulation exceeds threshold</Text>
+        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>{t('divePlanning.otuAboveHint')}</Text>
 
         <View style={styles.monitorRowWithInfo}>
           <View style={{ flex: 1 }}>
@@ -2216,7 +2218,7 @@ export default function DivePlanningScreen() {
             <Feather name="info" size={18} color={colors.textSecondary} />
           </TouchableOpacity>
         </View>
-        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Warn when CNS % exceeds threshold</Text>
+        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>{t('divePlanning.cnsAboveHint')}</Text>
 
         <View style={styles.monitorRowWithInfo}>
           <View style={{ flex: 1 }}>
@@ -2247,13 +2249,13 @@ export default function DivePlanningScreen() {
             <Feather name="info" size={18} color={colors.textSecondary} />
           </TouchableOpacity>
         </View>
-        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>Isobaric counter-diffusion thresholds</Text>
+        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>{t('divePlanning.ibcdHint')}</Text>
 
         {ps.circuit === 'ccr' && (
           <>
-            {renderToggle('CCR diluent check', ps.ccrDiluentCheck,
+            {renderToggle(t('divePlanning.ccrDiluentCheck'), ps.ccrDiluentCheck,
               (v) => setPs({ ccrDiluentCheck: v }),
-              'CCR diluent pp exceeds ATA'
+              t('divePlanning.ccrDiluentCheckHint')
             )}
           </>
         )}
@@ -2264,7 +2266,7 @@ export default function DivePlanningScreen() {
   // Save current dive plan
   const savePlan = () => {
     if (!planName.trim()) {
-      Alert.alert('Name Required', 'Please enter a name for this dive plan.');
+      Alert.alert(t('divePlanning.nameRequired'), t('divePlanning.nameRequiredMessage'));
       return;
     }
     const newPlan: SavedDivePlan = {
@@ -2277,7 +2279,7 @@ export default function DivePlanningScreen() {
     };
     setSavedPlans(prev => [newPlan, ...prev]);
     setPlanName('');
-    Alert.alert('Saved', `Dive plan "${newPlan.name}" has been saved.`);
+    Alert.alert(t('common.success'), t('divePlanning.planSaved', { name: newPlan.name }));
   };
 
   // Load a saved dive plan
@@ -2288,18 +2290,18 @@ export default function DivePlanningScreen() {
     setPendingSettings({ ...plan.settings });
     setSelectedDiveIndex(0);
     setActiveTab('plan');
-    Alert.alert('Loaded', `Dive plan "${plan.name}" has been loaded.`);
+    Alert.alert(t('divePlanning.loaded'), t('divePlanning.planLoaded', { name: plan.name }));
   };
 
   // Delete a saved dive plan
   const deletePlan = (id: string) => {
     Alert.alert(
-      'Delete Plan',
-      'Are you sure you want to delete this dive plan?',
+      t('divePlanning.deletePlan'),
+      t('divePlanning.deletePlanConfirm'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         { 
-          text: 'Delete', 
+          text: t('common.delete'), 
           style: 'destructive', 
           onPress: () => setSavedPlans(prev => prev.filter(p => p.id !== id))
         },
@@ -2311,13 +2313,13 @@ export default function DivePlanningScreen() {
     <>
       {/* Save Current Plan */}
       <View style={[styles.section, { backgroundColor: colors.card }]}>
-        <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 12 }]}>Save Current Plan</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 12 }]}>{t('divePlanning.saveCurrentPlan')}</Text>
         <View style={{ flexDirection: 'row', gap: 8 }}>
           <TextInput
             style={[styles.input, { color: colors.text, borderColor: colors.border, flex: 1 }]}
             value={planName}
             onChangeText={setPlanName}
-            placeholder="Enter plan name..."
+            placeholder={t('divePlanning.enterPlanName')}
             placeholderTextColor={colors.textSecondary}
           />
           <TouchableOpacity
@@ -2325,12 +2327,12 @@ export default function DivePlanningScreen() {
             onPress={savePlan}
           >
             <Feather name="save" size={16} color="#FFF" />
-            <Text style={styles.addButtonText}>Save</Text>
+            <Text style={styles.addButtonText}>{t('common.save')}</Text>
           </TouchableOpacity>
         </View>
         {currentResult && (
           <Text style={[styles.settingHint, { color: colors.textSecondary, marginTop: 8 }]}>
-            Current: {dives.length} dive(s), {currentResult.maxDepth}{depthUnit} max, {currentResult.totalRunTime} min runtime
+            {t('divePlanning.currentPlanSummary', { dives: dives.length, depth: currentResult.maxDepth, unit: depthUnit, runtime: currentResult.totalRunTime })}
           </Text>
         )}
       </View>
@@ -2338,12 +2340,12 @@ export default function DivePlanningScreen() {
       {/* Saved Plans List */}
       <View style={[styles.section, { backgroundColor: colors.card }]}>
         <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 12 }]}>
-          Saved Plans ({savedPlans.length})
+          {t('divePlanning.savedPlansCount', { count: savedPlans.length })}
         </Text>
         
         {savedPlans.length === 0 ? (
           <Text style={{ color: colors.textSecondary, textAlign: 'center', paddingVertical: 24 }}>
-            No saved dive plans yet. Create a plan and save it to see it here.
+            {t('divePlanning.noSavedPlansMessage')}
           </Text>
         ) : (
           savedPlans.map(plan => (
@@ -2354,10 +2356,10 @@ export default function DivePlanningScreen() {
               <View style={{ flex: 1 }}>
                 <Text style={[styles.savedPlanName, { color: colors.text }]}>{plan.name}</Text>
                 <Text style={[styles.savedPlanMeta, { color: colors.textSecondary }]}>
-                  {plan.dives.length} dive(s) | {plan.gases.length} gas(es)
+                  {t('divePlanning.planDivesGases', { dives: plan.dives.length, gases: plan.gases.length })}
                 </Text>
                 <Text style={[styles.savedPlanMeta, { color: colors.textSecondary }]}>
-                  Saved: {new Date(plan.createdAt).toLocaleDateString()}
+                  {t('divePlanning.savedDate', { date: new Date(plan.createdAt).toLocaleDateString() })}
                 </Text>
               </View>
               <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -2391,7 +2393,7 @@ export default function DivePlanningScreen() {
       <View style={styles.modalOverlay}>
         <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
           <View style={styles.modalHeader}>
-            <Text style={[styles.modalTitle, { color: colors.text }]}>CCR Scrubber Time</Text>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>{t('divePlanning.ccrScrubberTime')}</Text>
             <TouchableOpacity onPress={() => setShowScrubberModal(false)}>
               <Feather name="x" size={24} color={colors.text} />
             </TouchableOpacity>
@@ -2414,12 +2416,12 @@ export default function DivePlanningScreen() {
                 {scrubberElapsed} / {settings.scrubberDuration} min
               </Text>
               <Text style={[styles.scrubberRemaining, { color: colors.textSecondary }]}>
-                {Math.max(0, settings.scrubberDuration - scrubberElapsed)} min remaining
+                {t('divePlanning.minRemaining', { count: Math.max(0, settings.scrubberDuration - scrubberElapsed) })}
               </Text>
             </View>
             
             <View style={styles.scrubberActions}>
-              {renderSlider('Elapsed Time', scrubberElapsed, 0, settings.scrubberDuration, 5,
+              {renderSlider(t('divePlanning.elapsedTime'), scrubberElapsed, 0, settings.scrubberDuration, 5,
                 (v) => setScrubberElapsed(v), ' min')}
               
               <View style={styles.scrubberButtons}>
@@ -2428,14 +2430,14 @@ export default function DivePlanningScreen() {
                   onPress={() => setScrubberElapsed(0)}
                 >
                   <Feather name="rotate-ccw" size={16} color="#FFF" />
-                  <Text style={styles.scrubberActionText}>Reset</Text>
+                  <Text style={styles.scrubberActionText}>{t('divePlanning.reset')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.scrubberActionBtn, { backgroundColor: colors.accent }]}
                   onPress={() => setScrubberElapsed(prev => Math.min(settings.scrubberDuration, prev + currentResult?.totalRunTime || 0))}
                 >
                   <Feather name="plus" size={16} color="#FFF" />
-                  <Text style={styles.scrubberActionText}>Add Dive Time</Text>
+                  <Text style={styles.scrubberActionText}>{t('divePlanning.addDiveTime')}</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -2490,7 +2492,7 @@ export default function DivePlanningScreen() {
   return (
     <ThemedBackground>
       <PageHeader 
-        title="Dive Planning" 
+        title={t('divePlanning.title')} 
         rightAction={
           currentResult ? (
             <Pressable onPress={handleExportPdf} style={{ padding: 8 }}>
@@ -2553,7 +2555,7 @@ export default function DivePlanningScreen() {
               style={[styles.infoButton, { backgroundColor: colors.primary }]}
               onPress={() => setShowElevationInfo(false)}
             >
-              <Text style={styles.infoButtonText}>Got it</Text>
+              <Text style={styles.infoButtonText}>{t('divePlanning.gotIt')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -2597,7 +2599,7 @@ export default function DivePlanningScreen() {
               style={[styles.infoButton, { backgroundColor: colors.primary }]}
               onPress={() => setShowAcclimatizationInfo(false)}
             >
-              <Text style={styles.infoButtonText}>Got it</Text>
+              <Text style={styles.infoButtonText}>{t('divePlanning.gotIt')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -2633,7 +2635,7 @@ export default function DivePlanningScreen() {
               </Text>
             </ScrollView>
             <TouchableOpacity style={[styles.infoButton, { backgroundColor: colors.primary }]} onPress={() => setShowPpo2AboveInfo(false)}>
-              <Text style={styles.infoButtonText}>Got it</Text>
+              <Text style={styles.infoButtonText}>{t('divePlanning.gotIt')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -2670,7 +2672,7 @@ export default function DivePlanningScreen() {
               </Text>
             </ScrollView>
             <TouchableOpacity style={[styles.infoButton, { backgroundColor: colors.primary }]} onPress={() => setShowPpo2BelowInfo(false)}>
-              <Text style={styles.infoButtonText}>Got it</Text>
+              <Text style={styles.infoButtonText}>{t('divePlanning.gotIt')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -2707,7 +2709,7 @@ export default function DivePlanningScreen() {
               </Text>
             </ScrollView>
             <TouchableOpacity style={[styles.infoButton, { backgroundColor: colors.primary }]} onPress={() => setShowOtuInfo(false)}>
-              <Text style={styles.infoButtonText}>Got it</Text>
+              <Text style={styles.infoButtonText}>{t('divePlanning.gotIt')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -2743,7 +2745,7 @@ export default function DivePlanningScreen() {
               </Text>
             </ScrollView>
             <TouchableOpacity style={[styles.infoButton, { backgroundColor: colors.primary }]} onPress={() => setShowCnsInfo(false)}>
-              <Text style={styles.infoButtonText}>Got it</Text>
+              <Text style={styles.infoButtonText}>{t('divePlanning.gotIt')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -2781,7 +2783,7 @@ export default function DivePlanningScreen() {
               </Text>
             </ScrollView>
             <TouchableOpacity style={[styles.infoButton, { backgroundColor: colors.primary }]} onPress={() => setShowIbcdInfo(false)}>
-              <Text style={styles.infoButtonText}>Got it</Text>
+              <Text style={styles.infoButtonText}>{t('divePlanning.gotIt')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -2793,10 +2795,10 @@ export default function DivePlanningScreen() {
           <View style={[styles.infoModalContent, { backgroundColor: colors.card, alignItems: 'center', paddingVertical: 32 }]}>
             <ActivityIndicator size="large" color={colors.primary} />
             <Text style={[styles.infoModalTitle, { color: colors.text, marginTop: 16, textAlign: 'center' }]}>
-              Preparing Dive Plan
+              {t('divePlanning.preparingDivePlan')}
             </Text>
             <Text style={[styles.infoText, { color: colors.textSecondary, textAlign: 'center', marginTop: 8 }]}>
-              Your dive plan PDF is being generated. This may take a few seconds...
+              {t('divePlanning.pdfGenerating')}
             </Text>
           </View>
         </View>

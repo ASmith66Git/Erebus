@@ -16,12 +16,14 @@ import {
 } from '@/services/gasMath';
 import { useSettings } from '@/contexts/SettingsContext';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useTranslation } from 'react-i18next';
 import PageHeader from '@/components/PageHeader';
 import ThemedBackground from '@/components/ThemedBackground';
 
 type TabType = 'gases' | 'density' | 'fill' | 'mix' | 'bestmix';
 
 export default function GasCalculatorScreen() {
+  const { t } = useTranslation();
   const { isDark } = useTheme();
   const navigation = useNavigation();
   const { units, getVolumeUnit, getPressureUnit, getDepthUnit, formatVolume, formatPressure, formatDepth } = useSettings();
@@ -183,7 +185,7 @@ export default function GasCalculatorScreen() {
             onPress={() => setActiveTab(tab)}
           >
             <Text style={[styles.tabText, { color: activeTab === tab ? colors.primary : colors.textSecondary }]}>
-              {tab === 'gases' ? 'Cylinders' : tab === 'density' ? 'Density' : 'Fill'}
+              {tab === 'gases' ? t('gas.cylinders') : tab === 'density' ? t('gas.tabs.density') : t('gas.tabs.fill')}
             </Text>
           </TouchableOpacity>
         ))}
@@ -196,7 +198,7 @@ export default function GasCalculatorScreen() {
             onPress={() => setActiveTab(tab)}
           >
             <Text style={[styles.tabText, { color: activeTab === tab ? colors.primary : colors.textSecondary }]}>
-              {tab === 'mix' ? 'Blender' : 'Best Mix'}
+              {tab === 'mix' ? t('gas.blender') : t('gas.bestMix')}
             </Text>
           </TouchableOpacity>
         ))}
@@ -309,8 +311,8 @@ export default function GasCalculatorScreen() {
 
   const renderGasesTab = () => (
     <ScrollView style={styles.tabContent}>
-      <Text style={[styles.sectionTitle, { color: colors.text }]}>Current Configuration</Text>
-      <Text style={[styles.sectionSubtitle, { color: colors.textSecondary }]}>Select cylinder and gas mix for calculations</Text>
+      <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('gas.currentConfiguration')}</Text>
+      <Text style={[styles.sectionSubtitle, { color: colors.textSecondary }]}>{t('gas.selectCylinderAndMix')}</Text>
 
       <View style={[styles.configCard, { backgroundColor: colors.card, borderColor: colors.primary }]}>
         <View style={styles.configHeader}>
@@ -322,7 +324,7 @@ export default function GasCalculatorScreen() {
           style={[styles.configRow, { borderColor: colors.border }]}
           onPress={() => setShowCylinderPicker(true)}
         >
-          <Text style={[styles.configLabel, { color: colors.textSecondary }]}>Cylinder</Text>
+          <Text style={[styles.configLabel, { color: colors.textSecondary }]}>{t('gas.cylinder')}</Text>
           <View style={styles.configValue}>
             <Text style={[styles.configValueText, { color: colors.text }]}>{selectedCylinder.label}</Text>
             <Feather name="chevron-right" size={18} color={colors.textSecondary} />
@@ -330,16 +332,16 @@ export default function GasCalculatorScreen() {
         </TouchableOpacity>
 
         <View style={styles.configMixSliders}>
-          {renderSliderInput('O2 %', selectedO2, (val) => {
+          {renderSliderInput(t('gas.o2Percent'), selectedO2, (val) => {
             setSelectedO2(val);
             setDensityO2(val);
           }, '%', 5, 100, 1)}
-          {renderSliderInput('He %', selectedHe, (val) => {
+          {renderSliderInput(t('gas.hePercent'), selectedHe, (val) => {
             setSelectedHe(val);
             setDensityHe(val);
           }, '%', 0, 85, 1)}
           <View style={styles.inputRow}>
-            <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>N2 % (auto)</Text>
+            <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>{t('gas.n2Auto')}</Text>
             <View style={[styles.mixInputAuto, { backgroundColor: colors.border }]}>
               <Text style={[styles.mixInputAutoText, { color: colors.text }]}>
                 {Math.max(0, 100 - (parseFloat(selectedO2) || 0) - (parseFloat(selectedHe) || 0))}%
@@ -349,10 +351,10 @@ export default function GasCalculatorScreen() {
         </View>
       </View>
 
-      <Text style={[styles.sectionTitle, { color: colors.text, marginTop: 24 }]}>Standard Mixes</Text>
-      <Text style={[styles.sectionSubtitle, { color: colors.textSecondary }]}>Tap to apply</Text>
+      <Text style={[styles.sectionTitle, { color: colors.text, marginTop: 24 }]}>{t('gas.standardMixes')}</Text>
+      <Text style={[styles.sectionSubtitle, { color: colors.textSecondary }]}>{t('gas.tapToApply')}</Text>
 
-      <Text style={[styles.mixCategoryLabel, { color: colors.textSecondary }]}>Nitrox</Text>
+      <Text style={[styles.mixCategoryLabel, { color: colors.textSecondary }]}>{t('gas.nitrox')}</Text>
       <View style={styles.mixGrid}>
         {STANDARD_MIXES.filter(m => m.he === 0 && m.o2 <= 40).map((mix) => (
           <TouchableOpacity
@@ -369,7 +371,7 @@ export default function GasCalculatorScreen() {
         ))}
       </View>
 
-      <Text style={[styles.mixCategoryLabel, { color: colors.textSecondary }]}>Deco Gases</Text>
+      <Text style={[styles.mixCategoryLabel, { color: colors.textSecondary }]}>{t('gas.decoGases')}</Text>
       <View style={styles.mixGrid}>
         {STANDARD_MIXES.filter(m => m.he === 0 && m.o2 > 40).map((mix) => (
           <TouchableOpacity
@@ -386,7 +388,7 @@ export default function GasCalculatorScreen() {
         ))}
       </View>
 
-      <Text style={[styles.mixCategoryLabel, { color: colors.textSecondary }]}>Trimix / Heliox</Text>
+      <Text style={[styles.mixCategoryLabel, { color: colors.textSecondary }]}>{t('gas.trimixHeliox')}</Text>
       <View style={styles.mixGrid}>
         {STANDARD_MIXES.filter(m => m.he > 0).map((mix) => (
           <TouchableOpacity
@@ -403,8 +405,8 @@ export default function GasCalculatorScreen() {
         ))}
       </View>
 
-      <Text style={[styles.sectionTitle, { color: colors.text, marginTop: 24 }]}>Cylinder Reference</Text>
-      <Text style={[styles.sectionSubtitle, { color: colors.textSecondary }]}>Select a cylinder to view specs</Text>
+      <Text style={[styles.sectionTitle, { color: colors.text, marginTop: 24 }]}>{t('gas.cylinderReference')}</Text>
+      <Text style={[styles.sectionSubtitle, { color: colors.textSecondary }]}>{t('gas.selectCylinderToView')}</Text>
 
       <View style={styles.filterRow}>
         {(['all', 'steel', 'aluminum'] as const).map((filter) => (
@@ -414,7 +416,7 @@ export default function GasCalculatorScreen() {
             onPress={() => setMaterialFilter(filter)}
           >
             <Text style={[styles.filterChipText, { color: materialFilter === filter ? '#FFF' : colors.text }]}>
-              {filter === 'all' ? 'All' : filter.charAt(0).toUpperCase() + filter.slice(1)}
+              {filter === 'all' ? t('gas.cylinderMaterial.all') : filter === 'steel' ? t('gas.cylinderMaterial.steel') : t('gas.cylinderMaterial.aluminum')}
             </Text>
           </TouchableOpacity>
         ))}
@@ -429,32 +431,32 @@ export default function GasCalculatorScreen() {
       </TouchableOpacity>
 
       <View style={[styles.resultsCard, { backgroundColor: colors.card, borderColor: colors.primary }]}>
-        <Text style={[styles.resultsTitle, { color: colors.text }]}>Cylinder Specifications</Text>
-        {renderResultRow('Volume', `${selectedRefCylinder.volumeL} L`)}
-        {renderResultRow('Working Pressure', units === 'imperial' ? `${Math.round(selectedRefCylinder.workingPressureBar * 14.5038)} psi` : `${selectedRefCylinder.workingPressureBar} bar`)}
-        {renderResultRow('Capacity', units === 'imperial' ? `${selectedRefCylinder.volumeCuft} cuft` : `${(selectedRefCylinder.volumeL * selectedRefCylinder.workingPressureBar).toFixed(0)} L`)}
-        {renderResultRow('Material', selectedRefCylinder.material.charAt(0).toUpperCase() + selectedRefCylinder.material.slice(1))}
+        <Text style={[styles.resultsTitle, { color: colors.text }]}>{t('gas.cylinderSpecifications')}</Text>
+        {renderResultRow(t('gas.volume'), `${selectedRefCylinder.volumeL} L`)}
+        {renderResultRow(t('gas.workingPressure'), units === 'imperial' ? `${Math.round(selectedRefCylinder.workingPressureBar * 14.5038)} psi` : `${selectedRefCylinder.workingPressureBar} bar`)}
+        {renderResultRow(t('gas.capacity'), units === 'imperial' ? `${selectedRefCylinder.volumeCuft} cuft` : `${(selectedRefCylinder.volumeL * selectedRefCylinder.workingPressureBar).toFixed(0)} L`)}
+        {renderResultRow(t('gas.material'), selectedRefCylinder.material.charAt(0).toUpperCase() + selectedRefCylinder.material.slice(1))}
       </View>
     </ScrollView>
   );
 
   const renderDensityTab = () => (
     <ScrollView style={styles.tabContent}>
-      <Text style={[styles.sectionTitle, { color: colors.text }]}>Gas Density Calculator</Text>
-      <Text style={[styles.sectionSubtitle, { color: colors.textSecondary }]}>Calculate breathing gas density at depth</Text>
+      <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('gas.gasDensityCalculator')}</Text>
+      <Text style={[styles.sectionSubtitle, { color: colors.textSecondary }]}>{t('gas.calculateDensityAtDepth')}</Text>
 
       <View style={[styles.card, { backgroundColor: colors.card }]}>
-        {renderSliderInput('O2 %', densityO2, setDensityO2, '%', 5, 100, 1)}
-        {renderSliderInput('He %', densityHe, setDensityHe, '%', 0, 85, 1)}
-        {renderSliderInput('Depth', densityDepth, setDensityDepth, units === 'imperial' ? 'ft' : 'm', 0, units === 'imperial' ? 330 : 100, 1)}
+        {renderSliderInput(t('gas.o2Percent'), densityO2, setDensityO2, '%', 5, 100, 1)}
+        {renderSliderInput(t('gas.hePercent'), densityHe, setDensityHe, '%', 0, 85, 1)}
+        {renderSliderInput(t('gas.depth'), densityDepth, setDensityDepth, units === 'imperial' ? 'ft' : 'm', 0, units === 'imperial' ? 330 : 100, 1)}
       </View>
 
       <View style={[styles.resultsCard, { backgroundColor: colors.card, borderColor: densityResult.isHighDensity ? colors.danger : colors.success }]}>
-        <Text style={[styles.resultsTitle, { color: colors.text }]}>Results</Text>
-        {renderResultRow('Surface Density', `${densityResult.surfaceDensity.toFixed(3)} g/L`)}
-        {renderResultRow('Depth Density', `${densityResult.depthDensity.toFixed(3)} g/L`, densityResult.isHighDensity)}
-        {renderResultRow('Mix', getMixName(parseFloat(densityO2) || 21, parseFloat(densityHe) || 0))}
-        {renderResultRow('MOD (1.4 PPO2)', units === 'imperial' ? `${Math.round(calculateMOD(parseFloat(densityO2) || 21, 1.4) * 3.28084)} ft` : `${calculateMOD(parseFloat(densityO2) || 21, 1.4)} m`)}
+        <Text style={[styles.resultsTitle, { color: colors.text }]}>{t('gas.results')}</Text>
+        {renderResultRow(t('gas.surfaceDensity'), `${densityResult.surfaceDensity.toFixed(3)} g/L`)}
+        {renderResultRow(t('gas.depthDensityLabel'), `${densityResult.depthDensity.toFixed(3)} g/L`, densityResult.isHighDensity)}
+        {renderResultRow(t('gas.mixName'), getMixName(parseFloat(densityO2) || 21, parseFloat(densityHe) || 0))}
+        {renderResultRow(t('gas.mod14'), units === 'imperial' ? `${Math.round(calculateMOD(parseFloat(densityO2) || 21, 1.4) * 3.28084)} ft` : `${calculateMOD(parseFloat(densityO2) || 21, 1.4)} m`)}
         
         {densityResult.warningMessage && (
           <View style={[styles.warningBox, { backgroundColor: colors.danger + '20' }]}>
@@ -480,19 +482,19 @@ export default function GasCalculatorScreen() {
       </View>
 
       <View style={[styles.infoCard, { backgroundColor: colors.card }]}>
-        <Text style={[styles.infoTitle, { color: colors.text }]}>Gas Density Thresholds</Text>
+        <Text style={[styles.infoTitle, { color: colors.text }]}>{t('gas.gasDensityThresholds')}</Text>
         <View style={styles.infoRow}>
           <View style={[styles.infoDot, { backgroundColor: colors.success }]} />
           <View style={styles.infoContent}>
-            <Text style={[styles.infoLabel, { color: colors.text }]}>Ideal Maximum: 5.2 g/L</Text>
-            <Text style={[styles.infoText, { color: colors.textSecondary }]}>Considered safe and optimal for minimizing work of breathing and physiological risks.</Text>
+            <Text style={[styles.infoLabel, { color: colors.text }]}>{t('gas.idealMaximum')}</Text>
+            <Text style={[styles.infoText, { color: colors.textSecondary }]}>{t('gas.idealMaxDescription')}</Text>
           </View>
         </View>
         <View style={styles.infoRow}>
           <View style={[styles.infoDot, { backgroundColor: colors.danger }]} />
           <View style={styles.infoContent}>
-            <Text style={[styles.infoLabel, { color: colors.text }]}>Hard Maximum: 6.2 g/L</Text>
-            <Text style={[styles.infoText, { color: colors.textSecondary }]}>Absolute upper limit. Exceeding this significantly increases risk of CO2 retention, oxygen toxicity, inert gas narcosis, decompression illness, and immersion pulmonary edema.</Text>
+            <Text style={[styles.infoLabel, { color: colors.text }]}>{t('gas.hardMaximum')}</Text>
+            <Text style={[styles.infoText, { color: colors.textSecondary }]}>{t('gas.hardMaxDescription')}</Text>
           </View>
         </View>
       </View>
@@ -501,101 +503,101 @@ export default function GasCalculatorScreen() {
 
   const renderFillTab = () => (
     <ScrollView style={styles.tabContent}>
-      <Text style={[styles.sectionTitle, { color: colors.text }]}>Fill Capacity Calculator</Text>
-      <Text style={[styles.sectionSubtitle, { color: colors.textSecondary }]}>Calculate gas volume and dive time for {selectedCylinder.label}</Text>
+      <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('gas.fillCapacityCalculator')}</Text>
+      <Text style={[styles.sectionSubtitle, { color: colors.textSecondary }]}>{t('gas.calculateGasVolume', { cylinder: selectedCylinder.label })}</Text>
 
       <View style={[styles.card, { backgroundColor: colors.card }]}>
         <TouchableOpacity
           style={styles.cylinderSelector}
           onPress={() => setShowCylinderPicker(true)}
         >
-          <Text style={[styles.inputLabel, { color: colors.text }]}>Cylinder</Text>
+          <Text style={[styles.inputLabel, { color: colors.text }]}>{t('gas.cylinder')}</Text>
           <View style={[styles.cylinderSelectorValue, { backgroundColor: colors.border }]}>
             <Text style={[styles.cylinderLabel, { color: colors.text }]}>{selectedCylinder.label}</Text>
             <Feather name="chevron-down" size={20} color={colors.textSecondary} />
           </View>
         </TouchableOpacity>
-        {renderInput('Fill Pressure', fillPressure, setFillPressure, getPressureUnit())}
-        {renderInput('Reserve Pressure', fillReserve, setFillReserve, getPressureUnit())}
-        {renderInput('SAC Rate', fillSac, setFillSac, 'L/min')}
+        {renderInput(t('gas.fillPressure'), fillPressure, setFillPressure, getPressureUnit())}
+        {renderInput(t('gas.reservePressure'), fillReserve, setFillReserve, getPressureUnit())}
+        {renderInput(t('gas.sacRate'), fillSac, setFillSac, 'L/min')}
       </View>
 
       <View style={[styles.resultsCard, { backgroundColor: colors.card }]}>
-        <Text style={[styles.resultsTitle, { color: colors.text }]}>Results</Text>
-        {renderResultRow('Cylinder Volume', units === 'imperial' ? `${selectedCylinder.volumeCuft} cuft` : `${selectedCylinder.volumeL} L`)}
-        {renderResultRow('Total Gas', units === 'imperial' ? `${fillResult.totalGasCuft.toFixed(0)} cuft` : `${fillResult.totalGasLiters.toFixed(0)} L`)}
-        {renderResultRow('Usable Gas', units === 'imperial' ? `${fillResult.usableGasCuft.toFixed(0)} cuft` : `${fillResult.usableGasLiters.toFixed(0)} L`)}
-        {renderResultRow('Surface Time @ SAC', `${fillResult.bottomTimeMinutes.toFixed(0)} min`)}
+        <Text style={[styles.resultsTitle, { color: colors.text }]}>{t('gas.results')}</Text>
+        {renderResultRow(t('gas.cylinderVolume'), units === 'imperial' ? `${selectedCylinder.volumeCuft} cuft` : `${selectedCylinder.volumeL} L`)}
+        {renderResultRow(t('gas.totalGas'), units === 'imperial' ? `${fillResult.totalGasCuft.toFixed(0)} cuft` : `${fillResult.totalGasLiters.toFixed(0)} L`)}
+        {renderResultRow(t('gas.usableGas'), units === 'imperial' ? `${fillResult.usableGasCuft.toFixed(0)} cuft` : `${fillResult.usableGasLiters.toFixed(0)} L`)}
+        {renderResultRow(t('gas.surfaceTimeAtSac'), `${fillResult.bottomTimeMinutes.toFixed(0)} min`)}
       </View>
     </ScrollView>
   );
 
   const renderMixTab = () => (
     <ScrollView style={styles.tabContent}>
-      <Text style={[styles.sectionTitle, { color: colors.text }]}>Gas Blending Calculator</Text>
-      <Text style={[styles.sectionSubtitle, { color: colors.textSecondary }]}>Calculate blending sequence for any gas mix</Text>
+      <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('gas.gasBlendingCalculator')}</Text>
+      <Text style={[styles.sectionSubtitle, { color: colors.textSecondary }]}>{t('gas.calculateBlendingSequence')}</Text>
 
       <View style={[styles.warningCard, { backgroundColor: '#FFF3CD', borderColor: '#856404' }]}>
         <View style={styles.warningHeader}>
           <Feather name="alert-triangle" size={18} color="#856404" />
-          <Text style={[styles.warningTitle, { color: '#856404' }]}>Oxygen Safety Warning</Text>
+          <Text style={[styles.warningTitle, { color: '#856404' }]}>{t('gas.oxygenSafetyWarning')}</Text>
         </View>
         <Text style={[styles.warningText, { color: '#664D03' }]}>
-          Gas blending with pure oxygen requires specialized training, oxygen-clean equipment, and proper safety procedures. High-pressure oxygen is extremely hazardous and can cause fires or explosions if handled improperly. Only qualified gas blenders should perform these operations.
+          {t('gas.oxygenSafetyText')}
         </Text>
       </View>
 
       <View style={[styles.card, { backgroundColor: colors.card }]}>
-        <Text style={[styles.cardTitle, { color: colors.text }]}>Target Mix</Text>
-        {renderSliderInput('Target O2 %', mixTargetO2, setMixTargetO2, '%', 5, 100, 1)}
-        {renderSliderInput('Target He %', mixTargetHe, setMixTargetHe, '%', 0, 85, 1)}
+        <Text style={[styles.cardTitle, { color: colors.text }]}>{t('gas.targetMix')}</Text>
+        {renderSliderInput(t('gas.targetO2'), mixTargetO2, setMixTargetO2, '%', 5, 100, 1)}
+        {renderSliderInput(t('gas.targetHe'), mixTargetHe, setMixTargetHe, '%', 0, 85, 1)}
         <View style={styles.inputRow}>
-          <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>N2 % (auto)</Text>
+          <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>{t('gas.n2Auto')}</Text>
           <View style={[styles.mixInputAuto, { backgroundColor: colors.border }]}>
             <Text style={[styles.mixInputAutoText, { color: colors.text }]}>
               {Math.max(0, 100 - (parseFloat(mixTargetO2) || 0) - (parseFloat(mixTargetHe) || 0))}%
             </Text>
           </View>
         </View>
-        {renderInput('Final Pressure', mixFinalPressure, setMixFinalPressure, getPressureUnit())}
+        {renderInput(t('gas.finalPressure'), mixFinalPressure, setMixFinalPressure, getPressureUnit())}
       </View>
 
       <View style={[styles.card, { backgroundColor: colors.card }]}>
         <View style={styles.switchRow}>
-          <Text style={[styles.cardTitle, { color: colors.text, marginBottom: 0 }]}>Residual Gas in Cylinder</Text>
+          <Text style={[styles.cardTitle, { color: colors.text, marginBottom: 0 }]}>{t('gas.residualGasInCylinder')}</Text>
           <TouchableOpacity
             style={[styles.toggle, mixHasResidual && { backgroundColor: colors.primary }]}
             onPress={() => setMixHasResidual(!mixHasResidual)}
           >
-            <Text style={{ color: '#FFF' }}>{mixHasResidual ? 'Yes' : 'No'}</Text>
+            <Text style={{ color: '#FFF' }}>{mixHasResidual ? t('common.yes') : t('common.no')}</Text>
           </TouchableOpacity>
         </View>
         {mixHasResidual && (
           <View style={{ marginTop: 12 }}>
-            {renderInput('Residual Pressure', mixResidualPressure, setMixResidualPressure, getPressureUnit())}
-            {renderSliderInput('Residual O2 %', mixResidualO2, setMixResidualO2, '%', 5, 100, 1)}
-            {renderSliderInput('Residual He %', mixResidualHe, setMixResidualHe, '%', 0, 85, 1)}
+            {renderInput(t('gas.residualPressure'), mixResidualPressure, setMixResidualPressure, getPressureUnit())}
+            {renderSliderInput(t('gas.residualO2'), mixResidualO2, setMixResidualO2, '%', 5, 100, 1)}
+            {renderSliderInput(t('gas.residualHe'), mixResidualHe, setMixResidualHe, '%', 0, 85, 1)}
           </View>
         )}
       </View>
 
       <View style={[styles.card, { backgroundColor: colors.card }]}>
-        <Text style={[styles.cardTitle, { color: colors.text }]}>Top-up Gas</Text>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>{t('gas.topUpGas')}</Text>
         <View style={styles.switchRow}>
-          <Text style={[styles.inputLabel, { color: colors.text }]}>Use Air for top-up</Text>
+          <Text style={[styles.inputLabel, { color: colors.text }]}>{t('gas.useAirForTopup')}</Text>
           <TouchableOpacity
             style={[styles.toggle, mixUseAir && { backgroundColor: colors.primary }]}
             onPress={() => setMixUseAir(!mixUseAir)}
           >
-            <Text style={{ color: '#FFF' }}>{mixUseAir ? 'Air' : 'Nitrox'}</Text>
+            <Text style={{ color: '#FFF' }}>{mixUseAir ? t('gas.air') : t('gas.nitrox')}</Text>
           </TouchableOpacity>
         </View>
-        {!mixUseAir && renderSliderInput('Nitrox O2 %', mixNitroxO2, setMixNitroxO2, '%', 21, 100, 1)}
+        {!mixUseAir && renderSliderInput(t('gas.nitroxO2'), mixNitroxO2, setMixNitroxO2, '%', 21, 100, 1)}
       </View>
 
       <View style={[styles.card, { backgroundColor: colors.card }]}>
         <View style={styles.cardTitleRow}>
-          <Text style={[styles.cardTitle, { color: colors.text }]}>Real Gas Correction</Text>
+          <Text style={[styles.cardTitle, { color: colors.text }]}>{t('gas.realGasCorrection')}</Text>
           <TouchableOpacity
             onPress={() => setShowZFactorInfo(true)}
             style={styles.infoIconButton}
@@ -604,43 +606,43 @@ export default function GasCalculatorScreen() {
           </TouchableOpacity>
         </View>
         <View style={styles.switchRow}>
-          <Text style={[styles.inputLabel, { color: colors.text }]}>Van der Waals (Z-factor)</Text>
+          <Text style={[styles.inputLabel, { color: colors.text }]}>{t('gas.vanDerWaals')}</Text>
           <TouchableOpacity
             style={[styles.toggle, mixUseRealGas && { backgroundColor: colors.primary }]}
             onPress={() => setMixUseRealGas(!mixUseRealGas)}
           >
-            <Text style={{ color: '#FFF' }}>{mixUseRealGas ? 'Real' : 'Ideal'}</Text>
+            <Text style={{ color: '#FFF' }}>{mixUseRealGas ? t('gas.real') : t('gas.ideal')}</Text>
           </TouchableOpacity>
         </View>
-        {mixUseRealGas && renderInput('Fill Temperature', mixTempCelsius, setMixTempCelsius, '°C')}
+        {mixUseRealGas && renderInput(t('gas.fillTemperature'), mixTempCelsius, setMixTempCelsius, '°C')}
         {mixUseRealGas && (
           <Text style={[styles.realGasNote, { color: colors.textSecondary }]}>
-            Accounts for gas compressibility at high pressure
+            {t('gas.accountsForCompressibility')}
           </Text>
         )}
       </View>
 
       <View style={[styles.card, { backgroundColor: colors.card }]}>
-        <Text style={[styles.cardTitle, { color: colors.text }]}>Blending Order</Text>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>{t('gas.blendingOrderTitle')}</Text>
         <View style={styles.switchRow}>
-          <Text style={[styles.inputLabel, { color: colors.text }]}>Add first</Text>
+          <Text style={[styles.inputLabel, { color: colors.text }]}>{t('gas.addFirst')}</Text>
           <TouchableOpacity
             style={[styles.toggle, { backgroundColor: colors.primary }]}
             onPress={() => setMixHeFirst(!mixHeFirst)}
           >
-            <Text style={{ color: '#FFF' }}>{mixHeFirst ? 'Helium' : 'Oxygen'}</Text>
+            <Text style={{ color: '#FFF' }}>{mixHeFirst ? t('gas.helium') : t('gas.oxygen')}</Text>
           </TouchableOpacity>
         </View>
       </View>
 
       <View style={[styles.resultsCard, { backgroundColor: colors.card, borderColor: mixResult.isValid ? colors.success : colors.danger }]}>
-        <Text style={[styles.resultsTitle, { color: colors.text }]}>Blending Sequence</Text>
+        <Text style={[styles.resultsTitle, { color: colors.text }]}>{t('gas.blendingSequenceResult')}</Text>
         
         {mixHasResidual && (
           <View style={[styles.residualInfo, { backgroundColor: colors.background }]}>
             <Feather name="info" size={14} color={colors.textSecondary} />
             <Text style={[styles.residualInfoText, { color: colors.textSecondary }]}>
-              Starting with {mixResidualPressure} {getPressureUnit()} of {getMixName(parseFloat(mixResidualO2) || 21, parseFloat(mixResidualHe) || 0)}
+              {t('gas.startingWith', { pressure: mixResidualPressure, unit: getPressureUnit(), mix: getMixName(parseFloat(mixResidualO2) || 21, parseFloat(mixResidualHe) || 0) })}
             </Text>
           </View>
         )}
@@ -653,8 +655,8 @@ export default function GasCalculatorScreen() {
           const hasHeliumStep = parseFloat(mixTargetHe) > 0 || (mixHasResidual && parseFloat(mixResidualHe) > 0);
           const PSI_PER_BAR = 14.5038;
           
-          const firstGas = mixHeFirst ? 'Helium' : 'Pure O2';
-          const secondGas = mixHeFirst ? 'Pure O2' : 'Helium';
+          const firstGas = mixHeFirst ? t('gas.helium') : t('gas.pureO2');
+          const secondGas = mixHeFirst ? t('gas.pureO2') : t('gas.helium');
           const firstPressure = mixHeFirst ? hePressure : o2Pressure;
           const secondPressure = mixHeFirst ? o2Pressure : hePressure;
           const afterFirstBar = residualBar + firstPressure;
@@ -679,18 +681,18 @@ export default function GasCalculatorScreen() {
           return (
             <>
               {hasHeliumStep && renderResultRow(
-                `1. Add ${firstGas}`, 
+                `1. ${mixHeFirst ? t('gas.addHelium') : t('gas.addOxygen')}`, 
                 `${formatPressure(residualBar)} → ${formatPressure(afterFirstBar)}`
               )}
               
               {renderResultRow(
-                hasHeliumStep ? `2. Add ${secondGas}` : '1. Add Pure O2', 
+                hasHeliumStep ? `2. ${mixHeFirst ? t('gas.addOxygen') : t('gas.addHelium')}` : `1. ${t('gas.addOxygen')}`, 
                 `${formatPressure(hasHeliumStep ? afterFirstBar : residualBar)} → ${formatPressure(afterSecondBar)}`
               )}
               
               <View style={[styles.o2BeforeTopup, { backgroundColor: colors.background }]}>
                 <Text style={[styles.o2BeforeTopupLabel, { color: colors.textSecondary }]}>
-                  O2 before topup:
+                  {t('gas.o2BeforeTopup')}
                 </Text>
                 <Text style={[styles.o2BeforeTopupValue, { color: colors.accent }]}>
                   {o2BeforeTopup.toFixed(1)}%
@@ -698,7 +700,7 @@ export default function GasCalculatorScreen() {
               </View>
               
               {renderResultRow(
-                `${hasHeliumStep ? '3' : '2'}. Top with ${mixUseAir ? 'Air' : 'EAN' + mixNitroxO2}`, 
+                `${hasHeliumStep ? '3' : '2'}. ${mixUseAir ? t('gas.addAir') : t('gas.addNitrox')} (${mixUseAir ? t('gas.air') : 'EAN' + mixNitroxO2})`, 
                 `${formatPressure(afterSecondBar)} → ${formatPressure(finalBar)}`
               )}
             </>
@@ -713,13 +715,13 @@ export default function GasCalculatorScreen() {
           </Text>
         </View>
         
-        {renderResultRow('Final O2', `${mixResult.actualO2Percent}%`)}
-        {renderResultRow('Final He', `${mixResult.actualHePercent}%`)}
-        {renderResultRow('Final N2', `${100 - mixResult.actualO2Percent - mixResult.actualHePercent}%`)}
-        {renderResultRow('MOD (1.4 PPO2)', units === 'imperial' 
+        {renderResultRow(t('gas.finalO2'), `${mixResult.actualO2Percent}%`)}
+        {renderResultRow(t('gas.finalHe'), `${mixResult.actualHePercent}%`)}
+        {renderResultRow(t('gas.finalN2'), `${100 - mixResult.actualO2Percent - mixResult.actualHePercent}%`)}
+        {renderResultRow(t('gas.mod14'), units === 'imperial' 
           ? `${(calculateMOD(mixResult.actualO2Percent, 1.4) * 3.28084).toFixed(0)} ft` 
           : `${calculateMOD(mixResult.actualO2Percent, 1.4)} m`)}
-        {renderResultRow('END at MOD', (() => {
+        {renderResultRow(t('gas.endAtMod'), (() => {
           const mod = calculateMOD(mixResult.actualO2Percent, 1.4);
           const end = calculateEND(mod, mixResult.actualHePercent, mixResult.actualO2Percent, true);
           return units === 'imperial' ? `${(end * 3.28084).toFixed(0)} ft` : `${end.toFixed(0)} m`;
@@ -732,7 +734,7 @@ export default function GasCalculatorScreen() {
           );
           return (
             <View style={[styles.resultRow]}>
-              <Text style={[styles.resultLabel, { color: colors.textSecondary }]}>Gas Density at MOD</Text>
+              <Text style={[styles.resultLabel, { color: colors.textSecondary }]}>{t('gas.gasDensityAtMod')}</Text>
               <Text style={[styles.resultValue, { color: densityResult.isHighDensity ? colors.danger : colors.success }]}>
                 {densityResult.depthDensity.toFixed(2)} g/L
               </Text>
@@ -742,7 +744,7 @@ export default function GasCalculatorScreen() {
         
         {mixUseRealGas && (
           <View style={[styles.zFactorInfo, { backgroundColor: colors.background }]}>
-            <Text style={[styles.zFactorLabel, { color: colors.textSecondary }]}>Z-Factor (Van der Waals)</Text>
+            <Text style={[styles.zFactorLabel, { color: colors.textSecondary }]}>{t('gas.zFactorVanDerWaals')}</Text>
             <Text style={[styles.zFactorValue, { color: colors.accent }]}>{mixResult.zFactorFinal.toFixed(4)}</Text>
           </View>
         )}
@@ -759,27 +761,27 @@ export default function GasCalculatorScreen() {
 
   const renderBestMixTab = () => (
     <ScrollView style={styles.tabContent}>
-      <Text style={[styles.sectionTitle, { color: colors.text }]}>Best Mix Calculator</Text>
-      <Text style={[styles.sectionSubtitle, { color: colors.textSecondary }]}>Calculate optimal gas mix for a target depth</Text>
+      <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('gas.bestMixCalculator')}</Text>
+      <Text style={[styles.sectionSubtitle, { color: colors.textSecondary }]}>{t('gas.calculateOptimalMix')}</Text>
 
       <View style={[styles.card, { backgroundColor: colors.card }]}>
-        {renderSliderInput('Target Depth', bestmixDepth, setBestmixDepth, units === 'imperial' ? 'ft' : 'm', 10, units === 'imperial' ? 984 : 300, 1)}
-        {renderInput('Max PPO2', bestmixPpo2, setBestmixPpo2, 'bar')}
-        {renderSliderInput('Target END (optional)', bestmixTargetEnd, setBestmixTargetEnd, units === 'imperial' ? 'ft' : 'm', 0, units === 'imperial' ? 197 : 60, 1)}
+        {renderSliderInput(t('gas.targetDepthLabel'), bestmixDepth, setBestmixDepth, units === 'imperial' ? 'ft' : 'm', 10, units === 'imperial' ? 984 : 300, 1)}
+        {renderInput(t('gas.maxPpo2'), bestmixPpo2, setBestmixPpo2, 'bar')}
+        {renderSliderInput(t('gas.targetEndOptional'), bestmixTargetEnd, setBestmixTargetEnd, units === 'imperial' ? 'ft' : 'm', 0, units === 'imperial' ? 197 : 60, 1)}
         
         <View style={styles.switchRow}>
-          <Text style={[styles.inputLabel, { color: colors.text }]}>O2 is Narcotic</Text>
+          <Text style={[styles.inputLabel, { color: colors.text }]}>{t('gas.o2Narcotic')}</Text>
           <TouchableOpacity
             style={[styles.toggle, bestmixO2Narcotic && { backgroundColor: colors.primary }]}
             onPress={() => setBestmixO2Narcotic(!bestmixO2Narcotic)}
           >
-            <Text style={{ color: '#FFF' }}>{bestmixO2Narcotic ? 'Yes' : 'No'}</Text>
+            <Text style={{ color: '#FFF' }}>{bestmixO2Narcotic ? t('common.yes') : t('common.no')}</Text>
           </TouchableOpacity>
         </View>
       </View>
 
       <View style={[styles.resultsCard, { backgroundColor: colors.card, borderColor: bestmixResult.isValidMix ? colors.success : colors.danger }]}>
-        <Text style={[styles.resultsTitle, { color: colors.text }]}>Recommended Mix</Text>
+        <Text style={[styles.resultsTitle, { color: colors.text }]}>{t('gas.recommendedMix')}</Text>
         
         <View style={styles.bigResult}>
           <Text style={[styles.bigResultText, { color: colors.primary }]}>{bestmixResult.mixName}</Text>
@@ -789,11 +791,11 @@ export default function GasCalculatorScreen() {
         {renderResultRow('He', `${bestmixResult.hePercent}%`)}
         {renderResultRow('N2', `${bestmixResult.n2Percent}%`)}
         <View style={styles.divider} />
-        {renderResultRow('MOD', units === 'imperial' ? `${Math.round(bestmixResult.mod * 3.28084)} ft` : `${bestmixResult.mod} m`)}
-        {renderResultRow('END at depth', units === 'imperial' ? `${Math.round(bestmixResult.end * 3.28084)} ft` : `${bestmixResult.end} m`)}
+        {renderResultRow(t('gas.mod14'), units === 'imperial' ? `${Math.round(bestmixResult.mod * 3.28084)} ft` : `${bestmixResult.mod} m`)}
+        {renderResultRow(t('gas.end'), units === 'imperial' ? `${Math.round(bestmixResult.end * 3.28084)} ft` : `${bestmixResult.end} m`)}
         
         <View style={[styles.densityInfo, { backgroundColor: colors.background }]}>
-          <Text style={[styles.densityInfoLabel, { color: colors.textSecondary }]}>Density at {bestmixDepth}{units === 'imperial' ? 'ft' : 'm'}:</Text>
+          <Text style={[styles.densityInfoLabel, { color: colors.textSecondary }]}>{t('gas.densityAt', { depth: bestmixDepth, unit: units === 'imperial' ? 'ft' : 'm' })}</Text>
           <Text style={[styles.densityInfoValue, { 
             color: calculateGasDensity({ o2Percent: bestmixResult.o2Percent, hePercent: bestmixResult.hePercent }, toMeters(parseFloat(bestmixDepth) || 0)).isHighDensity ? colors.danger : colors.success 
           }]}>
@@ -817,7 +819,7 @@ export default function GasCalculatorScreen() {
 
   return (
     <ThemedBackground>
-      <PageHeader title="Gas Calculator" />
+      <PageHeader title={t('gas.title')} />
 
       {renderTabBar()}
       {renderContent()}
@@ -826,7 +828,7 @@ export default function GasCalculatorScreen() {
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
             <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>Select Cylinder</Text>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>{t('gas.selectCylinder')}</Text>
               <TouchableOpacity onPress={() => setShowCylinderPicker(false)}>
                 <Feather name="x" size={24} color={colors.text} />
               </TouchableOpacity>
@@ -840,7 +842,7 @@ export default function GasCalculatorScreen() {
                   onPress={() => setMaterialFilter(filter)}
                 >
                   <Text style={[styles.filterChipText, { color: materialFilter === filter ? '#FFF' : colors.text }]}>
-                    {filter === 'all' ? 'All' : filter.charAt(0).toUpperCase() + filter.slice(1)}
+                    {filter === 'all' ? t('gas.cylinderMaterial.all') : filter === 'steel' ? t('gas.cylinderMaterial.steel') : t('gas.cylinderMaterial.aluminum')}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -873,7 +875,7 @@ export default function GasCalculatorScreen() {
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
             <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>Select Cylinder</Text>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>{t('gas.selectCylinder')}</Text>
               <TouchableOpacity onPress={() => setShowCylinderRefPicker(false)}>
                 <Feather name="x" size={24} color={colors.text} />
               </TouchableOpacity>
@@ -906,7 +908,7 @@ export default function GasCalculatorScreen() {
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: colors.card, maxWidth: 400 }]}>
             <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>Z-Factor (Compressibility)</Text>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>{t('gas.zFactorCompressibility')}</Text>
               <TouchableOpacity onPress={() => setShowZFactorInfo(false)}>
                 <Feather name="x" size={24} color={colors.text} />
               </TouchableOpacity>
@@ -914,28 +916,26 @@ export default function GasCalculatorScreen() {
             
             <ScrollView style={{ maxHeight: 400 }}>
               <Text style={[styles.zInfoText, { color: colors.text }]}>
-                The Z-factor (compressibility factor) corrects for non-ideal gas behavior at high pressures.
+                {t('gas.zFactorIntro')}
               </Text>
               
-              <Text style={[styles.zInfoHeading, { color: colors.primary }]}>Why it matters:</Text>
+              <Text style={[styles.zInfoHeading, { color: colors.primary }]}>{t('gas.zFactorWhyMatters')}</Text>
               <Text style={[styles.zInfoText, { color: colors.textSecondary }]}>
-                The Ideal Gas Law (PV=nRT) assumes gas molecules have no volume and no intermolecular forces. At dive cylinder pressures (200-300 bar), these assumptions break down.
+                {t('gas.zFactorWhyMattersText')}
               </Text>
               
-              <Text style={[styles.zInfoHeading, { color: colors.primary }]}>How it works:</Text>
+              <Text style={[styles.zInfoHeading, { color: colors.primary }]}>{t('gas.zFactorHowWorks')}</Text>
               <Text style={[styles.zInfoText, { color: colors.textSecondary }]}>
-                Real gases compress less than ideal gases predict. A Z-factor of 0.85 means the gas only compresses to 85% of what ideal calculations predict.
+                {t('gas.zFactorHowWorksText')}
               </Text>
               
-              <Text style={[styles.zInfoHeading, { color: colors.primary }]}>Z-factors used:</Text>
+              <Text style={[styles.zInfoHeading, { color: colors.primary }]}>{t('gas.zFactorUsed')}</Text>
               <Text style={[styles.zInfoText, { color: colors.textSecondary }]}>
-                {'\u2022'} Oxygen: ~0.87 at 200 bar{'\n'}
-                {'\u2022'} Nitrogen: ~0.93 at 200 bar{'\n'}
-                {'\u2022'} Helium: ~1.05 at 200 bar (actually expands slightly!)
+                {t('gas.zFactorUsedText')}
               </Text>
               
               <Text style={[styles.zInfoText, { color: colors.textSecondary, marginTop: 12 }]}>
-                This calculator uses NIST REFPROP v10 reference data with 2D inverse distance weighting interpolation for accurate real-gas calculations at pressures up to 300 bar.
+                {t('gas.zFactorNistNote')}
               </Text>
             </ScrollView>
             
@@ -943,7 +943,7 @@ export default function GasCalculatorScreen() {
               style={[styles.zInfoButton, { backgroundColor: colors.primary }]}
               onPress={() => setShowZFactorInfo(false)}
             >
-              <Text style={styles.zInfoButtonText}>Got it</Text>
+              <Text style={styles.zInfoButtonText}>{t('gas.gotIt')}</Text>
             </TouchableOpacity>
           </View>
         </View>
