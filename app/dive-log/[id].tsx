@@ -17,6 +17,7 @@ import { Feather, Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { getApiUrl } from '@/utils/apiConfig';
+import { useTranslation } from 'react-i18next';
 
 interface Sample {
   time_seconds: number;
@@ -224,6 +225,7 @@ export default function DiveLogDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { colors } = useTheme();
   const { token } = useAuth();
+  const { t } = useTranslation();
   const router = useRouter();
 
   const [log, setLog] = useState<DiveLog | null>(null);
@@ -256,12 +258,12 @@ export default function DiveLogDetailScreen() {
         setEditedNotes(data.notes || '');
         setEditedRating(data.rating || 0);
       } else {
-        Alert.alert('Error', 'Failed to load dive log');
+        Alert.alert(t('common.error'), t('diveLogs.failedToLoadDiveLog'));
         router.back();
       }
     } catch (error) {
       console.error('Error fetching dive log:', error);
-      Alert.alert('Error', 'Failed to load dive log');
+      Alert.alert(t('common.error'), t('diveLogs.failedToLoadDiveLog'));
       router.back();
     } finally {
       setLoading(false);
@@ -333,11 +335,11 @@ export default function DiveLogDetailScreen() {
         setLog({ ...log, notes: editedNotes, rating: editedRating });
         setEditing(false);
       } else {
-        Alert.alert('Error', 'Failed to save changes');
+        Alert.alert(t('common.error'), t('diveLogs.failedToSaveChanges'));
       }
     } catch (error) {
       console.error('Error saving dive log:', error);
-      Alert.alert('Error', 'Failed to save changes');
+      Alert.alert(t('common.error'), t('diveLogs.failedToSaveChanges'));
     } finally {
       setSaving(false);
     }
@@ -345,12 +347,12 @@ export default function DiveLogDetailScreen() {
 
   const handleDelete = () => {
     Alert.alert(
-      'Delete Dive Log',
-      'Are you sure you want to delete this dive log? This action cannot be undone.',
+      t('diveLogs.deleteDiveLog'),
+      t('diveLogs.deleteDiveLogConfirm'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Delete',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: async () => {
             if (!token || !log) return;
@@ -364,11 +366,11 @@ export default function DiveLogDetailScreen() {
               if (response.ok) {
                 router.back();
               } else {
-                Alert.alert('Error', 'Failed to delete dive log');
+                Alert.alert(t('common.error'), t('diveLogs.failedToDeleteDiveLog'));
               }
             } catch (error) {
               console.error('Error deleting dive log:', error);
-              Alert.alert('Error', 'Failed to delete dive log');
+              Alert.alert(t('common.error'), t('diveLogs.failedToDeleteDiveLog'));
             }
           },
         },
@@ -399,7 +401,7 @@ export default function DiveLogDetailScreen() {
   if (loading) {
     return (
       <View style={[styles.container, styles.centered, { backgroundColor: colors.background }]}>
-        <Stack.Screen options={{ title: 'Loading...' }} />
+        <Stack.Screen options={{ title: t('diveLogs.loadingDiveLog') }} />
         <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
@@ -408,7 +410,7 @@ export default function DiveLogDetailScreen() {
   if (!log) {
     return (
       <View style={[styles.container, styles.centered, { backgroundColor: colors.background }]}>
-        <Stack.Screen options={{ title: 'Not Found' }} />
+        <Stack.Screen options={{ title: t('diveLogs.notFound') }} />
         <Text style={{ color: colors.text }}>Dive log not found</Text>
       </View>
     );
@@ -514,12 +516,12 @@ export default function DiveLogDetailScreen() {
               value={editedNotes}
               onChangeText={setEditedNotes}
               multiline
-              placeholder="Add notes about this dive..."
+              placeholder={t("diveLogs.notesPlaceholder")}
               placeholderTextColor={colors.textSecondary}
             />
           ) : (
             <Text style={[styles.notes, { color: log.notes ? colors.text : colors.textSecondary }]}>
-              {log.notes || 'No notes recorded'}
+              {log.notes || t('diveLogs.noNotesRecorded')}
             </Text>
           )}
         </View>

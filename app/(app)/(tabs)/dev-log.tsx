@@ -20,6 +20,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'expo-router';
 import { authFetch } from '@/utils/authFetch';
+import { useTranslation } from 'react-i18next';
 import PageHeader from '@/components/PageHeader';
 import ThemedBackground from '@/components/ThemedBackground';
 
@@ -53,6 +54,7 @@ const DEVICE_COLORS = {
 };
 
 export default function DevLogScreen() {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const { token, isAdmin } = useAuth();
   const router = useRouter();
@@ -99,10 +101,10 @@ export default function DevLogScreen() {
         const data = await response.json();
         setEntries(data);
       } else if (response.status !== 401) {
-        setError('Failed to load dev log');
+        setError(t('devLog.failedToLoad'));
       }
     } catch (err) {
-      setError('Network error. Please try again.');
+      setError(t('common.networkError'));
     } finally {
       setIsLoading(false);
     }
@@ -181,7 +183,7 @@ export default function DevLogScreen() {
 
   const handleSave = async () => {
     if (!formData.task.trim()) {
-      Alert.alert('Error', 'Task is required');
+      Alert.alert(t('common.error'), t('devLog.taskRequired'));
       return;
     }
 
@@ -205,10 +207,10 @@ export default function DevLogScreen() {
         fetchPageNames();
         fetchStatusCounts();
       } else if (response.status !== 401) {
-        Alert.alert('Error', 'Failed to save entry');
+        Alert.alert(t('common.error'), t('devLog.failedToSave'));
       }
     } catch (err) {
-      Alert.alert('Error', 'Network error');
+      Alert.alert(t('common.error'), t('common.networkError'));
     } finally {
       setIsSaving(false);
     }
@@ -216,12 +218,12 @@ export default function DevLogScreen() {
 
   const handleDelete = (entry: DevLogEntry) => {
     Alert.alert(
-      'Delete Entry',
-      'Are you sure you want to delete this entry?',
+      t('devLog.deleteEntry'),
+      t('devLog.deleteEntryConfirm'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Delete',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: async () => {
             try {
@@ -233,10 +235,10 @@ export default function DevLogScreen() {
                 fetchEntries();
                 fetchStatusCounts();
               } else if (response.status !== 401) {
-                Alert.alert('Error', 'Failed to delete entry');
+                Alert.alert(t('common.error'), t('devLog.failedToDelete'));
               }
             } catch (err) {
-              Alert.alert('Error', 'Network error');
+              Alert.alert(t('common.error'), t('common.networkError'));
             }
           },
         },
@@ -264,7 +266,7 @@ export default function DevLogScreen() {
   };
 
   const copyEntryToClipboard = async (entry: DevLogEntry) => {
-    const devices = entry.devices?.length > 0 ? entry.devices.join(', ') : 'Not specified';
+    const devices = entry.devices?.length > 0 ? entry.devices.join(', ') : t('common.notSpecified');
     
     const formattedText = `**Dev Task: ${entry.task}**
 
@@ -283,7 +285,7 @@ Please help me with this development task.`;
       }
     } catch (err) {
       console.error('Clipboard error:', err);
-      Alert.alert('Error', 'Failed to copy to clipboard');
+      Alert.alert(t('common.error'), t('devLog.failedToCopy'));
     }
   };
 
@@ -325,21 +327,21 @@ Please help me with this development task.`;
           )}
           <View style={[styles.badge, { backgroundColor: pageTypeConfig.bg }]}>
             <Text style={[styles.badgeText, { color: pageTypeConfig.text }]}>
-              {entry.pageType.charAt(0).toUpperCase() + entry.pageType.slice(1)}
+              {t(`devLog.pageType${entry.pageType.charAt(0).toUpperCase() + entry.pageType.slice(1)}`)}
             </Text>
           </View>
           {entry.devices && entry.devices.map((device) => (
             DEVICE_COLORS[device] && (
               <View key={device} style={[styles.badge, { backgroundColor: DEVICE_COLORS[device].bg }]}>
                 <Text style={[styles.badgeText, { color: DEVICE_COLORS[device].text }]}>
-                  {DEVICE_COLORS[device].label}
+                  {t(`devLog.${device}`)}
                 </Text>
               </View>
             )
           ))}
           <View style={[styles.badge, { backgroundColor: statusConfig.bg }]}>
             <Text style={[styles.badgeText, { color: statusConfig.text }]}>
-              {statusConfig.label}
+              {t(`devLog.status${entry.status === 'todo' ? 'Todo' : entry.status === 'in_progress' ? 'InProgress' : 'Completed'}`)}
             </Text>
           </View>
         </View>
@@ -353,7 +355,7 @@ Please help me with this development task.`;
 
   return (
     <ThemedBackground>
-      <PageHeader title="Dev Log" />
+      <PageHeader title={t('devLog.title')} />
 
       <View style={styles.searchContainer}>
         <View style={[styles.searchInputContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -362,7 +364,7 @@ Please help me with this development task.`;
             style={[styles.searchInput, { color: colors.text }]}
             value={searchQuery}
             onChangeText={setSearchQuery}
-            placeholder="Search tasks..."
+            placeholder={t('devLog.searchTasks')}
             placeholderTextColor={colors.textSecondary}
           />
           {searchQuery.length > 0 && (
@@ -382,7 +384,7 @@ Please help me with this development task.`;
           onPress={() => { setActiveTab('active'); setStatusFilter('all'); }}
         >
           <Text style={[styles.tabText, { color: activeTab === 'active' ? colors.primary : colors.textSecondary }]}>
-            Active
+            {t('devLog.activeTab')}
           </Text>
           <View style={[styles.tabBadge, { backgroundColor: activeTab === 'active' ? colors.primary : colors.surface }]}>
             <Text style={[styles.tabBadgeText, { color: activeTab === 'active' ? '#FFFFFF' : colors.text }]}>
@@ -398,7 +400,7 @@ Please help me with this development task.`;
           onPress={() => setActiveTab('completed')}
         >
           <Text style={[styles.tabText, { color: activeTab === 'completed' ? colors.primary : colors.textSecondary }]}>
-            Completed
+            {t('devLog.completedTab')}
           </Text>
           <View style={[styles.tabBadge, { backgroundColor: activeTab === 'completed' ? colors.primary : colors.surface }]}>
             <Text style={[styles.tabBadgeText, { color: activeTab === 'completed' ? '#FFFFFF' : colors.text }]}>
@@ -422,7 +424,7 @@ Please help me with this development task.`;
               onPress={() => setStatusFilter('all')}
             >
               <Text style={[styles.filterChipText, { color: statusFilter === 'all' ? '#FFFFFF' : colors.text }]}>
-                All
+                {t('common.all')}
               </Text>
               <View style={[styles.filterBadge, { backgroundColor: statusFilter === 'all' ? 'rgba(255,255,255,0.3)' : colors.border }]}>
                 <Text style={[styles.filterBadgeText, { color: statusFilter === 'all' ? '#FFFFFF' : colors.text }]}>
@@ -441,7 +443,7 @@ Please help me with this development task.`;
               onPress={() => setStatusFilter('todo')}
             >
               <Text style={[styles.filterChipText, { color: statusFilter === 'todo' ? STATUS_COLORS.todo.text : colors.text }]}>
-                To Do
+                {t('devLog.statusTodo')}
               </Text>
               <View style={[styles.filterBadge, { backgroundColor: statusFilter === 'todo' ? 'rgba(255,255,255,0.3)' : colors.border }]}>
                 <Text style={[styles.filterBadgeText, { color: statusFilter === 'todo' ? STATUS_COLORS.todo.text : colors.text }]}>
@@ -460,7 +462,7 @@ Please help me with this development task.`;
               onPress={() => setStatusFilter('in_progress')}
             >
               <Text style={[styles.filterChipText, { color: statusFilter === 'in_progress' ? STATUS_COLORS.in_progress.text : colors.text }]}>
-                In Progress
+                {t('devLog.statusInProgress')}
               </Text>
               <View style={[styles.filterBadge, { backgroundColor: statusFilter === 'in_progress' ? 'rgba(0,0,0,0.2)' : colors.border }]}>
                 <Text style={[styles.filterBadgeText, { color: statusFilter === 'in_progress' ? STATUS_COLORS.in_progress.text : colors.text }]}>
@@ -480,17 +482,17 @@ Please help me with this development task.`;
         <View style={styles.centerContainer}>
           <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
           <Pressable style={[styles.retryButton, { backgroundColor: colors.primary }]} onPress={fetchEntries}>
-            <Text style={styles.retryButtonText}>Retry</Text>
+            <Text style={styles.retryButtonText}>{t('common.retry')}</Text>
           </Pressable>
         </View>
       ) : entries.length === 0 ? (
         <View style={styles.centerContainer}>
           <Feather name="clipboard" size={48} color={colors.textSecondary} />
           <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-            No dev log entries yet
+            {t('devLog.noEntries')}
           </Text>
           <Text style={[styles.emptySubtext, { color: colors.textSecondary }]}>
-            Tap the + button to add one
+            {t('devLog.tapToAdd')}
           </Text>
         </View>
       ) : (
@@ -541,7 +543,7 @@ Please help me with this development task.`;
           <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: colors.text }]}>
-                {editingEntry ? 'Edit Entry' : 'Add Entry'}
+                {editingEntry ? t('devLog.editEntry') : t('devLog.addEntry')}
               </Text>
               <Pressable onPress={() => setModalVisible(false)}>
                 <Ionicons name="close" size={24} color={colors.text} />
@@ -549,18 +551,18 @@ Please help me with this development task.`;
             </View>
 
             <ScrollView style={styles.modalScrollContent} showsVerticalScrollIndicator={false}>
-            <Text style={[styles.label, { color: colors.text }]}>Task *</Text>
+            <Text style={[styles.label, { color: colors.text }]}>{t('devLog.task')} *</Text>
             <TextInput
               style={[styles.input, styles.textArea, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
               value={formData.task}
               onChangeText={(text) => setFormData({ ...formData, task: text })}
-              placeholder="Describe the task..."
+              placeholder={t('devLog.describeTask')}
               placeholderTextColor={colors.textSecondary}
               multiline
               numberOfLines={3}
             />
 
-            <Text style={[styles.label, { color: colors.text }]}>Page Name</Text>
+            <Text style={[styles.label, { color: colors.text }]}>{t('devLog.pageName')}</Text>
             <View style={styles.autocompleteContainer}>
               <TextInput
                 style={[styles.input, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
@@ -571,7 +573,7 @@ Please help me with this development task.`;
                 }}
                 onFocus={() => setShowPageNameSuggestions(true)}
                 onBlur={() => setTimeout(() => setShowPageNameSuggestions(false), 200)}
-                placeholder="e.g., DiveSiteDetail, DiveLogCard"
+                placeholder={t('devLog.pageNamePlaceholder')}
                 placeholderTextColor={colors.textSecondary}
               />
               {showPageNameSuggestions && filteredSuggestions.length > 0 && (
@@ -592,7 +594,7 @@ Please help me with this development task.`;
               )}
             </View>
 
-            <Text style={[styles.label, { color: colors.text }]}>Page Type</Text>
+            <Text style={[styles.label, { color: colors.text }]}>{t('devLog.pageType')}</Text>
             <View style={styles.optionsRow}>
               {(['card', 'detail', 'edit'] as const).map((type) => {
                 const config = PAGE_TYPE_COLORS[type];
@@ -607,14 +609,14 @@ Please help me with this development task.`;
                     onPress={() => setFormData({ ...formData, pageType: type })}
                   >
                     <Text style={[styles.optionText, { color: isSelected ? config.text : colors.text }]}>
-                      {type.charAt(0).toUpperCase() + type.slice(1)}
+                      {t(`devLog.pageType${type.charAt(0).toUpperCase() + type.slice(1)}`)}
                     </Text>
                   </Pressable>
                 );
               })}
             </View>
 
-            <Text style={[styles.label, { color: colors.text }]}>Status</Text>
+            <Text style={[styles.label, { color: colors.text }]}>{t('common.status')}</Text>
             <View style={styles.optionsRow}>
               {(['todo', 'in_progress', 'completed'] as const).map((status) => {
                 const config = STATUS_COLORS[status];
@@ -629,14 +631,14 @@ Please help me with this development task.`;
                     onPress={() => setFormData({ ...formData, status })}
                   >
                     <Text style={[styles.optionText, { color: isSelected ? config.text : colors.text }]}>
-                      {config.label}
+                      {t(`devLog.status${status === 'todo' ? 'Todo' : status === 'in_progress' ? 'InProgress' : 'Completed'}`)}
                     </Text>
                   </Pressable>
                 );
               })}
             </View>
 
-            <Text style={[styles.label, { color: colors.text }]}>Device (select multiple)</Text>
+            <Text style={[styles.label, { color: colors.text }]}>{t('devLog.deviceSelectMultiple')}</Text>
             <View style={styles.optionsRow}>
               {(['android', 'ios', 'web'] as const).map((device) => {
                 const config = DEVICE_COLORS[device];
@@ -651,7 +653,7 @@ Please help me with this development task.`;
                     onPress={() => toggleDevice(device)}
                   >
                     <Text style={[styles.optionText, { color: isSelected ? config.text : colors.text }]}>
-                      {config.label}
+                      {t(`devLog.${device}`)}
                     </Text>
                   </Pressable>
                 );
@@ -667,7 +669,7 @@ Please help me with this development task.`;
                 <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (
                 <Text style={styles.saveButtonText}>
-                  {editingEntry ? 'Update' : 'Add Entry'}
+                  {editingEntry ? t('common.update') : t('devLog.addEntry')}
                 </Text>
               )}
             </Pressable>
@@ -680,7 +682,7 @@ Please help me with this development task.`;
         <View style={styles.toastContainer}>
           <View style={[styles.toast, { backgroundColor: colors.primary }]}>
             <Feather name="check" size={18} color="#FFFFFF" />
-            <Text style={styles.toastText}>Copied to clipboard</Text>
+            <Text style={styles.toastText}>{t('devLog.copiedToClipboard')}</Text>
           </View>
         </View>
       )}

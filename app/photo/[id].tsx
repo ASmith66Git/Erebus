@@ -18,6 +18,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { router, useLocalSearchParams, Stack } from 'expo-router';
 import { getApiUrl } from '@/utils/apiConfig';
+import { useTranslation } from 'react-i18next';
 import ThemedBackground from '@/components/ThemedBackground';
 
 interface Photo {
@@ -80,6 +81,7 @@ export default function PhotoDetailScreen() {
   }>();
   const { colors } = useTheme();
   const { token } = useAuth();
+  const { t } = useTranslation();
   const scrubListRef = useRef<FlatList>(null);
   const mainPhotoListRef = useRef<FlatList>(null);
   
@@ -224,11 +226,11 @@ export default function PhotoDetailScreen() {
         setIsEditing(false);
         fetchPhoto();
       } else {
-        Alert.alert('Error', 'Failed to save changes');
+        Alert.alert(t('common.error'), t('photos.failedToSaveChanges'));
       }
     } catch (error) {
       console.error('Save error:', error);
-      Alert.alert('Error', 'Failed to save changes');
+      Alert.alert(t('common.error'), t('photos.failedToSaveChanges'));
     } finally {
       setSaving(false);
     }
@@ -254,12 +256,12 @@ export default function PhotoDetailScreen() {
 
   const deletePhoto = () => {
     Alert.alert(
-      'Delete Photo',
-      'Are you sure you want to delete this photo?',
+      t('photos.deletePhoto'),
+      t('photos.deletePhotoConfirm'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Delete',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: async () => {
             try {
@@ -281,7 +283,7 @@ export default function PhotoDetailScreen() {
   };
 
   const formatDate = (dateString: string | null) => {
-    if (!dateString) return 'Unknown date';
+    if (!dateString) return t('photos.unknownDate');
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', {
       weekday: 'long',
@@ -292,7 +294,7 @@ export default function PhotoDetailScreen() {
   };
 
   const formatFileSize = (bytes: number | null) => {
-    if (!bytes) return 'Unknown';
+    if (!bytes) return t('photos.unknown');
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
@@ -342,7 +344,7 @@ export default function PhotoDetailScreen() {
       <>
         <Stack.Screen options={{ headerShown: false }} />
         <ThemedBackground style={[styles.container, styles.centered]}>
-          <Text style={{ color: colors.text }}>Photo not found</Text>
+          <Text style={{ color: colors.text }}>{t('photos.photoNotFound')}</Text>
         </ThemedBackground>
       </>
     );
@@ -488,7 +490,7 @@ export default function PhotoDetailScreen() {
             color={photo.isFavorite ? '#FF3B30' : colors.text} 
           />
           <Text style={[styles.actionText, { color: colors.text }]}>
-            {photo.isFavorite ? 'Favorited' : 'Favorite'}
+            {photo.isFavorite ? t('photos.favorited') : t('photos.favorite')}
           </Text>
         </Pressable>
         
@@ -497,17 +499,17 @@ export default function PhotoDetailScreen() {
           onPress={deletePhoto}
         >
           <Ionicons name="trash-outline" size={22} color="#FF3B30" />
-          <Text style={[styles.actionText, { color: '#FF3B30' }]}>Delete</Text>
+          <Text style={[styles.actionText, { color: '#FF3B30' }]}>{t('photos.delete')}</Text>
         </Pressable>
       </View>
       
       <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>Caption</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('photos.caption')}</Text>
         <TextInput
           style={[styles.textInput, { color: colors.text, borderColor: colors.border }]}
           value={caption}
           onChangeText={setCaption}
-          placeholder="Add a caption..."
+          placeholder={t('photos.addCaption')}
           placeholderTextColor={colors.textSecondary}
           multiline
           numberOfLines={3}
@@ -519,18 +521,18 @@ export default function PhotoDetailScreen() {
         onPress={() => setShowDiveSelector(!showDiveSelector)}
       >
         <View style={styles.diveSelectorHeader}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Linked Dive</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('photos.linkedDive')}</Text>
           <Ionicons name={showDiveSelector ? 'chevron-up' : 'chevron-down'} size={20} color={colors.textSecondary} />
         </View>
         {selectedDiveId ? (
           <View style={styles.selectedDive}>
             <Ionicons name="water" size={18} color={colors.primary} />
             <Text style={[styles.selectedDiveText, { color: colors.text }]}>
-              {getSelectedDive()?.diveSiteName || 'Unknown site'} - {getSelectedDive()?.diveDateTime ? new Date(getSelectedDive()!.diveDateTime).toLocaleDateString() : ''}
+              {getSelectedDive()?.diveSiteName || t('photos.unknownSite')} - {getSelectedDive()?.diveDateTime ? new Date(getSelectedDive()!.diveDateTime).toLocaleDateString() : ''}
             </Text>
           </View>
         ) : (
-          <Text style={[styles.noLinkText, { color: colors.textSecondary }]}>No dive linked</Text>
+          <Text style={[styles.noLinkText, { color: colors.textSecondary }]}>{t('photos.noDiveLinked')}</Text>
         )}
       </Pressable>
       
@@ -540,7 +542,7 @@ export default function PhotoDetailScreen() {
             style={[styles.diveItem, !selectedDiveId && styles.selectedDiveItem]}
             onPress={() => { setSelectedDiveId(null); setShowDiveSelector(false); }}
           >
-            <Text style={[styles.diveItemText, { color: colors.text }]}>No link</Text>
+            <Text style={[styles.diveItemText, { color: colors.text }]}>{t('photos.noLink')}</Text>
           </Pressable>
           {diveLogs.map(dive => (
             <Pressable
@@ -549,7 +551,7 @@ export default function PhotoDetailScreen() {
               onPress={() => { setSelectedDiveId(dive.id); setShowDiveSelector(false); }}
             >
               <View style={styles.diveItemContent}>
-                <Text style={[styles.diveItemText, { color: colors.text }]}>{dive.diveSiteName || 'Unknown site'}</Text>
+                <Text style={[styles.diveItemText, { color: colors.text }]}>{dive.diveSiteName || t('photos.unknownSite')}</Text>
               </View>
               <Text style={[styles.diveItemDate, { color: colors.textSecondary }]}>
                 {new Date(dive.diveDateTime).toLocaleDateString()}
@@ -564,18 +566,18 @@ export default function PhotoDetailScreen() {
         onPress={() => setShowTripSelector(!showTripSelector)}
       >
         <View style={styles.diveSelectorHeader}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Linked Trip</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('photos.linkedTrip')}</Text>
           <Ionicons name={showTripSelector ? 'chevron-up' : 'chevron-down'} size={20} color={colors.textSecondary} />
         </View>
         {selectedTripId ? (
           <View style={styles.selectedDive}>
             <Ionicons name="airplane" size={18} color={colors.primary} />
             <Text style={[styles.selectedDiveText, { color: colors.text }]}>
-              {getSelectedTrip()?.name || 'Unknown trip'}
+              {getSelectedTrip()?.name || t('photos.unknownTrip')}
             </Text>
           </View>
         ) : (
-          <Text style={[styles.noLinkText, { color: colors.textSecondary }]}>No trip linked</Text>
+          <Text style={[styles.noLinkText, { color: colors.textSecondary }]}>{t('photos.noTripLinked')}</Text>
         )}
       </Pressable>
       
@@ -585,7 +587,7 @@ export default function PhotoDetailScreen() {
             style={[styles.diveItem, !selectedTripId && styles.selectedDiveItem]}
             onPress={() => { setSelectedTripId(null); setShowTripSelector(false); }}
           >
-            <Text style={[styles.diveItemText, { color: colors.text }]}>No link</Text>
+            <Text style={[styles.diveItemText, { color: colors.text }]}>{t('photos.noLink')}</Text>
           </Pressable>
           {diveTrips.map(trip => (
             <Pressable
@@ -607,26 +609,26 @@ export default function PhotoDetailScreen() {
       )}
       
       <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>Details</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('photos.details')}</Text>
         <View style={styles.detailRow}>
-          <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Date Taken</Text>
+          <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>{t('photos.dateTaken')}</Text>
           <Text style={[styles.detailValue, { color: colors.text }]}>
             {formatDate(photo.takenAt || photo.createdAt)}
           </Text>
         </View>
         {photo.width && photo.height && (
           <View style={styles.detailRow}>
-            <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Dimensions</Text>
+            <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>{t('photos.dimensions')}</Text>
             <Text style={[styles.detailValue, { color: colors.text }]}>{photo.width} x {photo.height}</Text>
           </View>
         )}
         <View style={styles.detailRow}>
-          <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>File Size</Text>
+          <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>{t('photos.fileSize')}</Text>
           <Text style={[styles.detailValue, { color: colors.text }]}>{formatFileSize(photo.fileSize)}</Text>
         </View>
         {photo.diveSiteName && (
           <View style={styles.detailRow}>
-            <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Location</Text>
+            <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>{t('common.location')}</Text>
             <Text style={[styles.detailValue, { color: colors.text }]}>{photo.diveSiteName}</Text>
           </View>
         )}
@@ -689,18 +691,18 @@ export default function PhotoDetailScreen() {
             <Ionicons name="close" size={28} color={colors.text} />
           </Pressable>
           <Text style={[styles.headerTitle, { color: colors.text }]}>
-            {isEditing ? 'Edit Photo' : 'Photo'}
+            {isEditing ? t('photos.editPhoto') : t('photos.photo')}
           </Text>
           {isEditing ? (
             <View style={styles.headerRightButtons}>
               <Pressable onPress={handleCancelEdit} style={styles.headerButton}>
-                <Text style={[styles.cancelButton, { color: colors.textSecondary }]}>Cancel</Text>
+                <Text style={[styles.cancelButton, { color: colors.textSecondary }]}>{t('common.cancel')}</Text>
               </Pressable>
               <Pressable onPress={saveChanges} disabled={saving} style={styles.headerButton}>
                 {saving ? (
                   <ActivityIndicator size="small" color={colors.primary} />
                 ) : (
-                  <Text style={[styles.saveButton, { color: colors.primary }]}>Save</Text>
+                  <Text style={[styles.saveButton, { color: colors.primary }]}>{t('common.save')}</Text>
                 )}
               </Pressable>
             </View>

@@ -18,6 +18,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'expo-router';
 import { authFetch } from '@/utils/authFetch';
+import { useTranslation } from 'react-i18next';
 import PageHeader from '@/components/PageHeader';
 import ThemedBackground from '@/components/ThemedBackground';
 
@@ -46,6 +47,7 @@ const getStatusConfig = (status: string) => {
 };
 
 export default function RoadmapAdminScreen() {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const { token, isAdmin } = useAuth();
   const router = useRouter();
@@ -84,10 +86,10 @@ export default function RoadmapAdminScreen() {
         const data = await response.json();
         setFeatures(data.features || []);
       } else if (response.status !== 401) {
-        setError('Failed to load roadmap features');
+        setError(t('roadmapAdmin.failedToLoad'));
       }
     } catch (err) {
-      setError('Network error. Please try again.');
+      setError(t('common.networkError'));
     } finally {
       setIsLoading(false);
     }
@@ -127,7 +129,7 @@ export default function RoadmapAdminScreen() {
 
   const handleSave = async () => {
     if (!formData.title.trim()) {
-      Alert.alert('Error', 'Please enter a title');
+      Alert.alert(t('common.error'), t('roadmapAdmin.enterTitle'));
       return;
     }
 
@@ -154,10 +156,10 @@ export default function RoadmapAdminScreen() {
         setModalVisible(false);
         fetchFeatures();
       } else {
-        Alert.alert('Error', 'Failed to save feature');
+        Alert.alert(t('common.error'), t('roadmapAdmin.failedToSave'));
       }
     } catch (err) {
-      Alert.alert('Error', 'Network error. Please try again.');
+      Alert.alert(t('common.error'), t('common.networkError'));
     } finally {
       setIsSaving(false);
     }
@@ -172,21 +174,21 @@ export default function RoadmapAdminScreen() {
         if (response.ok) {
           fetchFeatures();
         } else {
-          Alert.alert('Error', 'Failed to delete feature');
+          Alert.alert(t('common.error'), t('roadmapAdmin.failedToDelete'));
         }
       } catch (err) {
-        Alert.alert('Error', 'Network error');
+        Alert.alert(t('common.error'), t('common.networkError'));
       }
     };
 
     if (Platform.OS === 'web') {
-      if (window.confirm(`Delete "${feature.title}"?`)) {
+      if (window.confirm(t('roadmapAdmin.deleteFeatureConfirm'))) {
         confirmDelete();
       }
     } else {
-      Alert.alert('Delete Feature', `Are you sure you want to delete "${feature.title}"?`, [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete', style: 'destructive', onPress: confirmDelete },
+      Alert.alert(t('roadmapAdmin.deleteFeature'), t('roadmapAdmin.deleteFeatureConfirm'), [
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('common.delete'), style: 'destructive', onPress: confirmDelete },
       ]);
     }
   };
@@ -214,14 +216,14 @@ export default function RoadmapAdminScreen() {
     : features.filter(f => f.status === statusFilter);
 
   const formatDate = (dateStr: string | null) => {
-    if (!dateStr) return 'TBD';
+    if (!dateStr) return t('roadmapAdmin.tbd');
     return new Date(dateStr).toLocaleDateString();
   };
 
   if (isLoading && features.length === 0) {
     return (
       <ThemedBackground style={styles.container}>
-        <PageHeader title="Roadmap Management" />
+        <PageHeader title={t('roadmapAdmin.title')} />
         <View style={styles.centered}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
@@ -231,7 +233,7 @@ export default function RoadmapAdminScreen() {
 
   return (
     <ThemedBackground style={styles.container}>
-      <PageHeader title="Roadmap Management" />
+      <PageHeader title={t('roadmapAdmin.title')} />
 
       <View style={[styles.filterBar, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterContent}>
@@ -239,7 +241,7 @@ export default function RoadmapAdminScreen() {
             style={[styles.filterChip, statusFilter === 'all' && { backgroundColor: colors.primary }]}
             onPress={() => setStatusFilter('all')}
           >
-            <Text style={[styles.filterChipText, { color: statusFilter === 'all' ? '#FFF' : colors.text }]}>All</Text>
+            <Text style={[styles.filterChipText, { color: statusFilter === 'all' ? '#FFF' : colors.text }]}>{t('common.all')}</Text>
           </Pressable>
           {STATUS_OPTIONS.map(opt => (
             <Pressable
@@ -248,7 +250,7 @@ export default function RoadmapAdminScreen() {
               onPress={() => setStatusFilter(opt.value)}
             >
               <Text style={[styles.filterChipText, { color: statusFilter === opt.value ? '#FFF' : colors.text }]}>
-                {opt.label}
+                {t(`roadmap.statuses.${opt.value === 'in_development' ? 'inDevelopment' : opt.value}`)}
               </Text>
             </Pressable>
           ))}
@@ -263,15 +265,15 @@ export default function RoadmapAdminScreen() {
           <View style={styles.errorContainer}>
             <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
             <Pressable style={[styles.retryButton, { backgroundColor: colors.primary }]} onPress={fetchFeatures}>
-              <Text style={styles.retryButtonText}>Retry</Text>
+              <Text style={styles.retryButtonText}>{t('common.retry')}</Text>
             </Pressable>
           </View>
         ) : filteredFeatures.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="rocket-outline" size={48} color={colors.textSecondary} />
-            <Text style={[styles.emptyTitle, { color: colors.text }]}>No Features</Text>
+            <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('roadmapAdmin.noFeatures')}</Text>
             <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-              Add features to the roadmap
+              {t('roadmapAdmin.addFeaturesToRoadmap')}
             </Text>
           </View>
         ) : (
@@ -285,7 +287,7 @@ export default function RoadmapAdminScreen() {
               >
                 <View style={styles.cardHeader}>
                   <View style={[styles.statusBadge, { backgroundColor: statusConfig.color + '20' }]}>
-                    <Text style={[styles.statusText, { color: statusConfig.color }]}>{statusConfig.label}</Text>
+                    <Text style={[styles.statusText, { color: statusConfig.color }]}>{t(`roadmap.statuses.${feature.status === 'in_development' ? 'inDevelopment' : feature.status}`)}</Text>
                   </View>
                   <View style={styles.cardActions}>
                     <Pressable onPress={() => togglePublished(feature)} style={styles.publishToggle}>
@@ -316,7 +318,7 @@ export default function RoadmapAdminScreen() {
                   <View style={styles.footerItem}>
                     <Ionicons name="arrow-up" size={14} color={colors.textSecondary} />
                     <Text style={[styles.footerText, { color: colors.textSecondary }]}>
-                      Priority: {feature.priority}
+                      {t('roadmapAdmin.priorityLabel', { priority: feature.priority })}
                     </Text>
                   </View>
                 </View>
@@ -332,7 +334,7 @@ export default function RoadmapAdminScreen() {
           <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: colors.text }]}>
-                {editingFeature ? 'Edit Feature' : 'Add Feature'}
+                {editingFeature ? t('roadmapAdmin.editFeature') : t('roadmapAdmin.addFeature')}
               </Text>
               <Pressable onPress={() => setModalVisible(false)}>
                 <Ionicons name="close" size={24} color={colors.text} />
@@ -340,27 +342,27 @@ export default function RoadmapAdminScreen() {
             </View>
 
             <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
-              <Text style={[styles.inputLabel, { color: colors.text }]}>Title *</Text>
+              <Text style={[styles.inputLabel, { color: colors.text }]}>{t('roadmapAdmin.titleRequired')}</Text>
               <TextInput
                 style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
                 value={formData.title}
                 onChangeText={(text) => setFormData(prev => ({ ...prev, title: text }))}
-                placeholder="Feature title"
+                placeholder={t('roadmapAdmin.featureTitlePlaceholder')}
                 placeholderTextColor={colors.textSecondary}
               />
 
-              <Text style={[styles.inputLabel, { color: colors.text }]}>Description</Text>
+              <Text style={[styles.inputLabel, { color: colors.text }]}>{t('roadmapAdmin.featureDescription')}</Text>
               <TextInput
                 style={[styles.input, styles.textArea, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
                 value={formData.description}
                 onChangeText={(text) => setFormData(prev => ({ ...prev, description: text }))}
-                placeholder="Feature description"
+                placeholder={t('roadmapAdmin.featureDescriptionPlaceholder')}
                 placeholderTextColor={colors.textSecondary}
                 multiline
                 numberOfLines={4}
               />
 
-              <Text style={[styles.inputLabel, { color: colors.text }]}>Status</Text>
+              <Text style={[styles.inputLabel, { color: colors.text }]}>{t('roadmapAdmin.featureStatus')}</Text>
               <View style={styles.statusOptions}>
                 {STATUS_OPTIONS.map(opt => (
                   <Pressable
@@ -376,13 +378,13 @@ export default function RoadmapAdminScreen() {
                       styles.statusOptionText,
                       { color: formData.status === opt.value ? '#FFF' : colors.text }
                     ]}>
-                      {opt.label}
+                      {t(`roadmap.statuses.${opt.value === 'in_development' ? 'inDevelopment' : opt.value}`)}
                     </Text>
                   </Pressable>
                 ))}
               </View>
 
-              <Text style={[styles.inputLabel, { color: colors.text }]}>Predicted Go-Live Date</Text>
+              <Text style={[styles.inputLabel, { color: colors.text }]}>{t('roadmapAdmin.predictedGoLiveDate')}</Text>
               <TextInput
                 style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
                 value={formData.predicted_go_live}
@@ -391,7 +393,7 @@ export default function RoadmapAdminScreen() {
                 placeholderTextColor={colors.textSecondary}
               />
 
-              <Text style={[styles.inputLabel, { color: colors.text }]}>Priority (higher = more important)</Text>
+              <Text style={[styles.inputLabel, { color: colors.text }]}>{t('roadmapAdmin.priorityHigher')}</Text>
               <TextInput
                 style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
                 value={formData.priority.toString()}
@@ -402,7 +404,7 @@ export default function RoadmapAdminScreen() {
               />
 
               <View style={styles.switchRow}>
-                <Text style={[styles.inputLabel, { color: colors.text, marginBottom: 0 }]}>Visible to Users</Text>
+                <Text style={[styles.inputLabel, { color: colors.text, marginBottom: 0 }]}>{t('roadmapAdmin.visibleToUsers')}</Text>
                 <Switch
                   value={formData.is_published}
                   onValueChange={(value) => setFormData(prev => ({ ...prev, is_published: value }))}
@@ -416,7 +418,7 @@ export default function RoadmapAdminScreen() {
                 style={[styles.cancelButton, { borderColor: colors.border }]} 
                 onPress={() => setModalVisible(false)}
               >
-                <Text style={[styles.cancelButtonText, { color: colors.text }]}>Cancel</Text>
+                <Text style={[styles.cancelButtonText, { color: colors.text }]}>{t('common.cancel')}</Text>
               </Pressable>
               <Pressable 
                 style={[styles.saveButton, { backgroundColor: colors.primary }]} 
@@ -426,7 +428,7 @@ export default function RoadmapAdminScreen() {
                 {isSaving ? (
                   <ActivityIndicator size="small" color="#FFF" />
                 ) : (
-                  <Text style={styles.saveButtonText}>Save</Text>
+                  <Text style={styles.saveButtonText}>{t('common.save')}</Text>
                 )}
               </Pressable>
             </View>

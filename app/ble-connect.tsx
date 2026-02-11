@@ -15,6 +15,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { getApiUrl } from '@/utils/apiConfig';
 import bleService from '@/services/bleService';
+import { useTranslation } from 'react-i18next';
 
 interface BleDevice {
   id: string;
@@ -34,6 +35,7 @@ export default function BleConnectScreen() {
   const { colors } = useTheme();
   const { token } = useAuth();
   const router = useRouter();
+  const { t } = useTranslation();
 
   const [isScanning, setIsScanning] = useState(false);
   const [devices, setDevices] = useState<BleDevice[]>([]);
@@ -49,7 +51,7 @@ export default function BleConnectScreen() {
   const checkBleAvailability = async () => {
     if (Platform.OS === 'web') {
       setBleAvailable(false);
-      setError('Bluetooth is not available on web. Please use the native app.');
+      setError(t('ble.bleNotAvailable'));
       return;
     }
 
@@ -58,12 +60,12 @@ export default function BleConnectScreen() {
       setBleAvailable(initialized);
       
       if (!initialized) {
-        setError('Failed to initialize Bluetooth. Make sure Bluetooth is enabled on your device.');
+        setError(t('ble.bleInitFailed'));
       }
     } catch (err) {
       console.error('BLE check error:', err);
       setBleAvailable(false);
-      setError('Bluetooth library not available. This feature requires a native app build.');
+      setError(t('ble.bleLibNotAvailable'));
     }
   };
 
@@ -77,7 +79,7 @@ export default function BleConnectScreen() {
     try {
       const hasPermission = await bleService.requestPermissions();
       if (!hasPermission) {
-        setError('Bluetooth permissions not granted. Please enable them in settings.');
+        setError(t('ble.permissionsNotGranted'));
         setIsScanning(false);
         return;
       }
@@ -116,7 +118,7 @@ export default function BleConnectScreen() {
       total: 100,
       percentage: 0,
       status: 'connecting',
-      message: `Connecting to ${device.name}...`,
+      message: t('ble.connectingTo', { name: device.name }),
     });
 
     try {
@@ -140,7 +142,7 @@ export default function BleConnectScreen() {
         total: 100,
         percentage: 100,
         status: 'complete',
-        message: `Downloaded ${dives.length} dive(s) successfully!`,
+        message: t('ble.downloadedDives', { count: dives.length }),
       });
 
       setTimeout(() => {
@@ -162,13 +164,13 @@ export default function BleConnectScreen() {
       });
       
       // Extract the most useful error message
-      let errorMessage = 'Download failed';
+      let errorMessage = t('ble.downloadFailed');
       if (err instanceof Error) {
         errorMessage = err.message;
       } else if (err?.reason) {
         errorMessage = `Error: ${err.reason}`;
       } else if (err?.androidErrorCode) {
-        errorMessage = `Android error ${err.androidErrorCode}: ${err?.message || 'Unknown'}`;
+        errorMessage = `Android error ${err.androidErrorCode}: ${err?.message || t('ble.unknownError')}`;
       }
       
       setProgress({
@@ -239,16 +241,16 @@ export default function BleConnectScreen() {
         <View style={styles.errorContainer}>
           <Feather name="x-circle" size={64} color={colors.error} />
           <Text style={[styles.errorTitle, { color: colors.text }]}>
-            Bluetooth Not Available
+            {t('ble.bleNotAvailable')}
           </Text>
           <Text style={[styles.errorMessage, { color: colors.textSecondary }]}>
-            {error || 'This feature requires a native app build with Bluetooth support.'}
+            {error || t('ble.requiresNativeApp')}
           </Text>
           <Pressable
             style={[styles.backButton, { backgroundColor: colors.primary }]}
             onPress={() => router.back()}
           >
-            <Text style={styles.backButtonText}>Go Back</Text>
+            <Text style={styles.backButtonText}>{t('ble.goBack')}</Text>
           </Pressable>
         </View>
       </View>
@@ -273,7 +275,7 @@ export default function BleConnectScreen() {
             )}
             
             <Text style={[styles.progressTitle, { color: colors.text }]}>
-              {selectedDevice?.name || 'Dive Computer'}
+              {selectedDevice?.name || t('ble.diveComputer')}
             </Text>
             
             <Text style={[styles.progressMessage, { color: colors.textSecondary }]}>
@@ -302,7 +304,7 @@ export default function BleConnectScreen() {
                   style={[styles.retryButton, { backgroundColor: colors.primary }]}
                   onPress={() => selectedDevice && connectAndDownload(selectedDevice)}
                 >
-                  <Text style={styles.retryButtonText}>Retry</Text>
+                  <Text style={styles.retryButtonText}>{t('ble.retry')}</Text>
                 </Pressable>
                 <Pressable
                   style={[styles.diveLogsLink, { borderColor: colors.border }]}
@@ -310,7 +312,7 @@ export default function BleConnectScreen() {
                 >
                   <Feather name="list" size={16} color={colors.primary} />
                   <Text style={[styles.diveLogsLinkText, { color: colors.primary }]}>
-                    View Dive Logs
+                    {t('ble.viewDiveLogs')}
                   </Text>
                 </Pressable>
               </>
@@ -321,7 +323,7 @@ export default function BleConnectScreen() {
                 style={[styles.cancelButton, { borderColor: colors.error }]}
                 onPress={cancelDownload}
               >
-                <Text style={[styles.cancelButtonText, { color: colors.error }]}>Cancel</Text>
+                <Text style={[styles.cancelButtonText, { color: colors.error }]}>{t('ble.cancel')}</Text>
               </Pressable>
             )}
           </View>
@@ -334,17 +336,17 @@ export default function BleConnectScreen() {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.header}>
         <Text style={[styles.headerTitle, { color: colors.text }]}>
-          Connect Dive Computer
+          {t('ble.connectDiveComputer')}
         </Text>
         <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>
-          Put your dive computer in Bluetooth/Upload mode and keep it active throughout the transfer. For Shearwater: Menu → System Setup → Bluetooth → PC Upload.
+          {t('ble.instructions')}
         </Text>
       </View>
       
       <View style={[styles.tipBanner, { backgroundColor: colors.primary + '15', borderColor: colors.primary + '30' }]}>
         <Feather name="info" size={16} color={colors.primary} />
         <Text style={[styles.tipText, { color: colors.text }]}>
-          Connection issues? Try unpairing the device in Android Settings → Bluetooth first, then scan again.
+          {t('ble.connectionTip')}
         </Text>
       </View>
 
@@ -359,13 +361,13 @@ export default function BleConnectScreen() {
         {isScanning ? (
           <>
             <ActivityIndicator size="small" color="#FFFFFF" />
-            <Text style={styles.scanButtonText}>Stop Scanning</Text>
+            <Text style={styles.scanButtonText}>{t('ble.stopScanning')}</Text>
           </>
         ) : (
           <>
             <Feather name="bluetooth" size={20} color="#FFFFFF" />
             <Text style={styles.scanButtonText}>
-              {bleAvailable === null ? 'Checking...' : 'Start Scanning'}
+              {bleAvailable === null ? t('ble.checking') : t('ble.startScanning')}
             </Text>
           </>
         )}
@@ -383,7 +385,7 @@ export default function BleConnectScreen() {
           <View style={styles.emptyState}>
             <Feather name="search" size={48} color={colors.textSecondary} />
             <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-              No devices found. Start scanning to find nearby dive computers.
+              {t('ble.noDevicesFoundMessage')}
             </Text>
           </View>
         )}
@@ -399,7 +401,7 @@ export default function BleConnectScreen() {
             </View>
             <View style={styles.deviceInfo}>
               <Text style={[styles.deviceName, { color: colors.text }]}>
-                {device.name || 'Unknown Device'}
+                {device.name || t('ble.unknownDevice')}
               </Text>
               <Text style={[styles.deviceId, { color: colors.textSecondary }]}>
                 {device.id.substring(0, 17)}...

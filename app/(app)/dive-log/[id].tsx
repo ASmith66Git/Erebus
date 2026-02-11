@@ -22,6 +22,7 @@ import Animated, { runOnJS } from 'react-native-reanimated';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { getApiUrl } from '@/utils/apiConfig';
+import { useTranslation } from 'react-i18next';
 import ThemedBackground from '@/components/ThemedBackground';
 
 const TABS = ['Dive', 'Gas', 'Photos', 'Problems', 'Skills', 'Team', 'Notes'] as const;
@@ -828,7 +829,7 @@ function DiveTab({ diveLog, colors, gearProfileName, gearProfileId }: { diveLog:
     <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
       {samples.length > 0 && (
         <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={[styles.cardTitle, { color: colors.text }]}>Dive Profile</Text>
+          <Text style={[styles.cardTitle, { color: colors.text }]}>{t('diveLogs.diveProfile')}</Text>
 
           <DiveProfileChart 
             samples={samples} 
@@ -842,9 +843,9 @@ function DiveTab({ diveLog, colors, gearProfileName, gearProfileId }: { diveLog:
           />
 
           <View style={styles.metricCardsRow}>
-            {renderStaticCard('Time', scrubberData ? formatScrubberTime(scrubberData.time) : '--:--', colors.primary)}
-            {renderStaticCard('Depth', scrubberData ? `${scrubberData.depth.toFixed(1)}m` : '--', '#2196F3')}
-            {renderMetricCard('Temp', scrubberData?.temp != null ? `${scrubberData.temp.toFixed(1)}°C` : '--', showTemp, () => setShowTemp(!showTemp), '#4CAF50', hasTemp)}
+            {renderStaticCard(t('diveLogs.time'), scrubberData ? formatScrubberTime(scrubberData.time) : '--:--', colors.primary)}
+            {renderStaticCard(t('diveLogs.depth'), scrubberData ? `${scrubberData.depth.toFixed(1)}m` : '--', '#2196F3')}
+            {renderMetricCard(t('diveLogs.temp'), scrubberData?.temp != null ? `${scrubberData.temp.toFixed(1)}°C` : '--', showTemp, () => setShowTemp(!showTemp), '#4CAF50', hasTemp)}
             {renderMetricCard('NDL', scrubberData?.ndl != null ? `${Math.round(scrubberData.ndl)} min` : '--', showNdl, () => setShowNdl(!showNdl), '#FFC107', hasNdl)}
             {renderMetricCard('GF99', scrubberData?.gf99 != null ? `${Math.round(scrubberData.gf99)}%` : '--', showGf99, () => setShowGf99(!showGf99), '#9C27B0', hasGf99)}
             {renderMetricCard('PPO2', scrubberData?.ppo2 != null ? `${scrubberData.ppo2.toFixed(2)}` : '--', showPpo2, () => setShowPpo2(!showPpo2), '#FF5722', hasPpo2)}
@@ -887,10 +888,10 @@ function DiveTab({ diveLog, colors, gearProfileName, gearProfileId }: { diveLog:
         <View style={[styles.halfCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <View style={styles.fieldRow}>
             <Feather name="wind" size={16} color={colors.primary} />
-            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Surface</Text>
+            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('diveLogs.surface')}</Text>
           </View>
           <Text style={[styles.cardValue, { color: colors.text }]}>
-            {diveLog.surfaceConditions || 'Not set'}
+            {diveLog.surfaceConditions || t('diveLogs.notSet')}
           </Text>
         </View>
       </View>
@@ -899,10 +900,10 @@ function DiveTab({ diveLog, colors, gearProfileName, gearProfileId }: { diveLog:
         <View style={[styles.halfCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <View style={styles.fieldRow}>
             <Feather name="sun" size={16} color={colors.primary} />
-            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Weather</Text>
+            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('diveLogs.weather')}</Text>
           </View>
           <Text style={[styles.cardValue, { color: colors.text }]}>
-            {diveLog.weatherConditions || 'Not set'}
+            {diveLog.weatherConditions || t('diveLogs.notSet')}
           </Text>
         </View>
         <View style={[styles.halfCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -923,11 +924,11 @@ function DiveTab({ diveLog, colors, gearProfileName, gearProfileId }: { diveLog:
       >
         <View style={styles.fieldRow}>
           <Feather name="map-pin" size={16} color={colors.primary} />
-          <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Dive Site</Text>
+          <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('diveLogs.diveSite')}</Text>
         </View>
         <View style={[styles.fieldValue, { backgroundColor: colors.background, borderColor: colors.border }]}>
           <Text style={[styles.fieldValueText, { color: colors.text }]}>
-            {diveLog.diveSiteName || 'Not specified'}
+            {diveLog.diveSiteName || t('diveLogs.notSpecified')}
           </Text>
           {diveLog.diveSiteId && <Feather name="external-link" size={16} color={colors.primary} />}
         </View>
@@ -944,7 +945,7 @@ function DiveTab({ diveLog, colors, gearProfileName, gearProfileId }: { diveLog:
         </View>
         <View style={[styles.fieldValue, { backgroundColor: colors.background, borderColor: colors.border }]}>
           <Text style={[styles.fieldValueText, { color: colors.text }]}>
-            {gearProfileName || 'Not specified'}
+            {gearProfileName || t('diveLogs.notSpecified')}
           </Text>
           {gearProfileId && <Feather name="external-link" size={16} color={colors.primary} />}
         </View>
@@ -954,7 +955,7 @@ function DiveTab({ diveLog, colors, gearProfileName, gearProfileId }: { diveLog:
         <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <View style={styles.fieldRow}>
             <Feather name="circle" size={16} color={colors.primary} />
-            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Gas Pressures (bar)</Text>
+            <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('diveLogs.gasPressuresBar')}</Text>
           </View>
           <View style={styles.gaugesRow}>
             {diveLog.gasPressures.map((gas, index) => (
@@ -1022,24 +1023,24 @@ function ProblemsTab({ diveLog, colors }: { diveLog: DiveLog; colors: any }) {
       <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
         <View style={styles.fieldRow}>
           <Feather name="alert-triangle" size={16} color={colors.textSecondary} />
-          <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Dive Problems</Text>
+          <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('diveLogs.diveProblemsLabel')}</Text>
         </View>
         
-        <Text style={[styles.subLabel, { color: colors.textSecondary }]}>Thermal Comfort</Text>
+        <Text style={[styles.subLabel, { color: colors.textSecondary }]}>{t('diveLogs.thermalComfort')}</Text>
         <View style={[styles.fieldValue, { backgroundColor: colors.background, borderColor: colors.border }]}>
           <Text style={[styles.fieldValueText, { color: colors.text }]}>
-            {diveLog.thermalComfort || 'Neutral'}
+            {diveLog.thermalComfort || t('diveLogs.neutral')}
           </Text>
         </View>
 
-        <Text style={[styles.subLabel, { color: colors.textSecondary, marginTop: 12 }]}>Workload</Text>
+        <Text style={[styles.subLabel, { color: colors.textSecondary, marginTop: 12 }]}>{t('diveLogs.workload')}</Text>
         <View style={[styles.fieldValue, { backgroundColor: colors.background, borderColor: colors.border }]}>
           <Text style={[styles.fieldValueText, { color: colors.text }]}>
-            {diveLog.workload || 'Moderate'}
+            {diveLog.workload || t('diveLogs.moderate')}
           </Text>
         </View>
 
-        <Text style={[styles.subLabel, { color: colors.textSecondary, marginTop: 12 }]}>Equipment Malfunction</Text>
+        <Text style={[styles.subLabel, { color: colors.textSecondary, marginTop: 12 }]}>{t('diveLogs.equipmentMalfunction')}</Text>
         <View style={styles.checkboxGrid}>
           {EQUIPMENT_OPTIONS.map((option) => {
             const isChecked = diveLog.equipmentIssues?.includes(option) || (option === 'None' && (!diveLog.equipmentIssues || diveLog.equipmentIssues.length === 0));
@@ -1054,22 +1055,22 @@ function ProblemsTab({ diveLog, colors }: { diveLog: DiveLog; colors: any }) {
           })}
         </View>
 
-        <Text style={[styles.subLabel, { color: colors.textSecondary, marginTop: 16 }]}>Decompression Symptoms</Text>
+        <Text style={[styles.subLabel, { color: colors.textSecondary, marginTop: 16 }]}>{t('diveLogs.decompressionSymptoms')}</Text>
         <View style={styles.radioRow}>
           <View style={styles.radioItem}>
             <View style={[styles.radio, { borderColor: colors.border, backgroundColor: !diveLog.decompressionSymptoms ? colors.primary : 'transparent' }]} />
-            <Text style={[styles.radioLabel, { color: colors.text }]}>No</Text>
+            <Text style={[styles.radioLabel, { color: colors.text }]}>{t('diveLogs.no')}</Text>
           </View>
           <View style={styles.radioItem}>
             <View style={[styles.radio, { borderColor: colors.border, backgroundColor: diveLog.decompressionSymptoms ? colors.primary : 'transparent' }]} />
-            <Text style={[styles.radioLabel, { color: colors.text }]}>Yes</Text>
+            <Text style={[styles.radioLabel, { color: colors.text }]}>{t('diveLogs.yes')}</Text>
           </View>
         </View>
 
-        <Text style={[styles.subLabel, { color: colors.textSecondary, marginTop: 16 }]}>Problem Notes</Text>
+        <Text style={[styles.subLabel, { color: colors.textSecondary, marginTop: 16 }]}>{t('diveLogs.problemNotesLabel')}</Text>
         <View style={[styles.textArea, { backgroundColor: colors.background, borderColor: colors.border }]}>
           <Text style={[styles.textAreaText, { color: diveLog.problemNotes ? colors.text : colors.textSecondary }]}>
-            {diveLog.problemNotes || 'Describe any problems encountered during the dive...'}
+            {diveLog.problemNotes || t('diveLogs.describeProblems')}
           </Text>
         </View>
       </View>
@@ -1093,14 +1094,14 @@ function EquipmentTab({ colors, gearProfile }: { colors: any; gearProfile: any |
   }
 
   const equipmentItems = [
-    { icon: 'user', label: 'Suit', value: gearProfile.suitType ? `${gearProfile.suitType}${gearProfile.suitThickness ? ` (${gearProfile.suitThickness})` : ''}` : null },
-    { icon: 'layers', label: 'Undersuit', value: gearProfile.undersuit },
-    { icon: 'life-buoy', label: 'BCD/Wing', value: gearProfile.bcdType },
-    { icon: 'navigation', label: 'Fins', value: gearProfile.finsType },
-    { icon: 'eye', label: 'Mask', value: gearProfile.maskNickname },
-    { icon: 'shield', label: 'Gloves', value: gearProfile.glovesType ? `${gearProfile.glovesType}${gearProfile.glovesThickness ? ` (${gearProfile.glovesThickness})` : ''}` : null },
-    { icon: 'target', label: 'Boots', value: gearProfile.bootsType ? `${gearProfile.bootsType}${gearProfile.bootsThickness ? ` (${gearProfile.bootsThickness})` : ''}` : null },
-    { icon: 'headphones', label: 'Hood', value: gearProfile.hoodType ? `${gearProfile.hoodType}${gearProfile.hoodThickness ? ` (${gearProfile.hoodThickness})` : ''}` : null },
+    { icon: 'user', label: t('gearProfiles.suitType'), value: gearProfile.suitType ? `${gearProfile.suitType}${gearProfile.suitThickness ? ` (${gearProfile.suitThickness})` : ''}` : null },
+    { icon: 'layers', label: t('gearProfiles.undersuit'), value: gearProfile.undersuit },
+    { icon: 'life-buoy', label: t('diveLogs.bcdWing'), value: gearProfile.bcdType },
+    { icon: 'navigation', label: t('diveLogs.fins'), value: gearProfile.finsType },
+    { icon: 'eye', label: t('diveLogs.mask'), value: gearProfile.maskNickname },
+    { icon: 'shield', label: t('gearProfiles.gloves'), value: gearProfile.glovesType ? `${gearProfile.glovesType}${gearProfile.glovesThickness ? ` (${gearProfile.glovesThickness})` : ''}` : null },
+    { icon: 'target', label: t('gearProfiles.boots'), value: gearProfile.bootsType ? `${gearProfile.bootsType}${gearProfile.bootsThickness ? ` (${gearProfile.bootsThickness})` : ''}` : null },
+    { icon: 'headphones', label: t('gearProfiles.hood'), value: gearProfile.hoodType ? `${gearProfile.hoodType}${gearProfile.hoodThickness ? ` (${gearProfile.hoodThickness})` : ''}` : null },
   ].filter(item => item.value);
 
   return (
@@ -1111,7 +1112,7 @@ function EquipmentTab({ colors, gearProfile }: { colors: any; gearProfile: any |
           <Text style={[styles.cardTitle, { color: colors.text }]}>{gearProfile.name}</Text>
         </View>
         <Text style={[styles.configType, { color: colors.textSecondary }]}>
-          {gearProfile.configType?.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()) || 'Single Tank'}
+          {gearProfile.configType?.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()) || t('diveLogs.singleTank')}
         </Text>
       </View>
 
@@ -1119,7 +1120,7 @@ function EquipmentTab({ colors, gearProfile }: { colors: any; gearProfile: any |
         <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <View style={styles.fieldRow}>
             <Feather name="package" size={16} color={colors.primary} />
-            <Text style={[styles.cardTitle, { color: colors.text }]}>Equipment</Text>
+            <Text style={[styles.cardTitle, { color: colors.text }]}>{t('diveLogs.equipmentLabel')}</Text>
           </View>
           {equipmentItems.map((item, index) => (
             <View key={index} style={styles.equipmentRow}>
@@ -1229,7 +1230,7 @@ function SkillsTab({ diveLog, colors, token, onRefresh }: { diveLog: DiveLog; co
         <View style={[styles.fieldRow, { justifyContent: 'space-between' }]}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <Feather name="award" size={16} color={colors.primary} />
-            <Text style={[styles.cardTitle, { color: colors.text }]}>Skills Practised</Text>
+            <Text style={[styles.cardTitle, { color: colors.text }]}>{t('diveLogs.skillsPractised')}</Text>
           </View>
           {editing ? (
             <View style={{ flexDirection: 'row', gap: 12 }}>
@@ -1280,11 +1281,11 @@ function NotesTab({ diveLog, colors }: { diveLog: DiveLog; colors: any }) {
       <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
         <View style={styles.fieldRow}>
           <Feather name="file-text" size={16} color={colors.primary} />
-          <Text style={[styles.cardTitle, { color: colors.text }]}>Dive Notes</Text>
+          <Text style={[styles.cardTitle, { color: colors.text }]}>{t('diveLogs.diveNotesLabel')}</Text>
         </View>
         <View style={[styles.textArea, { backgroundColor: colors.background, borderColor: colors.border, minHeight: 120 }]}>
           <Text style={[styles.textAreaText, { color: diveLog.notes ? colors.text : colors.textSecondary }]}>
-            {diveLog.notes || 'Add your dive notes here...'}
+            {diveLog.notes || t('diveLogs.addNotesPlaceholder')}
           </Text>
         </View>
       </View>
@@ -1374,13 +1375,13 @@ function TeamTab({ diveLog, colors, token, onRefresh }: { diveLog: DiveLog; colo
     };
 
     if (Platform.OS === 'web') {
-      if (window.confirm('Remove this buddy from the dive?')) {
+      if (window.confirm(t('diveLogs.removeBuddyConfirm'))) {
         doRemove();
       }
     } else {
-      Alert.alert('Remove Buddy', 'Remove this buddy from the dive?', [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Remove', style: 'destructive', onPress: doRemove },
+      Alert.alert(t('diveLogs.removeBuddy'), t('diveLogs.removeBuddyConfirm'), [
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('common.remove'), style: 'destructive', onPress: doRemove },
       ]);
     }
   };
@@ -1393,14 +1394,14 @@ function TeamTab({ diveLog, colors, token, onRefresh }: { diveLog: DiveLog; colo
         <View style={[styles.fieldRow, { justifyContent: 'space-between' }]}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <Feather name="users" size={16} color={colors.textSecondary} />
-            <Text style={[styles.cardTitle, { color: colors.text }]}>Dive Buddies</Text>
+            <Text style={[styles.cardTitle, { color: colors.text }]}>{t('diveLogs.buddiesTeam')}</Text>
           </View>
           <Pressable
             onPress={() => setShowAddModal(true)}
             style={[styles.addBuddyBtn, { backgroundColor: colors.primary }]}
           >
             <Feather name="plus" size={16} color="#fff" />
-            <Text style={styles.addBuddyBtnText}>Add</Text>
+            <Text style={styles.addBuddyBtnText}>{t('common.add')}</Text>
           </Pressable>
         </View>
 
@@ -1410,10 +1411,10 @@ function TeamTab({ diveLog, colors, token, onRefresh }: { diveLog: DiveLog; colo
           <View style={[styles.emptyBuddies, { borderColor: colors.border }]}>
             <Feather name="user-plus" size={32} color={colors.textSecondary} />
             <Text style={[styles.emptyBuddiesText, { color: colors.textSecondary }]}>
-              No buddies linked to this dive
+              {t('diveLogs.noBuddiesLinked')}
             </Text>
             <Text style={[styles.emptyBuddiesSubtext, { color: colors.textSecondary }]}>
-              Tap "Add" to link dive buddies
+              {t('diveLogs.tapAddBuddies')}
             </Text>
           </View>
         ) : (
@@ -1455,7 +1456,7 @@ function TeamTab({ diveLog, colors, token, onRefresh }: { diveLog: DiveLog; colo
         <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <View style={styles.fieldRow}>
             <Feather name="edit-3" size={16} color={colors.textSecondary} />
-            <Text style={[styles.cardTitle, { color: colors.text }]}>Notes (from import)</Text>
+            <Text style={[styles.cardTitle, { color: colors.text }]}>{t('diveLogs.notesFromImport')}</Text>
           </View>
           <View style={[styles.textArea, { backgroundColor: colors.background, borderColor: colors.border }]}>
             <Text style={[styles.textAreaText, { color: colors.text }]}>{diveLog.buddy}</Text>
@@ -1479,7 +1480,7 @@ function TeamTab({ diveLog, colors, token, onRefresh }: { diveLog: DiveLog; colo
                 <View style={styles.noBuddiesAvailable}>
                   <Feather name="users" size={32} color={colors.textSecondary} />
                   <Text style={[styles.noBuddiesText, { color: colors.textSecondary }]}>
-                    {allBuddies.length === 0 ? 'No buddies in your list yet' : 'All buddies already added'}
+                    {allBuddies.length === 0 ? t('diveLogs.noBuddiesYet') : t('diveLogs.allBuddiesAdded')}
                   </Text>
                 </View>
               ) : (
@@ -1523,6 +1524,7 @@ export default function DiveLogDetailScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const { token } = useAuth();
+  const { t } = useTranslation();
   const [diveLog, setDiveLog] = useState<DiveLog | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -1559,7 +1561,7 @@ export default function DiveLogDetailScreen() {
       const data = await response.json();
       setDiveLog(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError(err instanceof Error ? err.message : t('common.error'));
     } finally {
       setLoading(false);
     }
@@ -1630,7 +1632,7 @@ export default function DiveLogDetailScreen() {
           if (Platform.OS === 'web') {
             alert(errorMessage);
           } else {
-            Alert.alert('Error', errorMessage);
+            Alert.alert(t('common.error'), errorMessage);
           }
         }
       } catch (err) {
@@ -1638,22 +1640,22 @@ export default function DiveLogDetailScreen() {
         if (Platform.OS === 'web') {
           alert(errorMessage);
         } else {
-          Alert.alert('Error', errorMessage);
+          Alert.alert(t('common.error'), errorMessage);
         }
       }
     };
 
     if (Platform.OS === 'web') {
-      if (confirm('Are you sure you want to delete this dive log?')) {
+      if (confirm(t('diveLogs.deleteDiveConfirm'))) {
         confirmDelete();
       }
     } else {
       Alert.alert(
-        'Delete Dive Log',
-        'Are you sure you want to delete this dive log?',
+        t('diveLogs.deleteDiveLog'),
+        t('diveLogs.deleteDiveLogConfirm'),
         [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Delete', style: 'destructive', onPress: confirmDelete },
+          { text: t('common.cancel'), style: 'cancel' },
+          { text: t('common.delete'), style: 'destructive', onPress: confirmDelete },
         ]
       );
     }
@@ -1679,7 +1681,7 @@ export default function DiveLogDetailScreen() {
         if (Platform.OS === 'web') {
           alert(errorMsg);
         } else {
-          Alert.alert('Error', errorMsg);
+          Alert.alert(t('common.error'), errorMsg);
         }
         return;
       }
@@ -1704,14 +1706,14 @@ export default function DiveLogDetailScreen() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to merge file data');
+        throw new Error(data.error || t('diveLogs.failedToMerge'));
       }
 
       const successMsg = `Successfully merged data from ${file.name}:\n${data.samplesCount} depth samples\n${data.gasesCount} gas mixes\n${data.eventsCount} events`;
       if (Platform.OS === 'web') {
         alert(successMsg);
       } else {
-        Alert.alert('Success', successMsg);
+        Alert.alert(t('common.success'), successMsg);
       }
 
       fetchDiveLog();
@@ -1720,7 +1722,7 @@ export default function DiveLogDetailScreen() {
       if (Platform.OS === 'web') {
         alert(errorMsg);
       } else {
-        Alert.alert('Error', errorMsg);
+        Alert.alert(t('common.error'), errorMsg);
       }
     } finally {
       setMerging(false);
@@ -1742,13 +1744,13 @@ export default function DiveLogDetailScreen() {
           <Pressable style={styles.backButton} onPress={() => router.back()}>
             <Feather name="arrow-left" size={24} color={colors.text} />
           </Pressable>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Dive Details</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{t('diveLogs.diveDetails')}</Text>
           <View style={styles.headerRight} />
         </View>
         <View style={[styles.centered, { flex: 1 }]}>
           <Feather name="alert-circle" size={48} color={colors.textSecondary} />
           <Text style={[styles.errorText, { color: colors.textSecondary }]}>
-            {error || 'Dive log not found'}
+            {error || t('diveLogs.diveLogNotFound')}
           </Text>
           <Pressable
             style={[styles.retryButton, { backgroundColor: colors.primary }]}
@@ -1927,7 +1929,7 @@ export default function DiveLogDetailScreen() {
         <Pressable style={styles.backButton} onPress={() => router.back()}>
           <Feather name="arrow-left" size={24} color={colors.text} />
         </Pressable>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Dive Details</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>{t('diveLogs.diveDetails')}</Text>
         <View style={styles.headerActions}>
           <Pressable 
             style={styles.headerButton} 
@@ -1952,7 +1954,7 @@ export default function DiveLogDetailScreen() {
       <View style={styles.diveHeader}>
         <View style={styles.diveHeaderLeft}>
           <Text style={[styles.diveTitle, { color: colors.text }]}>
-            Dive #{diveLog.diveNumber || diveLog.id}
+            {t('diveLogs.diveNumber')}{diveLog.diveNumber || diveLog.id}
           </Text>
           <View style={styles.dateRow}>
             <Feather name="calendar" size={14} color={colors.textSecondary} />
@@ -1963,10 +1965,10 @@ export default function DiveLogDetailScreen() {
         </View>
         <View style={styles.diveHeaderRight}>
           <Text style={[styles.computerName, { color: colors.text }]}>
-            {diveLog.deviceModel || 'Unknown'}
+            {diveLog.deviceModel || t('diveLogs.unknown')}
           </Text>
           <Text style={[styles.diveMode, { color: colors.textSecondary }]}>
-            {diveLog.diveMode || 'Open Circuit'}
+            {diveLog.diveMode || t('diveLogs.openCircuit')}
           </Text>
         </View>
       </View>
@@ -2002,7 +2004,7 @@ export default function DiveLogDetailScreen() {
                   { color: activeTab === tab ? colors.primary : colors.textSecondary },
                 ]}
               >
-                {tab}
+                {t(`diveLogs.tabs.${tab.toLowerCase()}`)}
               </Text>
             </Pressable>
           ))}

@@ -5,6 +5,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'expo-router';
 import { authFetch } from '@/utils/authFetch';
+import { useTranslation } from 'react-i18next';
 import PageHeader from '@/components/PageHeader';
 import ThemedBackground from '@/components/ThemedBackground';
 
@@ -44,6 +45,7 @@ interface UserStats {
 }
 
 export default function AdminScreen() {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const { token, isAdmin, user } = useAuth();
   const router = useRouter();
@@ -74,10 +76,10 @@ export default function AdminScreen() {
         const data = await response.json();
         setUsers(data);
       } else if (response.status !== 401) {
-        setError('Failed to load users');
+        setError(t('admin.failedToLoadUsers'));
       }
     } catch (err) {
-      setError('Network error. Please try again.');
+      setError(t('common.networkError'));
     } finally {
       setIsLoading(false);
     }
@@ -98,10 +100,10 @@ export default function AdminScreen() {
         setSelectedUser(data);
         setModalVisible(true);
       } else {
-        showAlert('Error', 'Failed to load user details');
+        showAlert(t('common.error'), t('admin.failedToLoadUserDetails'));
       }
     } catch (err) {
-      showAlert('Error', 'Network error');
+      showAlert(t('common.error'), t('common.networkError'));
     } finally {
       setLoadingUser(null);
     }
@@ -122,8 +124,8 @@ export default function AdminScreen() {
       }
     } else {
       Alert.alert(title, message, [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Confirm', style: destructive ? 'destructive' : 'default', onPress: onConfirm }
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('common.confirm'), style: destructive ? 'destructive' : 'default', onPress: onConfirm }
       ]);
     }
   }
@@ -132,7 +134,7 @@ export default function AdminScreen() {
     const newRole = currentRole === 'admin' ? 'user' : 'admin';
     
     if (userId === user?.id) {
-      showAlert('Error', 'You cannot change your own role');
+      showAlert(t('common.error'), t('admin.cannotChangeOwnRole'));
       return;
     }
 
@@ -149,24 +151,24 @@ export default function AdminScreen() {
           setSelectedUser({ ...selectedUser, user: { ...selectedUser.user, role: newRole } });
         }
       } else if (response.status !== 401) {
-        showAlert('Error', 'Failed to update user role');
+        showAlert(t('common.error'), t('admin.failedToUpdateRole'));
       }
     } catch (err) {
-      showAlert('Error', 'Network error');
+      showAlert(t('common.error'), t('common.networkError'));
     }
   }
 
   async function toggleBlockUser(userId: number, currentlyBlocked: boolean) {
     if (userId === user?.id) {
-      showAlert('Error', 'You cannot block your own account');
+      showAlert(t('common.error'), t('admin.cannotBlockSelf'));
       return;
     }
 
     const action = currentlyBlocked ? 'unblock' : 'block';
     
     showConfirm(
-      `Confirm ${action.charAt(0).toUpperCase() + action.slice(1)}`,
-      `Are you sure you want to ${action} this user?`,
+      t('admin.confirmAction', { action }),
+      t('admin.confirmActionMessage', { action }),
       async () => {
         setActionLoading('block');
         try {
@@ -182,10 +184,10 @@ export default function AdminScreen() {
               setSelectedUser({ ...selectedUser, user: { ...selectedUser.user, isBlocked: !currentlyBlocked } });
             }
           } else if (response.status !== 401) {
-            showAlert('Error', `Failed to ${action} user`);
+            showAlert(t('common.error'), t('admin.failedToBlockUser', { action }));
           }
         } catch (err) {
-          showAlert('Error', 'Network error');
+          showAlert(t('common.error'), t('common.networkError'));
         } finally {
           setActionLoading(null);
         }
@@ -196,15 +198,15 @@ export default function AdminScreen() {
 
   async function toggleArchiveUser(userId: number, currentlyArchived: boolean) {
     if (userId === user?.id) {
-      showAlert('Error', 'You cannot archive your own account');
+      showAlert(t('common.error'), t('admin.cannotArchiveSelf'));
       return;
     }
 
     const action = currentlyArchived ? 'unarchive' : 'archive';
     
     showConfirm(
-      `Confirm ${action.charAt(0).toUpperCase() + action.slice(1)}`,
-      `Are you sure you want to ${action} this user?`,
+      t('admin.confirmAction', { action }),
+      t('admin.confirmActionMessage', { action }),
       async () => {
         setActionLoading('archive');
         try {
@@ -220,10 +222,10 @@ export default function AdminScreen() {
               setSelectedUser({ ...selectedUser, user: { ...selectedUser.user, isArchived: !currentlyArchived } });
             }
           } else if (response.status !== 401) {
-            showAlert('Error', `Failed to ${action} user`);
+            showAlert(t('common.error'), t('admin.failedToBlockUser', { action }));
           }
         } catch (err) {
-          showAlert('Error', 'Network error');
+          showAlert(t('common.error'), t('common.networkError'));
         } finally {
           setActionLoading(null);
         }
@@ -234,8 +236,8 @@ export default function AdminScreen() {
 
   async function sendPasswordResetEmail(userData: UserData | UserStats['user']) {
     showConfirm(
-      'Send Password Reset Email',
-      `Send a password reset email to ${userData.email}?`,
+      t('admin.sendPasswordResetEmail'),
+      t('admin.sendResetEmailConfirm', { email: userData.email }),
       async () => {
         setResetLoading(userData.id);
         setActionLoading('reset');
@@ -248,12 +250,12 @@ export default function AdminScreen() {
           const data = await response.json();
           
           if (response.ok) {
-            showAlert('Success', 'Password reset email has been sent to the user');
+            showAlert(t('admin.success'), t('admin.passwordResetEmailSent'));
           } else if (response.status !== 401) {
-            showAlert('Error', data.error || 'Failed to send password reset email');
+            showAlert(t('common.error'), data.error || t('admin.failedToSendResetEmail'));
           }
         } catch (err) {
-          showAlert('Error', 'Network error');
+          showAlert(t('common.error'), t('common.networkError'));
         } finally {
           setResetLoading(null);
           setActionLoading(null);
@@ -264,13 +266,13 @@ export default function AdminScreen() {
 
   async function deleteUser(userId: number) {
     if (userId === user?.id) {
-      showAlert('Error', 'You cannot delete your own account');
+      showAlert(t('common.error'), t('admin.cannotDeleteSelf'));
       return;
     }
 
     showConfirm(
-      'Confirm Delete',
-      'Are you sure you want to delete this user? This action cannot be undone.',
+      t('admin.confirmDelete'),
+      t('admin.confirmDeleteMessage'),
       async () => {
         try {
           const response = await authFetch(`/api/admin/users/${userId}`, token, {
@@ -282,10 +284,10 @@ export default function AdminScreen() {
             setModalVisible(false);
             setSelectedUser(null);
           } else if (response.status !== 401) {
-            showAlert('Error', 'Failed to delete user');
+            showAlert(t('common.error'), t('admin.failedToDeleteUser'));
           }
         } catch (err) {
-          showAlert('Error', 'Network error');
+          showAlert(t('common.error'), t('common.networkError'));
         }
       },
       true
@@ -311,7 +313,7 @@ export default function AdminScreen() {
 
   return (
     <ThemedBackground>
-      <PageHeader title="Admin" />
+      <PageHeader title={t('admin.title')} />
       <ScrollView 
         style={styles.container}
         refreshControl={
@@ -322,42 +324,42 @@ export default function AdminScreen() {
           <View style={[styles.headerIcon, { backgroundColor: colors.primary }]}>
             <Ionicons name="settings" size={24} color="#FFFFFF" />
           </View>
-          <Text style={[styles.title, { color: colors.text }]}>Admin Panel</Text>
+          <Text style={[styles.title, { color: colors.text }]}>{t('admin.adminPanel')}</Text>
           <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-            Manage users and app settings
+            {t('admin.manageUsersSettings')}
           </Text>
         </View>
 
       <View style={[styles.statsCard, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
         <View style={styles.statItem}>
           <Text style={[styles.statValue, { color: colors.primary }]}>{users.length}</Text>
-          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Total Users</Text>
+          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{t('admin.totalUsers')}</Text>
         </View>
         <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
         <View style={styles.statItem}>
           <Text style={[styles.statValue, { color: colors.primary }]}>
             {users.filter(u => u.role === 'admin').length}
           </Text>
-          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Admins</Text>
+          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{t('admin.admins')}</Text>
         </View>
         <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
         <View style={styles.statItem}>
           <Text style={[styles.statValue, { color: colors.error }]}>
             {users.filter(u => u.isBlocked).length}
           </Text>
-          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Blocked</Text>
+          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{t('admin.blocked')}</Text>
         </View>
         <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
         <View style={styles.statItem}>
           <Text style={[styles.statValue, { color: '#FF9500' }]}>
             {users.filter(u => u.isArchived).length}
           </Text>
-          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Archived</Text>
+          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{t('admin.archived')}</Text>
         </View>
       </View>
 
       <View style={styles.sectionHeader}>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>User Management</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('admin.userManagement')}</Text>
         <Pressable onPress={fetchUsers}>
           <Ionicons name="refresh" size={20} color={colors.primary} />
         </Pressable>
@@ -418,13 +420,13 @@ export default function AdminScreen() {
                   </Text>
                   {userData.role === 'admin' && (
                     <View style={[styles.roleBadge, { backgroundColor: colors.primary }]}>
-                      <Text style={styles.roleBadgeText}>Admin</Text>
+                      <Text style={styles.roleBadgeText}>{t('admin.roleBadgeAdmin')}</Text>
                     </View>
                   )}
                 </View>
                 <Text style={[styles.userEmail, { color: colors.textSecondary }]}>{userData.email}</Text>
                 <Text style={[styles.userDate, { color: colors.textSecondary }]}>
-                  Joined {new Date(userData.createdAt).toLocaleDateString()}
+                  {t('admin.joined', { date: new Date(userData.createdAt).toLocaleDateString() })}
                 </Text>
               </View>
             </View>
@@ -445,7 +447,7 @@ export default function AdminScreen() {
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: colors.background }]}>
             <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>User Details</Text>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>{t('admin.userDetails')}</Text>
               <Pressable onPress={closeModal} style={styles.closeButton}>
                 <Ionicons name="close" size={24} color={colors.text} />
               </Pressable>
@@ -469,19 +471,19 @@ export default function AdminScreen() {
                   <View style={styles.badgesRow}>
                     {selectedUser.user.role === 'admin' && (
                       <View style={[styles.roleBadge, { backgroundColor: colors.primary }]}>
-                        <Text style={styles.roleBadgeText}>Admin</Text>
+                        <Text style={styles.roleBadgeText}>{t('admin.roleBadgeAdmin')}</Text>
                       </View>
                     )}
                     {selectedUser.user.isBlocked && (
                       <View style={[styles.roleBadge, { backgroundColor: colors.error }]}>
                         <Ionicons name="lock-closed" size={10} color="#FFFFFF" style={{ marginRight: 4 }} />
-                        <Text style={styles.roleBadgeText}>Blocked</Text>
+                        <Text style={styles.roleBadgeText}>{t('admin.roleBadgeBlocked')}</Text>
                       </View>
                     )}
                     {selectedUser.user.isArchived && (
                       <View style={[styles.roleBadge, { backgroundColor: '#FF9500' }]}>
                         <Ionicons name="archive" size={10} color="#FFFFFF" style={{ marginRight: 4 }} />
-                        <Text style={styles.roleBadgeText}>Archived</Text>
+                        <Text style={styles.roleBadgeText}>{t('admin.roleBadgeArchived')}</Text>
                       </View>
                     )}
                   </View>
@@ -489,36 +491,36 @@ export default function AdminScreen() {
 
                 <View style={styles.infoSection}>
                   <View style={styles.infoRow}>
-                    <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Joined</Text>
+                    <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>{t('admin.createdAt')}</Text>
                     <Text style={[styles.infoValue, { color: colors.text }]}>
                       {new Date(selectedUser.user.createdAt).toLocaleDateString()}
                     </Text>
                   </View>
                   <View style={styles.infoRow}>
-                    <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Last Login</Text>
+                    <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>{t('admin.lastLogin')}</Text>
                     <Text style={[styles.infoValue, { color: colors.text }]}>
                       {selectedUser.user.lastLoginAt 
                         ? new Date(selectedUser.user.lastLoginAt).toLocaleDateString()
-                        : 'Never'}
+                        : t('admin.never')}
                     </Text>
                   </View>
                 </View>
 
-                <Text style={[styles.statsHeader, { color: colors.text }]}>User Statistics</Text>
+                <Text style={[styles.statsHeader, { color: colors.text }]}>{t('admin.userStatistics')}</Text>
                 <View style={styles.statsGrid}>
-                  <StatCard icon="water" label="Dive Logs" value={selectedUser.stats.diveLogs} color={colors.primary} />
-                  <StatCard icon="location" label="Dive Sites" value={selectedUser.stats.diveSites} color="#34C759" />
-                  <StatCard icon="airplane" label="Dive Trips" value={selectedUser.stats.diveTrips} color="#5856D6" />
-                  <StatCard icon="settings" label="Gear Profiles" value={selectedUser.stats.gearProfiles} color="#FF9500" />
-                  <StatCard icon="build" label="Equipment" value={selectedUser.stats.equipment} color="#FF2D55" />
-                  <StatCard icon="camera" label="Photos" value={selectedUser.stats.photos} color="#007AFF" />
-                  <StatCard icon="ribbon" label="Certifications" value={selectedUser.stats.certifications} color="#AF52DE" />
-                  <StatCard icon="people" label="Buddies" value={selectedUser.stats.buddies} color="#00C7BE" />
+                  <StatCard icon="water" label={t('admin.diveLogs')} value={selectedUser.stats.diveLogs} color={colors.primary} />
+                  <StatCard icon="location" label={t('admin.diveSites')} value={selectedUser.stats.diveSites} color="#34C759" />
+                  <StatCard icon="airplane" label={t('admin.diveTrips')} value={selectedUser.stats.diveTrips} color="#5856D6" />
+                  <StatCard icon="settings" label={t('admin.gearProfiles')} value={selectedUser.stats.gearProfiles} color="#FF9500" />
+                  <StatCard icon="build" label={t('admin.equipment')} value={selectedUser.stats.equipment} color="#FF2D55" />
+                  <StatCard icon="camera" label={t('admin.photos')} value={selectedUser.stats.photos} color="#007AFF" />
+                  <StatCard icon="ribbon" label={t('admin.certifications')} value={selectedUser.stats.certifications} color="#AF52DE" />
+                  <StatCard icon="people" label={t('admin.buddies')} value={selectedUser.stats.buddies} color="#00C7BE" />
                 </View>
 
                 {selectedUser.user.id !== user?.id && (
                   <View style={styles.actionsSection}>
-                    <Text style={[styles.actionsHeader, { color: colors.text }]}>Actions</Text>
+                    <Text style={[styles.actionsHeader, { color: colors.text }]}>{t('admin.actions')}</Text>
                     
                     <Pressable
                       style={[styles.actionRow, { borderColor: colors.border }]}
@@ -532,7 +534,7 @@ export default function AdminScreen() {
                           <Ionicons name="mail" size={20} color="#FF9500" />
                         )}
                       </View>
-                      <Text style={[styles.actionLabel, { color: colors.text }]}>Send Password Reset Email</Text>
+                      <Text style={[styles.actionLabel, { color: colors.text }]}>{t('admin.sendPasswordResetEmail')}</Text>
                       <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
                     </Pressable>
 
@@ -553,7 +555,7 @@ export default function AdminScreen() {
                         )}
                       </View>
                       <Text style={[styles.actionLabel, { color: colors.text }]}>
-                        {selectedUser.user.isBlocked ? 'Unblock User' : 'Block User'}
+                        {selectedUser.user.isBlocked ? t('admin.unblockUser') : t('admin.blockUser')}
                       </Text>
                       <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
                     </Pressable>
@@ -575,7 +577,7 @@ export default function AdminScreen() {
                         )}
                       </View>
                       <Text style={[styles.actionLabel, { color: colors.text }]}>
-                        {selectedUser.user.isArchived ? 'Unarchive User' : 'Archive User'}
+                        {selectedUser.user.isArchived ? t('admin.unarchiveUser') : t('admin.archiveUser')}
                       </Text>
                       <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
                     </Pressable>
@@ -592,7 +594,7 @@ export default function AdminScreen() {
                         />
                       </View>
                       <Text style={[styles.actionLabel, { color: colors.text }]}>
-                        {selectedUser.user.role === 'admin' ? 'Remove Admin Role' : 'Make Admin'}
+                        {selectedUser.user.role === 'admin' ? t('admin.removeAdminRole') : t('admin.makeAdmin')}
                       </Text>
                       <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
                     </Pressable>
@@ -604,7 +606,7 @@ export default function AdminScreen() {
                       <View style={[styles.actionIconWrapper, { backgroundColor: colors.error + '20' }]}>
                         <Ionicons name="trash" size={20} color={colors.error} />
                       </View>
-                      <Text style={[styles.actionLabel, { color: colors.error }]}>Delete User</Text>
+                      <Text style={[styles.actionLabel, { color: colors.error }]}>{t('admin.deleteUser')}</Text>
                       <Ionicons name="chevron-forward" size={20} color={colors.error} />
                     </Pressable>
                   </View>

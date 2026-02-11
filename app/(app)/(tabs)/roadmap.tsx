@@ -11,6 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { authFetch } from '@/utils/authFetch';
+import { useTranslation } from 'react-i18next';
 import PageHeader from '@/components/PageHeader';
 import ThemedBackground from '@/components/ThemedBackground';
 
@@ -35,6 +36,7 @@ const getStatusConfig = (status: string) => {
 };
 
 export default function RoadmapScreen() {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const { token } = useAuth();
   const [features, setFeatures] = useState<RoadmapFeature[]>([]);
@@ -55,10 +57,10 @@ export default function RoadmapScreen() {
         const data = await response.json();
         setFeatures(data.features || []);
       } else if (response.status !== 401) {
-        setError('Failed to load roadmap');
+        setError(t('roadmap.failedToLoad'));
       }
     } catch (err) {
-      setError('Network error. Please try again.');
+      setError(t('common.networkError'));
     } finally {
       setIsLoading(false);
     }
@@ -88,7 +90,7 @@ export default function RoadmapScreen() {
   if (isLoading && features.length === 0) {
     return (
       <ThemedBackground style={styles.container}>
-        <PageHeader title="Roadmap" />
+        <PageHeader title={t('roadmap.title')} />
         <View style={styles.centered}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
@@ -98,7 +100,7 @@ export default function RoadmapScreen() {
 
   return (
     <ThemedBackground style={styles.container}>
-      <PageHeader title="Roadmap" />
+      <PageHeader title={t('roadmap.title')} />
 
       <ScrollView 
         style={styles.content}
@@ -106,9 +108,9 @@ export default function RoadmapScreen() {
       >
         <View style={[styles.introCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <Ionicons name="rocket-outline" size={32} color={colors.primary} />
-          <Text style={[styles.introTitle, { color: colors.text }]}>What's Coming</Text>
+          <Text style={[styles.introTitle, { color: colors.text }]}>{t('roadmap.whatscoming')}</Text>
           <Text style={[styles.introText, { color: colors.textSecondary }]}>
-            See what features we're working on and what's planned for the future of Erebus.
+            {t('roadmap.whatsComingDescription')}
           </Text>
         </View>
 
@@ -119,9 +121,9 @@ export default function RoadmapScreen() {
         ) : features.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="sparkles-outline" size={48} color={colors.textSecondary} />
-            <Text style={[styles.emptyTitle, { color: colors.text }]}>Stay Tuned</Text>
+            <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('roadmap.stayTuned')}</Text>
             <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-              We're working on exciting new features. Check back soon!
+              {t('roadmap.stayTunedDescription')}
             </Text>
           </View>
         ) : (
@@ -136,7 +138,7 @@ export default function RoadmapScreen() {
                   <View style={[styles.sectionIcon, { backgroundColor: config.color + '20' }]}>
                     <Ionicons name={config.icon as any} size={18} color={config.color} />
                   </View>
-                  <Text style={[styles.sectionTitle, { color: colors.text }]}>{config.label}</Text>
+                  <Text style={[styles.sectionTitle, { color: colors.text }]}>{t(`roadmap.statuses.${status === 'in_development' ? 'inDevelopment' : status}`)}</Text>
                   <View style={[styles.countBadge, { backgroundColor: config.color }]}>
                     <Text style={styles.countText}>{statusFeatures.length}</Text>
                   </View>
@@ -157,7 +159,7 @@ export default function RoadmapScreen() {
                       <View style={styles.dateRow}>
                         <Ionicons name="calendar-outline" size={14} color={colors.textSecondary} />
                         <Text style={[styles.dateText, { color: colors.textSecondary }]}>
-                          Expected: {formatDate(feature.predicted_go_live)}
+                          {t('roadmap.expected', { date: formatDate(feature.predicted_go_live) })}
                         </Text>
                       </View>
                     )}
@@ -170,9 +172,9 @@ export default function RoadmapScreen() {
 
         <View style={[styles.feedbackCard, { backgroundColor: colors.primary + '15', borderColor: colors.primary + '30' }]}>
           <Ionicons name="chatbubble-ellipses-outline" size={24} color={colors.primary} />
-          <Text style={[styles.feedbackTitle, { color: colors.text }]}>Have a Feature Request?</Text>
+          <Text style={[styles.feedbackTitle, { color: colors.text }]}>{t('roadmap.featureRequest')}</Text>
           <Text style={[styles.feedbackText, { color: colors.textSecondary }]}>
-            We'd love to hear your ideas! Reach out through the app's feedback option.
+            {t('roadmap.featureRequestDescription')}
           </Text>
         </View>
 

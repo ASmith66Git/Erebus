@@ -9,6 +9,7 @@ import ThemedBackground from '@/components/ThemedBackground';
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { notificationService } from '@/services/notificationService';
+import { useTranslation } from 'react-i18next';
 
 interface RegisteredDevice {
   id: number;
@@ -21,6 +22,7 @@ interface RegisteredDevice {
 export default function NotificationsScreen() {
   const { colors } = useTheme();
   const { token } = useAuth();
+  const { t } = useTranslation();
   const [permissionStatus, setPermissionStatus] = useState<'granted' | 'denied' | 'undetermined'>('undetermined');
   const [loading, setLoading] = useState(true);
   const [registeredDevices, setRegisteredDevices] = useState<RegisteredDevice[]>([]);
@@ -64,7 +66,7 @@ export default function NotificationsScreen() {
 
   const handleEnableNotifications = async () => {
     if (Platform.OS === 'web') {
-      Alert.alert('Not Available', 'Push notifications are only available on mobile devices.');
+      Alert.alert(t('notifications.notAvailable'), t('notifications.notAvailableWeb'));
       return;
     }
 
@@ -73,11 +75,11 @@ export default function NotificationsScreen() {
     try {
       if (permissionStatus === 'denied') {
         Alert.alert(
-          'Notifications Disabled',
-          'Please enable notifications in your device settings to receive alerts.',
+          t('notifications.notificationsDisabled'),
+          t('notifications.enableInSettings'),
           [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Open Settings', onPress: () => Linking.openSettings() },
+            { text: t('common.cancel'), style: 'cancel' },
+            { text: t('notifications.openSettings'), onPress: () => Linking.openSettings() },
           ]
         );
         setTogglingPush(false);
@@ -94,17 +96,17 @@ export default function NotificationsScreen() {
       } else if (result.permission === 'denied') {
         setPermissionStatus('denied');
         Alert.alert(
-          'Permission Denied',
-          'Notifications permission was denied. You can enable it in your device settings.',
+          t('notifications.permissionDenied'),
+          t('notifications.permissionDeniedMessage'),
           [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Open Settings', onPress: () => Linking.openSettings() },
+            { text: t('common.cancel'), style: 'cancel' },
+            { text: t('notifications.openSettings'), onPress: () => Linking.openSettings() },
           ]
         );
       }
     } catch (error) {
       console.error('Error enabling notifications:', error);
-      Alert.alert('Error', 'Failed to enable notifications. Please try again.');
+      Alert.alert(t('notifications.error'), t('notifications.failedToEnable'));
     } finally {
       setTogglingPush(false);
     }
@@ -121,7 +123,7 @@ export default function NotificationsScreen() {
       setPushEnabled(false);
     } catch (error) {
       console.error('Error disabling notifications:', error);
-      Alert.alert('Error', 'Failed to disable notifications. Please try again.');
+      Alert.alert(t('notifications.error'), t('notifications.failedToDisable'));
     } finally {
       setTogglingPush(false);
     }
@@ -137,12 +139,12 @@ export default function NotificationsScreen() {
 
   const handleRemoveDevice = async (deviceId: number) => {
     Alert.alert(
-      'Remove Device',
-      'This device will no longer receive notifications. Continue?',
+      t('notifications.removeDevice'),
+      t('notifications.removeDeviceConfirm'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Remove',
+          text: t('common.remove'),
           style: 'destructive',
           onPress: async () => {
             try {
@@ -166,11 +168,11 @@ export default function NotificationsScreen() {
   const getPermissionStatusText = () => {
     switch (permissionStatus) {
       case 'granted':
-        return 'Enabled';
+        return t('notifications.statusEnabled');
       case 'denied':
-        return 'Denied - Tap to open settings';
+        return t('notifications.statusDenied');
       default:
-        return Platform.OS === 'web' ? 'Not available on web' : 'Not requested';
+        return Platform.OS === 'web' ? t('notifications.statusNotAvailableWeb') : t('notifications.statusNotRequested');
     }
   };
 
@@ -199,7 +201,7 @@ export default function NotificationsScreen() {
   if (loading) {
     return (
       <ThemedBackground>
-        <PageHeader title="Notifications" showBack />
+        <PageHeader title={t('notifications.title')} showBack />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
@@ -209,19 +211,19 @@ export default function NotificationsScreen() {
 
   return (
     <ThemedBackground>
-      <PageHeader title="Notifications" showBack />
+      <PageHeader title={t('notifications.title')} showBack />
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={[styles.section, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Push Notifications</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('notifications.pushNotifications')}</Text>
           <Text style={[styles.sectionDescription, { color: colors.textSecondary }]}>
-            Receive alerts about support replies, dive reminders, and important updates
+            {t('notifications.pushNotificationsDescription')}
           </Text>
           
           <View style={[styles.settingRow, { borderTopColor: colors.border }]}>
             <View style={styles.settingInfo}>
               <Ionicons name="notifications-outline" size={24} color={colors.primary} />
               <View style={styles.settingText}>
-                <Text style={[styles.settingLabel, { color: colors.text }]}>Enable Push Notifications</Text>
+                <Text style={[styles.settingLabel, { color: colors.text }]}>{t('notifications.enablePushNotifications')}</Text>
                 <Text style={[styles.settingStatus, { color: getPermissionStatusColor() }]}>
                   {getPermissionStatusText()}
                 </Text>
@@ -244,25 +246,25 @@ export default function NotificationsScreen() {
               onPress={() => Linking.openSettings()}
             >
               <Ionicons name="settings-outline" size={18} color="#FFF" />
-              <Text style={styles.openSettingsText}>Open Device Settings</Text>
+              <Text style={styles.openSettingsText}>{t('notifications.openDeviceSettings')}</Text>
             </Pressable>
           )}
         </View>
 
         {Platform.OS !== 'web' && (
           <View style={[styles.section, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Notification Types</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('notifications.notificationTypes')}</Text>
             <Text style={[styles.sectionDescription, { color: colors.textSecondary }]}>
-              Types of notifications you'll receive
+              {t('notifications.notificationTypesDescription')}
             </Text>
             
             <View style={styles.notificationTypes}>
               <View style={[styles.notificationType, { borderBottomColor: colors.border }]}>
                 <Ionicons name="chatbubble-outline" size={22} color={colors.primary} />
                 <View style={styles.notificationTypeText}>
-                  <Text style={[styles.notificationTypeLabel, { color: colors.text }]}>Support Messages</Text>
+                  <Text style={[styles.notificationTypeLabel, { color: colors.text }]}>{t('notifications.supportMessagesLabel')}</Text>
                   <Text style={[styles.notificationTypeDesc, { color: colors.textSecondary }]}>
-                    Replies to your support tickets
+                    {t('notifications.supportMessagesDesc')}
                   </Text>
                 </View>
               </View>
@@ -270,9 +272,9 @@ export default function NotificationsScreen() {
               <View style={[styles.notificationType, { borderBottomColor: colors.border }]}>
                 <Ionicons name="time-outline" size={22} color={colors.primary} />
                 <View style={styles.notificationTypeText}>
-                  <Text style={[styles.notificationTypeLabel, { color: colors.text }]}>Dive Reminders</Text>
+                  <Text style={[styles.notificationTypeLabel, { color: colors.text }]}>{t('notifications.diveReminders')}</Text>
                   <Text style={[styles.notificationTypeDesc, { color: colors.textSecondary }]}>
-                    Upcoming dive trip alerts
+                    {t('notifications.diveRemindersDesc')}
                   </Text>
                 </View>
               </View>
@@ -280,9 +282,9 @@ export default function NotificationsScreen() {
               <View style={[styles.notificationType, { borderBottomColor: 'transparent' }]}>
                 <Ionicons name="sync-outline" size={22} color={colors.primary} />
                 <View style={styles.notificationTypeText}>
-                  <Text style={[styles.notificationTypeLabel, { color: colors.text }]}>Sync Updates</Text>
+                  <Text style={[styles.notificationTypeLabel, { color: colors.text }]}>{t('notifications.syncUpdates')}</Text>
                   <Text style={[styles.notificationTypeDesc, { color: colors.textSecondary }]}>
-                    Dive log sync status notifications
+                    {t('notifications.syncUpdatesDesc')}
                   </Text>
                 </View>
               </View>
@@ -292,9 +294,9 @@ export default function NotificationsScreen() {
 
         {registeredDevices.length > 0 && (
           <View style={[styles.section, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Registered Devices</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('notifications.registeredDevices')}</Text>
             <Text style={[styles.sectionDescription, { color: colors.textSecondary }]}>
-              Devices that receive push notifications
+              {t('notifications.registeredDevicesDescription')}
             </Text>
             
             {registeredDevices.map((device, index) => (
@@ -309,11 +311,11 @@ export default function NotificationsScreen() {
                   <Ionicons name={getPlatformIcon(device.platform)} size={24} color={colors.textSecondary} />
                   <View style={styles.deviceText}>
                     <Text style={[styles.deviceName, { color: colors.text }]}>
-                      {device.device_name || 'Unknown Device'}
+                      {device.device_name || t('notifications.unknownDevice')}
                     </Text>
                     <Text style={[styles.devicePlatform, { color: colors.textSecondary }]}>
                       {device.platform.charAt(0).toUpperCase() + device.platform.slice(1)}
-                      {device.is_active ? '' : ' (Inactive)'}
+                      {device.is_active ? '' : ` ${t('notifications.inactive')}`}
                     </Text>
                   </View>
                 </View>
@@ -332,7 +334,7 @@ export default function NotificationsScreen() {
           <View style={[styles.infoCard, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
             <Ionicons name="information-circle-outline" size={24} color={colors.textSecondary} />
             <Text style={[styles.infoText, { color: colors.textSecondary }]}>
-              Push notifications are available on the Erebus mobile app for iOS and Android. Download the app to receive real-time alerts.
+              {t('notifications.notAvailableWebDescription')}
             </Text>
           </View>
         )}

@@ -17,6 +17,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSettings } from '@/contexts/SettingsContext';
 import { getApiUrl } from '@/utils/apiConfig';
+import { useTranslation } from 'react-i18next';
 import ThemedBackground from '@/components/ThemedBackground';
 import { getTankIcon } from '@/components/TankIcons';
 
@@ -156,6 +157,7 @@ export default function GearProfileScreen() {
   const isNew = id === 'new';
   const { colors } = useTheme();
   const { token, logout } = useAuth();
+  const { t } = useTranslation();
   const { getWeightUnit, convertWeightFromMetric, convertWeightToMetric } = useSettings();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -278,11 +280,11 @@ export default function GearProfileScreen() {
 
   const handleAddEquipment = async () => {
     if (!newEquipment.type || !newEquipment.name.trim()) {
-      Alert.alert('Error', 'Please select a type and enter a name');
+      Alert.alert(t('common.error'), t('gearProfiles.selectTypeRequired'));
       return;
     }
     if (newEquipment.type === 'other' && !newEquipment.customType.trim()) {
-      Alert.alert('Error', 'Please enter a custom type name');
+      Alert.alert(t('common.error'), t('gearProfiles.enterCustomType'));
       return;
     }
 
@@ -311,19 +313,19 @@ export default function GearProfileScreen() {
         setShowTypePicker(false);
       } else {
         const error = await response.json();
-        Alert.alert('Error', error.error || 'Failed to add equipment');
+        Alert.alert(t('common.error'), error.error || t('gearProfiles.failedToAddEquipment'));
       }
     } catch (error) {
       console.error('Error adding equipment:', error);
-      Alert.alert('Error', 'Failed to add equipment');
+      Alert.alert(t('common.error'), t('gearProfiles.failedToAddEquipment'));
     }
   };
 
   const handleDeleteEquipment = async (equipmentId: number) => {
-    Alert.alert('Delete Equipment', 'This will permanently delete this item from your inventory. Are you sure?', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('gearProfiles.deleteEquipment'), t('gearProfiles.deleteEquipmentConfirmLong'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Delete',
+        text: t('common.delete'),
         style: 'destructive',
         onPress: async () => {
           try {
@@ -335,11 +337,11 @@ export default function GearProfileScreen() {
               await fetchAllEquipment();
               if (profile.id) await fetchProfileEquipment();
             } else {
-              Alert.alert('Error', 'Failed to delete equipment');
+              Alert.alert(t('common.error'), t('gearProfiles.failedToDeleteEquipment'));
             }
           } catch (error) {
             console.error('Error deleting equipment:', error);
-            Alert.alert('Error', 'Failed to delete equipment');
+            Alert.alert(t('common.error'), t('gearProfiles.failedToDeleteEquipment'));
           }
         },
       },
@@ -362,11 +364,11 @@ export default function GearProfileScreen() {
         setShowSelectEquipment(false);
       } else {
         const error = await response.json();
-        Alert.alert('Error', error.error || 'Failed to add equipment to profile');
+        Alert.alert(t('common.error'), error.error || t('gearProfiles.failedToAddToProfile'));
       }
     } catch (error) {
       console.error('Error adding to profile:', error);
-      Alert.alert('Error', 'Failed to add equipment to profile');
+      Alert.alert(t('common.error'), t('gearProfiles.failedToAddToProfile'));
     }
   };
 
@@ -381,11 +383,11 @@ export default function GearProfileScreen() {
         await fetchProfileEquipment();
       } else {
         const error = await response.json();
-        Alert.alert('Error', error.error || 'Failed to remove equipment from profile');
+        Alert.alert(t('common.error'), error.error || t('gearProfiles.failedToRemoveFromProfile'));
       }
     } catch (error) {
       console.error('Error removing from profile:', error);
-      Alert.alert('Error', 'Failed to remove equipment from profile');
+      Alert.alert(t('common.error'), t('gearProfiles.failedToRemoveFromProfile'));
     }
   };
 
@@ -406,7 +408,7 @@ export default function GearProfileScreen() {
 
   const handleSave = async () => {
     if (!profile.name.trim()) {
-      Alert.alert('Error', 'Please enter a profile name');
+      Alert.alert(t('common.error'), t('gearProfiles.enterProfileName'));
       return;
     }
 
@@ -429,11 +431,11 @@ export default function GearProfileScreen() {
         router.back();
       } else {
         const error = await response.json();
-        Alert.alert('Error', error.error || 'Failed to save profile');
+        Alert.alert(t('common.error'), error.error || t('gearProfiles.failedToSaveProfile'));
       }
     } catch (error) {
       console.error('Error saving profile:', error);
-      Alert.alert('Error', 'Failed to save profile');
+      Alert.alert(t('common.error'), t('gearProfiles.failedToSaveProfile'));
     } finally {
       setSaving(false);
     }
@@ -563,13 +565,13 @@ export default function GearProfileScreen() {
   );
 
   const renderConfigViewTab = () => {
-    const configTypeLabel = CONFIG_TYPES.find(t => t.value === profile.configType)?.label || profile.configType;
+    const configTypeLabel = t(`gearProfiles.configTypes.${profile.configType === 'single_tank' ? 'singleTank' : profile.configType}`);
     return (
       <View style={styles.tabContent}>
         <View style={[styles.viewCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <View style={styles.viewCardHeader}>
             <Feather name="settings" size={16} color={colors.primary} />
-            <Text style={[styles.viewCardTitle, { color: colors.text }]}>Configuration</Text>
+            <Text style={[styles.viewCardTitle, { color: colors.text }]}>{t('gearProfiles.configuration')}</Text>
           </View>
           <DetailRow label="Name" value={profile.name} />
           <DetailRow label="Type" value={configTypeLabel} />
@@ -584,7 +586,7 @@ export default function GearProfileScreen() {
       <View style={[styles.viewCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
         <View style={styles.viewCardHeader}>
           <Feather name="thermometer" size={16} color={colors.primary} />
-          <Text style={[styles.viewCardTitle, { color: colors.text }]}>Exposure Protection</Text>
+          <Text style={[styles.viewCardTitle, { color: colors.text }]}>{t('gearProfiles.exposureProtection')}</Text>
         </View>
         <DetailRow label="Suit Type" value={profile.suitType} />
         {profile.suitThickness && <DetailRow label="Thickness" value={profile.suitThickness} />}
@@ -596,7 +598,7 @@ export default function GearProfileScreen() {
         <View style={[styles.viewCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <View style={styles.viewCardHeader}>
             <Feather name="shield" size={16} color={colors.primary} />
-            <Text style={[styles.viewCardTitle, { color: colors.text }]}>Accessories</Text>
+            <Text style={[styles.viewCardTitle, { color: colors.text }]}>{t('gearProfiles.accessories')}</Text>
           </View>
           {profile.glovesType && <DetailRow label="Gloves" value={`${profile.glovesType}${profile.glovesThickness ? ` (${profile.glovesThickness})` : ''}`} />}
           {profile.bootsType && <DetailRow label="Boots" value={`${profile.bootsType}${profile.bootsThickness ? ` (${profile.bootsThickness})` : ''}`} />}
@@ -608,7 +610,7 @@ export default function GearProfileScreen() {
         <View style={[styles.viewCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <View style={styles.viewCardHeader}>
             <Feather name="box" size={16} color={colors.primary} />
-            <Text style={[styles.viewCardTitle, { color: colors.text }]}>Other Equipment</Text>
+            <Text style={[styles.viewCardTitle, { color: colors.text }]}>{t('gearProfiles.otherEquipment')}</Text>
           </View>
           {profile.bcdType && <DetailRow label="BCD" value={`${profile.bcdType}${profile.bcdNickname ? ` - ${profile.bcdNickname}` : ''}`} />}
           {profile.finsType && <DetailRow label="Fins" value={`${profile.finsType}${profile.finsNickname ? ` - ${profile.finsNickname}` : ''}`} />}
@@ -621,7 +623,7 @@ export default function GearProfileScreen() {
   const renderGasViewTab = () => (
     <View style={styles.tabContent}>
       {profile.cylinders.map((cyl, index) => {
-        const roleLabel = CYLINDER_ROLES.find(r => r.value === cyl.cylinderRole)?.label || cyl.cylinderRole;
+        const roleLabel = t(`gearProfiles.cylinderRoles.${cyl.cylinderRole}`);
         return (
           <View key={index} style={[styles.viewCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <View style={styles.viewCardHeader}>
@@ -650,7 +652,7 @@ export default function GearProfileScreen() {
         <View style={[styles.totalWeightCard, { backgroundColor: colors.primary + '20', borderColor: colors.primary }]}>
           <Feather name="anchor" size={24} color={colors.primary} />
           <View>
-            <Text style={[styles.totalWeightLabel, { color: colors.primary }]}>Total Weight</Text>
+            <Text style={[styles.totalWeightLabel, { color: colors.primary }]}>{t('gearProfiles.totalWeight')}</Text>
             <Text style={[styles.totalWeightValue, { color: colors.primary }]}>{convertWeightFromMetric(totalWeight).toFixed(1)} {getWeightUnit()}</Text>
           </View>
         </View>
@@ -659,7 +661,7 @@ export default function GearProfileScreen() {
           <View style={[styles.viewCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <View style={styles.viewCardHeader}>
               <Feather name="anchor" size={16} color={colors.primary} />
-              <Text style={[styles.viewCardTitle, { color: colors.text }]}>Weight Distribution</Text>
+              <Text style={[styles.viewCardTitle, { color: colors.text }]}>{t('gearProfiles.weightDistribution')}</Text>
             </View>
             {weightsWithValues.map((weight, index) => (
               <DetailRow 
@@ -677,18 +679,18 @@ export default function GearProfileScreen() {
   const renderConfigTab = () => (
     <View style={styles.tabContent}>
       <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>Profile Name</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('gearProfiles.profileName')}</Text>
         <TextInput
           style={[styles.textInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
           value={profile.name}
           onChangeText={name => setProfile(prev => ({ ...prev, name }))}
-          placeholder="e.g., UK Cold Water Drysuit"
+          placeholder={t("gearProfiles.profileNamePlaceholderExample")}
           placeholderTextColor={colors.textSecondary}
         />
       </View>
 
       <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>Configuration Type</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('gearProfiles.configurationType')}</Text>
         <View style={styles.configTypeGrid}>
           {CONFIG_TYPES.map(type => (
             <Pressable
@@ -712,7 +714,7 @@ export default function GearProfileScreen() {
                   { color: profile.configType === type.value ? '#FFFFFF' : colors.text },
                 ]}
               >
-                {type.label}
+                {t(`gearProfiles.configTypes.${type.value === 'single_tank' ? 'singleTank' : type.value}`)}
               </Text>
             </Pressable>
           ))}
@@ -720,12 +722,12 @@ export default function GearProfileScreen() {
       </View>
 
       <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>Notes</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('gearProfiles.notes')}</Text>
         <TextInput
           style={[styles.textArea, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
           value={profile.notes || ''}
           onChangeText={notes => setProfile(prev => ({ ...prev, notes }))}
-          placeholder="Additional notes about this configuration..."
+          placeholder={t("gearProfiles.notesPlaceholder")}
           placeholderTextColor={colors.textSecondary}
           multiline
           numberOfLines={4}
@@ -737,7 +739,7 @@ export default function GearProfileScreen() {
   const renderExposureTab = () => (
     <View style={styles.tabContent}>
       <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>Suit Type</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('gearProfiles.suitType')}</Text>
         <SelectOption
           options={SUIT_TYPES}
           value={profile.suitType}
@@ -748,7 +750,7 @@ export default function GearProfileScreen() {
 
       {profile.suitType === 'Wetsuit' && (
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Wetsuit Thickness</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('gearProfiles.wetsuitThickness')}</Text>
           <SelectOption
             options={WETSUIT_THICKNESS}
             value={profile.suitThickness}
@@ -760,24 +762,24 @@ export default function GearProfileScreen() {
 
       {profile.suitType === 'Drysuit' && (
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Undersuit</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('gearProfiles.undersuit')}</Text>
           <TextInput
             style={[styles.textInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
             value={profile.undersuit || ''}
             onChangeText={undersuit => setProfile(prev => ({ ...prev, undersuit }))}
-            placeholder="e.g., Fourth Element Halo"
+            placeholder={t("gearProfiles.undersuitPlaceholder")}
             placeholderTextColor={colors.textSecondary}
           />
         </View>
       )}
 
       <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>Suit Nickname</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('gearProfiles.suitNickname')}</Text>
         <TextInput
           style={[styles.textInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
           value={profile.suitNickname || ''}
           onChangeText={suitNickname => setProfile(prev => ({ ...prev, suitNickname }))}
-          placeholder="e.g., My O3 Trilaminate"
+          placeholder={t("gearProfiles.suitNicknamePlaceholder")}
           placeholderTextColor={colors.textSecondary}
         />
       </View>
@@ -785,68 +787,68 @@ export default function GearProfileScreen() {
       <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
       <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>Gloves</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('gearProfiles.gloves')}</Text>
         <SelectOption
           options={GLOVES_TYPES}
           value={profile.glovesType}
           onChange={v => setProfile(prev => ({ ...prev, glovesType: v, glovesThickness: v === 'Dry' ? null : profile.glovesThickness }))}
-          label="Type"
+          label={t('gearProfiles.typeLabel')}
         />
         {profile.glovesType === 'Wet' && (
           <SelectOption
             options={THICKNESS_OPTIONS}
             value={profile.glovesThickness}
             onChange={v => setProfile(prev => ({ ...prev, glovesThickness: v }))}
-            label="Thickness"
+            label={t('gearProfiles.thickness')}
           />
         )}
         <TextInput
           style={[styles.textInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text, marginTop: 8 }]}
           value={profile.glovesNickname || ''}
           onChangeText={glovesNickname => setProfile(prev => ({ ...prev, glovesNickname }))}
-          placeholder="e.g., Kubi dry gloves"
+          placeholder={t("gearProfiles.glovesPlaceholder")}
           placeholderTextColor={colors.textSecondary}
         />
       </View>
 
       <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>Boots</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('gearProfiles.boots')}</Text>
         <SelectOption
           options={['Dry', 'Neoprene']}
           value={profile.bootsType}
           onChange={v => setProfile(prev => ({ ...prev, bootsType: v, bootsThickness: v === 'Dry' ? null : profile.bootsThickness }))}
-          label="Type"
+          label={t('gearProfiles.typeLabel')}
         />
         {profile.bootsType === 'Neoprene' && (
           <SelectOption
             options={THICKNESS_OPTIONS}
             value={profile.bootsThickness}
             onChange={v => setProfile(prev => ({ ...prev, bootsThickness: v }))}
-            label="Thickness"
+            label={t('gearProfiles.thickness')}
           />
         )}
         <TextInput
           style={[styles.textInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text, marginTop: 8 }]}
           value={profile.bootsNickname || ''}
           onChangeText={bootsNickname => setProfile(prev => ({ ...prev, bootsNickname }))}
-          placeholder="e.g., Fourth Element rockhopper"
+          placeholder={t("gearProfiles.bootsPlaceholder")}
           placeholderTextColor={colors.textSecondary}
         />
       </View>
 
       <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>Hood</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('gearProfiles.hood')}</Text>
         <SelectOption
           options={THICKNESS_OPTIONS}
           value={profile.hoodThickness}
           onChange={v => setProfile(prev => ({ ...prev, hoodThickness: v }))}
-          label="Thickness"
+          label={t('gearProfiles.thickness')}
         />
         <TextInput
           style={[styles.textInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text, marginTop: 8 }]}
           value={profile.hoodNickname || ''}
           onChangeText={hoodNickname => setProfile(prev => ({ ...prev, hoodNickname }))}
-          placeholder="e.g., Fourth Element hood"
+          placeholder={t("gearProfiles.hoodPlaceholder")}
           placeholderTextColor={colors.textSecondary}
         />
       </View>
@@ -875,13 +877,13 @@ export default function GearProfileScreen() {
             style={[styles.textInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
             value={cylinder.nickname}
             onChangeText={v => updateCylinder(index, 'nickname', v)}
-            placeholder="Nickname (optional)"
+            placeholder={t("gearProfiles.nicknamePlaceholder")}
             placeholderTextColor={colors.textSecondary}
           />
 
           <View style={styles.cylinderRow}>
             <View style={styles.cylinderField}>
-              <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Size</Text>
+              <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('gearProfiles.size')}</Text>
               <View style={styles.selectOptions}>
                 {CYLINDER_SIZES.map(size => (
                   <Pressable
@@ -906,7 +908,7 @@ export default function GearProfileScreen() {
 
           <View style={styles.cylinderRow}>
             <View style={styles.cylinderField}>
-              <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Material</Text>
+              <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('gearProfiles.material')}</Text>
               <View style={styles.selectOptions}>
                 {CYLINDER_MATERIALS.map(mat => (
                   <Pressable
@@ -931,7 +933,7 @@ export default function GearProfileScreen() {
 
           <View style={styles.cylinderRow}>
             <View style={styles.cylinderField}>
-              <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Role</Text>
+              <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('gearProfiles.role')}</Text>
               <View style={styles.selectOptions}>
                 {CYLINDER_ROLES.map(role => (
                   <Pressable
@@ -946,7 +948,7 @@ export default function GearProfileScreen() {
                     onPress={() => updateCylinder(index, 'cylinderRole', role.value)}
                   >
                     <Text style={{ color: cylinder.cylinderRole === role.value ? '#FFFFFF' : colors.text, fontSize: 11 }}>
-                      {role.label}
+                      {t(`gearProfiles.cylinderRoles.${role.value}`)}
                     </Text>
                   </Pressable>
                 ))}
@@ -956,7 +958,7 @@ export default function GearProfileScreen() {
 
           <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
-          <Text style={[styles.subsectionTitle, { color: colors.text }]}>Gas Mix</Text>
+          <Text style={[styles.subsectionTitle, { color: colors.text }]}>{t('gearProfiles.gasMix')}</Text>
 
           <View style={styles.selectOptions}>
             {GAS_MIXES.map(mix => (
@@ -1001,7 +1003,7 @@ export default function GearProfileScreen() {
               </View>
               {(cylinder.gasMix === 'Trimix' || cylinder.gasMix === 'Heliox') && (
                 <View style={styles.gasPercentField}>
-                  <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>He %</Text>
+                  <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('diveLogs.hePercent')}</Text>
                   <Stepper
                     value={cylinder.hePercent}
                     onValueChange={v => updateCylinder(index, 'hePercent', v)}
@@ -1028,7 +1030,7 @@ export default function GearProfileScreen() {
         onPress={addCylinder}
       >
         <Feather name="plus" size={18} color={colors.primary} />
-        <Text style={[styles.addCylinderText, { color: colors.primary }]}>Add Stage/Deco Cylinder</Text>
+        <Text style={[styles.addCylinderText, { color: colors.primary }]}>{t('gearProfiles.addStageCylinder')}</Text>
       </Pressable>
     </View>
   );
@@ -1049,7 +1051,7 @@ export default function GearProfileScreen() {
         <View style={[styles.totalWeightCard, { backgroundColor: colors.primary + '20', borderColor: colors.primary }]}>
           <Feather name="anchor" size={24} color={colors.primary} />
           <View>
-            <Text style={[styles.totalWeightLabel, { color: colors.primary }]}>Total Weight</Text>
+            <Text style={[styles.totalWeightLabel, { color: colors.primary }]}>{t('gearProfiles.totalWeight')}</Text>
             <Text style={[styles.totalWeightValue, { color: colors.primary }]}>{convertWeightFromMetric(totalWeight).toFixed(1)} {getWeightUnit()}</Text>
           </View>
         </View>
@@ -1074,13 +1076,13 @@ export default function GearProfileScreen() {
   const renderEquipmentViewTab = () => {
     return (
       <View style={styles.tabContent}>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>Equipment for this Profile</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('gearProfiles.equipmentForProfile')}</Text>
         
         {profileEquipment.length === 0 ? (
           <View style={[styles.emptyCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <Feather name="briefcase" size={32} color={colors.textSecondary} />
-            <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No equipment linked</Text>
-            <Text style={[styles.emptyHint, { color: colors.textSecondary }]}>Switch to edit mode to add equipment to this profile</Text>
+            <Text style={[styles.emptyText, { color: colors.textSecondary }]}>{t('gearProfiles.noEquipmentLinked')}</Text>
+            <Text style={[styles.emptyHint, { color: colors.textSecondary }]}>{t('gearProfiles.addEquipmentEditHint')}</Text>
           </View>
         ) : (
           <View style={[styles.equipmentListContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -1108,7 +1110,7 @@ export default function GearProfileScreen() {
         )}
 
         <View style={{ marginTop: 24 }}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>My Equipment Inventory</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('gearProfiles.myEquipmentInventory')}</Text>
           <Text style={[{ color: colors.textSecondary, fontSize: 13, marginBottom: 12 }]}>
             All your saved equipment. Switch to edit mode to link items to this profile.
           </Text>
@@ -1116,8 +1118,8 @@ export default function GearProfileScreen() {
           {allEquipment.length === 0 ? (
             <View style={[styles.emptyCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
               <Feather name="package" size={32} color={colors.textSecondary} />
-              <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No equipment in inventory</Text>
-              <Text style={[styles.emptyHint, { color: colors.textSecondary }]}>Switch to edit mode to add equipment</Text>
+              <Text style={[styles.emptyText, { color: colors.textSecondary }]}>{t('gearProfiles.noEquipmentInventory')}</Text>
+              <Text style={[styles.emptyHint, { color: colors.textSecondary }]}>{t('gearProfiles.addEquipmentInventoryHint')}</Text>
             </View>
           ) : (
             <View style={[styles.equipmentListContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -1169,12 +1171,12 @@ export default function GearProfileScreen() {
 
     return (
       <View style={styles.tabContent}>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>Profile Equipment</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('gearProfiles.profileEquipment')}</Text>
 
         {showSelectEquipment ? (
           <View style={[styles.addEquipmentForm, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <Text style={[styles.formLabel, { color: colors.text, marginBottom: 0 }]}>Select from Inventory</Text>
+              <Text style={[styles.formLabel, { color: colors.text, marginBottom: 0 }]}>{t('gearProfiles.selectFromInventory')}</Text>
               <Pressable onPress={() => setShowSelectEquipment(false)}>
                 <Feather name="x" size={20} color={colors.textSecondary} />
               </Pressable>
@@ -1213,7 +1215,7 @@ export default function GearProfileScreen() {
           </View>
         ) : showAddEquipment ? (
           <View style={[styles.addEquipmentForm, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Text style={[styles.formLabel, { color: colors.text }]}>Type</Text>
+            <Text style={[styles.formLabel, { color: colors.text }]}>{t('common.type')}</Text>
             <Pressable
               style={[styles.dropdownButton, { backgroundColor: colors.background, borderColor: colors.border }]}
               onPress={() => setShowTypePicker(true)}
@@ -1223,7 +1225,7 @@ export default function GearProfileScreen() {
                   ? (newEquipment.type === 'other' && newEquipment.customType 
                       ? newEquipment.customType 
                       : equipmentTypes.find(t => t.value === newEquipment.type)?.label || newEquipment.type)
-                  : 'Select equipment type...'}
+                  : t('gearProfiles.selectEquipmentType')}
               </Text>
               <Feather name="chevron-down" size={18} color={colors.textSecondary} />
             </Pressable>
@@ -1257,14 +1259,14 @@ export default function GearProfileScreen() {
                   style={[styles.pickerDoneButton, { backgroundColor: colors.primary }]}
                   onPress={() => setShowTypePicker(false)}
                 >
-                  <Text style={{ color: '#FFFFFF', fontWeight: '500' }}>Done</Text>
+                  <Text style={{ color: '#FFFFFF', fontWeight: '500' }}>{t('common.done')}</Text>
                 </Pressable>
               </View>
             )}
 
             {newEquipment.type === 'other' && (
               <>
-                <Text style={[styles.formLabel, { color: colors.text, marginTop: 12 }]}>Custom Type Name</Text>
+                <Text style={[styles.formLabel, { color: colors.text, marginTop: 12 }]}>{t('gearProfiles.customTypeName')}</Text>
                 <TextInput
                   style={[styles.textInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
                   placeholder="Enter custom equipment type..."
@@ -1310,7 +1312,7 @@ export default function GearProfileScreen() {
                   setNewEquipment({ type: '', name: '', quantity: 1, customType: '' });
                 }}
               >
-                <Text style={{ color: colors.text }}>Cancel</Text>
+                <Text style={{ color: colors.text }}>{t('common.cancel')}</Text>
               </Pressable>
               <Pressable
                 style={[styles.addButton, { backgroundColor: colors.primary }]}
@@ -1327,7 +1329,7 @@ export default function GearProfileScreen() {
               onPress={() => setShowSelectEquipment(true)}
             >
               <Feather name="check-circle" size={18} color={colors.primary} />
-              <Text style={{ color: colors.primary, fontWeight: '500' }}>Select from Inventory</Text>
+              <Text style={{ color: colors.primary, fontWeight: '500' }}>{t('gearProfiles.selectFromInventory')}</Text>
             </Pressable>
             <Pressable
               style={[styles.addEquipmentButton, { borderColor: colors.border, flex: 1 }]}
@@ -1384,11 +1386,11 @@ export default function GearProfileScreen() {
   }
 
   const tabs = [
-    { key: 'config' as const, label: 'Config', icon: 'settings' },
-    { key: 'exposure' as const, label: 'Exposure', icon: 'thermometer' },
-    { key: 'gas' as const, label: 'Gas', icon: 'database' },
-    { key: 'weight' as const, label: 'Weight', icon: 'anchor' },
-    { key: 'equipment' as const, label: 'Gear', icon: 'briefcase' },
+    { key: 'config' as const, label: t('gearProfiles.tabs.config'), icon: 'settings' },
+    { key: 'exposure' as const, label: t('gearProfiles.tabs.exposure'), icon: 'thermometer' },
+    { key: 'gas' as const, label: t('gearProfiles.tabs.gas'), icon: 'database' },
+    { key: 'weight' as const, label: t('gearProfiles.tabs.weight'), icon: 'anchor' },
+    { key: 'equipment' as const, label: t('gearProfiles.tabs.equipment'), icon: 'briefcase' },
   ];
 
   const handleClose = () => {
@@ -1407,7 +1409,7 @@ export default function GearProfileScreen() {
           <Feather name={isEditing ? "x" : "arrow-left"} size={24} color={colors.text} />
         </Pressable>
         <Text style={[styles.headerTitle, { color: colors.text }]}>
-          {isNew ? 'New Gear Profile' : isEditing ? 'Edit Profile' : profile.name || 'Gear Profile'}
+          {isNew ? t('gearProfiles.newGearProfile') : isEditing ? t('gearProfiles.editGearProfile') : profile.name || t('gearProfiles.gearProfile')}
         </Text>
         {isEditing ? (
           <Pressable
@@ -1418,7 +1420,7 @@ export default function GearProfileScreen() {
             {saving ? (
               <ActivityIndicator size="small" color="#FFFFFF" />
             ) : (
-              <Text style={styles.saveButtonText}>Save</Text>
+              <Text style={styles.saveButtonText}>{t('common.save')}</Text>
             )}
           </Pressable>
         ) : (

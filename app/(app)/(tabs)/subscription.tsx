@@ -11,11 +11,13 @@ import {
 import { useRouter } from 'expo-router';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useTranslation } from 'react-i18next';
 import ThemedBackground from '@/components/ThemedBackground';
 
 const PACKAGE_NAME = 'com.erebus.diveapp';
 
 export default function SubscriptionScreen() {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const router = useRouter();
 
@@ -35,7 +37,7 @@ export default function SubscriptionScreen() {
         <Pressable onPress={() => router.back()} style={styles.backButton}>
           <Feather name="arrow-left" size={24} color={colors.text} />
         </Pressable>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Subscription</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>{t('subscription.title')}</Text>
         <View style={styles.headerSpacer} />
       </View>
 
@@ -47,30 +49,30 @@ export default function SubscriptionScreen() {
             </View>
           </View>
 
-          <Text style={[styles.title, { color: colors.text }]}>Erebus Premium</Text>
+          <Text style={[styles.title, { color: colors.text }]}>{t('subscription.erebusPremium')}</Text>
           <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-            Manage your subscription and billing
+            {t('subscription.manageSubscription')}
           </Text>
 
           <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
           <View style={styles.infoSection}>
-            <Text style={[styles.infoTitle, { color: colors.text }]}>Subscription Benefits</Text>
+            <Text style={[styles.infoTitle, { color: colors.text }]}>{t('subscription.subscriptionBenefits')}</Text>
             <View style={styles.benefitRow}>
               <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
-              <Text style={[styles.benefitText, { color: colors.textSecondary }]}>Unlimited dive log storage</Text>
+              <Text style={[styles.benefitText, { color: colors.textSecondary }]}>{t('subscription.unlimitedDiveLogs')}</Text>
             </View>
             <View style={styles.benefitRow}>
               <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
-              <Text style={[styles.benefitText, { color: colors.textSecondary }]}>Advanced dive planning tools</Text>
+              <Text style={[styles.benefitText, { color: colors.textSecondary }]}>{t('subscription.advancedPlanning')}</Text>
             </View>
             <View style={styles.benefitRow}>
               <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
-              <Text style={[styles.benefitText, { color: colors.textSecondary }]}>Cloud backup and sync</Text>
+              <Text style={[styles.benefitText, { color: colors.textSecondary }]}>{t('subscription.cloudBackup')}</Text>
             </View>
             <View style={styles.benefitRow}>
               <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
-              <Text style={[styles.benefitText, { color: colors.textSecondary }]}>Priority support</Text>
+              <Text style={[styles.benefitText, { color: colors.textSecondary }]}>{t('subscription.prioritySupport')}</Text>
             </View>
           </View>
 
@@ -79,8 +81,7 @@ export default function SubscriptionScreen() {
           {isNativePlatform ? (
             <>
               <Text style={[styles.manageText, { color: colors.textSecondary }]}>
-                Your subscription is managed through the {Platform.OS === 'ios' ? 'App Store' : 'Google Play Store'}. 
-                Tap the button below to view, modify, or cancel your subscription.
+                {t('subscription.managedThrough', { store: Platform.OS === 'ios' ? t('subscription.appStore') : t('subscription.googlePlay') })}
               </Text>
 
               <Pressable
@@ -93,7 +94,7 @@ export default function SubscriptionScreen() {
                   color="#FFFFFF" 
                 />
                 <Text style={styles.manageButtonText}>
-                  Manage in {Platform.OS === 'ios' ? 'App Store' : 'Google Play'}
+                  {t('subscription.manageInStore', { store: Platform.OS === 'ios' ? t('subscription.appStore') : t('subscription.googlePlay') })}
                 </Text>
                 <Feather name="external-link" size={16} color="#FFFFFF" />
               </Pressable>
@@ -102,24 +103,23 @@ export default function SubscriptionScreen() {
             <View style={[styles.webNotice, { backgroundColor: colors.background, borderColor: colors.border }]}>
               <Ionicons name="information-circle-outline" size={24} color={colors.primary} />
               <Text style={[styles.webNoticeText, { color: colors.textSecondary }]}>
-                To manage your subscription, please open the Erebus app on your iOS or Android device 
-                and navigate to this screen. Subscriptions are managed through the App Store or Google Play Store.
+                {t('subscription.webNotice')}
               </Text>
             </View>
           )}
         </View>
 
         <View style={[styles.helpCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={[styles.helpTitle, { color: colors.text }]}>Need Help?</Text>
+          <Text style={[styles.helpTitle, { color: colors.text }]}>{t('subscription.needHelp')}</Text>
           <Text style={[styles.helpText, { color: colors.textSecondary }]}>
-            If you have any questions about your subscription or billing, please contact our support team.
+            {t('subscription.helpText')}
           </Text>
           <Pressable
             style={[styles.helpButton, { borderColor: colors.primary }]}
             onPress={() => Linking.openURL('mailto:support@erebus.app')}
           >
             <Ionicons name="mail-outline" size={18} color={colors.primary} />
-            <Text style={[styles.helpButtonText, { color: colors.primary }]}>Contact Support</Text>
+            <Text style={[styles.helpButtonText, { color: colors.primary }]}>{t('subscription.contactSupport')}</Text>
           </Pressable>
         </View>
       </ScrollView>

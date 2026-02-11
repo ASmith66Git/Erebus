@@ -17,6 +17,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { getApiUrl } from '@/utils/apiConfig';
 import * as DocumentPicker from 'expo-document-picker';
 import ThemedBackground from '@/components/ThemedBackground';
+import { useTranslation } from 'react-i18next';
 
 interface BatchUploadResult {
   fileName: string;
@@ -40,6 +41,7 @@ export default function ImportDiveLogScreen() {
   const { colors } = useTheme();
   const { token } = useAuth();
   const router = useRouter();
+  const { t } = useTranslation();
   const [importing, setImporting] = useState(false);
   const [capabilities, setCapabilities] = useState<DiveComputerCapabilities | null>(null);
   const [loadingCapabilities, setLoadingCapabilities] = useState(true);
@@ -112,9 +114,9 @@ export default function ImportDiveLogScreen() {
       setImporting(false);
       
       if (result.error) {
-        alert(`Import Error: ${result.error}`);
+        alert(`${t('importDiveLog.importErrorTitle')}: ${result.error}`);
       } else {
-        alert(`Imported ${result.divesImported} dive${result.divesImported !== 1 ? 's' : ''} from ${fileArray[0].name}`);
+        alert(t('importDiveLog.importedFromFile', { count: result.divesImported, fileName: fileArray[0].name }));
         router.back();
       }
       event.target.value = '';
@@ -161,7 +163,7 @@ export default function ImportDiveLogScreen() {
     event.target.value = '';
     
     setTimeout(() => {
-      alert(`Batch import complete!\n\n${successCount} file${successCount !== 1 ? 's' : ''} imported successfully\n${totalDives} total dive${totalDives !== 1 ? 's' : ''} added${errorCount > 0 ? `\n${errorCount} file${errorCount !== 1 ? 's' : ''} failed` : ''}`);
+      alert(`${t('importDiveLog.batchImportComplete')}\n\n${t('importDiveLog.batchSuccessSummary', { successCount, totalDives })}${errorCount > 0 ? `\n${t('importDiveLog.batchErrorSummary', { errorCount })}` : ''}`);
       router.back();
     }, 500);
   };
@@ -208,10 +210,10 @@ export default function ImportDiveLogScreen() {
         setImporting(false);
         
         if (result.error) {
-          Alert.alert('Import Error', result.error);
+          Alert.alert(t('importDiveLog.importErrorTitle'), result.error);
         } else {
-          Alert.alert('Import Successful', `Imported ${result.divesImported} dive${result.divesImported !== 1 ? 's' : ''} from ${file.name}`, [
-            { text: 'OK', onPress: () => router.back() }
+          Alert.alert(t('importDiveLog.importSuccessful'), t('importDiveLog.importedFromFile', { count: result.divesImported, fileName: file.name }), [
+            { text: t('common.ok'), onPress: () => router.back() }
           ]);
         }
         return;
@@ -261,12 +263,12 @@ export default function ImportDiveLogScreen() {
       setImporting(false);
       
       Alert.alert(
-        'Batch Import Complete',
-        `${successCount} file${successCount !== 1 ? 's' : ''} imported successfully\n${totalDives} total dive${totalDives !== 1 ? 's' : ''} added${errorCount > 0 ? `\n${errorCount} file${errorCount !== 1 ? 's' : ''} failed` : ''}`,
-        [{ text: 'OK', onPress: () => router.back() }]
+        t('importDiveLog.batchImportComplete'),
+        `${t('importDiveLog.batchSuccessSummary', { successCount, totalDives })}${errorCount > 0 ? `\n${t('importDiveLog.batchErrorSummary', { errorCount })}` : ''}`,
+        [{ text: t('common.ok'), onPress: () => router.back() }]
       );
     } catch (error: any) {
-      Alert.alert('Import Error', error.message || 'Failed to import dive logs');
+      Alert.alert(t('importDiveLog.importErrorTitle'), error.message || t('importDiveLog.importError'));
       setImporting(false);
     }
   };
@@ -277,17 +279,17 @@ export default function ImportDiveLogScreen() {
 
   const getImportGuidance = () => {
     if (!capabilities?.brand || !capabilities?.model) {
-      return "Set up your dive computer in Profile settings to get personalized import guidance.";
+      return t('importDiveLog.setupGuidance');
     }
     
     const model = capabilities.model;
     const formats = model.export_formats?.join(', ') || 'Unknown formats';
     
     if (model.has_ble) {
-      return `Your ${capabilities.brand.name} ${model.name} supports Bluetooth sync! You can also export ${formats} files from your computer's software.`;
+      return t('importDiveLog.bleImportGuidance', { brand: capabilities.brand.name, model: model.name, formats });
     }
     
-    return `Export dive logs from your ${capabilities.brand.name} software as ${formats}, then import here.`;
+    return t('importDiveLog.fileImportGuidance', { brand: capabilities.brand.name, formats });
   };
 
   if (loadingCapabilities) {
@@ -304,13 +306,13 @@ export default function ImportDiveLogScreen() {
         <Pressable onPress={() => router.back()} style={styles.backButton}>
           <Feather name="arrow-left" size={24} color={colors.text} />
         </Pressable>
-        <Text style={[styles.title, { color: colors.text }]}>Add Dive Log</Text>
+        <Text style={[styles.title, { color: colors.text }]}>{t('importDiveLog.addDiveLog')}</Text>
         <View style={styles.placeholder} />
       </View>
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-          Choose how you'd like to add your dive data
+          {t('importDiveLog.chooseHowToAdd')}
         </Text>
 
         <View style={styles.optionsContainer}>
@@ -324,10 +326,10 @@ export default function ImportDiveLogScreen() {
               </View>
               <View style={styles.optionContent}>
                 <Text style={[styles.optionTitle, { color: colors.text }]}>
-                  Connect via Bluetooth
+                  {t('importDiveLog.connectViaBluetooth')}
                 </Text>
                 <Text style={[styles.optionDescription, { color: colors.textSecondary }]}>
-                  Sync directly from your {capabilities?.brand?.name} {capabilities?.model?.name}
+                  {t('importDiveLog.syncFromComputer', { brand: capabilities?.brand?.name, model: capabilities?.model?.name })}
                 </Text>
               </View>
               <Feather name="chevron-right" size={24} color={colors.textSecondary} />
@@ -341,10 +343,10 @@ export default function ImportDiveLogScreen() {
               </View>
               <View style={styles.optionContent}>
                 <Text style={[styles.optionTitle, { color: colors.textSecondary }]}>
-                  Connect via Bluetooth
+                  {t('importDiveLog.connectViaBluetooth')}
                 </Text>
                 <Text style={[styles.optionDescription, { color: colors.textSecondary }]}>
-                  Bluetooth sync requires the native mobile app
+                  {t('importDiveLog.bluetoothRequiresNative')}
                 </Text>
               </View>
             </View>
@@ -364,10 +366,10 @@ export default function ImportDiveLogScreen() {
             </View>
             <View style={styles.optionContent}>
               <Text style={[styles.optionTitle, { color: colors.text }]}>
-                Import from File
+                {t('importDiveLog.importFromFile')}
               </Text>
               <Text style={[styles.optionDescription, { color: colors.textSecondary }]}>
-                Upload UDDF, Subsurface XML, or CSV files (batch supported)
+                {t('importDiveLog.importFromFileDesc')}
               </Text>
             </View>
             <Feather name="chevron-right" size={24} color={colors.textSecondary} />
@@ -378,7 +380,7 @@ export default function ImportDiveLogScreen() {
               <View style={styles.batchHeader}>
                 <Ionicons name="documents-outline" size={20} color={colors.primary} />
                 <Text style={[styles.batchTitle, { color: colors.text }]}>
-                  Batch Import Progress
+                  {t('importDiveLog.batchImportProgress')}
                 </Text>
                 {!importing && (
                   <Pressable onPress={() => { setShowBatchResults(false); setBatchResults([]); }}>
@@ -408,7 +410,7 @@ export default function ImportDiveLogScreen() {
                     </Text>
                     {result.status === 'success' && (
                       <Text style={[styles.batchResultText, { color: '#10B981' }]}>
-                        {result.divesImported} dive{result.divesImported !== 1 ? 's' : ''} imported
+                        {t('importDiveLog.divesImportedCount', { count: result.divesImported })}
                       </Text>
                     )}
                     {result.status === 'error' && (
@@ -431,10 +433,10 @@ export default function ImportDiveLogScreen() {
             </View>
             <View style={styles.optionContent}>
               <Text style={[styles.optionTitle, { color: colors.text }]}>
-                Manual Entry
+                {t('importDiveLog.manualEntry')}
               </Text>
               <Text style={[styles.optionDescription, { color: colors.textSecondary }]}>
-                Log a dive manually with details
+                {t('importDiveLog.manualEntryDesc')}
               </Text>
             </View>
             <Feather name="chevron-right" size={24} color={colors.textSecondary} />

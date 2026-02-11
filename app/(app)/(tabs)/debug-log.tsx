@@ -15,6 +15,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { errorLogger, LogEntry, LogLevel } from '@/services/errorLogger';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
+import { useTranslation } from 'react-i18next';
 import PageHeader from '@/components/PageHeader';
 import ThemedBackground from '@/components/ThemedBackground';
 
@@ -26,6 +27,7 @@ const LOG_COLORS: Record<LogLevel, string> = {
 };
 
 export default function DebugLogScreen() {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const navigation = useNavigation();
   const [logs, setLogs] = useState<LogEntry[]>([]);
@@ -45,18 +47,18 @@ export default function DebugLogScreen() {
 
   const handleClear = async () => {
     if (Platform.OS === 'web') {
-      if (window.confirm('Are you sure you want to clear all logs?')) {
+      if (window.confirm(t('debugLog.clearLogsConfirm'))) {
         await errorLogger.clearLogs();
         setLogs([]);
       }
     } else {
       Alert.alert(
-        'Clear Logs',
-        'Are you sure you want to clear all logs?',
+        t('debugLog.clearLogs'),
+        t('debugLog.clearLogsConfirm'),
         [
-          { text: 'Cancel', style: 'cancel' },
+          { text: t('common.cancel'), style: 'cancel' },
           {
-            text: 'Clear',
+            text: t('common.clear'),
             style: 'destructive',
             onPress: async () => {
               await errorLogger.clearLogs();
@@ -73,15 +75,15 @@ export default function DebugLogScreen() {
       const exported = errorLogger.exportLogs();
       if (Platform.OS === 'web') {
         await navigator.clipboard.writeText(exported);
-        Alert.alert('Copied', 'Logs copied to clipboard');
+        Alert.alert(t('common.copied'), t('debugLog.logsCopied'));
       } else {
         await Share.share({
           message: exported,
-          title: 'Erebus Debug Logs',
+          title: t('debugLog.erebusDebugLogs'),
         });
       }
     } catch (e) {
-      Alert.alert('Error', 'Failed to share logs');
+      Alert.alert(t('common.error'), t('debugLog.failedToShareLogs'));
     }
   };
 
@@ -100,7 +102,7 @@ export default function DebugLogScreen() {
         a.download = filename;
         a.click();
         URL.revokeObjectURL(url);
-        Alert.alert('Downloaded', `Logs saved as ${filename}`);
+        Alert.alert(t('debugLog.downloaded'), t('debugLog.logsSavedAs', { filename }));
       } else {
         // Native: Save to Downloads folder and share
         const fileUri = FileSystem.documentDirectory + filename;
@@ -113,16 +115,16 @@ export default function DebugLogScreen() {
         if (isAvailable) {
           await Sharing.shareAsync(fileUri, {
             mimeType: 'text/plain',
-            dialogTitle: 'Save Debug Logs',
+            dialogTitle: t('debugLog.saveDebugLogs'),
             UTI: 'public.plain-text',
           });
         } else {
-          Alert.alert('Saved', `Logs saved to: ${fileUri}`);
+          Alert.alert(t('debugLog.saved'), t('debugLog.logsSavedTo', { path: fileUri }));
         }
       }
     } catch (e: any) {
       console.error('Failed to download logs:', e);
-      Alert.alert('Error', `Failed to save logs: ${e?.message || 'Unknown error'}`);
+      Alert.alert(t('common.error'), t('debugLog.failedToSaveLogs', { error: e?.message || 'Unknown error' }));
     }
   };
 
@@ -148,17 +150,17 @@ export default function DebugLogScreen() {
   };
 
   const filterButtons: { label: string; value: LogLevel | 'all' }[] = [
-    { label: 'All', value: 'all' },
-    { label: 'Error', value: 'error' },
-    { label: 'Warn', value: 'warn' },
-    { label: 'Info', value: 'info' },
-    { label: 'Debug', value: 'debug' },
+    { label: t('debugLog.filterAll'), value: 'all' },
+    { label: t('debugLog.filterError'), value: 'error' },
+    { label: t('debugLog.filterWarn'), value: 'warn' },
+    { label: t('debugLog.filterInfo'), value: 'info' },
+    { label: t('debugLog.filterDebug'), value: 'debug' },
   ];
 
   return (
     <ThemedBackground>
       <PageHeader 
-        title="Debug Logs" 
+        title={t('debugLog.title')} 
         rightAction={
           <View style={styles.headerActions}>
             <Pressable onPress={handleDownloadToFile} style={styles.actionButton}>
@@ -202,8 +204,8 @@ export default function DebugLogScreen() {
       </View>
 
       <Text style={[styles.logCount, { color: colors.textSecondary }]}>
-        {logs.length} log{logs.length !== 1 ? 's' : ''}
-        {filter !== 'all' && ` (filtered by ${filter})`}
+        {logs.length !== 1 ? t('debugLog.logCountPlural', { count: logs.length }) : t('debugLog.logCount', { count: logs.length })}
+        {filter !== 'all' && ` ${t('debugLog.filteredBy', { filter })}`}
       </Text>
 
       <ScrollView style={styles.logList} contentContainerStyle={styles.logListContent}>
@@ -211,7 +213,7 @@ export default function DebugLogScreen() {
           <View style={styles.emptyState}>
             <Ionicons name="document-text-outline" size={48} color={colors.textSecondary} />
             <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-              No logs to display
+              {t('debugLog.noLogsToDisplay')}
             </Text>
           </View>
         ) : (

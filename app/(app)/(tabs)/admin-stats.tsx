@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { DrawerActions, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import Svg, { Rect, Text as SvgText, Line } from 'react-native-svg';
+import { useTranslation } from 'react-i18next';
 import PageHeader from '@/components/PageHeader';
 import ThemedBackground from '@/components/ThemedBackground';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -27,6 +28,7 @@ interface Stats {
 }
 
 export default function AdminStatsScreen() {
+  const { t } = useTranslation();
   const { colors, isDark } = useTheme();
   const { token, isAdmin } = useAuth();
   const navigation = useNavigation();
@@ -65,12 +67,12 @@ export default function AdminStatsScreen() {
       <ThemedBackground>
         <SafeAreaView style={styles.container} edges={['top']}>
           <PageHeader
-            title="Admin Stats"
+            title={t('adminStats.title')}
             leftIcon="menu"
             onLeftPress={() => navigation.dispatch(DrawerActions.openDrawer())}
           />
           <View style={styles.centered}>
-            <Text style={{ color: colors.text }}>Admin access required</Text>
+            <Text style={{ color: colors.text }}>{t('adminStats.adminAccessRequired')}</Text>
           </View>
         </SafeAreaView>
       </ThemedBackground>
@@ -78,14 +80,14 @@ export default function AdminStatsScreen() {
   }
 
   const statCards = stats ? [
-    { label: 'Users', value: stats.totals.users, icon: 'people', color: '#007AFF' },
-    { label: 'Dive Logs', value: stats.totals.diveLogs, icon: 'journal', color: '#34C759' },
-    { label: 'Buddies', value: stats.totals.buddies, icon: 'people-circle', color: '#FF9500' },
-    { label: 'Gear Profiles', value: stats.totals.gearProfiles, icon: 'build', color: '#AF52DE' },
-    { label: 'Dive Sites', value: stats.totals.diveSites, icon: 'location', color: '#FF3B30' },
-    { label: 'Photos', value: stats.totals.photos, icon: 'images', color: '#5856D6' },
-    { label: 'Certifications', value: stats.totals.certifications, icon: 'ribbon', color: '#FF2D55' },
-    { label: 'Dive Trips', value: stats.totals.diveTrips, icon: 'airplane', color: '#00C7BE' },
+    { label: t('adminStats.users'), value: stats.totals.users, icon: 'people', color: '#007AFF' },
+    { label: t('adminStats.diveLogs'), value: stats.totals.diveLogs, icon: 'journal', color: '#34C759' },
+    { label: t('adminStats.buddies'), value: stats.totals.buddies, icon: 'people-circle', color: '#FF9500' },
+    { label: t('adminStats.gearProfiles'), value: stats.totals.gearProfiles, icon: 'build', color: '#AF52DE' },
+    { label: t('adminStats.diveSites'), value: stats.totals.diveSites, icon: 'location', color: '#FF3B30' },
+    { label: t('adminStats.photos'), value: stats.totals.photos, icon: 'images', color: '#5856D6' },
+    { label: t('adminStats.certifications'), value: stats.totals.certifications, icon: 'ribbon', color: '#FF2D55' },
+    { label: t('adminStats.diveTrips'), value: stats.totals.diveTrips, icon: 'airplane', color: '#00C7BE' },
   ] : [];
 
   const screenWidth = Dimensions.get('window').width;
@@ -99,9 +101,9 @@ export default function AdminStatsScreen() {
     if (!stats || stats.usersByMonth.length === 0) {
       return (
         <View style={[styles.chartContainer, { backgroundColor: colors.card }]}>
-          <Text style={[styles.chartTitle, { color: colors.text }]}>User Growth (Last 12 Months)</Text>
+          <Text style={[styles.chartTitle, { color: colors.text }]}>{t('adminStats.userGrowth')}</Text>
           <View style={styles.emptyChart}>
-            <Text style={{ color: colors.textSecondary }}>No data available</Text>
+            <Text style={{ color: colors.textSecondary }}>{t('adminStats.noDataAvailable')}</Text>
           </View>
         </View>
       );
@@ -113,7 +115,7 @@ export default function AdminStatsScreen() {
 
     return (
       <View style={[styles.chartContainer, { backgroundColor: colors.card }]}>
-        <Text style={[styles.chartTitle, { color: colors.text }]}>User Growth (Last 12 Months)</Text>
+        <Text style={[styles.chartTitle, { color: colors.text }]}>{t('adminStats.userGrowth')}</Text>
         <Svg width={chartWidth} height={chartHeight}>
           <Line x1={padding.left} y1={padding.top} x2={padding.left} y2={padding.top + chartH} stroke={colors.border} strokeWidth={1} />
           <Line x1={padding.left} y1={padding.top + chartH} x2={padding.left + chartW} y2={padding.top + chartH} stroke={colors.border} strokeWidth={1} />
@@ -154,7 +156,7 @@ export default function AdminStatsScreen() {
     <ThemedBackground>
       <SafeAreaView style={styles.container} edges={['top']}>
         <PageHeader
-          title="Platform Statistics"
+          title={t('adminStats.title')}
           leftIcon="menu"
           onLeftPress={() => navigation.dispatch(DrawerActions.openDrawer())}
         />

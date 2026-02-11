@@ -22,6 +22,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import EmbeddedMapPicker from '@/components/EmbeddedMapPicker';
 import StaticMapView from '@/components/StaticMapView';
 import { getApiUrl } from '@/utils/apiConfig';
+import { useTranslation } from 'react-i18next';
 import * as ImagePicker from 'expo-image-picker';
 import ThemedBackground from '@/components/ThemedBackground';
 
@@ -361,6 +362,7 @@ export default function DiveSiteDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { colors } = useTheme();
   const { token } = useAuth();
+  const { t } = useTranslation();
   const router = useRouter();
   const [site, setSite] = useState<DiveSite | null>(null);
   const [loading, setLoading] = useState(true);
@@ -492,7 +494,7 @@ export default function DiveSiteDetailScreen() {
 
   const handleImageUpload = async () => {
     if (!token || !site?.id || Platform.OS !== 'web') {
-      Alert.alert('Info', 'Image upload is only available on web for now');
+      Alert.alert(t('common.error'), t('diveSites.imageUploadWebOnly'));
       return;
     }
 
@@ -550,11 +552,11 @@ export default function DiveSiteDetailScreen() {
         if (addImageResponse.ok) {
           const newImage = await addImageResponse.json();
           setSiteImages(prev => [...prev, newImage]);
-          Alert.alert('Success', 'Image uploaded successfully');
+          Alert.alert(t('common.success'), t('diveSites.imageUploadSuccess'));
         }
       } catch (error) {
         console.error('Error uploading image:', error);
-        Alert.alert('Error', 'Failed to upload image');
+        Alert.alert(t('common.error'), t('diveSites.failedToUploadImage'));
       } finally {
         setUploadingImage(false);
       }
@@ -564,13 +566,13 @@ export default function DiveSiteDetailScreen() {
 
   const handleTakePhoto = async () => {
     if (!token || !site?.id) {
-      Alert.alert('Error', 'Please save the dive site first');
+      Alert.alert(t('common.error'), t('diveSites.saveSiteFirst'));
       return;
     }
 
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission Required', 'Camera permission is needed to take photos');
+      Alert.alert(t('common.error'), t('diveSites.cameraPermissionRequired'));
       return;
     }
 
@@ -637,11 +639,11 @@ export default function DiveSiteDetailScreen() {
       if (addImageResponse.ok) {
         const newImage = await addImageResponse.json();
         setSiteImages(prev => [...prev, newImage]);
-        Alert.alert('Success', 'Photo saved successfully');
+        Alert.alert(t('common.success'), t('diveSites.photoSavedSuccess'));
       }
     } catch (error) {
       console.error('Error uploading photo:', error);
-      Alert.alert('Error', 'Failed to save photo');
+      Alert.alert(t('common.error'), t('diveSites.failedToSavePhoto'));
     } finally {
       setUploadingImage(false);
     }
@@ -678,7 +680,7 @@ export default function DiveSiteDetailScreen() {
         })));
         setSite(prev => prev ? { ...prev, imageUrl: updatedImage.imageUrl } : prev);
         setShowImageModal(false);
-        Alert.alert('Success', 'Primary image updated');
+        Alert.alert(t('common.success'), t('diveSites.primaryImageUpdated'));
       }
     } catch (error) {
       console.error('Error setting primary image:', error);
@@ -699,9 +701,9 @@ export default function DiveSiteDetailScreen() {
           setSiteImages(prev => prev.filter(img => img.id !== imageId));
           setShowImageModal(false);
           if (Platform.OS === 'web') {
-            alert('Image deleted successfully');
+            alert(t('diveSites.imageDeletedSuccess'));
           } else {
-            Alert.alert('Success', 'Image deleted');
+            Alert.alert(t('common.success'), t('diveSites.imageDeleted'));
           }
         }
       } catch (error) {
@@ -710,13 +712,13 @@ export default function DiveSiteDetailScreen() {
     };
 
     if (Platform.OS === 'web') {
-      if (window.confirm('Are you sure you want to delete this image?')) {
+      if (window.confirm(t('diveSites.deleteImageConfirm'))) {
         doDelete();
       }
     } else {
-      Alert.alert('Delete Image', 'Are you sure you want to delete this image?', [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete', style: 'destructive', onPress: doDelete },
+      Alert.alert(t('diveSites.deleteImage'), t('diveSites.deleteImageConfirm'), [
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('common.delete'), style: 'destructive', onPress: doDelete },
       ]);
     }
   };
@@ -748,14 +750,14 @@ export default function DiveSiteDetailScreen() {
           setSite({ ...site, ...data } as DiveSite);
           setIsEditing(false);
         }
-        Alert.alert('Success', isNewSite ? 'Dive site created!' : 'Changes saved!');
+        Alert.alert(t('common.success'), isNewSite ? t('diveSites.siteCreated') : t('diveSites.changesSaved'));
       } else {
         const error = await response.json();
-        Alert.alert('Error', error.error || 'Failed to save');
+        Alert.alert(t('common.error'), error.error || t('diveSites.failedToSave'));
       }
     } catch (error) {
       console.error('Error saving:', error);
-      Alert.alert('Error', 'Failed to save dive site');
+      Alert.alert(t('common.error'), t('diveSites.failedToSaveSite'));
     } finally {
       setSaving(false);
     }
@@ -783,29 +785,29 @@ export default function DiveSiteDetailScreen() {
         });
 
         if (response.ok) {
-          Alert.alert('Success', 'Dive site deleted');
+          Alert.alert(t('common.success'), t('diveSites.siteDeleted'));
           router.back();
         } else {
           const error = await response.json();
-          Alert.alert('Error', error.error || 'Failed to delete dive site');
+          Alert.alert(t('common.error'), error.error || t('diveSites.failedToDeleteSite'));
         }
       } catch (error) {
         console.error('Error deleting dive site:', error);
-        Alert.alert('Error', 'Failed to delete dive site');
+        Alert.alert(t('common.error'), t('diveSites.failedToDeleteSite'));
       }
     };
 
     if (Platform.OS === 'web') {
-      if (window.confirm('Are you sure you want to delete this dive site? This action cannot be undone.')) {
+      if (window.confirm(t('diveSites.deleteSiteConfirmLong'))) {
         doDelete();
       }
     } else {
       Alert.alert(
-        'Delete Dive Site',
-        'Are you sure you want to delete this dive site? This action cannot be undone.',
+        t('diveSites.deleteSite'),
+        t('diveSites.deleteSiteConfirmLong'),
         [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Delete', style: 'destructive', onPress: doDelete },
+          { text: t('common.cancel'), style: 'cancel' },
+          { text: t('common.delete'), style: 'destructive', onPress: doDelete },
         ]
       );
     }
@@ -835,23 +837,23 @@ export default function DiveSiteDetailScreen() {
       {isEditing ? (
         <>
           <View style={styles.formGroup}>
-            <Text style={[styles.formLabel, { color: colors.text }]}>Name *</Text>
+            <Text style={[styles.formLabel, { color: colors.text }]}>{t('diveSites.siteName')} *</Text>
             <TextInput
               style={[styles.formInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
               value={editedSite.name || ''}
               onChangeText={(v) => updateField('name', v)}
-              placeholder="Dive site name"
+              placeholder={t("diveSites.siteNamePlaceholder")}
               placeholderTextColor={colors.textSecondary}
             />
           </View>
 
           <View style={styles.formGroup}>
-            <Text style={[styles.formLabel, { color: colors.text }]}>Description</Text>
+            <Text style={[styles.formLabel, { color: colors.text }]}>{t('common.description')}</Text>
             <TextInput
               style={[styles.formInput, styles.textArea, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
               value={editedSite.description || ''}
               onChangeText={(v) => updateField('description', v)}
-              placeholder="Describe this dive site..."
+              placeholder={t("diveSites.descriptionPlaceholder")}
               placeholderTextColor={colors.textSecondary}
               multiline
               numberOfLines={4}
@@ -861,29 +863,29 @@ export default function DiveSiteDetailScreen() {
           <View style={styles.formRow}>
             <View style={{ flex: 1 }}>
               <PickerDropdown
-                label="Site Type *"
+                label={t('diveSites.siteType') + ' *'}
                 value={editedSite.siteType}
-                options={siteTypeOptions}
+                options={siteTypeOptions.map(o => ({ ...o, label: t(`diveSites.siteTypes.${o.value}`) }))}
                 onValueChange={(v) => updateField('siteType', v)}
                 colors={colors}
-                placeholder="Select type..."
+                placeholder={t("diveSites.siteType")}
               />
             </View>
             <View style={{ flex: 1 }}>
               <PickerDropdown
-                label="Water Type *"
+                label={t('diveSites.waterType') + ' *'}
                 value={editedSite.waterType}
-                options={waterTypeOptions}
+                options={waterTypeOptions.map(o => ({ ...o, label: t(`diveSites.waterTypeOptions.${o.value}`) }))}
                 onValueChange={(v) => updateField('waterType', v)}
                 colors={colors}
-                placeholder="Select water type..."
+                placeholder={t("diveSites.waterType")}
               />
             </View>
           </View>
 
           <View style={styles.formRow}>
             <View style={[styles.formGroup, { flex: 1 }]}>
-              <Text style={[styles.formLabel, { color: colors.text }]}>Max Depth (m)</Text>
+              <Text style={[styles.formLabel, { color: colors.text }]}>{t('diveSites.maxDepthLabel')}</Text>
               <TextInput
                 style={[styles.formInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
                 value={editedSite.depthMax?.toString() || ''}
@@ -895,19 +897,19 @@ export default function DiveSiteDetailScreen() {
             </View>
             <View style={{ flex: 1 }}>
               <PickerDropdown
-                label="Current Strength"
+                label={t('diveSites.currentStrength')}
                 value={editedSite.currentStrength}
-                options={currentStrengthOptions}
+                options={currentStrengthOptions.map(o => ({ ...o, label: t(`diveSites.currentStrengthOptions.${o.value}`) }))}
                 onValueChange={(v) => updateField('currentStrength', v)}
                 colors={colors}
-                placeholder="Select..."
+                placeholder={t("diveSites.selectPlaceholder")}
               />
             </View>
           </View>
 
           <View style={styles.formRow}>
             <View style={[styles.formGroup, { flex: 1 }]}>
-              <Text style={[styles.formLabel, { color: colors.text }]}>Visibility Min (m)</Text>
+              <Text style={[styles.formLabel, { color: colors.text }]}>{t('diveSites.visibility')} Min (m)</Text>
               <TextInput
                 style={[styles.formInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
                 value={editedSite.visibilityMin?.toString() || ''}
@@ -918,7 +920,7 @@ export default function DiveSiteDetailScreen() {
               />
             </View>
             <View style={[styles.formGroup, { flex: 1 }]}>
-              <Text style={[styles.formLabel, { color: colors.text }]}>Visibility Max (m)</Text>
+              <Text style={[styles.formLabel, { color: colors.text }]}>{t('diveSites.visibility')} Max (m)</Text>
               <TextInput
                 style={[styles.formInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
                 value={editedSite.visibilityMax?.toString() || ''}
@@ -932,17 +934,17 @@ export default function DiveSiteDetailScreen() {
 
           <View style={styles.formGroup}>
             <PickerDropdown
-              label="Best Season"
+              label={t('diveSites.bestSeason')}
               value={editedSite.bestSeason}
-              options={bestSeasonOptions}
+              options={bestSeasonOptions.map(o => ({ ...o, label: t(`diveSites.bestSeasonOptions.${o.value}`) }))}
               onValueChange={(v) => updateField('bestSeason', v)}
               colors={colors}
-              placeholder="Select best season..."
+              placeholder={t("diveSites.selectPlaceholder")}
             />
           </View>
 
           <View style={styles.formGroup}>
-            <Text style={[styles.formLabel, { color: colors.text }]}>Rating</Text>
+            <Text style={[styles.formLabel, { color: colors.text }]}>{t('common.rating')}</Text>
             <StarRating
               rating={editedSite.ratingAvg || 0}
               onRatingChange={(rating) => updateField('ratingAvg', rating)}
@@ -953,29 +955,29 @@ export default function DiveSiteDetailScreen() {
 
           <View style={styles.formRow}>
             <View style={[styles.formGroup, { flex: 1 }]}>
-              <Text style={[styles.formLabel, { color: colors.text }]}>Country</Text>
+              <Text style={[styles.formLabel, { color: colors.text }]}>{t('common.country')}</Text>
               <TextInput
                 style={[styles.formInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
                 value={editedSite.country || ''}
                 onChangeText={(v) => updateField('country', v)}
-                placeholder="Country"
+                placeholder={t("common.country")}
                 placeholderTextColor={colors.textSecondary}
               />
             </View>
             <View style={[styles.formGroup, { flex: 1 }]}>
-              <Text style={[styles.formLabel, { color: colors.text }]}>Region</Text>
+              <Text style={[styles.formLabel, { color: colors.text }]}>{t('common.region')}</Text>
               <TextInput
                 style={[styles.formInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
                 value={editedSite.region || ''}
                 onChangeText={(v) => updateField('region', v)}
-                placeholder="Region"
+                placeholder={t("common.region")}
                 placeholderTextColor={colors.textSecondary}
               />
             </View>
           </View>
 
           <View style={styles.formGroup}>
-            <Text style={[styles.formLabel, { color: colors.text }]}>Location</Text>
+            <Text style={[styles.formLabel, { color: colors.text }]}>{t('common.location')}</Text>
             {DEBUG_DISABLE_MAPS ? (
               <View style={[styles.mapPlaceholder, { backgroundColor: colors.surface, borderColor: colors.border }]}>
                 <Feather name="map" size={32} color={colors.textSecondary} />
@@ -1016,7 +1018,7 @@ export default function DiveSiteDetailScreen() {
             ]}>
               {editedSite.isWreck && <Feather name="check" size={14} color="#fff" />}
             </View>
-            <Text style={[styles.checkboxLabel, { color: colors.text }]}>This is a wreck/shipwreck dive site</Text>
+            <Text style={[styles.checkboxLabel, { color: colors.text }]}>{t('diveSites.wreckSite')}</Text>
           </Pressable>
         </>
       ) : (
@@ -1032,9 +1034,9 @@ export default function DiveSiteDetailScreen() {
               <View style={styles.detailRowIcon}>
                 <Feather name="layers" size={18} color={colors.primary} />
               </View>
-              <Text style={[styles.detailRowLabel, { color: colors.textSecondary }]}>Type</Text>
+              <Text style={[styles.detailRowLabel, { color: colors.textSecondary }]}>{t('common.type')}</Text>
               <Text style={[styles.detailRowValue, { color: colors.text }]}>
-                {siteTypeLabels[displaySite?.siteType || ''] || displaySite?.siteType}
+                {t(`diveSites.siteTypes.${displaySite?.siteType || 'other'}`)}
               </Text>
             </View>
             <View style={[styles.detailRowDivider, { backgroundColor: colors.border }]} />
@@ -1042,9 +1044,9 @@ export default function DiveSiteDetailScreen() {
               <View style={styles.detailRowIcon}>
                 <Feather name="droplet" size={18} color={colors.primary} />
               </View>
-              <Text style={[styles.detailRowLabel, { color: colors.textSecondary }]}>Water</Text>
+              <Text style={[styles.detailRowLabel, { color: colors.textSecondary }]}>{t('diveSites.waterType')}</Text>
               <Text style={[styles.detailRowValue, { color: colors.text }]}>
-                {displaySite?.waterType === 'marine' ? 'Marine' : 'Normal'}
+                {displaySite?.waterType === 'marine' ? t('diveSites.marine') : t('diveSites.normal')}
               </Text>
             </View>
             {displaySite?.depthMax && (
@@ -1054,7 +1056,7 @@ export default function DiveSiteDetailScreen() {
                   <View style={styles.detailRowIcon}>
                     <Feather name="arrow-down" size={18} color={colors.primary} />
                   </View>
-                  <Text style={[styles.detailRowLabel, { color: colors.textSecondary }]}>Max Depth</Text>
+                  <Text style={[styles.detailRowLabel, { color: colors.textSecondary }]}>{t('diveSites.depthMax')}</Text>
                   <Text style={[styles.detailRowValue, { color: colors.text }]}>
                     {displaySite.depthMax}m
                   </Text>
@@ -1068,7 +1070,7 @@ export default function DiveSiteDetailScreen() {
                   <View style={styles.detailRowIcon}>
                     <Feather name="eye" size={18} color={colors.primary} />
                   </View>
-                  <Text style={[styles.detailRowLabel, { color: colors.textSecondary }]}>Visibility</Text>
+                  <Text style={[styles.detailRowLabel, { color: colors.textSecondary }]}>{t('diveSites.visibility')}</Text>
                   <Text style={[styles.detailRowValue, { color: colors.text }]}>
                     {displaySite?.visibilityMin && displaySite?.visibilityMax 
                       ? `${displaySite.visibilityMin} - ${displaySite.visibilityMax}m`
@@ -1086,9 +1088,9 @@ export default function DiveSiteDetailScreen() {
                   <View style={styles.detailRowIcon}>
                     <Feather name="wind" size={18} color={colors.primary} />
                   </View>
-                  <Text style={[styles.detailRowLabel, { color: colors.textSecondary }]}>Current</Text>
+                  <Text style={[styles.detailRowLabel, { color: colors.textSecondary }]}>{t('diveSites.currentStrength')}</Text>
                   <Text style={[styles.detailRowValue, { color: colors.text }]}>
-                    {currentStrengthOptions.find(o => o.value === displaySite.currentStrength)?.label || displaySite.currentStrength}
+                    {t(`diveSites.currentStrengthOptions.${displaySite.currentStrength}`)}
                   </Text>
                 </View>
               </>
@@ -1100,9 +1102,9 @@ export default function DiveSiteDetailScreen() {
                   <View style={styles.detailRowIcon}>
                     <Feather name="calendar" size={18} color={colors.primary} />
                   </View>
-                  <Text style={[styles.detailRowLabel, { color: colors.textSecondary }]}>Best Season</Text>
+                  <Text style={[styles.detailRowLabel, { color: colors.textSecondary }]}>{t('diveSites.bestSeason')}</Text>
                   <Text style={[styles.detailRowValue, { color: colors.text }]}>
-                    {bestSeasonOptions.find(o => o.value === displaySite.bestSeason)?.label || displaySite.bestSeason}
+                    {t(`diveSites.bestSeasonOptions.${displaySite.bestSeason}`)}
                   </Text>
                 </View>
               </>
@@ -1114,7 +1116,7 @@ export default function DiveSiteDetailScreen() {
                   <View style={styles.detailRowIcon}>
                     <Feather name="map-pin" size={18} color={colors.primary} />
                   </View>
-                  <Text style={[styles.detailRowLabel, { color: colors.textSecondary }]}>Location</Text>
+                  <Text style={[styles.detailRowLabel, { color: colors.textSecondary }]}>{t('common.location')}</Text>
                   <Text style={[styles.detailRowValue, { color: colors.text }]} numberOfLines={1}>
                     {[displaySite.region, displaySite.country].filter(Boolean).join(', ')}
                   </Text>
@@ -1126,7 +1128,7 @@ export default function DiveSiteDetailScreen() {
               <View style={styles.detailRowIcon}>
                 <Feather name="star" size={18} color={colors.primary} />
               </View>
-              <Text style={[styles.detailRowLabel, { color: colors.textSecondary }]}>Rating</Text>
+              <Text style={[styles.detailRowLabel, { color: colors.textSecondary }]}>{t('common.rating')}</Text>
               <StarRating rating={displaySite?.ratingAvg || 0} editable={false} colors={colors} size={16} />
             </View>
           </View>
@@ -1168,14 +1170,14 @@ export default function DiveSiteDetailScreen() {
         <>
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>Weather Forecast</Text>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('diveSites.weatherForecast')}</Text>
               <Pressable onPress={() => fetchWeather(selectedDate)} style={styles.refreshButton}>
                 <Feather name="refresh-cw" size={16} color={colors.primary} />
               </Pressable>
             </View>
 
             <View style={styles.datePickerRow}>
-              <Text style={[styles.dateLabel, { color: colors.textSecondary }]}>Date:</Text>
+              <Text style={[styles.dateLabel, { color: colors.textSecondary }]}>{t('common.date')}:</Text>
               <View style={styles.dateButtonsRow}>
                 {[0, 1, 2, 3, 4, 5, 6].map((dayOffset) => {
                   const date = new Date();
@@ -1215,7 +1217,7 @@ export default function DiveSiteDetailScreen() {
                   {(weatherData.temperature !== undefined || weatherData.temperatureMax !== undefined) && (
                     <View style={[styles.conditionCard, { backgroundColor: colors.surface }]}>
                       <Feather name="thermometer" size={24} color={colors.primary} />
-                      <Text style={[styles.conditionLabel, { color: colors.textSecondary }]}>Temperature</Text>
+                      <Text style={[styles.conditionLabel, { color: colors.textSecondary }]}>{t('diveSites.temperature')}</Text>
                       <Text style={[styles.conditionValue, { color: colors.text }]}>
                         {weatherData.isToday 
                           ? `${weatherData.temperature}${weatherData.temperatureUnit}`
@@ -1227,16 +1229,16 @@ export default function DiveSiteDetailScreen() {
                   {weatherData.weatherCode !== undefined && (
                     <View style={[styles.conditionCard, { backgroundColor: colors.surface }]}>
                       <Feather name="cloud" size={24} color={colors.primary} />
-                      <Text style={[styles.conditionLabel, { color: colors.textSecondary }]}>Conditions</Text>
+                      <Text style={[styles.conditionLabel, { color: colors.textSecondary }]}>{t('diveSites.conditions')}</Text>
                       <Text style={[styles.conditionValue, { color: colors.text }]}>
-                        {weatherCodeLabels[weatherData.weatherCode] || 'Unknown'}
+                        {t(`diveSites.weatherCodes.${weatherData.weatherCode}`, { defaultValue: weatherCodeLabels[weatherData.weatherCode] || t('photos.unknown') })}
                       </Text>
                     </View>
                   )}
                   {weatherData.windSpeed !== undefined && (
                     <View style={[styles.conditionCard, { backgroundColor: colors.surface }]}>
                       <Feather name="wind" size={24} color={colors.primary} />
-                      <Text style={[styles.conditionLabel, { color: colors.textSecondary }]}>Wind</Text>
+                      <Text style={[styles.conditionLabel, { color: colors.textSecondary }]}>{t('diveSites.wind')}</Text>
                       <Text style={[styles.conditionValue, { color: colors.text }]}>
                         {weatherData.windSpeed} {weatherData.windSpeedUnit} {weatherData.windDirection !== undefined ? getWindDirection(weatherData.windDirection) : ''}
                       </Text>
@@ -1245,7 +1247,7 @@ export default function DiveSiteDetailScreen() {
                   {weatherData.humidity !== undefined && (
                     <View style={[styles.conditionCard, { backgroundColor: colors.surface }]}>
                       <Feather name="droplet" size={24} color={colors.primary} />
-                      <Text style={[styles.conditionLabel, { color: colors.textSecondary }]}>Humidity</Text>
+                      <Text style={[styles.conditionLabel, { color: colors.textSecondary }]}>{t('diveSites.humidity')}</Text>
                       <Text style={[styles.conditionValue, { color: colors.text }]}>{weatherData.humidity}%</Text>
                     </View>
                   )}
@@ -1253,12 +1255,12 @@ export default function DiveSiteDetailScreen() {
 
                 {weatherData.isMarine && (
                   <>
-                    <Text style={[styles.subsectionTitle, { color: colors.text }]}>Marine Conditions</Text>
+                    <Text style={[styles.subsectionTitle, { color: colors.text }]}>{t('diveSites.marineConditions')}</Text>
                     <View style={styles.conditionsGrid}>
                       {weatherData.waveHeight !== undefined && (
                         <View style={[styles.conditionCard, { backgroundColor: colors.surface }]}>
                           <Feather name="activity" size={24} color={colors.primary} />
-                          <Text style={[styles.conditionLabel, { color: colors.textSecondary }]}>Wave Height</Text>
+                          <Text style={[styles.conditionLabel, { color: colors.textSecondary }]}>{t('diveSites.waveHeight')}</Text>
                           <Text style={[styles.conditionValue, { color: colors.text }]}>
                             {weatherData.waveHeight} {weatherData.waveHeightUnit}
                           </Text>
@@ -1267,7 +1269,7 @@ export default function DiveSiteDetailScreen() {
                       {weatherData.wavePeriod !== undefined && (
                         <View style={[styles.conditionCard, { backgroundColor: colors.surface }]}>
                           <Feather name="clock" size={24} color={colors.primary} />
-                          <Text style={[styles.conditionLabel, { color: colors.textSecondary }]}>Wave Period</Text>
+                          <Text style={[styles.conditionLabel, { color: colors.textSecondary }]}>{t('diveSites.wavePeriod')}</Text>
                           <Text style={[styles.conditionValue, { color: colors.text }]}>
                             {weatherData.wavePeriod} {weatherData.wavePeriodUnit}
                           </Text>
@@ -1276,7 +1278,7 @@ export default function DiveSiteDetailScreen() {
                       {weatherData.currentVelocity !== undefined && (
                         <View style={[styles.conditionCard, { backgroundColor: colors.surface }]}>
                           <Feather name="navigation" size={24} color={colors.primary} />
-                          <Text style={[styles.conditionLabel, { color: colors.textSecondary }]}>Current</Text>
+                          <Text style={[styles.conditionLabel, { color: colors.textSecondary }]}>{t('diveSites.currentStrength')}</Text>
                           <Text style={[styles.conditionValue, { color: colors.text }]}>
                             {weatherData.currentVelocity} {weatherData.currentVelocityUnit} {weatherData.currentDirection !== undefined ? getWindDirection(weatherData.currentDirection) : ''}
                           </Text>
@@ -1288,7 +1290,7 @@ export default function DiveSiteDetailScreen() {
 
                 {weatherData.tides && weatherData.tides.length > 0 && (
                   <>
-                    <Text style={[styles.subsectionTitle, { color: colors.text }]}>Tides</Text>
+                    <Text style={[styles.subsectionTitle, { color: colors.text }]}>{t('diveSites.tides')}</Text>
                     <View style={styles.tidesContainer}>
                       {weatherData.tides.map((tide, index) => (
                         <View key={index} style={[styles.tideCard, { backgroundColor: colors.surface }]}>
@@ -1668,7 +1670,7 @@ export default function DiveSiteDetailScreen() {
           <Feather name="arrow-left" size={24} color={colors.text} />
         </Pressable>
         <Text style={[styles.headerTitle, { color: colors.text }]} numberOfLines={1}>
-          {isNewSite ? 'New Dive Site' : displaySite?.name || 'Dive Site'}
+          {isNewSite ? t('diveSites.newDiveSite') : displaySite?.name || t('diveSites.diveSite')}
         </Text>
         {!isEditing && !isNewSite && (
           <View style={styles.headerActions}>
@@ -1687,7 +1689,7 @@ export default function DiveSiteDetailScreen() {
         <View style={[styles.editToolbar, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
           <Pressable onPress={handleCancel} style={[styles.toolbarButton, { borderColor: colors.border }]}>
             <Feather name="x" size={18} color={colors.text} />
-            <Text style={[styles.toolbarButtonText, { color: colors.text }]}>Cancel</Text>
+            <Text style={[styles.toolbarButtonText, { color: colors.text }]}>{t('common.cancel')}</Text>
           </Pressable>
           <Pressable
             onPress={handleSave}
@@ -1699,7 +1701,7 @@ export default function DiveSiteDetailScreen() {
             ) : (
               <>
                 <Feather name="check" size={18} color="#FFFFFF" />
-                <Text style={[styles.toolbarButtonText, { color: '#FFFFFF' }]}>Save</Text>
+                <Text style={[styles.toolbarButtonText, { color: '#FFFFFF' }]}>{t('common.save')}</Text>
               </>
             )}
           </Pressable>
@@ -1719,7 +1721,7 @@ export default function DiveSiteDetailScreen() {
                 { color: activeTab === index ? colors.primary : colors.textSecondary },
               ]}
             >
-              {tab}
+              {t(`diveSites.tabs.${tab.toLowerCase()}`)}
             </Text>
           </Pressable>
         ))}

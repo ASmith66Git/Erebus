@@ -19,6 +19,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { getApiUrl } from '@/utils/apiConfig';
 import PageHeader from '@/components/PageHeader';
 import ThemedBackground from '@/components/ThemedBackground';
+import { useTranslation } from 'react-i18next';
 
 interface Conversation {
   id: number;
@@ -46,24 +47,25 @@ interface Message {
 }
 
 const PRIORITY_OPTIONS = [
-  { value: 'low', label: 'Low' },
-  { value: 'normal', label: 'Normal' },
-  { value: 'high', label: 'High' },
-  { value: 'urgent', label: 'Urgent' },
+  { value: 'low', labelKey: 'support.priorityLow' },
+  { value: 'normal', labelKey: 'support.priorityNormal' },
+  { value: 'high', labelKey: 'support.priorityHigh' },
+  { value: 'urgent', labelKey: 'support.priorityUrgent' },
 ];
 
 const CATEGORY_OPTIONS = [
-  { value: 'general', label: 'General Support', icon: 'help-circle-outline' as const },
-  { value: 'bug', label: 'Bug Report', icon: 'bug-outline' as const },
-  { value: 'feature', label: 'Feature Request', icon: 'bulb-outline' as const },
-  { value: 'account', label: 'Account Issue', icon: 'person-outline' as const },
-  { value: 'billing', label: 'Billing', icon: 'card-outline' as const },
+  { value: 'general', labelKey: 'support.categoryGeneral', icon: 'help-circle-outline' as const },
+  { value: 'bug', labelKey: 'support.categoryBug', icon: 'bug-outline' as const },
+  { value: 'feature', labelKey: 'support.categoryFeature', icon: 'bulb-outline' as const },
+  { value: 'account', labelKey: 'support.categoryAccount', icon: 'person-outline' as const },
+  { value: 'billing', labelKey: 'support.categoryBilling', icon: 'card-outline' as const },
 ];
 
 export default function HelpSupportScreen() {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const { token } = useAuth();
+  const { t } = useTranslation();
   
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -192,7 +194,8 @@ export default function HelpSupportScreen() {
     
     setCreating(true);
     try {
-      const categoryLabel = CATEGORY_OPTIONS.find(c => c.value === newCategory)?.label || 'General Support';
+      const categoryLabelKey = CATEGORY_OPTIONS.find(c => c.value === newCategory)?.labelKey || 'support.categoryGeneral';
+      const categoryLabel = t(categoryLabelKey);
       const fullSubject = `[${categoryLabel}] ${newSubject.trim()}`;
       
       const response = await fetch(`${getApiUrl()}/api/support/conversations`, {
@@ -233,10 +236,10 @@ export default function HelpSupportScreen() {
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
     
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
+    if (diffMins < 1) return t('common.justNow');
+    if (diffMins < 60) return t('common.minutesAgo', { count: diffMins });
+    if (diffHours < 24) return t('common.hoursAgo', { count: diffHours });
+    if (diffDays < 7) return t('common.daysAgo', { count: diffDays });
     return date.toLocaleDateString();
   };
 
@@ -318,7 +321,7 @@ export default function HelpSupportScreen() {
         styles.senderName,
         { color: item.is_admin_reply ? colors.primary : '#FFFFFF', marginBottom: 4 }
       ]}>
-        {item.is_admin_reply ? 'Support Team' : 'You'}
+        {item.is_admin_reply ? t('support.adminReply') : t('support.you')}
       </Text>
       <Text style={[
         styles.messageText,
@@ -363,7 +366,7 @@ export default function HelpSupportScreen() {
           <View style={[styles.inputContainer, { backgroundColor: colors.surface, borderTopColor: colors.border, paddingBottom: 12 + insets.bottom }]}>
             <TextInput
               style={[styles.messageInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
-              placeholder="Type your message..."
+              placeholder={t('support.typeMessage')}
               placeholderTextColor={colors.textSecondary}
               value={newMessage}
               onChangeText={setNewMessage}
@@ -389,7 +392,7 @@ export default function HelpSupportScreen() {
 
   return (
     <ThemedBackground>
-      <PageHeader title="Help & Support" />
+      <PageHeader title={t('support.title')} />
       <View style={styles.container}>
         {loading ? (
           <View style={styles.loadingContainer}>
@@ -398,9 +401,9 @@ export default function HelpSupportScreen() {
         ) : conversations.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Ionicons name="chatbubbles-outline" size={64} color={colors.textSecondary} />
-            <Text style={[styles.emptyTitle, { color: colors.text }]}>No Support Tickets</Text>
+            <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('support.noSupportTickets')}</Text>
             <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-              Have a question or need help? Create a support ticket and our team will respond.
+              {t('support.createTicketDescription')}
             </Text>
           </View>
         ) : (
@@ -429,14 +432,14 @@ export default function HelpSupportScreen() {
         <Pressable style={styles.modalOverlay} onPress={() => setShowNewTicket(false)}>
           <Pressable style={[styles.modalContent, { backgroundColor: colors.surface }]} onPress={e => e.stopPropagation()}>
             <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>New Support Ticket</Text>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>{t('support.newSupportTicket')}</Text>
               <Pressable onPress={() => setShowNewTicket(false)}>
                 <Ionicons name="close" size={24} color={colors.text} />
               </Pressable>
             </View>
             
             <ScrollView style={styles.modalBody}>
-              <Text style={[styles.inputLabel, { color: colors.text }]}>Category</Text>
+              <Text style={[styles.inputLabel, { color: colors.text }]}>{t('support.category')}</Text>
               <View style={styles.categoryContainer}>
                 {CATEGORY_OPTIONS.map(opt => (
                   <Pressable
@@ -457,23 +460,23 @@ export default function HelpSupportScreen() {
                       styles.categoryText,
                       { color: newCategory === opt.value ? '#FFFFFF' : colors.text }
                     ]}>
-                      {opt.label}
+                      {t(`support.category${opt.value.charAt(0).toUpperCase() + opt.value.slice(1)}`)}
                     </Text>
                   </Pressable>
                 ))}
               </View>
               
-              <Text style={[styles.inputLabel, { color: colors.text }]}>Subject</Text>
+              <Text style={[styles.inputLabel, { color: colors.text }]}>{t('support.subject')}</Text>
               <TextInput
                 style={[styles.textInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
-                placeholder="Brief description of your issue"
+                placeholder={t('support.subjectPlaceholder')}
                 placeholderTextColor={colors.textSecondary}
                 value={newSubject}
                 onChangeText={setNewSubject}
                 maxLength={255}
               />
               
-              <Text style={[styles.inputLabel, { color: colors.text }]}>Priority</Text>
+              <Text style={[styles.inputLabel, { color: colors.text }]}>{t('support.priority')}</Text>
               <View style={styles.priorityContainer}>
                 {PRIORITY_OPTIONS.map(opt => (
                   <Pressable
@@ -489,16 +492,16 @@ export default function HelpSupportScreen() {
                       styles.priorityText,
                       { color: newPriority === opt.value ? '#FFFFFF' : colors.text }
                     ]}>
-                      {opt.label}
+                      {t(`support.priority${opt.value.charAt(0).toUpperCase() + opt.value.slice(1)}`)}
                     </Text>
                   </Pressable>
                 ))}
               </View>
               
-              <Text style={[styles.inputLabel, { color: colors.text }]}>Message</Text>
+              <Text style={[styles.inputLabel, { color: colors.text }]}>{t('support.message')}</Text>
               <TextInput
                 style={[styles.textInput, styles.textArea, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
-                placeholder="Describe your issue in detail..."
+                placeholder={t('support.messagePlaceholder')}
                 placeholderTextColor={colors.textSecondary}
                 value={newTicketMessage}
                 onChangeText={setNewTicketMessage}
@@ -517,7 +520,7 @@ export default function HelpSupportScreen() {
               {creating ? (
                 <ActivityIndicator color="#FFFFFF" />
               ) : (
-                <Text style={styles.submitButtonText}>Submit Ticket</Text>
+                <Text style={styles.submitButtonText}>{t('support.submitTicket')}</Text>
               )}
             </Pressable>
           </Pressable>

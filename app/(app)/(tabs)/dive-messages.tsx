@@ -17,6 +17,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'expo-router';
 import { authFetch } from '@/utils/authFetch';
+import { useTranslation } from 'react-i18next';
 import PageHeader from '@/components/PageHeader';
 import ThemedBackground from '@/components/ThemedBackground';
 
@@ -35,6 +36,7 @@ const MESSAGE_TYPE_CONFIG = {
 };
 
 export default function DiveMessagesScreen() {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const { token, isAdmin } = useAuth();
   const router = useRouter();
@@ -69,10 +71,10 @@ export default function DiveMessagesScreen() {
         const data = await response.json();
         setMessages(data.messages || []);
       } else if (response.status !== 401) {
-        setError('Failed to load dive messages');
+        setError(t('diveMessages.failedToLoad'));
       }
     } catch (err) {
-      setError('Network error. Please try again.');
+      setError(t('common.networkError'));
     } finally {
       setIsLoading(false);
     }
@@ -101,7 +103,7 @@ export default function DiveMessagesScreen() {
 
   const handleSave = async () => {
     if (!formData.text.trim()) {
-      Alert.alert('Error', 'Message text is required');
+      Alert.alert(t('common.error'), t('diveMessages.messageTextRequired'));
       return;
     }
 
@@ -120,7 +122,7 @@ export default function DiveMessagesScreen() {
           setMessages(messages.map(m => m.id === editingMessage.id ? updated : m));
           setModalVisible(false);
         } else if (response.status !== 401) {
-          Alert.alert('Error', 'Failed to update message');
+          Alert.alert(t('common.error'), t('diveMessages.failedToUpdate'));
         }
       } else {
         const response = await authFetch('/api/admin/dive-messages', token, {
@@ -137,11 +139,11 @@ export default function DiveMessagesScreen() {
           setMessages([newMessage, ...messages]);
           setModalVisible(false);
         } else if (response.status !== 401) {
-          Alert.alert('Error', 'Failed to create message');
+          Alert.alert(t('common.error'), t('diveMessages.failedToCreate'));
         }
       }
     } catch (err) {
-      Alert.alert('Error', 'Network error');
+      Alert.alert(t('common.error'), t('common.networkError'));
     } finally {
       setIsSaving(false);
     }
@@ -159,21 +161,21 @@ export default function DiveMessagesScreen() {
         const updated = await response.json();
         setMessages(messages.map(m => m.id === message.id ? updated : m));
       } else if (response.status !== 401) {
-        Alert.alert('Error', 'Failed to update message');
+        Alert.alert(t('common.error'), t('diveMessages.failedToUpdate'));
       }
     } catch (err) {
-      Alert.alert('Error', 'Network error');
+      Alert.alert(t('common.error'), t('common.networkError'));
     }
   };
 
   const deleteMessage = (message: DiveMessage) => {
     Alert.alert(
-      'Delete Message',
-      'Are you sure you want to delete this message?',
+      t('diveMessages.deleteMessage'),
+      t('diveMessages.deleteMessageConfirm'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Delete',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: async () => {
             try {
@@ -184,10 +186,10 @@ export default function DiveMessagesScreen() {
               if (response.ok) {
                 setMessages(messages.filter(m => m.id !== message.id));
               } else if (response.status !== 401) {
-                Alert.alert('Error', 'Failed to delete message');
+                Alert.alert(t('common.error'), t('diveMessages.failedToDelete'));
               }
             } catch (err) {
-              Alert.alert('Error', 'Network error');
+              Alert.alert(t('common.error'), t('common.networkError'));
             }
           },
         },
@@ -210,7 +212,7 @@ export default function DiveMessagesScreen() {
 
   return (
     <ThemedBackground>
-      <PageHeader title="Dive Messages" />
+      <PageHeader title={t('diveMessages.title')} />
       <ScrollView 
         style={styles.container}
         refreshControl={
@@ -221,26 +223,26 @@ export default function DiveMessagesScreen() {
           <View style={[styles.headerIcon, { backgroundColor: colors.primary }]}>
             <Ionicons name="chatbox-ellipses" size={24} color="#FFFFFF" />
           </View>
-          <Text style={[styles.title, { color: colors.text }]}>Dive Messages</Text>
+          <Text style={[styles.title, { color: colors.text }]}>{t('diveMessages.title')}</Text>
           <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-            Manage tips and taglines shown to users
+            {t('diveMessages.manageTipsTaglines')}
           </Text>
         </View>
 
         <View style={[styles.statsCard, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
           <View style={styles.statItem}>
             <Text style={[styles.statValue, { color: MESSAGE_TYPE_CONFIG.tip.color }]}>{tipCount}</Text>
-            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Tips</Text>
+            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{t('diveMessages.tips')}</Text>
           </View>
           <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
           <View style={styles.statItem}>
             <Text style={[styles.statValue, { color: MESSAGE_TYPE_CONFIG.tagline.color }]}>{taglineCount}</Text>
-            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Taglines</Text>
+            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{t('diveMessages.taglines')}</Text>
           </View>
           <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
           <View style={styles.statItem}>
             <Text style={[styles.statValue, { color: colors.primary }]}>{activeCount}</Text>
-            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Active</Text>
+            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{t('diveMessages.active')}</Text>
           </View>
         </View>
 
@@ -259,7 +261,7 @@ export default function DiveMessagesScreen() {
                 styles.tabText,
                 { color: activeTab === tab ? '#FFFFFF' : colors.text }
               ]}>
-                {tab === 'all' ? 'All' : MESSAGE_TYPE_CONFIG[tab].label}s
+                {tab === 'all' ? t('common.all') : tab === 'tip' ? t('diveMessages.tips') : t('diveMessages.taglines')}
               </Text>
             </Pressable>
           ))}
@@ -270,7 +272,7 @@ export default function DiveMessagesScreen() {
           onPress={openAddModal}
         >
           <Ionicons name="add" size={22} color="#FFFFFF" />
-          <Text style={styles.addButtonText}>Add Message</Text>
+          <Text style={styles.addButtonText}>{t('diveMessages.addMessage')}</Text>
         </Pressable>
 
         {isLoading ? (
@@ -280,7 +282,7 @@ export default function DiveMessagesScreen() {
         ) : filteredMessages.length === 0 ? (
           <View style={[styles.emptyState, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
             <Ionicons name="chatbox-outline" size={48} color={colors.textSecondary} />
-            <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No messages found</Text>
+            <Text style={[styles.emptyText, { color: colors.textSecondary }]}>{t('diveMessages.noMessagesFound')}</Text>
           </View>
         ) : (
           <View style={styles.messagesList}>
@@ -298,11 +300,11 @@ export default function DiveMessagesScreen() {
                   <View style={styles.messageHeader}>
                     <View style={[styles.typeBadge, { backgroundColor: config.color + '20' }]}>
                       <Ionicons name={config.icon as any} size={14} color={config.color} />
-                      <Text style={[styles.typeBadgeText, { color: config.color }]}>{config.label}</Text>
+                      <Text style={[styles.typeBadgeText, { color: config.color }]}>{message.messageType === 'tip' ? t('diveMessages.diveTip') : t('diveMessages.tagline')}</Text>
                     </View>
                     <View style={styles.activeToggle}>
                       <Text style={[styles.activeLabel, { color: colors.textSecondary }]}>
-                        {message.isActive ? 'Active' : 'Inactive'}
+                        {message.isActive ? t('diveMessages.active') : t('diveMessages.inactive')}
                       </Text>
                       <Switch
                         value={message.isActive}
@@ -321,14 +323,14 @@ export default function DiveMessagesScreen() {
                       onPress={() => openEditModal(message)}
                     >
                       <Ionicons name="pencil" size={16} color={colors.primary} />
-                      <Text style={[styles.actionButtonText, { color: colors.primary }]}>Edit</Text>
+                      <Text style={[styles.actionButtonText, { color: colors.primary }]}>{t('common.edit')}</Text>
                     </Pressable>
                     <Pressable
                       style={[styles.actionButton, { backgroundColor: colors.error + '20' }]}
                       onPress={() => deleteMessage(message)}
                     >
                       <Ionicons name="trash" size={16} color={colors.error} />
-                      <Text style={[styles.actionButtonText, { color: colors.error }]}>Delete</Text>
+                      <Text style={[styles.actionButtonText, { color: colors.error }]}>{t('common.delete')}</Text>
                     </Pressable>
                   </View>
                 </View>
@@ -350,7 +352,7 @@ export default function DiveMessagesScreen() {
           <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: colors.text }]}>
-                {editingMessage ? 'Edit Message' : 'Add New Message'}
+                {editingMessage ? t('diveMessages.editMessage') : t('diveMessages.addNewMessage')}
               </Text>
               <Pressable onPress={() => setModalVisible(false)}>
                 <Ionicons name="close" size={24} color={colors.text} />
@@ -359,7 +361,7 @@ export default function DiveMessagesScreen() {
 
             {!editingMessage && (
               <View style={styles.formGroup}>
-                <Text style={[styles.label, { color: colors.text }]}>Message Type</Text>
+                <Text style={[styles.label, { color: colors.text }]}>{t('diveMessages.messageType')}</Text>
                 <View style={styles.typeSelector}>
                   {(['tip', 'tagline'] as const).map((type) => (
                     <Pressable
@@ -383,7 +385,7 @@ export default function DiveMessagesScreen() {
                         styles.typeOptionText,
                         { color: formData.messageType === type ? MESSAGE_TYPE_CONFIG[type].color : colors.text }
                       ]}>
-                        {MESSAGE_TYPE_CONFIG[type].label}
+                        {type === 'tip' ? t('diveMessages.diveTip') : t('diveMessages.tagline')}
                       </Text>
                     </Pressable>
                   ))}
@@ -392,7 +394,7 @@ export default function DiveMessagesScreen() {
             )}
 
             <View style={styles.formGroup}>
-              <Text style={[styles.label, { color: colors.text }]}>Message Text</Text>
+              <Text style={[styles.label, { color: colors.text }]}>{t('diveMessages.messageText')}</Text>
               <TextInput
                 style={[
                   styles.textArea,
@@ -404,7 +406,7 @@ export default function DiveMessagesScreen() {
                 ]}
                 value={formData.text}
                 onChangeText={(text) => setFormData(prev => ({ ...prev, text }))}
-                placeholder={formData.messageType === 'tip' ? 'Enter a helpful diving tip...' : 'Enter a motivational tagline...'}
+                placeholder={formData.messageType === 'tip' ? t('diveMessages.enterDiveTip') : t('diveMessages.enterTagline')}
                 placeholderTextColor={colors.textSecondary}
                 multiline
                 numberOfLines={4}
@@ -417,7 +419,7 @@ export default function DiveMessagesScreen() {
                 style={[styles.cancelButton, { borderColor: colors.border }]}
                 onPress={() => setModalVisible(false)}
               >
-                <Text style={[styles.cancelButtonText, { color: colors.text }]}>Cancel</Text>
+                <Text style={[styles.cancelButtonText, { color: colors.text }]}>{t('common.cancel')}</Text>
               </Pressable>
               <Pressable
                 style={[styles.saveButton, { backgroundColor: colors.primary }]}
@@ -428,7 +430,7 @@ export default function DiveMessagesScreen() {
                   <ActivityIndicator size="small" color="#FFFFFF" />
                 ) : (
                   <Text style={styles.saveButtonText}>
-                    {editingMessage ? 'Update' : 'Create'}
+                    {editingMessage ? t('common.update') : t('common.create')}
                   </Text>
                 )}
               </Pressable>

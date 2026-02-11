@@ -18,6 +18,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { getApiUrl } from '@/utils/apiConfig';
 import PageHeader from '@/components/PageHeader';
 import ThemedBackground from '@/components/ThemedBackground';
+import { useTranslation } from 'react-i18next';
 
 interface Conversation {
   id: number;
@@ -49,24 +50,25 @@ interface Message {
 }
 
 const STATUS_OPTIONS = [
-  { value: 'all', label: 'All' },
-  { value: 'open', label: 'Open' },
-  { value: 'in_progress', label: 'In Progress' },
-  { value: 'resolved', label: 'Resolved' },
-  { value: 'closed', label: 'Closed' },
+  { value: 'all', labelKey: 'supportAdmin.allTickets' },
+  { value: 'open', labelKey: 'supportAdmin.openTickets' },
+  { value: 'in_progress', labelKey: 'supportAdmin.inProgressTickets' },
+  { value: 'resolved', labelKey: 'supportAdmin.resolvedTickets' },
+  { value: 'closed', labelKey: 'supportAdmin.closedTickets' },
 ];
 
 const STATUS_ACTIONS = [
-  { value: 'open', label: 'Open' },
-  { value: 'in_progress', label: 'In Progress' },
-  { value: 'resolved', label: 'Resolved' },
-  { value: 'closed', label: 'Closed' },
+  { value: 'open', labelKey: 'supportAdmin.openTickets' },
+  { value: 'in_progress', labelKey: 'supportAdmin.inProgressTickets' },
+  { value: 'resolved', labelKey: 'supportAdmin.resolvedTickets' },
+  { value: 'closed', labelKey: 'supportAdmin.closedTickets' },
 ];
 
 export default function SupportAdminScreen() {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const { token, user } = useAuth();
+  const { t } = useTranslation();
   
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -220,10 +222,10 @@ export default function SupportAdminScreen() {
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
     
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
+    if (diffMins < 1) return t('common.justNow');
+    if (diffMins < 60) return t('common.minutesAgo', { count: diffMins });
+    if (diffHours < 24) return t('common.hoursAgo', { count: diffHours });
+    if (diffDays < 7) return t('common.daysAgo', { count: diffDays });
     return date.toLocaleDateString();
   };
 
@@ -329,7 +331,7 @@ export default function SupportAdminScreen() {
         styles.senderName,
         { color: item.is_admin_reply ? '#FFFFFF' : colors.primary, marginBottom: 4 }
       ]}>
-        {item.is_admin_reply ? `${item.first_name} (Admin)` : `${item.first_name} ${item.last_name}`}
+        {item.is_admin_reply ? `${item.first_name} ${t('supportAdmin.admin')}` : `${item.first_name} ${item.last_name}`}
       </Text>
       <Text style={[
         styles.messageText,
@@ -343,10 +345,10 @@ export default function SupportAdminScreen() {
   if (user?.role !== 'admin') {
     return (
       <ThemedBackground>
-        <PageHeader title="Support Messages" />
+        <PageHeader title={t('supportAdmin.supportMessages')} />
         <View style={styles.unauthorizedContainer}>
           <Ionicons name="lock-closed-outline" size={64} color={colors.textSecondary} />
-          <Text style={[styles.unauthorizedText, { color: colors.text }]}>Admin Access Required</Text>
+          <Text style={[styles.unauthorizedText, { color: colors.text }]}>{t('supportAdmin.adminAccessRequired')}</Text>
         </View>
       </ThemedBackground>
     );
@@ -356,7 +358,7 @@ export default function SupportAdminScreen() {
     return (
       <ThemedBackground>
         <PageHeader 
-          title="Conversation"
+          title={t('supportAdmin.conversation')}
           rightAction={
             <View style={styles.headerActions}>
               <Pressable onPress={() => setShowStatusModal(true)} style={styles.headerButton}>
@@ -380,7 +382,7 @@ export default function SupportAdminScreen() {
           <View style={[styles.conversationInfo, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
             <Text style={[styles.infoSubject, { color: colors.text }]}>{selectedConversation.subject}</Text>
             <Text style={[styles.infoUser, { color: colors.textSecondary }]}>
-              From: {selectedConversation.first_name} {selectedConversation.last_name} ({selectedConversation.email})
+              {t('supportAdmin.from', { name: `${selectedConversation.first_name} ${selectedConversation.last_name}`, email: selectedConversation.email })}
             </Text>
           </View>
           
@@ -402,7 +404,7 @@ export default function SupportAdminScreen() {
           <View style={[styles.inputContainer, { backgroundColor: colors.surface, borderTopColor: colors.border, paddingBottom: 12 + insets.bottom }]}>
             <TextInput
               style={[styles.messageInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
-              placeholder="Type your reply..."
+              placeholder={t('supportAdmin.replyPlaceholder')}
               placeholderTextColor={colors.textSecondary}
               value={newMessage}
               onChangeText={setNewMessage}
@@ -426,7 +428,7 @@ export default function SupportAdminScreen() {
         <Modal visible={showStatusModal} transparent animationType="fade" onRequestClose={() => setShowStatusModal(false)}>
           <Pressable style={styles.modalOverlay} onPress={() => setShowStatusModal(false)}>
             <View style={[styles.statusModalContent, { backgroundColor: colors.surface }]}>
-              <Text style={[styles.statusModalTitle, { color: colors.text }]}>Update Status</Text>
+              <Text style={[styles.statusModalTitle, { color: colors.text }]}>{t('supportAdmin.updateStatus')}</Text>
               {STATUS_ACTIONS.map(opt => (
                 <Pressable
                   key={opt.value}
@@ -437,7 +439,7 @@ export default function SupportAdminScreen() {
                   onPress={() => handleUpdateStatus(opt.value)}
                 >
                   <View style={[styles.statusDot, { backgroundColor: getStatusColor(opt.value) }]} />
-                  <Text style={[styles.statusOptionText, { color: colors.text }]}>{opt.label}</Text>
+                  <Text style={[styles.statusOptionText, { color: colors.text }]}>{t(opt.labelKey)}</Text>
                   {selectedConversation.status === opt.value && (
                     <Ionicons name="checkmark" size={20} color={colors.primary} />
                   )}
@@ -453,7 +455,7 @@ export default function SupportAdminScreen() {
   return (
     <ThemedBackground>
       <PageHeader 
-        title="Support Messages"
+        title={t('supportAdmin.supportMessages')}
         rightAction={
           unreadCount > 0 ? (
             <View style={[styles.headerBadge, { backgroundColor: colors.primary }]}>
@@ -486,7 +488,7 @@ export default function SupportAdminScreen() {
                   styles.filterChipText,
                   { color: statusFilter === item.value ? '#FFFFFF' : colors.text }
                 ]}>
-                  {item.label}
+                  {t(item.labelKey)}
                 </Text>
               </Pressable>
             )}
@@ -500,9 +502,9 @@ export default function SupportAdminScreen() {
         ) : conversations.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Ionicons name="mail-open-outline" size={64} color={colors.textSecondary} />
-            <Text style={[styles.emptyTitle, { color: colors.text }]}>No Messages</Text>
+            <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('supportAdmin.noMessages')}</Text>
             <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-              {statusFilter !== 'all' ? `No ${statusFilter.replace('_', ' ')} conversations` : 'No support messages yet'}
+              {statusFilter !== 'all' ? t('supportAdmin.noStatusConversations', { status: statusFilter.replace('_', ' ') }) : t('supportAdmin.noSupportMessagesYet')}
             </Text>
           </View>
         ) : (

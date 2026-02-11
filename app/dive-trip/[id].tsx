@@ -20,6 +20,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { getApiUrl } from '@/utils/apiConfig';
+import { useTranslation } from 'react-i18next';
 import ThemedBackground from '@/components/ThemedBackground';
 import EmbeddedMapPicker from '@/components/EmbeddedMapPicker';
 import StaticMapView from '@/components/StaticMapView';
@@ -69,6 +70,7 @@ export default function DiveTripScreen() {
   const isNew = id === 'new';
   const { colors } = useTheme();
   const { token } = useAuth();
+  const { t } = useTranslation();
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
@@ -131,12 +133,12 @@ export default function DiveTripScreen() {
         setOriginalData(tripData);
         setLinkedDives(data.linked_dives || []);
       } else {
-        Alert.alert('Error', 'Failed to load trip');
+        Alert.alert(t('common.error'), t('diveTrips.failedToLoadTrip'));
         router.back();
       }
     } catch (error) {
       console.error('Fetch trip error:', error);
-      Alert.alert('Error', 'Failed to load trip');
+      Alert.alert(t('common.error'), t('diveTrips.failedToLoadTrip'));
       router.back();
     } finally {
       setLoading(false);
@@ -191,7 +193,7 @@ export default function DiveTripScreen() {
 
   const handleSave = async () => {
     if (!formData.name.trim()) {
-      Alert.alert('Error', 'Trip name is required');
+      Alert.alert(t('common.error'), t('diveTrips.tripNameRequired'));
       return;
     }
 
@@ -220,11 +222,11 @@ export default function DiveTripScreen() {
         }
       } else {
         const error = await response.json();
-        Alert.alert('Error', error.error || 'Failed to save trip');
+        Alert.alert(t('common.error'), error.error || t('diveTrips.failedToSaveTrip'));
       }
     } catch (error) {
       console.error('Save trip error:', error);
-      Alert.alert('Error', 'Failed to save trip');
+      Alert.alert(t('common.error'), t('diveTrips.failedToSaveTrip'));
     } finally {
       setSaving(false);
     }
@@ -232,12 +234,12 @@ export default function DiveTripScreen() {
 
   const handleDelete = async () => {
     Alert.alert(
-      'Delete Trip',
-      'Are you sure you want to delete this trip? This action cannot be undone.',
+      t('diveTrips.deleteTrip'),
+      t('diveTrips.deleteTripConfirm'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Delete',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: async () => {
             try {
@@ -248,10 +250,10 @@ export default function DiveTripScreen() {
               if (response.ok) {
                 router.back();
               } else {
-                Alert.alert('Error', 'Failed to delete trip');
+                Alert.alert(t('common.error'), t('diveTrips.failedToDeleteTrip'));
               }
             } catch (error) {
-              Alert.alert('Error', 'Failed to delete trip');
+              Alert.alert(t('common.error'), t('diveTrips.failedToDeleteTrip'));
             }
           },
         },
@@ -310,11 +312,11 @@ export default function DiveTripScreen() {
         if (uploadResponse.ok) {
           setFormData(prev => ({ ...prev, coverImageKey: objectPath }));
         } else {
-          Alert.alert('Error', 'Failed to upload image');
+          Alert.alert(t('common.error'), t('diveTrips.failedToUploadImage'));
         }
       } catch (error) {
         console.error('Upload error:', error);
-        Alert.alert('Error', 'Failed to upload image');
+        Alert.alert(t('common.error'), t('diveTrips.failedToUploadImage'));
       } finally {
         setUploadingImage(false);
       }
@@ -372,7 +374,7 @@ export default function DiveTripScreen() {
         fetchTripPhotos();
       } catch (error) {
         console.error('Upload error:', error);
-        Alert.alert('Error', 'Failed to upload photos');
+        Alert.alert(t('common.error'), t('diveTrips.failedToUploadPhotos'));
       } finally {
         setUploadingImage(false);
       }
@@ -429,7 +431,8 @@ export default function DiveTripScreen() {
   };
 
   const getTripTypeLabel = (value: string) => {
-    return TRIP_TYPES.find(t => t.value === value)?.label || value;
+    const keyMap: Record<string, string> = { liveaboard: 'liveaboard', dive_center: 'diveCenter', safari: 'safari', resort: 'resort', day_trip: 'dayTrip', other: 'other' };
+    return t(`diveTrips.tripTypes.${keyMap[value] || 'other'}`);
   };
 
   const linkedDiveIds = new Set(linkedDives.map(d => d.id));
@@ -439,7 +442,7 @@ export default function DiveTripScreen() {
     return (
       <ThemedBackground style={[styles.container, styles.centered]}>
         <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Loading trip...</Text>
+        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>{t('diveTrips.loadingTrips')}</Text>
       </ThemedBackground>
     );
   }
@@ -447,9 +450,9 @@ export default function DiveTripScreen() {
   const renderTabBar = () => (
     <View style={[styles.tabBar, { borderBottomColor: colors.border }]}>
       {[
-        { key: 'details', label: 'Details', icon: 'info' },
-        { key: 'dives', label: 'Dives', icon: 'activity' },
-        { key: 'photos', label: 'Photos', icon: 'image' },
+        { key: 'details', label: t('diveTrips.tripDetails'), icon: 'info' },
+        { key: 'dives', label: t('common.dives'), icon: 'activity' },
+        { key: 'photos', label: t('common.photos'), icon: 'image' },
       ].map((tab) => (
         <Pressable
           key={tab.key}
@@ -482,18 +485,18 @@ export default function DiveTripScreen() {
       {isEditing ? (
         <>
           <View style={styles.formGroup}>
-            <Text style={[styles.formLabel, { color: colors.text }]}>Trip Name *</Text>
+            <Text style={[styles.formLabel, { color: colors.text }]}>{t('diveTrips.tripName')} *</Text>
             <TextInput
               style={[styles.formInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
               value={formData.name}
               onChangeText={(v) => setFormData({ ...formData, name: v })}
-              placeholder="e.g., Red Sea Liveaboard 2024"
+              placeholder={t('diveTrips.tripNamePlaceholderExample')}
               placeholderTextColor={colors.textSecondary}
             />
           </View>
 
           <View style={styles.formGroup}>
-            <Text style={[styles.formLabel, { color: colors.text }]}>Cover Photo</Text>
+            <Text style={[styles.formLabel, { color: colors.text }]}>{t('diveTrips.coverPhoto')}</Text>
             {formData.coverImageKey ? (
               <View>
                 <Image
@@ -507,14 +510,14 @@ export default function DiveTripScreen() {
                     onPress={() => setFormData(prev => ({ ...prev, coverImageKey: null }))}
                   >
                     <Feather name="trash-2" size={16} color={colors.primary} />
-                    <Text style={[styles.imageButtonText, { color: colors.primary }]}>Remove</Text>
+                    <Text style={[styles.imageButtonText, { color: colors.primary }]}>{t('common.remove')}</Text>
                   </Pressable>
                   <Pressable
                     style={[styles.imageButton, { borderColor: colors.border }]}
                     onPress={pickCoverImage}
                   >
                     <Feather name="image" size={16} color={colors.primary} />
-                    <Text style={[styles.imageButtonText, { color: colors.primary }]}>Change</Text>
+                    <Text style={[styles.imageButtonText, { color: colors.primary }]}>{t('diveTrips.changeCover')}</Text>
                   </Pressable>
                 </View>
               </View>
@@ -530,7 +533,7 @@ export default function DiveTripScreen() {
                   <>
                     <Feather name="upload" size={20} color={colors.textSecondary} />
                     <Text style={[styles.uploadButtonText, { color: colors.textSecondary }]}>
-                      Add Cover Photo
+                      {t('diveTrips.addCoverPhoto')}
                     </Text>
                   </>
                 )}
@@ -539,7 +542,7 @@ export default function DiveTripScreen() {
           </View>
 
           <View style={styles.formGroup}>
-            <Text style={[styles.formLabel, { color: colors.text }]}>Trip Type</Text>
+            <Text style={[styles.formLabel, { color: colors.text }]}>{t('diveTrips.tripType')}</Text>
             <View style={styles.tripTypeGrid}>
               {TRIP_TYPES.map((type) => (
                 <Pressable
@@ -562,7 +565,7 @@ export default function DiveTripScreen() {
                       { color: formData.tripType === type.value ? colors.primary : colors.textSecondary },
                     ]}
                   >
-                    {type.label}
+                    {getTripTypeLabel(type.value)}
                   </Text>
                 </Pressable>
               ))}
@@ -571,14 +574,14 @@ export default function DiveTripScreen() {
 
           <View style={styles.dateRow}>
             <View style={styles.dateField}>
-              <Text style={[styles.formLabel, { color: colors.text }]}>Start Date</Text>
+              <Text style={[styles.formLabel, { color: colors.text }]}>{t('diveTrips.startDate')}</Text>
               <Pressable
                 style={[styles.dateButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
                 onPress={() => setShowDatePicker('start')}
               >
                 <Feather name="calendar" size={18} color={colors.textSecondary} />
                 <Text style={[styles.dateButtonText, { color: formData.startDate ? colors.text : colors.textSecondary }]} numberOfLines={1}>
-                  {formData.startDate ? dayjs(formData.startDate).format('D MMM YYYY') : 'Select'}
+                  {formData.startDate ? dayjs(formData.startDate).format('D MMM YYYY') : t('diveTrips.select')}
                 </Text>
                 {formData.startDate && (
                   <Pressable onPress={() => setFormData(prev => ({ ...prev, startDate: '' }))} hitSlop={8}>
@@ -588,14 +591,14 @@ export default function DiveTripScreen() {
               </Pressable>
             </View>
             <View style={styles.dateField}>
-              <Text style={[styles.formLabel, { color: colors.text }]}>End Date</Text>
+              <Text style={[styles.formLabel, { color: colors.text }]}>{t('diveTrips.endDate')}</Text>
               <Pressable
                 style={[styles.dateButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
                 onPress={() => setShowDatePicker('end')}
               >
                 <Feather name="calendar" size={18} color={colors.textSecondary} />
                 <Text style={[styles.dateButtonText, { color: formData.endDate ? colors.text : colors.textSecondary }]} numberOfLines={1}>
-                  {formData.endDate ? dayjs(formData.endDate).format('D MMM YYYY') : 'Select'}
+                  {formData.endDate ? dayjs(formData.endDate).format('D MMM YYYY') : t('diveTrips.select')}
                 </Text>
                 {formData.endDate && (
                   <Pressable onPress={() => setFormData(prev => ({ ...prev, endDate: '' }))} hitSlop={8}>
@@ -607,18 +610,18 @@ export default function DiveTripScreen() {
           </View>
 
           <View style={styles.formGroup}>
-            <Text style={[styles.formLabel, { color: colors.text }]}>Dive Center / Resort</Text>
+            <Text style={[styles.formLabel, { color: colors.text }]}>{t('diveTrips.diveCenterResort')}</Text>
             <TextInput
               style={[styles.formInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
               value={formData.diveCenterName}
               onChangeText={(v) => setFormData({ ...formData, diveCenterName: v })}
-              placeholder="Name of dive center or resort"
+              placeholder={t('diveTrips.diveCenterPlaceholder')}
               placeholderTextColor={colors.textSecondary}
             />
           </View>
 
           <View style={styles.formGroup}>
-            <Text style={[styles.formLabel, { color: colors.text }]}>Location</Text>
+            <Text style={[styles.formLabel, { color: colors.text }]}>{t('common.location')}</Text>
             <EmbeddedMapPicker
               latitude={formData.latitude || 0}
               longitude={formData.longitude || 0}
@@ -643,47 +646,47 @@ export default function DiveTripScreen() {
           </View>
 
           <View style={styles.formGroup}>
-            <Text style={[styles.formLabel, { color: colors.text }]}>Operator Name</Text>
+            <Text style={[styles.formLabel, { color: colors.text }]}>{t('diveTrips.operatorName')}</Text>
             <TextInput
               style={[styles.formInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
               value={formData.operatorName}
               onChangeText={(v) => setFormData({ ...formData, operatorName: v })}
-              placeholder="Tour operator or company"
+              placeholder={t('diveTrips.operatorPlaceholder')}
               placeholderTextColor={colors.textSecondary}
             />
           </View>
 
           {formData.tripType === 'liveaboard' && (
             <View style={styles.formGroup}>
-              <Text style={[styles.formLabel, { color: colors.text }]}>Vessel Name</Text>
+              <Text style={[styles.formLabel, { color: colors.text }]}>{t('diveTrips.vesselName')}</Text>
               <TextInput
                 style={[styles.formInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
                 value={formData.vesselName}
                 onChangeText={(v) => setFormData({ ...formData, vesselName: v })}
-                placeholder="Name of the boat"
+                placeholder={t('diveTrips.vesselPlaceholder')}
                 placeholderTextColor={colors.textSecondary}
               />
             </View>
           )}
 
           <View style={styles.formGroup}>
-            <Text style={[styles.formLabel, { color: colors.text }]}>Accommodation</Text>
+            <Text style={[styles.formLabel, { color: colors.text }]}>{t('diveTrips.accommodation')}</Text>
             <TextInput
               style={[styles.formInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
               value={formData.accommodation}
               onChangeText={(v) => setFormData({ ...formData, accommodation: v })}
-              placeholder="Where you stayed"
+              placeholder={t('diveTrips.accommodationPlaceholder')}
               placeholderTextColor={colors.textSecondary}
             />
           </View>
 
           <View style={styles.formGroup}>
-            <Text style={[styles.formLabel, { color: colors.text }]}>Notes</Text>
+            <Text style={[styles.formLabel, { color: colors.text }]}>{t('diveTrips.notes')}</Text>
             <TextInput
               style={[styles.formInput, styles.textArea, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
               value={formData.notes}
               onChangeText={(v) => setFormData({ ...formData, notes: v })}
-              placeholder="Additional notes about the trip"
+              placeholder={t('diveTrips.additionalNotes')}
               placeholderTextColor={colors.textSecondary}
               multiline
               numberOfLines={4}
@@ -693,7 +696,7 @@ export default function DiveTripScreen() {
           {!isNew && (
             <Pressable style={[styles.deleteButton, { borderColor: '#FF3B30' }]} onPress={handleDelete}>
               <Feather name="trash-2" size={18} color="#FF3B30" />
-              <Text style={styles.deleteButtonText}>Delete Trip</Text>
+              <Text style={styles.deleteButtonText}>{t('diveTrips.deleteTrip')}</Text>
             </Pressable>
           )}
         </>
@@ -762,14 +765,14 @@ export default function DiveTripScreen() {
 
           {formData.notes && (
             <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>Notes</Text>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('diveTrips.notes')}</Text>
               <Text style={[styles.notesText, { color: colors.text }]}>{formData.notes}</Text>
             </View>
           )}
 
           {formData.latitude && formData.longitude && (
             <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>Location</Text>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('common.location')}</Text>
               <View style={styles.mapContainer}>
                 <StaticMapView
                   latitude={formData.latitude}
@@ -788,7 +791,7 @@ export default function DiveTripScreen() {
     <ScrollView style={styles.tabContent} contentContainerStyle={styles.tabContentContainer}>
       <View style={styles.sectionHeader}>
         <Text style={[styles.sectionHeaderTitle, { color: colors.text }]}>
-          Linked Dives ({linkedDives.length})
+          {t('diveTrips.linkedDivesCount', { count: linkedDives.length })}
         </Text>
         {!isNew && (
           <Pressable
@@ -796,17 +799,17 @@ export default function DiveTripScreen() {
             onPress={() => setShowDivePicker(!showDivePicker)}
           >
             <Feather name={showDivePicker ? 'x' : 'plus'} size={18} color="#FFF" />
-            <Text style={styles.addButtonText}>{showDivePicker ? 'Cancel' : 'Add'}</Text>
+            <Text style={styles.addButtonText}>{showDivePicker ? t('common.cancel') : t('common.add')}</Text>
           </Pressable>
         )}
       </View>
 
       {showDivePicker && (
         <View style={[styles.pickerSection, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={[styles.pickerTitle, { color: colors.text }]}>Select dives to link:</Text>
+          <Text style={[styles.pickerTitle, { color: colors.text }]}>{t('diveTrips.selectDivesToLink')}</Text>
           {availableUnlinkedDives.length === 0 ? (
             <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-              No available dives to link
+              {t('diveTrips.noAvailableDives')}
             </Text>
           ) : (
             availableUnlinkedDives.slice(0, 10).map((dive) => (
@@ -816,7 +819,7 @@ export default function DiveTripScreen() {
                 onPress={() => linkDiveToTrip(dive.id)}
               >
                 <View>
-                  <Text style={[styles.diveSiteName, { color: colors.text }]}>{dive.site_name || 'Unknown Site'}</Text>
+                  <Text style={[styles.diveSiteName, { color: colors.text }]}>{dive.site_name || t('diveTrips.unknownSite')}</Text>
                   <Text style={[styles.diveDate, { color: colors.textSecondary }]}>{formatDate(dive.dive_date)}</Text>
                 </View>
                 <Feather name="plus-circle" size={20} color={colors.primary} />
@@ -829,16 +832,16 @@ export default function DiveTripScreen() {
       {linkedDives.length === 0 ? (
         <View style={styles.emptyState}>
           <Feather name="activity" size={48} color={colors.textSecondary} />
-          <Text style={[styles.emptyStateTitle, { color: colors.text }]}>No Linked Dives</Text>
+          <Text style={[styles.emptyStateTitle, { color: colors.text }]}>{t('diveTrips.noLinkedDives')}</Text>
           <Text style={[styles.emptyStateText, { color: colors.textSecondary }]}>
-            Link dive logs to this trip to track your dives
+            {t('diveTrips.linkDiveLogsHint')}
           </Text>
         </View>
       ) : (
         linkedDives.map((dive) => (
           <View key={dive.id} style={[styles.diveCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <View style={styles.diveCardContent}>
-              <Text style={[styles.diveSiteName, { color: colors.text }]}>{dive.site_name || 'Unknown Site'}</Text>
+              <Text style={[styles.diveSiteName, { color: colors.text }]}>{dive.site_name || t('diveTrips.unknownSite')}</Text>
               <Text style={[styles.diveDate, { color: colors.textSecondary }]}>{formatDate(dive.dive_date)}</Text>
               <View style={styles.diveStats}>
                 <Text style={[styles.diveStat, { color: colors.textSecondary }]}>{dive.max_depth_meters}m</Text>
@@ -858,7 +861,7 @@ export default function DiveTripScreen() {
     <View style={styles.tabContent}>
       <View style={[styles.sectionHeader, { paddingHorizontal: 16, paddingTop: 16 }]}>
         <Text style={[styles.sectionHeaderTitle, { color: colors.text }]}>
-          Photos ({tripPhotos.length})
+          {t('common.photos')} ({tripPhotos.length})
         </Text>
         {!isNew && (
           <Pressable
@@ -871,7 +874,7 @@ export default function DiveTripScreen() {
             ) : (
               <>
                 <Feather name="plus" size={18} color="#FFF" />
-                <Text style={styles.addButtonText}>Add</Text>
+                <Text style={styles.addButtonText}>{t('common.add')}</Text>
               </>
             )}
           </Pressable>
@@ -881,9 +884,9 @@ export default function DiveTripScreen() {
       {tripPhotos.length === 0 ? (
         <View style={styles.emptyState}>
           <Feather name="image" size={48} color={colors.textSecondary} />
-          <Text style={[styles.emptyStateTitle, { color: colors.text }]}>No Photos</Text>
+          <Text style={[styles.emptyStateTitle, { color: colors.text }]}>{t('diveTrips.noPhotos')}</Text>
           <Text style={[styles.emptyStateText, { color: colors.textSecondary }]}>
-            Add photos from your trip
+            {t('diveTrips.addPhotosHint')}
           </Text>
         </View>
       ) : (
@@ -913,20 +916,20 @@ export default function DiveTripScreen() {
           <Feather name="chevron-left" size={28} color={colors.text} />
         </Pressable>
         <Text style={[styles.headerTitle, { color: colors.text }]} numberOfLines={1}>
-          {isNew ? 'New Dive Trip' : formData.name}
+          {isNew ? t('diveTrips.newDiveTrip') : formData.name}
         </Text>
         <View style={styles.headerActions}>
           {activeTab === 'details' && (
             isEditing ? (
               <>
                 <Pressable onPress={handleCancel} style={styles.headerBtn}>
-                  <Text style={[styles.headerBtnText, { color: colors.textSecondary }]}>Cancel</Text>
+                  <Text style={[styles.headerBtnText, { color: colors.textSecondary }]}>{t('common.cancel')}</Text>
                 </Pressable>
                 <Pressable onPress={handleSave} disabled={saving} style={styles.headerBtn}>
                   {saving ? (
                     <ActivityIndicator size="small" color={colors.primary} />
                   ) : (
-                    <Text style={[styles.headerBtnText, { color: colors.primary, fontWeight: '600' }]}>Save</Text>
+                    <Text style={[styles.headerBtnText, { color: colors.primary, fontWeight: '600' }]}>{t('common.save')}</Text>
                   )}
                 </Pressable>
               </>
@@ -962,7 +965,7 @@ export default function DiveTripScreen() {
           >
             <View style={[styles.dateModalHeader, { borderBottomColor: colors.border }]}>
               <Text style={[styles.dateModalTitle, { color: colors.text }]}>
-                {showDatePicker === 'start' ? 'Start Date' : 'End Date'}
+                {showDatePicker === 'start' ? t('diveTrips.startDate') : t('diveTrips.endDate')}
               </Text>
               <Pressable onPress={() => setShowDatePicker(null)}>
                 <Feather name="x" size={24} color={colors.text} />

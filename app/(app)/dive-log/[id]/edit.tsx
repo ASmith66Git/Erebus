@@ -16,6 +16,7 @@ import { Feather } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { getApiUrl } from '@/utils/apiConfig';
+import { useTranslation } from 'react-i18next';
 
 const TABS = ['Dive', 'Gas', 'Problems', 'Skills', 'Team', 'Notes'] as const;
 type TabType = typeof TABS[number];
@@ -79,6 +80,7 @@ export default function EditDiveLogScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const { token } = useAuth();
+  const { t } = useTranslation();
   
   const [activeTab, setActiveTab] = useState<TabType>('Dive');
   const [loading, setLoading] = useState(true);
@@ -333,7 +335,7 @@ export default function EditDiveLogScreen() {
       
       router.back();
     } catch (err) {
-      Alert.alert('Error', err instanceof Error ? err.message : 'Failed to save');
+      Alert.alert(t('common.error'), err instanceof Error ? err.message : t('diveLogs.failedToSave'));
     } finally {
       setSaving(false);
     }
@@ -398,27 +400,27 @@ export default function EditDiveLogScreen() {
   const renderDiveTab = () => (
     <ScrollView style={styles.tabContent} contentContainerStyle={styles.tabContentContainer}>
       <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <Text style={[styles.cardTitle, { color: colors.text }]}>Dive Info</Text>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>{t('diveLogs.diveInfo')}</Text>
         
         <View style={styles.row}>
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: colors.textSecondary }]}>Dive #</Text>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>{t('diveLogs.diveNumber')}</Text>
             <TextInput
               style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
               value={diveNumber}
               onChangeText={setDiveNumber}
               keyboardType="numeric"
-              placeholder="1"
+              placeholder={t("diveLogs.diveNumberPlaceholder")}
               placeholderTextColor={colors.textSecondary}
             />
           </View>
           <View style={[styles.inputGroup, { flex: 2 }]}>
-            <Text style={[styles.label, { color: colors.textSecondary }]}>Date</Text>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>{t('common.date')}</Text>
             <TextInput
               style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
               value={diveDateTime ? new Date(diveDateTime).toLocaleDateString() : ''}
               editable={false}
-              placeholder="Select date"
+              placeholder={t("diveLogs.selectDate")}
               placeholderTextColor={colors.textSecondary}
             />
           </View>
@@ -426,22 +428,22 @@ export default function EditDiveLogScreen() {
 
         <View style={styles.row}>
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: colors.textSecondary }]}>Start Time</Text>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>{t('diveLogs.timeIn')}</Text>
             <TextInput
               style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
               value={startTime}
               onChangeText={setStartTime}
-              placeholder="09:30"
+              placeholder={t("diveLogs.timeInPlaceholder")}
               placeholderTextColor={colors.textSecondary}
             />
           </View>
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: colors.textSecondary }]}>End Time</Text>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>{t('diveLogs.timeOut')}</Text>
             <TextInput
               style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
               value={endTime}
               onChangeText={setEndTime}
-              placeholder="10:15"
+              placeholder={t("diveLogs.timeOutPlaceholder")}
               placeholderTextColor={colors.textSecondary}
             />
           </View>
@@ -451,16 +453,16 @@ export default function EditDiveLogScreen() {
       {isFromComputer && (
         <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <View style={styles.cardHeaderRow}>
-            <Text style={[styles.cardTitle, { color: colors.text }]}>Computer Data</Text>
+            <Text style={[styles.cardTitle, { color: colors.text }]}>{t('diveLogs.computerData')}</Text>
             <View style={[styles.readOnlyBadge, { backgroundColor: colors.textSecondary + '30' }]}>
               <Feather name="lock" size={12} color={colors.textSecondary} />
-              <Text style={[styles.readOnlyText, { color: colors.textSecondary }]}>Read-only</Text>
+              <Text style={[styles.readOnlyText, { color: colors.textSecondary }]}>{t('diveLogs.readOnly')}</Text>
             </View>
           </View>
           
           <View style={styles.row}>
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.textSecondary }]}>Duration (min)</Text>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>{t('diveLogs.durationMin')}</Text>
               <TextInput
                 style={[styles.input, styles.readOnlyInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.textSecondary }]}
                 value={durationMinutes}
@@ -468,7 +470,7 @@ export default function EditDiveLogScreen() {
               />
             </View>
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.textSecondary }]}>Max Depth (m)</Text>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>{t('diveLogs.maxDepthM')}</Text>
               <TextInput
                 style={[styles.input, styles.readOnlyInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.textSecondary }]}
                 value={maxDepth}
@@ -479,7 +481,7 @@ export default function EditDiveLogScreen() {
 
           <View style={styles.row}>
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.textSecondary }]}>Avg Depth (m)</Text>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>{t('diveLogs.avgDepthM')}</Text>
               <TextInput
                 style={[styles.input, styles.readOnlyInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.textSecondary }]}
                 value={avgDepth}
@@ -487,7 +489,7 @@ export default function EditDiveLogScreen() {
               />
             </View>
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.textSecondary }]}>Water Temp (°C)</Text>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>{t('diveLogs.waterTempC')}</Text>
               <TextInput
                 style={[styles.input, styles.readOnlyInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.textSecondary }]}
                 value={waterTemp}
@@ -500,28 +502,28 @@ export default function EditDiveLogScreen() {
 
       {!isFromComputer && (
         <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={[styles.cardTitle, { color: colors.text }]}>Dive Data</Text>
+          <Text style={[styles.cardTitle, { color: colors.text }]}>{t('diveLogs.diveData')}</Text>
           
           <View style={styles.row}>
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.textSecondary }]}>Duration (min)</Text>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>{t('diveLogs.durationMin')}</Text>
               <TextInput
                 style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
                 value={durationMinutes}
                 onChangeText={setDurationMinutes}
                 keyboardType="numeric"
-                placeholder="45"
+                placeholder={t("diveLogs.durationPlaceholder")}
                 placeholderTextColor={colors.textSecondary}
               />
             </View>
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.textSecondary }]}>Max Depth (m)</Text>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>{t('diveLogs.maxDepthM')}</Text>
               <TextInput
                 style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
                 value={maxDepth}
                 onChangeText={setMaxDepth}
                 keyboardType="decimal-pad"
-                placeholder="18.5"
+                placeholder={t("diveLogs.maxDepthPlaceholder")}
                 placeholderTextColor={colors.textSecondary}
               />
             </View>
@@ -529,24 +531,24 @@ export default function EditDiveLogScreen() {
 
           <View style={styles.row}>
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.textSecondary }]}>Avg Depth (m)</Text>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>{t('diveLogs.avgDepthM')}</Text>
               <TextInput
                 style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
                 value={avgDepth}
                 onChangeText={setAvgDepth}
                 keyboardType="decimal-pad"
-                placeholder="12.0"
+                placeholder={t("diveLogs.avgDepthPlaceholder")}
                 placeholderTextColor={colors.textSecondary}
               />
             </View>
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.textSecondary }]}>Water Temp (°C)</Text>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>{t('diveLogs.waterTempC')}</Text>
               <TextInput
                 style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
                 value={waterTemp}
                 onChangeText={setWaterTemp}
                 keyboardType="decimal-pad"
-                placeholder="22"
+                placeholder={t("diveLogs.tempPlaceholder")}
                 placeholderTextColor={colors.textSecondary}
               />
             </View>
@@ -555,24 +557,24 @@ export default function EditDiveLogScreen() {
       )}
 
       <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <Text style={[styles.cardTitle, { color: colors.text }]}>Conditions</Text>
-        {renderChipSelector('Surface Conditions', SURFACE_CONDITIONS_OPTIONS, surfaceConditions, setSurfaceConditions)}
-        {renderChipSelector('Weather', WEATHER_OPTIONS, weatherConditions, setWeatherConditions)}
+        <Text style={[styles.cardTitle, { color: colors.text }]}>{t('diveLogs.conditions')}</Text>
+        {renderChipSelector(t('diveLogs.surfaceConditions'), SURFACE_CONDITIONS_OPTIONS, surfaceConditions, setSurfaceConditions)}
+        {renderChipSelector(t('diveLogs.weather'), WEATHER_OPTIONS, weatherConditions, setWeatherConditions)}
         
         <View style={styles.inputGroup}>
-          <Text style={[styles.label, { color: colors.textSecondary }]}>Visibility</Text>
+          <Text style={[styles.label, { color: colors.textSecondary }]}>{t('diveLogs.visibility')}</Text>
           <TextInput
             style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
             value={visibility}
             onChangeText={setVisibility}
-            placeholder="e.g., 15m, Good, Poor"
+            placeholder={t("diveLogs.visibilityPlaceholder")}
             placeholderTextColor={colors.textSecondary}
           />
         </View>
       </View>
 
       <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <Text style={[styles.cardTitle, { color: colors.text }]}>Dive Site</Text>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>{t('diveLogs.diveSite')}</Text>
         <TextInput
           style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
           value={siteSearchQuery || (diveSiteId ? diveSites.find(s => s.id === diveSiteId)?.name || '' : '')}
@@ -583,7 +585,7 @@ export default function EditDiveLogScreen() {
               setDiveSiteName('');
             }
           }}
-          placeholder="Search dive sites..."
+          placeholder={t("diveLogs.searchDiveSites")}
           placeholderTextColor={colors.textSecondary}
         />
         {siteSearchQuery.length > 0 && (
@@ -606,7 +608,7 @@ export default function EditDiveLogScreen() {
                   </Pressable>
                 ))}
               {diveSites.filter(site => site.name.toLowerCase().includes(siteSearchQuery.toLowerCase())).length === 0 && (
-                <Text style={{ color: colors.textSecondary, padding: 12, textAlign: 'center' }}>No sites found</Text>
+                <Text style={{ color: colors.textSecondary, padding: 12, textAlign: 'center' }}>{t('diveLogs.noSitesFound')}</Text>
               )}
             </ScrollView>
           </View>
@@ -620,18 +622,18 @@ export default function EditDiveLogScreen() {
           </View>
         )}
         {diveSites.length === 0 && (
-          <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No dive sites available</Text>
+          <Text style={[styles.emptyText, { color: colors.textSecondary }]}>{t('diveLogs.noDiveSitesAvailable')}</Text>
         )}
       </View>
 
       <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <Text style={[styles.cardTitle, { color: colors.text }]}>Gear Profile</Text>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>{t('diveLogs.gearProfile')}</Text>
         <Pressable
           style={[styles.dropdownButton, { backgroundColor: colors.background, borderColor: colors.border }]}
           onPress={() => setShowGearProfilePicker(!showGearProfilePicker)}
         >
           <Text style={{ color: gearProfileId ? colors.text : colors.textSecondary, flex: 1 }}>
-            {gearProfileId ? gearProfiles.find(p => p.id === gearProfileId)?.name : 'Select gear profile...'}
+            {gearProfileId ? gearProfiles.find(p => p.id === gearProfileId)?.name : t('diveLogs.selectGearProfile')}
           </Text>
           <Feather name={showGearProfilePicker ? "chevron-up" : "chevron-down"} size={18} color={colors.textSecondary} />
         </Pressable>
@@ -641,7 +643,7 @@ export default function EditDiveLogScreen() {
               style={[styles.pickerItem, { borderBottomColor: colors.border }, !gearProfileId && { backgroundColor: colors.primary + '15' }]}
               onPress={() => { setGearProfileId(null); setShowGearProfilePicker(false); }}
             >
-              <Text style={{ color: !gearProfileId ? colors.primary : colors.textSecondary, fontStyle: 'italic' }}>None</Text>
+              <Text style={{ color: !gearProfileId ? colors.primary : colors.textSecondary, fontStyle: 'italic' }}>{t('common.none')}</Text>
             </Pressable>
             {gearProfiles.map((profile) => (
               <Pressable
@@ -656,12 +658,12 @@ export default function EditDiveLogScreen() {
           </View>
         )}
         {gearProfiles.length === 0 && (
-          <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No gear profiles available</Text>
+          <Text style={[styles.emptyText, { color: colors.textSecondary }]}>{t('diveLogs.noGearProfilesAvailable')}</Text>
         )}
       </View>
 
       <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <Text style={[styles.cardTitle, { color: colors.text }]}>Rating</Text>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>{t('common.rating')}</Text>
         {renderStarRating()}
       </View>
     </ScrollView>
@@ -682,7 +684,7 @@ export default function EditDiveLogScreen() {
   const renderGasTab = () => (
     <ScrollView style={styles.tabContent} contentContainerStyle={styles.tabContentContainer}>
       <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <Text style={[styles.cardTitle, { color: colors.text }]}>Cylinders</Text>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>{t('diveLogs.cylinders')}</Text>
         {gearCylinders.length > 0 ? (
           <View>
             {gearCylinders.map((cyl, index) => {
@@ -694,48 +696,48 @@ export default function EditDiveLogScreen() {
                   </Text>
                   <View style={styles.gasMixInputs}>
                     <View style={styles.gasMixInputGroup}>
-                      <Text style={[styles.gasMixInputLabel, { color: colors.textSecondary }]}>O2 %</Text>
+                      <Text style={[styles.gasMixInputLabel, { color: colors.textSecondary }]}>{t('diveLogs.o2Percent')}</Text>
                       <TextInput
                         style={[styles.gasMixInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
                         value={gasMix.o2?.toString() || '21'}
                         onChangeText={(v) => updateGasMix(index, 'o2', v)}
                         keyboardType="numeric"
-                        placeholder="21"
+                        placeholder={t("diveLogs.o2Placeholder")}
                         placeholderTextColor={colors.textSecondary}
                       />
                     </View>
                     <View style={styles.gasMixInputGroup}>
-                      <Text style={[styles.gasMixInputLabel, { color: colors.textSecondary }]}>He %</Text>
+                      <Text style={[styles.gasMixInputLabel, { color: colors.textSecondary }]}>{t('diveLogs.hePercent')}</Text>
                       <TextInput
                         style={[styles.gasMixInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
                         value={gasMix.he?.toString() || '0'}
                         onChangeText={(v) => updateGasMix(index, 'he', v)}
                         keyboardType="numeric"
-                        placeholder="0"
+                        placeholder={t("diveLogs.hePlaceholder")}
                         placeholderTextColor={colors.textSecondary}
                       />
                     </View>
                   </View>
                   <View style={[styles.gasMixInputs, { marginTop: 8 }]}>
                     <View style={styles.gasMixInputGroup}>
-                      <Text style={[styles.gasMixInputLabel, { color: colors.textSecondary }]}>Start (bar)</Text>
+                      <Text style={[styles.gasMixInputLabel, { color: colors.textSecondary }]}>{t('diveLogs.startBar')}</Text>
                       <TextInput
                         style={[styles.gasMixInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
                         value={gasMix.startBar?.toString() || '200'}
                         onChangeText={(v) => updateGasMix(index, 'startBar', v)}
                         keyboardType="numeric"
-                        placeholder="200"
+                        placeholder={t("diveLogs.startPressurePlaceholder")}
                         placeholderTextColor={colors.textSecondary}
                       />
                     </View>
                     <View style={styles.gasMixInputGroup}>
-                      <Text style={[styles.gasMixInputLabel, { color: colors.textSecondary }]}>End (bar)</Text>
+                      <Text style={[styles.gasMixInputLabel, { color: colors.textSecondary }]}>{t('diveLogs.endBar')}</Text>
                       <TextInput
                         style={[styles.gasMixInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
                         value={gasMix.endBar?.toString() || '50'}
                         onChangeText={(v) => updateGasMix(index, 'endBar', v)}
                         keyboardType="numeric"
-                        placeholder="50"
+                        placeholder={t("diveLogs.endPressurePlaceholder")}
                         placeholderTextColor={colors.textSecondary}
                       />
                     </View>
@@ -798,7 +800,7 @@ export default function EditDiveLogScreen() {
           {isFromComputer && (
             <View style={[styles.readOnlyBadge, { backgroundColor: colors.textSecondary + '30' }]}>
               <Feather name="lock" size={12} color={colors.textSecondary} />
-              <Text style={[styles.readOnlyText, { color: colors.textSecondary }]}>Read-only</Text>
+              <Text style={[styles.readOnlyText, { color: colors.textSecondary }]}>{t('diveLogs.readOnly')}</Text>
             </View>
           )}
         </View>
@@ -810,7 +812,7 @@ export default function EditDiveLogScreen() {
             value={deviceManufacturer}
             onChangeText={setDeviceManufacturer}
             editable={!isFromComputer}
-            placeholder="Shearwater, Suunto, etc."
+            placeholder={t("diveLogs.computerBrandPlaceholder")}
             placeholderTextColor={colors.textSecondary}
           />
         </View>
@@ -822,7 +824,7 @@ export default function EditDiveLogScreen() {
             value={deviceModel}
             onChangeText={setDeviceModel}
             editable={!isFromComputer}
-            placeholder="Perdix, D5, etc."
+            placeholder={t("diveLogs.computerModelPlaceholder")}
             placeholderTextColor={colors.textSecondary}
           />
         </View>
@@ -835,7 +837,7 @@ export default function EditDiveLogScreen() {
               value={deviceSerial}
               onChangeText={setDeviceSerial}
               editable={!isFromComputer}
-              placeholder="ABC123"
+              placeholder={t("diveLogs.serialNumberPlaceholder")}
               placeholderTextColor={colors.textSecondary}
             />
           </View>
@@ -846,7 +848,7 @@ export default function EditDiveLogScreen() {
               value={deviceFirmware}
               onChangeText={setDeviceFirmware}
               editable={!isFromComputer}
-              placeholder="v2.0"
+              placeholder={t("diveLogs.firmwareVersionPlaceholder")}
               placeholderTextColor={colors.textSecondary}
             />
           </View>
@@ -863,7 +865,7 @@ export default function EditDiveLogScreen() {
           style={[styles.textArea, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
           value={notes}
           onChangeText={setNotes}
-          placeholder="Add dive notes..."
+          placeholder={t("diveLogs.addNotesPlaceholder")}
           placeholderTextColor={colors.textSecondary}
           multiline
           numberOfLines={6}
@@ -876,13 +878,13 @@ export default function EditDiveLogScreen() {
   const renderProblemsTab = () => (
     <ScrollView style={styles.tabContent} contentContainerStyle={styles.tabContentContainer}>
       <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <Text style={[styles.cardTitle, { color: colors.text }]}>Physical State</Text>
-        {renderChipSelector('Workload', WORKLOAD_OPTIONS, workload, setWorkload)}
-        {renderChipSelector('Thermal Comfort', THERMAL_OPTIONS, thermalComfort, setThermalComfort)}
+        <Text style={[styles.cardTitle, { color: colors.text }]}>{t('diveLogs.physicalState')}</Text>
+        {renderChipSelector(t('diveLogs.workload'), WORKLOAD_OPTIONS, workload, setWorkload)}
+        {renderChipSelector(t('diveLogs.thermalComfort'), THERMAL_OPTIONS, thermalComfort, setThermalComfort)}
       </View>
 
       <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <Text style={[styles.cardTitle, { color: colors.text }]}>Equipment Issues</Text>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>{t('diveLogs.equipmentIssues')}</Text>
         <View style={styles.checkboxGrid}>
           {EQUIPMENT_OPTIONS.map((equip) => {
             const isChecked = equipmentIssues.includes(equip);
@@ -918,7 +920,7 @@ export default function EditDiveLogScreen() {
           style={[styles.textArea, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
           value={problemNotes}
           onChangeText={setProblemNotes}
-          placeholder="Describe any problems encountered during the dive..."
+          placeholder={t("diveLogs.describeProblems")}
           placeholderTextColor={colors.textSecondary}
           multiline
           numberOfLines={4}
@@ -936,7 +938,7 @@ export default function EditDiveLogScreen() {
           style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
           value={buddy}
           onChangeText={setBuddy}
-          placeholder="Add buddy or team members..."
+          placeholder={t("diveLogs.addBuddyPlaceholder")}
           placeholderTextColor={colors.textSecondary}
         />
       </View>
@@ -1065,7 +1067,7 @@ export default function EditDiveLogScreen() {
                 { color: activeTab === tab ? colors.primary : colors.textSecondary },
               ]}
             >
-              {tab}
+              {t(`diveLogs.tabs.${tab.toLowerCase()}`)}
             </Text>
           </Pressable>
         ))}

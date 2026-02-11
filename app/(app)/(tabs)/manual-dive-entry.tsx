@@ -17,6 +17,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { getApiUrl } from '@/utils/apiConfig';
 import ThemedBackground from '@/components/ThemedBackground';
+import { useTranslation } from 'react-i18next';
 
 const TABS = ['Dive', 'Gas', 'Problems', 'Skills', 'Team', 'Notes'] as const;
 type TabType = typeof TABS[number];
@@ -64,10 +65,78 @@ const EQUIPMENT_OPTIONS = [
   'Fins', 'Masks', 'CCR O2', 'CCR Dil', 'CCR CO2', 'Dive Computer', 'Other'
 ];
 
+const TAB_KEYS: Record<string, string> = {
+  'Dive': 'manualDiveEntry.tabs.dive',
+  'Gas': 'manualDiveEntry.tabs.gas',
+  'Problems': 'manualDiveEntry.tabs.problems',
+  'Skills': 'manualDiveEntry.tabs.skills',
+  'Team': 'manualDiveEntry.tabs.team',
+  'Notes': 'manualDiveEntry.tabs.notes',
+};
+
+const SURFACE_CONDITION_KEYS: Record<string, string> = {
+  'Calm': 'manualDiveEntry.surfaceConditions.calm',
+  'Light chop': 'manualDiveEntry.surfaceConditions.lightChop',
+  'Moderate waves': 'manualDiveEntry.surfaceConditions.moderateWaves',
+  'Rough': 'manualDiveEntry.surfaceConditions.rough',
+  'Strong current': 'manualDiveEntry.surfaceConditions.strongCurrent',
+};
+
+const WEATHER_CONDITION_KEYS: Record<string, string> = {
+  'Sunny': 'manualDiveEntry.weatherConditions.sunny',
+  'Partly cloudy': 'manualDiveEntry.weatherConditions.partlyCloudy',
+  'Overcast': 'manualDiveEntry.weatherConditions.overcast',
+  'Rainy': 'manualDiveEntry.weatherConditions.rainy',
+  'Windy': 'manualDiveEntry.weatherConditions.windy',
+};
+
+const WORKLOAD_KEYS: Record<string, string> = {
+  'Light': 'manualDiveEntry.workload.light',
+  'Moderate': 'manualDiveEntry.workload.moderate',
+  'Heavy': 'manualDiveEntry.workload.heavy',
+  'Exhausting': 'manualDiveEntry.workload.exhausting',
+};
+
+const THERMAL_KEYS: Record<string, string> = {
+  'Cold': 'manualDiveEntry.thermal.cold',
+  'Cool': 'manualDiveEntry.thermal.cool',
+  'Comfortable': 'manualDiveEntry.thermal.comfortable',
+  'Warm': 'manualDiveEntry.thermal.warm',
+  'Hot': 'manualDiveEntry.thermal.hot',
+};
+
+const DIVE_MODE_KEYS: Record<string, string> = {
+  'Open Circuit': 'manualDiveEntry.diveModes.openCircuit',
+  'CCR': 'manualDiveEntry.diveModes.ccr',
+};
+
+const EQUIPMENT_KEYS: Record<string, string> = {
+  'None': 'manualDiveEntry.equipmentOptions.none',
+  'First Stages': 'manualDiveEntry.equipmentOptions.firstStages',
+  'Second Stages': 'manualDiveEntry.equipmentOptions.secondStages',
+  'Gas Hoses': 'manualDiveEntry.equipmentOptions.gasHoses',
+  'Wing': 'manualDiveEntry.equipmentOptions.wing',
+  'Harness': 'manualDiveEntry.equipmentOptions.harness',
+  'Torches': 'manualDiveEntry.equipmentOptions.torches',
+  'Weights': 'manualDiveEntry.equipmentOptions.weights',
+  'SMBs': 'manualDiveEntry.equipmentOptions.smbs',
+  'Reels': 'manualDiveEntry.equipmentOptions.reels',
+  'Suit Inflation': 'manualDiveEntry.equipmentOptions.suitInflation',
+  'Suit Venting': 'manualDiveEntry.equipmentOptions.suitVenting',
+  'Fins': 'manualDiveEntry.equipmentOptions.fins',
+  'Masks': 'manualDiveEntry.equipmentOptions.masks',
+  'CCR O2': 'manualDiveEntry.equipmentOptions.ccrO2',
+  'CCR Dil': 'manualDiveEntry.equipmentOptions.ccrDil',
+  'CCR CO2': 'manualDiveEntry.equipmentOptions.ccrCo2',
+  'Dive Computer': 'manualDiveEntry.equipmentOptions.diveComputer',
+  'Other': 'manualDiveEntry.equipmentOptions.other',
+};
+
 export default function ManualDiveEntryScreen() {
   const { colors } = useTheme();
   const { token } = useAuth();
   const router = useRouter();
+  const { t } = useTranslation();
   
   const [activeTab, setActiveTab] = useState<TabType>('Dive');
   const [saving, setSaving] = useState(false);
@@ -249,7 +318,7 @@ export default function ManualDiveEntryScreen() {
 
   const handleSave = async () => {
     if (!diveDate || !diveTime) {
-      Alert.alert('Required Field', 'Please enter the dive date and time.');
+      Alert.alert(t('manualDiveEntry.requiredField'), t('manualDiveEntry.requiredFieldMessage'));
       return;
     }
 
@@ -303,15 +372,15 @@ export default function ManualDiveEntryScreen() {
       }
 
       if (Platform.OS === 'web') {
-        alert('Dive log saved successfully!');
+        alert(t('manualDiveEntry.diveLogSaved'));
         router.back();
       } else {
-        Alert.alert('Success', 'Dive log saved successfully!', [
-          { text: 'OK', onPress: () => router.back() }
+        Alert.alert(t('manualDiveEntry.success'), t('manualDiveEntry.diveLogSaved'), [
+          { text: t('common.ok'), onPress: () => router.back() }
         ]);
       }
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to save dive log');
+      Alert.alert(t('manualDiveEntry.error'), error.message || t('manualDiveEntry.saveFailed'));
     } finally {
       setSaving(false);
     }
@@ -334,7 +403,8 @@ export default function ManualDiveEntryScreen() {
     label: string,
     options: string[],
     value: string,
-    onChange: (val: string) => void
+    onChange: (val: string) => void,
+    translationKeys?: Record<string, string>
   ) => (
     <View style={styles.fieldGroup}>
       <Text style={[styles.label, { color: colors.textSecondary }]}>{label}</Text>
@@ -350,7 +420,7 @@ export default function ManualDiveEntryScreen() {
             onPress={() => onChange(value === option ? '' : option)}
           >
             <Text style={[styles.chipText, { color: value === option ? colors.primary : colors.text }]}>
-              {option}
+              {translationKeys?.[option] ? t(translationKeys[option]) : option}
             </Text>
           </Pressable>
         ))}
@@ -378,39 +448,39 @@ export default function ManualDiveEntryScreen() {
   const renderDiveTab = () => (
     <ScrollView style={styles.tabContent} contentContainerStyle={styles.tabContentContainer}>
       <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <Text style={[styles.cardTitle, { color: colors.text }]}>When & Where</Text>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>{t('manualDiveEntry.whenAndWhere')}</Text>
         
         <View style={styles.row}>
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: colors.textSecondary }]}>Date *</Text>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>{t('manualDiveEntry.dateRequired')}</Text>
             <TextInput
               style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
               value={diveDate}
               onChangeText={setDiveDate}
-              placeholder="YYYY-MM-DD"
+              placeholder={t('manualDiveEntry.datePlaceholder')}
               placeholderTextColor={colors.textSecondary}
             />
           </View>
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: colors.textSecondary }]}>Time *</Text>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>{t('manualDiveEntry.timeRequired')}</Text>
             <TextInput
               style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
               value={diveTime}
               onChangeText={setDiveTime}
-              placeholder="HH:MM"
+              placeholder={t('manualDiveEntry.timePlaceholder')}
               placeholderTextColor={colors.textSecondary}
             />
           </View>
         </View>
 
         <View style={styles.inputGroupStandalone}>
-          <Text style={[styles.label, { color: colors.textSecondary }]}>Dive Site</Text>
+          <Text style={[styles.label, { color: colors.textSecondary }]}>{t('diveSites.title')}</Text>
           <Pressable
             style={[styles.input, styles.dropdown, { backgroundColor: colors.background, borderColor: colors.border }]}
             onPress={() => setShowSiteDropdown(true)}
           >
             <Text style={[styles.dropdownText, { color: selectedSiteName ? colors.text : colors.textSecondary }]}>
-              {selectedSiteName || 'Select dive site...'}
+              {selectedSiteName || t('manualDiveEntry.selectDiveSitePlaceholder')}
             </Text>
             <Feather name="chevron-down" size={18} color={colors.textSecondary} />
           </Pressable>
@@ -425,7 +495,7 @@ export default function ManualDiveEntryScreen() {
           <Pressable style={styles.modalOverlay} onPress={() => setShowSiteDropdown(false)}>
             <View style={[styles.modalContent, { backgroundColor: colors.surface, borderColor: colors.border }]}>
               <View style={styles.modalHeader}>
-                <Text style={[styles.modalTitle, { color: colors.text }]}>Select Dive Site</Text>
+                <Text style={[styles.modalTitle, { color: colors.text }]}>{t('manualDiveEntry.selectDiveSiteTitle')}</Text>
                 <Pressable onPress={() => setShowSiteDropdown(false)}>
                   <Feather name="x" size={24} color={colors.textSecondary} />
                 </Pressable>
@@ -439,7 +509,7 @@ export default function ManualDiveEntryScreen() {
                     setShowSiteDropdown(false);
                   }}
                 >
-                  <Text style={[styles.modalItemText, { color: colors.textSecondary }]}>No site selected</Text>
+                  <Text style={[styles.modalItemText, { color: colors.textSecondary }]}>{t('manualDiveEntry.noSiteSelected')}</Text>
                 </Pressable>
                 <Pressable
                   style={[styles.modalItem, { borderBottomColor: colors.border, flexDirection: 'row', alignItems: 'center', gap: 8 }]}
@@ -449,7 +519,7 @@ export default function ManualDiveEntryScreen() {
                   }}
                 >
                   <Feather name="plus-circle" size={16} color={colors.primary} />
-                  <Text style={[styles.modalItemText, { color: colors.primary, fontWeight: '600' }]}>Add New Dive Site</Text>
+                  <Text style={[styles.modalItemText, { color: colors.primary, fontWeight: '600' }]}>{t('manualDiveEntry.addNewDiveSite')}</Text>
                 </Pressable>
                 {diveSites.map((site) => (
                   <Pressable
@@ -474,13 +544,13 @@ export default function ManualDiveEntryScreen() {
         </Modal>
 
         <View style={styles.inputGroupStandalone}>
-          <Text style={[styles.label, { color: colors.textSecondary }]}>Gear Profile</Text>
+          <Text style={[styles.label, { color: colors.textSecondary }]}>{t('manualDiveEntry.selectGearProfileTitle')}</Text>
           <Pressable
             style={[styles.input, styles.dropdown, { backgroundColor: colors.background, borderColor: colors.border }]}
             onPress={() => setShowGearProfileDropdown(true)}
           >
             <Text style={[styles.dropdownText, { color: selectedGearProfileName ? colors.text : colors.textSecondary }]}>
-              {selectedGearProfileName || 'Select gear profile...'}
+              {selectedGearProfileName || t('manualDiveEntry.selectGearProfilePlaceholder')}
             </Text>
             <Feather name="chevron-down" size={18} color={colors.textSecondary} />
           </Pressable>
@@ -495,7 +565,7 @@ export default function ManualDiveEntryScreen() {
           <Pressable style={styles.modalOverlay} onPress={() => setShowGearProfileDropdown(false)}>
             <View style={[styles.modalContent, { backgroundColor: colors.surface, borderColor: colors.border }]}>
               <View style={styles.modalHeader}>
-                <Text style={[styles.modalTitle, { color: colors.text }]}>Select Gear Profile</Text>
+                <Text style={[styles.modalTitle, { color: colors.text }]}>{t('manualDiveEntry.selectGearProfileTitle')}</Text>
                 <Pressable onPress={() => setShowGearProfileDropdown(false)}>
                   <Feather name="x" size={24} color={colors.textSecondary} />
                 </Pressable>
@@ -505,7 +575,7 @@ export default function ManualDiveEntryScreen() {
                   style={[styles.modalItem, { borderBottomColor: colors.border }]}
                   onPress={handleClearGearProfile}
                 >
-                  <Text style={[styles.modalItemText, { color: colors.textSecondary }]}>No gear profile selected</Text>
+                  <Text style={[styles.modalItemText, { color: colors.textSecondary }]}>{t('manualDiveEntry.noGearProfileSelected')}</Text>
                 </Pressable>
                 {gearProfiles.map((profile) => (
                   <Pressable
@@ -527,15 +597,15 @@ export default function ManualDiveEntryScreen() {
       </View>
 
       <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <Text style={[styles.cardTitle, { color: colors.text }]}>Dive Statistics</Text>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>{t('manualDiveEntry.diveStatistics')}</Text>
         
         <View style={styles.inputGroupStandalone}>
-          <Text style={[styles.label, { color: colors.textSecondary }]}>Duration (minutes)</Text>
+          <Text style={[styles.label, { color: colors.textSecondary }]}>{t('manualDiveEntry.durationMinutes')}</Text>
           <TextInput
             style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
             value={duration}
             onChangeText={setDuration}
-            placeholder="e.g. 45"
+            placeholder={t('manualDiveEntry.durationPlaceholder')}
             placeholderTextColor={colors.textSecondary}
             keyboardType="numeric"
           />
@@ -543,23 +613,23 @@ export default function ManualDiveEntryScreen() {
 
         <View style={styles.row}>
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: colors.textSecondary }]}>Max Depth (m)</Text>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>{t('manualDiveEntry.maxDepthM')}</Text>
             <TextInput
               style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
               value={maxDepth}
               onChangeText={setMaxDepth}
-              placeholder="e.g. 25.5"
+              placeholder={t('manualDiveEntry.maxDepthPlaceholder')}
               placeholderTextColor={colors.textSecondary}
               keyboardType="decimal-pad"
             />
           </View>
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: colors.textSecondary }]}>Avg Depth (m)</Text>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>{t('manualDiveEntry.avgDepthM')}</Text>
             <TextInput
               style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
               value={avgDepth}
               onChangeText={setAvgDepth}
-              placeholder="e.g. 18.0"
+              placeholder={t('manualDiveEntry.avgDepthPlaceholder')}
               placeholderTextColor={colors.textSecondary}
               keyboardType="decimal-pad"
             />
@@ -568,23 +638,23 @@ export default function ManualDiveEntryScreen() {
 
         <View style={styles.row}>
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: colors.textSecondary }]}>Min Temp (°C)</Text>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>{t('manualDiveEntry.minTempC')}</Text>
             <TextInput
               style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
               value={minTemp}
               onChangeText={setMinTemp}
-              placeholder="e.g. 22"
+              placeholder={t('manualDiveEntry.minTempPlaceholder')}
               placeholderTextColor={colors.textSecondary}
               keyboardType="decimal-pad"
             />
           </View>
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: colors.textSecondary }]}>Max Temp (°C)</Text>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>{t('manualDiveEntry.maxTempC')}</Text>
             <TextInput
               style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
               value={maxTemp}
               onChangeText={setMaxTemp}
-              placeholder="e.g. 26"
+              placeholder={t('manualDiveEntry.maxTempPlaceholder')}
               placeholderTextColor={colors.textSecondary}
               keyboardType="decimal-pad"
             />
@@ -593,9 +663,9 @@ export default function ManualDiveEntryScreen() {
       </View>
 
       <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <Text style={[styles.cardTitle, { color: colors.text }]}>Conditions</Text>
-        {renderChipSelector('Surface Conditions', SURFACE_CONDITIONS, surfaceConditions, setSurfaceConditions)}
-        {renderChipSelector('Weather', WEATHER_CONDITIONS, weatherConditions, setWeatherConditions)}
+        <Text style={[styles.cardTitle, { color: colors.text }]}>{t('manualDiveEntry.conditions')}</Text>
+        {renderChipSelector(t('manualDiveEntry.surfaceConditionsLabel'), SURFACE_CONDITIONS, surfaceConditions, setSurfaceConditions, SURFACE_CONDITION_KEYS)}
+        {renderChipSelector(t('manualDiveEntry.weather'), WEATHER_CONDITIONS, weatherConditions, setWeatherConditions, WEATHER_CONDITION_KEYS)}
       </View>
     </ScrollView>
   );
@@ -605,31 +675,31 @@ export default function ManualDiveEntryScreen() {
     return (
     <ScrollView style={styles.tabContent} contentContainerStyle={styles.tabContentContainer}>
       <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <Text style={[styles.cardTitle, { color: colors.text }]}>Dive Mode</Text>
-        {renderChipSelector('Dive Mode', DIVE_MODES, diveMode, setDiveMode)}
+        <Text style={[styles.cardTitle, { color: colors.text }]}>{t('manualDiveEntry.diveModeLabel')}</Text>
+        {renderChipSelector(t('manualDiveEntry.diveModeLabel'), DIVE_MODES, diveMode, setDiveMode, DIVE_MODE_KEYS)}
       </View>
 
       <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <Text style={[styles.cardTitle, { color: colors.text }]}>Device Information</Text>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>{t('manualDiveEntry.deviceInformation')}</Text>
         
         <View style={styles.inputGroupStandalone}>
-          <Text style={[styles.label, { color: colors.textSecondary }]}>Manufacturer</Text>
+          <Text style={[styles.label, { color: colors.textSecondary }]}>{t('manualDiveEntry.manufacturer')}</Text>
           <TextInput
             style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
             value={deviceManufacturer}
             onChangeText={setDeviceManufacturer}
-            placeholder="e.g. Shearwater, Suunto"
+            placeholder={t('manualDiveEntry.manufacturerPlaceholder')}
             placeholderTextColor={colors.textSecondary}
           />
         </View>
 
         <View style={styles.inputGroupStandalone}>
-          <Text style={[styles.label, { color: colors.textSecondary }]}>Model</Text>
+          <Text style={[styles.label, { color: colors.textSecondary }]}>{t('manualDiveEntry.modelLabel')}</Text>
           <TextInput
             style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
             value={deviceModel}
             onChangeText={setDeviceModel}
-            placeholder="e.g. Perdix AI, D5"
+            placeholder={t('manualDiveEntry.modelPlaceholder')}
             placeholderTextColor={colors.textSecondary}
           />
         </View>
@@ -640,14 +710,14 @@ export default function ManualDiveEntryScreen() {
           {loadingProfile ? (
             <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border, alignItems: 'center', padding: 20 }]}>
               <ActivityIndicator size="small" color={colors.primary} />
-              <Text style={[styles.label, { color: colors.textSecondary, marginTop: 8 }]}>Loading cylinders...</Text>
+              <Text style={[styles.label, { color: colors.textSecondary, marginTop: 8 }]}>{t('manualDiveEntry.loadingCylinders')}</Text>
             </View>
           ) : (
             profileCylinders.map((cylinder, index) => (
               <View key={cylinder.id} style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                   <Text style={[styles.cardTitle, { color: colors.text, marginBottom: 0 }]}>
-                    {cylinder.nickname || cylinder.cylinderRole || `Cylinder ${index + 1}`}
+                    {cylinder.nickname || cylinder.cylinderRole || t('manualDiveEntry.cylinder', { index: index + 1 })}
                   </Text>
                   <View style={[styles.gasBadge, { backgroundColor: colors.border }]}>
                     <Text style={[styles.gasBadgeText, { color: colors.textSecondary }]}>
@@ -658,7 +728,7 @@ export default function ManualDiveEntryScreen() {
                 
                 <View style={styles.row}>
                   <View style={styles.inputGroup}>
-                    <Text style={[styles.label, { color: colors.textSecondary }]}>O2 %</Text>
+                    <Text style={[styles.label, { color: colors.textSecondary }]}>{t('manualDiveEntry.o2Percent')}</Text>
                     <TextInput
                       style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
                       value={cylinder.o2Percent?.toString() || '21'}
@@ -669,7 +739,7 @@ export default function ManualDiveEntryScreen() {
                     />
                   </View>
                   <View style={styles.inputGroup}>
-                    <Text style={[styles.label, { color: colors.textSecondary }]}>He %</Text>
+                    <Text style={[styles.label, { color: colors.textSecondary }]}>{t('manualDiveEntry.hePercent')}</Text>
                     <TextInput
                       style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
                       value={cylinder.hePercent?.toString() || '0'}
@@ -683,23 +753,23 @@ export default function ManualDiveEntryScreen() {
                 
                 <View style={styles.row}>
                   <View style={styles.inputGroup}>
-                    <Text style={[styles.label, { color: colors.textSecondary }]}>Start Pressure (bar)</Text>
+                    <Text style={[styles.label, { color: colors.textSecondary }]}>{t('manualDiveEntry.startPressureBar')}</Text>
                     <TextInput
                       style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
                       value={cylinder.startPressure?.toString() || ''}
                       onChangeText={(val) => updateCylinderPressure(cylinder.id, 'startPressure', val)}
-                      placeholder={cylinder.workingPressure?.toString() || 'e.g. 200'}
+                      placeholder={cylinder.workingPressure?.toString() || t('manualDiveEntry.startPressurePlaceholder')}
                       placeholderTextColor={colors.textSecondary}
                       keyboardType="numeric"
                     />
                   </View>
                   <View style={styles.inputGroup}>
-                    <Text style={[styles.label, { color: colors.textSecondary }]}>End Pressure (bar)</Text>
+                    <Text style={[styles.label, { color: colors.textSecondary }]}>{t('manualDiveEntry.endPressureBar')}</Text>
                     <TextInput
                       style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
                       value={cylinder.endPressure || ''}
                       onChangeText={(val) => updateCylinderPressure(cylinder.id, 'endPressure', val)}
-                      placeholder="e.g. 50"
+                      placeholder={t('manualDiveEntry.endPressurePlaceholder')}
                       placeholderTextColor={colors.textSecondary}
                       keyboardType="numeric"
                     />
@@ -711,14 +781,14 @@ export default function ManualDiveEntryScreen() {
         </>
       ) : (
         <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={[styles.cardTitle, { color: colors.text }]}>Gas Mix</Text>
+          <Text style={[styles.cardTitle, { color: colors.text }]}>{t('manualDiveEntry.gasMix')}</Text>
           <Text style={[styles.label, { color: colors.textSecondary, marginBottom: 12 }]}>
-            Select a gear profile on the Dive tab to load cylinders, or enter gas mix manually below.
+            {t('manualDiveEntry.gearProfileGasHint')}
           </Text>
           
           <View style={styles.row}>
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.textSecondary }]}>O2 %</Text>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>{t('manualDiveEntry.o2Percent')}</Text>
               <TextInput
                 style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
                 value={o2Percent}
@@ -729,7 +799,7 @@ export default function ManualDiveEntryScreen() {
               />
             </View>
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.textSecondary }]}>He %</Text>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>{t('manualDiveEntry.hePercent')}</Text>
               <TextInput
                 style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
                 value={hePercent}
@@ -743,23 +813,23 @@ export default function ManualDiveEntryScreen() {
 
           <View style={styles.row}>
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.textSecondary }]}>Start Pressure (bar)</Text>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>{t('manualDiveEntry.startPressureBar')}</Text>
               <TextInput
                 style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
                 value={startPressure}
                 onChangeText={setStartPressure}
-                placeholder="e.g. 200"
+                placeholder={t('manualDiveEntry.startPressurePlaceholder')}
                 placeholderTextColor={colors.textSecondary}
                 keyboardType="numeric"
               />
             </View>
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.textSecondary }]}>End Pressure (bar)</Text>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>{t('manualDiveEntry.endPressureBar')}</Text>
               <TextInput
                 style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
                 value={endPressure}
                 onChangeText={setEndPressure}
-                placeholder="e.g. 50"
+                placeholder={t('manualDiveEntry.endPressurePlaceholder')}
                 placeholderTextColor={colors.textSecondary}
                 keyboardType="numeric"
               />
@@ -774,13 +844,13 @@ export default function ManualDiveEntryScreen() {
   const renderProblemsTab = () => (
     <ScrollView style={styles.tabContent} contentContainerStyle={styles.tabContentContainer}>
       <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <Text style={[styles.cardTitle, { color: colors.text }]}>Physical State</Text>
-        {renderChipSelector('Workload', WORKLOAD_OPTIONS, workload, setWorkload)}
-        {renderChipSelector('Thermal Comfort', THERMAL_OPTIONS, thermalComfort, setThermalComfort)}
+        <Text style={[styles.cardTitle, { color: colors.text }]}>{t('manualDiveEntry.physicalState')}</Text>
+        {renderChipSelector(t('manualDiveEntry.workloadLabel'), WORKLOAD_OPTIONS, workload, setWorkload, WORKLOAD_KEYS)}
+        {renderChipSelector(t('manualDiveEntry.thermalComfortLabel'), THERMAL_OPTIONS, thermalComfort, setThermalComfort, THERMAL_KEYS)}
       </View>
 
       <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <Text style={[styles.cardTitle, { color: colors.text }]}>Equipment Issues</Text>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>{t('manualDiveEntry.equipmentIssuesTitle')}</Text>
         <View style={styles.checkboxGrid}>
           {EQUIPMENT_OPTIONS.map((equip) => {
             const isChecked = equipmentIssues.includes(equip);
@@ -789,7 +859,7 @@ export default function ManualDiveEntryScreen() {
                 <View style={[styles.checkbox, { borderColor: colors.border, backgroundColor: isChecked ? colors.primary + '20' : 'transparent' }]}>
                   {isChecked && <Feather name="check" size={12} color={colors.primary} />}
                 </View>
-                <Text style={[styles.checkboxLabel, { color: colors.text }]}>{equip}</Text>
+                <Text style={[styles.checkboxLabel, { color: colors.text }]}>{EQUIPMENT_KEYS[equip] ? t(EQUIPMENT_KEYS[equip]) : equip}</Text>
               </Pressable>
             );
           })}
@@ -797,26 +867,26 @@ export default function ManualDiveEntryScreen() {
       </View>
 
       <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <Text style={[styles.cardTitle, { color: colors.text }]}>Decompression Symptoms</Text>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>{t('manualDiveEntry.decompressionSymptoms')}</Text>
         <View style={styles.radioRow}>
           <Pressable style={styles.radioItem} onPress={() => setDecompressionSymptoms(false)}>
             <View style={[styles.radio, { borderColor: colors.border, backgroundColor: !decompressionSymptoms ? colors.primary : 'transparent' }]} />
-            <Text style={[styles.radioLabel, { color: colors.text }]}>No</Text>
+            <Text style={[styles.radioLabel, { color: colors.text }]}>{t('manualDiveEntry.no')}</Text>
           </Pressable>
           <Pressable style={styles.radioItem} onPress={() => setDecompressionSymptoms(true)}>
             <View style={[styles.radio, { borderColor: colors.border, backgroundColor: decompressionSymptoms ? colors.primary : 'transparent' }]} />
-            <Text style={[styles.radioLabel, { color: colors.text }]}>Yes</Text>
+            <Text style={[styles.radioLabel, { color: colors.text }]}>{t('manualDiveEntry.yes')}</Text>
           </Pressable>
         </View>
       </View>
 
       <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <Text style={[styles.cardTitle, { color: colors.text }]}>Problem Notes</Text>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>{t('manualDiveEntry.problemNotes')}</Text>
         <TextInput
           style={[styles.textArea, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
           value={problemNotes}
           onChangeText={setProblemNotes}
-          placeholder="Describe any problems encountered during the dive..."
+          placeholder={t('manualDiveEntry.problemNotesPlaceholder')}
           placeholderTextColor={colors.textSecondary}
           multiline
           numberOfLines={4}
@@ -831,20 +901,13 @@ export default function ManualDiveEntryScreen() {
       <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
         <View style={styles.fieldRow}>
           <Feather name="award" size={16} color={colors.primary} />
-          <Text style={[styles.cardTitle, { color: colors.text }]}>Skills Practised</Text>
+          <Text style={[styles.cardTitle, { color: colors.text }]}>{t('manualDiveEntry.skillsPractised')}</Text>
         </View>
         <TextInput
           style={[styles.textArea, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text, minHeight: 150 }]}
           value={skillsNotes}
           onChangeText={setSkillsNotes}
-          placeholder={`Record the skills you practised on this dive, for example:
-• Buoyancy control and trim
-• SMB deployment
-• Mask clearing
-• Gas switching procedures
-• Backwards finning
-• Line laying with markers
-• Emergency drills (bailout, valve shutdown)`}
+          placeholder={t('manualDiveEntry.skillsPlaceholder')}
           placeholderTextColor={colors.textSecondary}
           multiline
           textAlignVertical="top"
@@ -856,17 +919,17 @@ export default function ManualDiveEntryScreen() {
   const renderNotesTab = () => (
     <ScrollView style={styles.tabContent} contentContainerStyle={styles.tabContentContainer}>
       <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <Text style={[styles.cardTitle, { color: colors.text }]}>Rating</Text>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>{t('manualDiveEntry.rating')}</Text>
         {renderStarRating()}
       </View>
 
       <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <Text style={[styles.cardTitle, { color: colors.text }]}>Notes</Text>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>{t('manualDiveEntry.notes')}</Text>
         <TextInput
           style={[styles.textArea, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
           value={notes}
           onChangeText={setNotes}
-          placeholder="Add notes about your dive..."
+          placeholder={t('manualDiveEntry.notesPlaceholder')}
           placeholderTextColor={colors.textSecondary}
           multiline
           numberOfLines={6}
@@ -879,7 +942,7 @@ export default function ManualDiveEntryScreen() {
   const renderTeamTab = () => (
     <ScrollView style={styles.tabContent} contentContainerStyle={styles.tabContentContainer}>
       <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <Text style={[styles.cardTitle, { color: colors.text }]}>Dive Buddies</Text>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>{t('manualDiveEntry.diveBuddies')}</Text>
         
         {loadingBuddies ? (
           <ActivityIndicator size="small" color={colors.primary} />
@@ -887,14 +950,14 @@ export default function ManualDiveEntryScreen() {
           <View style={styles.emptyBuddies}>
             <Feather name="users" size={32} color={colors.textSecondary} />
             <Text style={[styles.emptyBuddiesText, { color: colors.textSecondary }]}>
-              No dive buddies added yet
+              {t('manualDiveEntry.noBuddiesYet')}
             </Text>
             <Pressable
               style={[styles.addBuddyButton, { borderColor: colors.primary }]}
               onPress={() => router.push('/(app)/(tabs)/dive-buddies')}
             >
               <Feather name="plus" size={16} color={colors.primary} />
-              <Text style={[styles.addBuddyButtonText, { color: colors.primary }]}>Add Buddies</Text>
+              <Text style={[styles.addBuddyButtonText, { color: colors.primary }]}>{t('manualDiveEntry.addBuddies')}</Text>
             </Pressable>
           </View>
         ) : (
@@ -929,12 +992,12 @@ export default function ManualDiveEntryScreen() {
       </View>
 
       <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <Text style={[styles.cardTitle, { color: colors.text }]}>Team Notes</Text>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>{t('manualDiveEntry.teamNotes')}</Text>
         <TextInput
           style={[styles.textArea, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
           value={buddyNotes}
           onChangeText={setBuddyNotes}
-          placeholder="Notes about your dive team..."
+          placeholder={t('manualDiveEntry.teamNotesPlaceholder')}
           placeholderTextColor={colors.textSecondary}
           multiline
           numberOfLines={4}
@@ -969,7 +1032,7 @@ export default function ManualDiveEntryScreen() {
         <Pressable onPress={() => router.back()} style={styles.backButton}>
           <Feather name="x" size={24} color={colors.text} />
         </Pressable>
-        <Text style={[styles.title, { color: colors.text }]}>Log Dive</Text>
+        <Text style={[styles.title, { color: colors.text }]}>{t('manualDiveEntry.logDive')}</Text>
         <Pressable
           onPress={handleSave}
           disabled={saving}
@@ -978,7 +1041,7 @@ export default function ManualDiveEntryScreen() {
           {saving ? (
             <ActivityIndicator size="small" color="#FFFFFF" />
           ) : (
-            <Text style={styles.saveButtonText}>Save</Text>
+            <Text style={styles.saveButtonText}>{t('manualDiveEntry.save')}</Text>
           )}
         </Pressable>
       </View>
@@ -1004,7 +1067,7 @@ export default function ManualDiveEntryScreen() {
                   { color: activeTab === tab ? colors.primary : colors.textSecondary },
                 ]}
               >
-                {tab}
+                {TAB_KEYS[tab] ? t(TAB_KEYS[tab]) : tab}
               </Text>
             </Pressable>
           ))}

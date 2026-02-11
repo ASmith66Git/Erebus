@@ -11,6 +11,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useTranslation } from 'react-i18next';
 import { getApiUrl } from '@/utils/apiConfig';
 import Constants from 'expo-constants';
 
@@ -27,6 +28,7 @@ interface DiveSite {
 }
 
 export default function DiveSitesMap() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { token } = useAuth();
   const { colors } = useTheme();
@@ -196,10 +198,10 @@ export default function DiveSitesMap() {
         <View style={styles.emptyContainer}>
           <Feather name="map-pin" size={48} color={colors.textSecondary} />
           <Text style={[styles.emptyText, { color: colors.text }]}>
-            No dive sites with coordinates
+            {t('diveSitesMap.noSitesWithCoordinates')}
           </Text>
           <Text style={[styles.emptySubtext, { color: colors.textSecondary }]}>
-            Add coordinates to your dive sites to see them on the map
+            {t('diveSitesMap.addCoordinatesHint')}
           </Text>
         </View>
       );
@@ -230,11 +232,11 @@ export default function DiveSitesMap() {
           </Pressable>
           <View style={styles.headerCenter}>
             <Ionicons name="map" size={20} color={colors.primary} />
-            <Text style={[styles.headerTitle, { color: colors.text }]}>Dive Sites Map</Text>
+            <Text style={[styles.headerTitle, { color: colors.text }]}>{t('diveSitesMap.title')}</Text>
           </View>
           <View style={styles.siteCount}>
             <Text style={[styles.siteCountText, { color: colors.textSecondary }]}>
-              {sites.length} sites
+              {t('diveSitesMap.siteCount', { count: sites.length })}
             </Text>
           </View>
         </View>
@@ -243,7 +245,7 @@ export default function DiveSitesMap() {
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={colors.primary} />
             <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
-              Loading dive sites...
+              {t('diveSitesMap.loadingDiveSites')}
             </Text>
           </View>
         ) : error ? (
@@ -254,7 +256,7 @@ export default function DiveSitesMap() {
               style={[styles.retryButton, { backgroundColor: colors.primary }]}
               onPress={fetchSites}
             >
-              <Text style={styles.retryButtonText}>Retry</Text>
+              <Text style={styles.retryButtonText}>{t('common.retry')}</Text>
             </Pressable>
           </View>
         ) : (
@@ -273,11 +275,11 @@ export default function DiveSitesMap() {
         </Pressable>
         <View style={styles.headerCenter}>
           <Ionicons name="map" size={20} color={colors.primary} />
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Dive Sites Map</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{t('diveSitesMap.title')}</Text>
         </View>
         <View style={styles.siteCount}>
           <Text style={[styles.siteCountText, { color: colors.textSecondary }]}>
-            {sites.length} sites
+            {t('diveSitesMap.siteCount', { count: sites.length })}
           </Text>
         </View>
       </View>
@@ -286,7 +288,7 @@ export default function DiveSitesMap() {
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
           <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
-            Loading dive sites...
+            {t('diveSitesMap.loadingDiveSites')}
           </Text>
         </View>
       ) : error ? (
@@ -297,17 +299,17 @@ export default function DiveSitesMap() {
             style={[styles.retryButton, { backgroundColor: colors.primary }]}
             onPress={fetchSites}
           >
-            <Text style={styles.retryButtonText}>Retry</Text>
+            <Text style={styles.retryButtonText}>{t('common.retry')}</Text>
           </Pressable>
         </View>
       ) : sites.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Feather name="map-pin" size={48} color={colors.textSecondary} />
           <Text style={[styles.emptyText, { color: colors.text }]}>
-            No dive sites with coordinates
+            {t('diveSitesMap.noSitesWithCoordinates')}
           </Text>
           <Text style={[styles.emptySubtext, { color: colors.textSecondary }]}>
-            Add coordinates to your dive sites to see them on the map
+            {t('diveSitesMap.addCoordinatesHint')}
           </Text>
         </View>
       ) : (
@@ -316,7 +318,7 @@ export default function DiveSitesMap() {
             <View style={[styles.mapLoadingOverlay, { backgroundColor: colors.background }]}>
               <ActivityIndicator size="large" color={colors.primary} />
               <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
-                Loading map...
+                {t('diveSitesMap.loadingMap')}
               </Text>
             </View>
           )}
