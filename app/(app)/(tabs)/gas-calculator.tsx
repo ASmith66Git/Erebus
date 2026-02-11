@@ -239,7 +239,14 @@ export default function GasCalculatorScreen() {
         return;
       }
       const num = parseFloat(text);
-      if (isNaN(num)) {
+      if (!isNaN(num)) {
+        onChangeText(text);
+      }
+    };
+    
+    const handleBlur = () => {
+      const num = parseFloat(value);
+      if (value === '' || isNaN(num)) {
         onChangeText(String(min));
         return;
       }
@@ -256,6 +263,7 @@ export default function GasCalculatorScreen() {
               style={[styles.sliderValueInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
               value={value}
               onChangeText={handleTextChange}
+              onBlur={handleBlur}
               keyboardType="numeric"
               maxLength={5}
               selectTextOnFocus={true}
