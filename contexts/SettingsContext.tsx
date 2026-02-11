@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import i18n from '@/services/i18n';
 
 type UnitSystem = 'metric' | 'imperial';
 type DateFormat = 'YMD' | 'DMY' | 'MDY';
@@ -113,7 +114,10 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         const settings = JSON.parse(stored);
         if (settings.units) setUnitsState(settings.units);
         if (settings.dateFormat) setDateFormatState(settings.dateFormat);
-        if (settings.language) setLanguageState(settings.language);
+        if (settings.language) {
+          setLanguageState(settings.language);
+          i18n.changeLanguage(settings.language);
+        }
         if (settings.themeColor) setThemeColorState(settings.themeColor);
         if (settings.quickActions) setQuickActionsState(settings.quickActions);
       }
@@ -145,6 +149,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
   const setLanguage = (newLang: Language) => {
     setLanguageState(newLang);
+    i18n.changeLanguage(newLang);
     saveSettings({ language: newLang });
   };
 

@@ -6,17 +6,18 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSettings } from '@/contexts/SettingsContext';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import PageHeader from '@/components/PageHeader';
 import { getApiUrl } from '@/utils/apiConfig';
 import ThemedBackground from '@/components/ThemedBackground';
 
 const { width: screenWidth } = Dimensions.get('window');
 
-function getTimeGreeting(): string {
+function getTimeGreetingKey(): string {
   const hour = new Date().getHours();
-  if (hour < 12) return 'Good morning';
-  if (hour < 17) return 'Good afternoon';
-  return 'Good evening';
+  if (hour < 12) return 'home.goodMorning';
+  if (hour < 17) return 'home.goodAfternoon';
+  return 'home.goodEvening';
 }
 
 function hexToHsl(hex: string): { h: number; s: number; l: number } {
@@ -80,14 +81,15 @@ export default function HomeScreen() {
   const { user, token } = useAuth();
   const { getSelectedQuickActions } = useSettings();
   const router = useRouter();
+  const { t } = useTranslation();
   const [stats, setStats] = useState({
     totalDives: 0,
     totalTime: 0,
     sitesVisited: 0,
     maxDepth: 0,
   });
-  const [tagline, setTagline] = useState('Ready for your next underwater adventure?');
-  const [diveTip, setDiveTip] = useState('Always do a buddy check before every dive. Check your BCD, weights, releases, air, and final equipment.');
+  const [tagline, setTagline] = useState('');
+  const [diveTip, setDiveTip] = useState('');
 
   useEffect(() => {
     fetchStats();
@@ -143,9 +145,9 @@ export default function HomeScreen() {
   const colorShades = generateColorShades(colors.primary);
 
   const statsData = [
-    { icon: 'water', label: 'Total Dives', value: stats.totalDives.toString(), gradient: colorShades[0] },
-    { icon: 'time', label: 'Dive Time', value: formatDiveTime(stats.totalTime), gradient: colorShades[1] },
-    { icon: 'location', label: 'Dive Sites', value: stats.sitesVisited.toString(), gradient: colorShades[2] },
+    { icon: 'water', label: t('home.totalDives'), value: stats.totalDives.toString(), gradient: colorShades[0] },
+    { icon: 'time', label: t('home.diveTime'), value: formatDiveTime(stats.totalTime), gradient: colorShades[1] },
+    { icon: 'location', label: t('home.diveSites'), value: stats.sitesVisited.toString(), gradient: colorShades[2] },
   ];
 
   const selectedActions = getSelectedQuickActions();
@@ -158,22 +160,22 @@ export default function HomeScreen() {
 
   return (
     <ThemedBackground>
-      <PageHeader title="Erebus" />
+      <PageHeader title={t('home.title')} />
       <View style={styles.container}>
         <View style={styles.welcomeSection}>
           <Text style={[styles.timeGreeting, { color: colors.primary }]}>
-            {getTimeGreeting()}
+            {t(getTimeGreetingKey())}
           </Text>
           <Text style={[styles.userName, { color: colors.text }]}>
-            {user?.firstName || user?.email?.split('@')[0] || 'Diver'}
+            {user?.firstName || user?.email?.split('@')[0] || t('home.diver')}
           </Text>
           <Text style={[styles.welcomeMessage, { color: colors.textSecondary }]}>
-            {tagline}
+            {tagline || t('home.defaultTagline')}
           </Text>
         </View>
 
         <View style={styles.statsSection}>
-          <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>YOUR DIVE STATS</Text>
+          <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>{t('home.yourDiveStats')}</Text>
           <View style={styles.statsGrid}>
             {statsData.map((stat, index) => (
               <View key={index} style={styles.statCardWrapper}>
@@ -195,7 +197,7 @@ export default function HomeScreen() {
         </View>
 
         <View style={styles.quickActionsSection}>
-          <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>QUICK ACTIONS</Text>
+          <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>{t('home.quickActions')}</Text>
           <View style={styles.actionsGrid}>
             {quickActions.map((action, index) => (
               <Pressable 
@@ -227,9 +229,9 @@ export default function HomeScreen() {
             <Ionicons name="bulb-outline" size={24} color={colors.primary} />
           </View>
           <View style={styles.tipContent}>
-            <Text style={[styles.tipTitle, { color: colors.text }]}>Dive Tip</Text>
+            <Text style={[styles.tipTitle, { color: colors.text }]}>{t('home.diveTip')}</Text>
             <Text style={[styles.tipText, { color: colors.textSecondary }]}>
-              {diveTip}
+              {diveTip || t('home.defaultDiveTip')}
             </Text>
           </View>
         </View>

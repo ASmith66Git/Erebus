@@ -12,6 +12,7 @@ import { SyncProvider } from '@/contexts/SyncContext';
 import { SettingsProvider } from '@/contexts/SettingsContext';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { errorLogger } from '@/services/errorLogger';
+import '@/services/i18n';
 
 if (Platform.OS === 'web' && typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
   navigator.serviceWorker.getRegistrations().then(registrations => {

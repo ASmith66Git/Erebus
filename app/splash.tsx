@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import Logo from '@/components/Logo';
+import { useTranslation } from 'react-i18next';
 
 const darkCoralBackground = require('@/assets/images/coral-background-dark.jpg');
 
@@ -13,6 +14,7 @@ export default function SplashScreen() {
   const { isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
   const { width } = useWindowDimensions();
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
@@ -32,25 +34,25 @@ export default function SplashScreen() {
           <View style={styles.logoContainer}>
             <Logo size={88} primaryColor={colors.primary} />
           </View>
-          <Text style={[styles.title, { color: '#FFFFFF' }]}>Erebus</Text>
+          <Text style={[styles.title, { color: '#FFFFFF' }]}>{t('splash.appName')}</Text>
         </View>
 
         <View style={styles.features}>
           <View style={styles.featureItem}>
             <Ionicons name="analytics-outline" size={20} color={colors.primary} />
-            <Text style={[styles.featureText, { color: '#FFFFFF' }]}>Track your dives</Text>
+            <Text style={[styles.featureText, { color: '#FFFFFF' }]}>{t('splash.trackYourDives')}</Text>
           </View>
           <View style={styles.featureItem}>
             <Ionicons name="calendar-outline" size={20} color={colors.primary} />
-            <Text style={[styles.featureText, { color: '#FFFFFF' }]}>Plan your dives</Text>
+            <Text style={[styles.featureText, { color: '#FFFFFF' }]}>{t('splash.planYourDives')}</Text>
           </View>
           <View style={styles.featureItem}>
             <Ionicons name="people-outline" size={20} color={colors.primary} />
-            <Text style={[styles.featureText, { color: '#FFFFFF' }]}>Connect with divers</Text>
+            <Text style={[styles.featureText, { color: '#FFFFFF' }]}>{t('splash.connectWithDivers')}</Text>
           </View>
           <View style={styles.featureItem}>
             <Ionicons name="ellipsis-horizontal-outline" size={20} color={colors.primary} />
-            <Text style={[styles.featureText, { color: '#FFFFFF' }]}>And much more</Text>
+            <Text style={[styles.featureText, { color: '#FFFFFF' }]}>{t('splash.andMuchMore')}</Text>
           </View>
         </View>
 
@@ -62,12 +64,12 @@ export default function SplashScreen() {
             ]}
             onPress={handleGetStarted}
           >
-            <Text style={styles.getStartedText}>Get Started</Text>
+            <Text style={styles.getStartedText}>{t('splash.getStarted')}</Text>
             <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
           </Pressable>
 
           <Pressable onPress={() => router.push('/(auth)/login' as any)}>
-            <Text style={[styles.loginLink, { color: 'rgba(255,255,255,0.7)' }]}>Already have an account? Log in</Text>
+            <Text style={[styles.loginLink, { color: 'rgba(255,255,255,0.7)' }]}>{t('auth.alreadyHaveAccountLogin')}</Text>
           </Pressable>
         </View>
         </View>

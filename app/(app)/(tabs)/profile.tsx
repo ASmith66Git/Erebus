@@ -7,6 +7,7 @@ import * as Sharing from 'expo-sharing';
 import * as XLSX from 'xlsx';
 import Constants from 'expo-constants';
 import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { getApiUrl } from '@/utils/apiConfig';
@@ -16,12 +17,12 @@ import ThemedBackground from '@/components/ThemedBackground';
 
 type SexOption = 'male' | 'female' | 'other' | 'prefer_not_to_say' | null;
 
-const SEX_OPTIONS: { value: SexOption; label: string }[] = [
-  { value: null, label: 'Not specified' },
-  { value: 'male', label: 'Male' },
-  { value: 'female', label: 'Female' },
-  { value: 'other', label: 'Other' },
-  { value: 'prefer_not_to_say', label: 'Prefer not to say' },
+const SEX_OPTIONS: { value: SexOption; labelKey: string }[] = [
+  { value: null, labelKey: 'profile.notSpecified' },
+  { value: 'male', labelKey: 'profile.male' },
+  { value: 'female', labelKey: 'profile.female' },
+  { value: 'other', labelKey: 'profile.other' },
+  { value: 'prefer_not_to_say', labelKey: 'profile.preferNotToSay' },
 ];
 
 interface Manufacturer {
@@ -49,6 +50,7 @@ interface DiveComputerCapabilities {
 
 export default function ProfileScreen() {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const { user, isAdmin, token, biometricCapability, isBiometricEnabled, setBiometricEnabled, refreshUser } = useAuth();
   
   const [manufacturers, setManufacturers] = useState<Manufacturer[]>([]);
@@ -182,19 +184,19 @@ export default function ProfileScreen() {
   const showExportOptions = () => {
     if (Platform.OS === 'web') {
       const includeMedia = window.confirm(
-        'Include photos and videos in export?\n\n' +
-        'Click OK to include media (ZIP file, larger download)\n' +
-        'Click Cancel for data only (Excel file, faster)'
+        t('profile.includePhotosVideos') + '\n\n' +
+        t('profile.clickOkForMedia') + '\n' +
+        t('profile.clickCancelDataOnly')
       );
       exportDiveData(includeMedia);
     } else {
       Alert.alert(
-        'Export Options',
-        'Would you like to include your photos and videos?',
+        t('profile.exportOptions'),
+        t('profile.includeMediaQuestion'),
         [
-          { text: 'Data Only (XLSX)', onPress: () => exportDiveData(false) },
-          { text: 'Include Media (ZIP)', onPress: () => exportDiveData(true) },
-          { text: 'Cancel', style: 'cancel' }
+          { text: t('profile.dataOnly'), onPress: () => exportDiveData(false) },
+          { text: t('profile.includeMedia'), onPress: () => exportDiveData(true) },
+          { text: t('common.cancel'), style: 'cancel' }
         ]
       );
     }
@@ -224,7 +226,7 @@ export default function ProfileScreen() {
           a.download = fileName;
           a.click();
           URL.revokeObjectURL(url);
-          window.alert('Dive data with media exported successfully!');
+          window.alert(t('profile.exportMediaSuccess'));
         } else {
           const base64 = await new Promise<string>((resolve) => {
             const reader = new FileReader();
@@ -242,7 +244,7 @@ export default function ProfileScreen() {
             mimeType: 'application/zip',
             dialogTitle: 'Export Dive Data with Media',
           });
-          Alert.alert('Success', 'Dive data with media exported successfully!');
+          Alert.alert(t('common.success'), t('profile.exportMediaSuccess'));
         }
         setExporting(false);
         return;
@@ -424,16 +426,16 @@ export default function ProfileScreen() {
       }
       
       if (Platform.OS === 'web') {
-        window.alert('Dive data exported successfully!');
+        window.alert(t('profile.exportSuccess'));
       } else {
-        Alert.alert('Success', 'Dive data exported successfully!');
+        Alert.alert(t('common.success'), t('profile.exportSuccess'));
       }
     } catch (error) {
       console.error('Export error:', error);
       if (Platform.OS === 'web') {
-        window.alert('Failed to export dive data. Please try again.');
+        window.alert(t('profile.failedToExport'));
       } else {
-        Alert.alert('Error', 'Failed to export dive data. Please try again.');
+        Alert.alert(t('common.error'), t('profile.failedToExport'));
       }
     } finally {
       setExporting(false);
@@ -483,7 +485,7 @@ export default function ProfileScreen() {
   const pickProfilePhoto = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission Required', 'Please grant access to your photo library.');
+      Alert.alert(t('profile.permissionRequired'), t('profile.grantPhotoAccess'));
       return;
     }
 
@@ -543,7 +545,7 @@ export default function ProfileScreen() {
       }
     } catch (error) {
       console.error('Upload profile photo error:', error);
-      Alert.alert('Error', 'Failed to upload photo. Please try again.');
+      Alert.alert(t('common.error'), t('profile.failedToUploadPhoto'));
     } finally {
       setUploadingPhoto(false);
     }
@@ -553,7 +555,7 @@ export default function ProfileScreen() {
     if (capabilities) {
       return `${capabilities.brand.name} ${capabilities.model.name}`;
     }
-    return 'Not selected';
+    return t('profile.notSelected');
   };
 
   const openEditProfile = () => {
@@ -581,7 +583,7 @@ export default function ProfileScreen() {
         const ageValue = editFormData.age.trim();
         payload.age = ageValue ? parseInt(ageValue, 10) : null;
         if (payload.age !== null && (isNaN(payload.age) || payload.age < 0 || payload.age > 150)) {
-          Alert.alert('Invalid Age', 'Please enter a valid age between 0 and 150');
+          Alert.alert(t('profile.invalidAge'), t('profile.invalidAgeMessage'));
           setEditLoading(false);
           return;
         }
@@ -610,34 +612,35 @@ export default function ProfileScreen() {
         setShowEditProfile(false);
       } else {
         const data = await response.json();
-        Alert.alert('Error', data.error || 'Failed to update profile');
+        Alert.alert(t('common.error'), data.error || t('profile.failedToUpdateProfile'));
       }
     } catch (error) {
       console.error('Error saving profile:', error);
-      Alert.alert('Error', 'Failed to save profile. Please try again.');
+      Alert.alert(t('common.error'), t('profile.failedToSaveProfile'));
     } finally {
       setEditLoading(false);
     }
   };
 
   const getSexLabel = (sex: SexOption) => {
-    return SEX_OPTIONS.find(opt => opt.value === sex)?.label || 'Not specified';
+    const key = SEX_OPTIONS.find(opt => opt.value === sex)?.labelKey || 'profile.notSpecified';
+    return t(key);
   };
 
   const menuItems = [
-    { icon: 'diamond-outline', title: 'Subscription', description: 'Manage your plan', route: '/(app)/(tabs)/subscription' },
-    { icon: 'rocket-outline', title: 'Roadmap', description: 'See upcoming features', route: '/(app)/(tabs)/roadmap' },
-    { icon: 'notifications-outline', title: 'Notifications', description: 'Manage your alerts', route: '/(app)/(tabs)/notifications' },
-    { icon: 'shield-checkmark-outline', title: 'Privacy', description: 'Control your data', route: '/privacy' },
-    { icon: 'download-outline', title: 'Export Data', description: 'Download your dive data', route: 'export' },
-    { icon: 'chatbubble-ellipses-outline', title: 'FAQ', description: 'Frequently asked questions', route: '/(app)/(tabs)/faq' },
-    { icon: 'help-circle-outline', title: 'Help & Support', description: 'Get assistance', route: '/(app)/(tabs)/help-support' },
-    { icon: 'document-text-outline', title: 'Terms & Conditions', description: 'Legal information', route: '/terms' },
+    { icon: 'diamond-outline', title: t('profile.subscription'), description: t('profile.manageYourPlan'), route: '/(app)/(tabs)/subscription' },
+    { icon: 'rocket-outline', title: t('profile.roadmap'), description: t('profile.seeUpcomingFeatures'), route: '/(app)/(tabs)/roadmap' },
+    { icon: 'notifications-outline', title: t('profile.notifications'), description: t('profile.manageYourAlerts'), route: '/(app)/(tabs)/notifications' },
+    { icon: 'shield-checkmark-outline', title: t('profile.privacy'), description: t('profile.controlYourData'), route: '/privacy' },
+    { icon: 'download-outline', title: t('profile.exportData'), description: t('profile.downloadDiveData'), route: 'export' },
+    { icon: 'chatbubble-ellipses-outline', title: t('profile.faq'), description: t('profile.frequentlyAskedQuestions'), route: '/(app)/(tabs)/faq' },
+    { icon: 'help-circle-outline', title: t('profile.helpSupport'), description: t('profile.getAssistance'), route: '/(app)/(tabs)/help-support' },
+    { icon: 'document-text-outline', title: t('profile.termsConditions'), description: t('profile.legalInformation'), route: '/terms' },
   ];
 
   return (
     <ThemedBackground>
-      <PageHeader title="Profile" />
+      <PageHeader title={t('profile.title')} />
       <ScrollView 
         style={styles.container}
         refreshControl={
@@ -675,12 +678,12 @@ export default function ProfileScreen() {
         </Text>
         <Text style={[styles.userEmail, { color: colors.textSecondary }]}>{user?.email}</Text>
         {user?.age && (
-          <Text style={[styles.userAge, { color: colors.textSecondary }]}>{user.age} years old</Text>
+          <Text style={[styles.userAge, { color: colors.textSecondary }]}>{t('profile.yearsOld', { age: user.age })}</Text>
         )}
         {isAdmin && (
           <View style={[styles.adminBadge, { backgroundColor: colors.primary }]}>
             <Ionicons name="shield-checkmark" size={14} color="#FFFFFF" />
-            <Text style={styles.adminText}>Administrator</Text>
+            <Text style={styles.adminText}>{t('profile.administrator')}</Text>
           </View>
         )}
       </View>
@@ -688,22 +691,22 @@ export default function ProfileScreen() {
       <View style={[styles.statsRow, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
         <View style={styles.statItem}>
           <Text style={[styles.statValue, { color: colors.text }]}>0</Text>
-          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Dives</Text>
+          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{t('profile.dives')}</Text>
         </View>
         <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
         <View style={styles.statItem}>
           <Text style={[styles.statValue, { color: colors.text }]}>0h</Text>
-          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Bottom Time</Text>
+          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{t('profile.bottomTime')}</Text>
         </View>
         <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
         <View style={styles.statItem}>
           <Text style={[styles.statValue, { color: colors.text }]}>0</Text>
-          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Certifications</Text>
+          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{t('profile.certificationsLabel')}</Text>
         </View>
       </View>
 
       <View style={[styles.section, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>Preferences</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('profile.preferences')}</Text>
         
         {biometricCapability?.isSupported && biometricCapability?.isEnrolled && Platform.OS !== 'web' && (
           <View style={styles.themeRow}>
@@ -717,10 +720,10 @@ export default function ProfileScreen() {
               </View>
               <View>
                 <Text style={[styles.menuTitle, { color: colors.text }]}>
-                  {biometricCapability?.biometricTypeName || 'Biometric'} Login
+                  {t('profile.biometricLogin')}
                 </Text>
                 <Text style={[styles.menuDescription, { color: colors.textSecondary }]}>
-                  {isBiometricEnabled ? 'Quick login enabled' : 'Use biometrics to login'}
+                  {isBiometricEnabled ? t('profile.quickLoginEnabled') : t('profile.useBiometricsToLogin')}
                 </Text>
               </View>
             </View>
@@ -737,7 +740,7 @@ export default function ProfileScreen() {
           <View style={styles.mobileOnlyNote}>
             <Ionicons name="finger-print-outline" size={16} color={colors.textSecondary} />
             <Text style={[styles.mobileOnlyText, { color: colors.textSecondary }]}>
-              Biometric login (fingerprint/Face ID) is available in the mobile app
+              {t('profile.biometricMobileOnly')}
             </Text>
           </View>
         )}
@@ -748,9 +751,9 @@ export default function ProfileScreen() {
               <Ionicons name="search-outline" size={20} color={colors.primary} />
             </View>
             <View>
-              <Text style={[styles.menuTitle, { color: colors.text }]}>Searchable Profile</Text>
+              <Text style={[styles.menuTitle, { color: colors.text }]}>{t('profile.searchableProfile')}</Text>
               <Text style={[styles.menuDescription, { color: colors.textSecondary }]}>
-                {searchableProfile ? 'Other divers can find you' : 'Your profile is private'}
+                {searchableProfile ? t('profile.otherDiversCanFindYou') : t('profile.profileIsPrivate')}
               </Text>
             </View>
           </View>
@@ -768,16 +771,16 @@ export default function ProfileScreen() {
       </View>
 
       <View style={[styles.section, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>Dive Computer</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('profile.diveComputer')}</Text>
         
         <Pressable style={styles.menuRow} onPress={() => setShowBrandPicker(true)}>
           <View style={[styles.menuIcon, { backgroundColor: colors.primary + '20' }]}>
             <Ionicons name="hardware-chip-outline" size={20} color={colors.primary} />
           </View>
           <View style={styles.menuContent}>
-            <Text style={[styles.menuTitle, { color: colors.text }]}>Brand</Text>
+            <Text style={[styles.menuTitle, { color: colors.text }]}>{t('profile.brand')}</Text>
             <Text style={[styles.menuDescription, { color: colors.textSecondary }]}>
-              {manufacturers.find(m => m.id === selectedBrand)?.name || 'Select manufacturer'}
+              {manufacturers.find(m => m.id === selectedBrand)?.name || t('profile.selectManufacturer')}
             </Text>
           </View>
           <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
@@ -792,9 +795,9 @@ export default function ProfileScreen() {
             <Ionicons name="watch-outline" size={20} color={colors.primary} />
           </View>
           <View style={styles.menuContent}>
-            <Text style={[styles.menuTitle, { color: colors.text }]}>Model</Text>
+            <Text style={[styles.menuTitle, { color: colors.text }]}>{t('profile.model')}</Text>
             <Text style={[styles.menuDescription, { color: colors.textSecondary }]}>
-              {models.find(m => m.id === selectedModel)?.name || 'Select model'}
+              {models.find(m => m.id === selectedModel)?.name || t('profile.selectModel')}
             </Text>
           </View>
           {loading ? (
@@ -813,8 +816,8 @@ export default function ProfileScreen() {
             />
             <Text style={[styles.capabilityText, { color: capabilities.model.has_ble ? '#10B981' : '#F59200' }]}>
               {capabilities.model.has_ble 
-                ? 'Bluetooth sync supported' 
-                : 'File import only'}
+                ? t('profile.bluetoothSyncSupported') 
+                : t('profile.fileImportOnly')}
             </Text>
           </View>
         )}
@@ -828,13 +831,13 @@ export default function ProfileScreen() {
         {selectedBrand && (
           <Pressable style={styles.clearButton} onPress={clearDiveComputer}>
             <Ionicons name="close-circle-outline" size={18} color={colors.error} />
-            <Text style={[styles.clearButtonText, { color: colors.error }]}>Clear selection</Text>
+            <Text style={[styles.clearButtonText, { color: colors.error }]}>{t('profile.clearSelection')}</Text>
           </Pressable>
         )}
       </View>
 
       <View style={[styles.section, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>Settings</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('profile.settings')}</Text>
         
         {menuItems.map((item, index) => (
           <Pressable 
@@ -859,7 +862,7 @@ export default function ProfileScreen() {
             <View style={styles.menuContent}>
               <View style={styles.menuTitleRow}>
                 <Text style={[styles.menuTitle, { color: colors.text }]}>
-                  {item.route === 'export' && exporting ? 'Exporting...' : item.title}
+                  {item.route === 'export' && exporting ? t('profile.exporting') : item.title}
                 </Text>
                 {item.route === '/(app)/(tabs)/help-support' && supportUnreadCount > 0 && (
                   <View style={[styles.unreadBadge, { backgroundColor: colors.primary }]}>
@@ -885,7 +888,7 @@ export default function ProfileScreen() {
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: colors.cardBackground }]}>
             <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>Select Brand</Text>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>{t('profile.selectBrand')}</Text>
               <Pressable onPress={() => setShowBrandPicker(false)}>
                 <Ionicons name="close" size={24} color={colors.text} />
               </Pressable>
@@ -923,7 +926,7 @@ export default function ProfileScreen() {
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: colors.cardBackground }]}>
             <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>Select Model</Text>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>{t('profile.selectModel')}</Text>
               <Pressable onPress={() => setShowModelPicker(false)}>
                 <Ionicons name="close" size={24} color={colors.text} />
               </Pressable>
@@ -971,41 +974,41 @@ export default function ProfileScreen() {
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: colors.cardBackground }]}>
             <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>Edit Profile</Text>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>{t('profile.editProfile')}</Text>
               <Pressable onPress={() => setShowEditProfile(false)}>
                 <Ionicons name="close" size={24} color={colors.text} />
               </Pressable>
             </View>
             <ScrollView style={styles.modalScroll} keyboardShouldPersistTaps="handled">
               <View style={styles.formGroup}>
-                <Text style={[styles.formLabel, { color: colors.text }]}>First Name</Text>
+                <Text style={[styles.formLabel, { color: colors.text }]}>{t('profile.firstName')}</Text>
                 <TextInput
                   style={[styles.formInput, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border }]}
                   value={editFormData.firstName}
                   onChangeText={(text) => setEditFormData(prev => ({ ...prev, firstName: text }))}
-                  placeholder="Enter first name"
+                  placeholder={t('profile.enterFirstName')}
                   placeholderTextColor={colors.textSecondary}
                 />
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={[styles.formLabel, { color: colors.text }]}>Last Name</Text>
+                <Text style={[styles.formLabel, { color: colors.text }]}>{t('profile.lastName')}</Text>
                 <TextInput
                   style={[styles.formInput, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border }]}
                   value={editFormData.lastName}
                   onChangeText={(text) => setEditFormData(prev => ({ ...prev, lastName: text }))}
-                  placeholder="Enter last name"
+                  placeholder={t('profile.enterLastName')}
                   placeholderTextColor={colors.textSecondary}
                 />
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={[styles.formLabel, { color: colors.text }]}>Age</Text>
+                <Text style={[styles.formLabel, { color: colors.text }]}>{t('profile.age')}</Text>
                 <TextInput
                   style={[styles.formInput, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border }]}
                   value={editFormData.age}
                   onChangeText={(text) => setEditFormData(prev => ({ ...prev, age: text.replace(/[^0-9]/g, '') }))}
-                  placeholder="Enter age"
+                  placeholder={t('profile.enterAge')}
                   placeholderTextColor={colors.textSecondary}
                   keyboardType="number-pad"
                   maxLength={3}
@@ -1013,7 +1016,7 @@ export default function ProfileScreen() {
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={[styles.formLabel, { color: colors.text }]}>Sex</Text>
+                <Text style={[styles.formLabel, { color: colors.text }]}>{t('profile.sex')}</Text>
                 <Pressable
                   style={[styles.formInput, styles.formSelect, { backgroundColor: colors.surface, borderColor: colors.border }]}
                   onPress={() => setShowSexPicker(true)}
@@ -1033,7 +1036,7 @@ export default function ProfileScreen() {
                 {editLoading ? (
                   <ActivityIndicator color="#FFFFFF" />
                 ) : (
-                  <Text style={styles.saveButtonText}>Save Changes</Text>
+                  <Text style={styles.saveButtonText}>{t('profile.saveChanges')}</Text>
                 )}
               </Pressable>
             </ScrollView>
@@ -1050,7 +1053,7 @@ export default function ProfileScreen() {
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: colors.cardBackground }]}>
             <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>Select Sex</Text>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>{t('profile.selectSex')}</Text>
               <Pressable onPress={() => setShowSexPicker(false)}>
                 <Ionicons name="close" size={24} color={colors.text} />
               </Pressable>
@@ -1058,7 +1061,7 @@ export default function ProfileScreen() {
             <ScrollView style={styles.modalScroll}>
               {SEX_OPTIONS.map((option) => (
                 <Pressable
-                  key={option.label}
+                  key={option.labelKey}
                   style={[
                     styles.pickerItem,
                     { borderBottomColor: colors.border },
@@ -1070,7 +1073,7 @@ export default function ProfileScreen() {
                   }}
                 >
                   <Text style={[styles.pickerItemText, { color: colors.text }]}>
-                    {option.label}
+                    {t(option.labelKey)}
                   </Text>
                   {editFormData.sex === option.value && (
                     <Ionicons name="checkmark" size={20} color={colors.primary} />

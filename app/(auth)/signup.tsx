@@ -17,6 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import Logo from '@/components/Logo';
+import { useTranslation } from 'react-i18next';
 
 const SEX_OPTIONS = ['Male', 'Female', 'Other', 'Prefer not to say'];
 
@@ -26,6 +27,14 @@ export default function SignupScreen() {
   const { colors } = useTheme();
   const { signup } = useAuth();
   const router = useRouter();
+  const { t } = useTranslation();
+
+  const sexOptionLabels: Record<string, string> = {
+    'Male': t('auth.male'),
+    'Female': t('auth.female'),
+    'Other': t('auth.other'),
+    'Prefer not to say': t('auth.preferNotToSay'),
+  };
 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -43,27 +52,27 @@ export default function SignupScreen() {
 
   const handleSignup = async () => {
     if (!email.trim()) {
-      setError('Please enter your email');
+      setError(t('auth.pleaseEnterEmail'));
       return;
     }
     if (!password) {
-      setError('Please enter a password');
+      setError(t('auth.pleaseEnterNewPassword'));
       return;
     }
     if (password.length < 6) {
-      setError('Password must be at least 6 characters');
+      setError(t('auth.passwordMinLength'));
       return;
     }
     if (password !== confirmPassword) {
-      setError('Passwords do not match');
+      setError(t('auth.passwordsDoNotMatch'));
       return;
     }
     if (!privacyAccepted) {
-      setError('Please accept the Privacy Policy');
+      setError(t('auth.pleaseAcceptPrivacy'));
       return;
     }
     if (!termsAccepted) {
-      setError('Please accept the Terms & Conditions');
+      setError(t('auth.pleaseAcceptTerms'));
       return;
     }
 
@@ -86,7 +95,7 @@ export default function SignupScreen() {
     setIsLoading(false);
 
     if (!result.success) {
-      setError(result.error || 'Signup failed');
+      setError(result.error || t('auth.signupFailed'));
     }
   };
 
@@ -107,9 +116,9 @@ export default function SignupScreen() {
 
         <View style={styles.header}>
           <Logo size={80} primaryColor={colors.primary} />
-          <Text style={[styles.title, { color: '#FFFFFF' }]}>Create Account</Text>
+          <Text style={[styles.title, { color: '#FFFFFF' }]}>{t('auth.createAccount')}</Text>
           <Text style={[styles.subtitle, { color: 'rgba(255,255,255,0.7)' }]}>
-            Join Erebus and start tracking your dives
+            {t('auth.joinErebus')}
           </Text>
         </View>
 
@@ -123,11 +132,11 @@ export default function SignupScreen() {
 
           <View style={styles.nameRow}>
             <View style={[styles.inputGroup, { flex: 1 }]}>
-              <Text style={[styles.label, { color: '#FFFFFF' }]}>First Name</Text>
+              <Text style={[styles.label, { color: '#FFFFFF' }]}>{t('auth.firstName')}</Text>
               <View style={[styles.inputContainer, { backgroundColor: 'rgba(0,0,0,0.5)', borderColor: 'rgba(255,255,255,0.3)' }]}>
                 <TextInput
                   style={[styles.input, { color: '#FFFFFF' }]}
-                  placeholder="First"
+                  placeholder={t('auth.firstNamePlaceholder')}
                   placeholderTextColor="rgba(255,255,255,0.5)"
                   value={firstName}
                   onChangeText={setFirstName}
@@ -137,11 +146,11 @@ export default function SignupScreen() {
             </View>
 
             <View style={[styles.inputGroup, { flex: 1 }]}>
-              <Text style={[styles.label, { color: '#FFFFFF' }]}>Last Name</Text>
+              <Text style={[styles.label, { color: '#FFFFFF' }]}>{t('auth.lastName')}</Text>
               <View style={[styles.inputContainer, { backgroundColor: 'rgba(0,0,0,0.5)', borderColor: 'rgba(255,255,255,0.3)' }]}>
                 <TextInput
                   style={[styles.input, { color: '#FFFFFF' }]}
-                  placeholder="Last"
+                  placeholder={t('auth.lastNamePlaceholder')}
                   placeholderTextColor="rgba(255,255,255,0.5)"
                   value={lastName}
                   onChangeText={setLastName}
@@ -152,12 +161,12 @@ export default function SignupScreen() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: '#FFFFFF' }]}>Email</Text>
+            <Text style={[styles.label, { color: '#FFFFFF' }]}>{t('auth.email')}</Text>
             <View style={[styles.inputContainer, { backgroundColor: 'rgba(0,0,0,0.5)', borderColor: 'rgba(255,255,255,0.3)' }]}>
               <Ionicons name="mail-outline" size={20} color={colors.primary} />
               <TextInput
                 style={[styles.input, { color: '#FFFFFF' }]}
-                placeholder="Enter your email"
+                placeholder={t('auth.enterEmail')}
                 placeholderTextColor="rgba(255,255,255,0.5)"
                 value={email}
                 onChangeText={setEmail}
@@ -169,12 +178,12 @@ export default function SignupScreen() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: '#FFFFFF' }]}>Password</Text>
+            <Text style={[styles.label, { color: '#FFFFFF' }]}>{t('auth.password')}</Text>
             <View style={[styles.inputContainer, { backgroundColor: 'rgba(0,0,0,0.5)', borderColor: 'rgba(255,255,255,0.3)' }]}>
               <Ionicons name="lock-closed-outline" size={20} color={colors.primary} />
               <TextInput
                 style={[styles.input, { color: '#FFFFFF' }]}
-                placeholder="Create a password"
+                placeholder={t('auth.createPassword')}
                 placeholderTextColor="rgba(255,255,255,0.5)"
                 value={password}
                 onChangeText={setPassword}
@@ -195,12 +204,12 @@ export default function SignupScreen() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: '#FFFFFF' }]}>Confirm Password</Text>
+            <Text style={[styles.label, { color: '#FFFFFF' }]}>{t('auth.confirmPassword')}</Text>
             <View style={[styles.inputContainer, { backgroundColor: 'rgba(0,0,0,0.5)', borderColor: 'rgba(255,255,255,0.3)' }]}>
               <Ionicons name="lock-closed-outline" size={20} color={colors.primary} />
               <TextInput
                 style={[styles.input, { color: '#FFFFFF' }]}
-                placeholder="Confirm your password"
+                placeholder={t('auth.confirmYourPassword')}
                 placeholderTextColor="rgba(255,255,255,0.5)"
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
@@ -212,12 +221,12 @@ export default function SignupScreen() {
 
           <View style={styles.nameRow}>
             <View style={[styles.inputGroup, { flex: 1 }]}>
-              <Text style={[styles.label, { color: '#FFFFFF' }]}>Age (Optional)</Text>
+              <Text style={[styles.label, { color: '#FFFFFF' }]}>{t('auth.ageOptional')}</Text>
               <View style={[styles.inputContainer, { backgroundColor: 'rgba(0,0,0,0.5)', borderColor: 'rgba(255,255,255,0.3)' }]}>
                 <Ionicons name="calendar-outline" size={20} color={colors.primary} />
                 <TextInput
                   style={[styles.input, { color: '#FFFFFF' }]}
-                  placeholder="Age"
+                  placeholder={t('auth.agePlaceholder')}
                   placeholderTextColor="rgba(255,255,255,0.5)"
                   value={age}
                   onChangeText={(text) => setAge(text.replace(/[^0-9]/g, ''))}
@@ -228,14 +237,14 @@ export default function SignupScreen() {
             </View>
 
             <View style={[styles.inputGroup, { flex: 1 }]}>
-              <Text style={[styles.label, { color: '#FFFFFF' }]}>Sex (Optional)</Text>
+              <Text style={[styles.label, { color: '#FFFFFF' }]}>{t('auth.sexOptional')}</Text>
               <Pressable 
                 style={[styles.inputContainer, { backgroundColor: 'rgba(0,0,0,0.5)', borderColor: 'rgba(255,255,255,0.3)' }]}
                 onPress={() => setShowSexPicker(!showSexPicker)}
               >
                 <Ionicons name="person-outline" size={20} color={colors.primary} />
                 <Text style={[styles.input, { color: sex ? '#FFFFFF' : 'rgba(255,255,255,0.5)', paddingTop: 14 }]}>
-                  {sex || 'Select'}
+                  {sex ? sexOptionLabels[sex] : t('common.select')}
                 </Text>
                 <Ionicons name="chevron-down" size={20} color={colors.primary} />
               </Pressable>
@@ -253,7 +262,7 @@ export default function SignupScreen() {
                     setShowSexPicker(false);
                   }}
                 >
-                  <Text style={[styles.pickerOptionText, { color: '#FFFFFF' }]}>{option}</Text>
+                  <Text style={[styles.pickerOptionText, { color: '#FFFFFF' }]}>{sexOptionLabels[option]}</Text>
                   {sex === option && <Ionicons name="checkmark" size={18} color={colors.primary} />}
                 </Pressable>
               ))}
@@ -271,9 +280,9 @@ export default function SignupScreen() {
                 </View>
               </Pressable>
               <View style={styles.consentTextRow}>
-                <Text style={[styles.consentText, { color: 'rgba(255,255,255,0.8)' }]}>I have read and accept the </Text>
+                <Text style={[styles.consentText, { color: 'rgba(255,255,255,0.8)' }]}>{t('auth.iHaveReadAndAccept')} </Text>
                 <Pressable onPress={() => router.push('/(auth)/privacy' as any)}>
-                  <Text style={{ color: colors.primary, textDecorationLine: 'underline', fontSize: 14 }}>Privacy Policy</Text>
+                  <Text style={{ color: colors.primary, textDecorationLine: 'underline', fontSize: 14 }}>{t('auth.privacyPolicy')}</Text>
                 </Pressable>
               </View>
             </View>
@@ -288,9 +297,9 @@ export default function SignupScreen() {
                 </View>
               </Pressable>
               <View style={styles.consentTextRow}>
-                <Text style={[styles.consentText, { color: 'rgba(255,255,255,0.8)' }]}>I have read and accept the </Text>
+                <Text style={[styles.consentText, { color: 'rgba(255,255,255,0.8)' }]}>{t('auth.iHaveReadAndAccept')} </Text>
                 <Pressable onPress={() => router.push('/(auth)/terms' as any)}>
-                  <Text style={{ color: colors.primary, textDecorationLine: 'underline', fontSize: 14 }}>Terms & Conditions</Text>
+                  <Text style={{ color: colors.primary, textDecorationLine: 'underline', fontSize: 14 }}>{t('auth.termsAndConditions')}</Text>
                 </Pressable>
               </View>
             </View>
@@ -304,14 +313,14 @@ export default function SignupScreen() {
             {isLoading ? (
               <ActivityIndicator color="#FFFFFF" />
             ) : (
-              <Text style={styles.signupButtonText}>Create Account</Text>
+              <Text style={styles.signupButtonText}>{t('auth.createAccount')}</Text>
             )}
           </Pressable>
 
           <View style={styles.loginContainer}>
-            <Text style={[styles.loginText, { color: 'rgba(255,255,255,0.7)' }]}>Already have an account? </Text>
+            <Text style={[styles.loginText, { color: 'rgba(255,255,255,0.7)' }]}>{t('auth.alreadyHaveAccount')} </Text>
             <Pressable onPress={() => router.push('/(auth)/login')}>
-              <Text style={[styles.loginLink, { color: colors.primary }]}>Sign In</Text>
+              <Text style={[styles.loginLink, { color: colors.primary }]}>{t('auth.signIn')}</Text>
             </Pressable>
           </View>
           </View>

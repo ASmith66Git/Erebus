@@ -19,6 +19,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { getApiUrl } from '@/utils/apiConfig';
 import Logo from '@/components/Logo';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useTranslation } from 'react-i18next';
 
 const darkCoralBackground = require('@/assets/images/coral-background-dark.jpg');
 
@@ -26,6 +27,7 @@ export default function LoginScreen() {
   const { colors, isDark } = useTheme();
   const { login, loginWithBiometric, biometricCapability, isBiometricEnabled } = useAuth();
   const router = useRouter();
+  const { t } = useTranslation();
   const [hasCachedSession, setHasCachedSession] = useState(false);
   const [biometricLoading, setBiometricLoading] = useState(false);
 
@@ -61,11 +63,11 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     if (!email.trim()) {
-      setError('Please enter your email');
+      setError(t('auth.pleaseEnterEmail'));
       return;
     }
     if (!password) {
-      setError('Please enter your password');
+      setError(t('auth.pleaseEnterPassword'));
       return;
     }
 
@@ -77,7 +79,7 @@ export default function LoginScreen() {
     setIsLoading(false);
 
     if (!result.success) {
-      setError(result.error || 'Login failed');
+      setError(result.error || t('auth.loginFailed'));
     }
   };
 
@@ -90,13 +92,13 @@ export default function LoginScreen() {
     setBiometricLoading(false);
 
     if (!result.success) {
-      setError(result.error || 'Biometric login failed');
+      setError(result.error || t('auth.biometricLoginFailed'));
     }
   };
 
   const handleForgotPassword = async () => {
     if (!forgotEmail.trim()) {
-      setForgotError('Please enter your email');
+      setForgotError(t('auth.pleaseEnterEmail'));
       return;
     }
 
@@ -118,10 +120,10 @@ export default function LoginScreen() {
       if (response.ok) {
         setForgotMessage(data.message);
       } else {
-        setForgotError(data.error || 'Failed to process request');
+        setForgotError(data.error || t('auth.failedToProcess'));
       }
     } catch (err) {
-      setForgotError('Network error. Please try again.');
+      setForgotError(t('common.networkError'));
     } finally {
       setForgotLoading(false);
     }
@@ -151,9 +153,9 @@ export default function LoginScreen() {
 
         <View style={styles.header}>
           <Logo size={80} primaryColor={colors.primary} />
-          <Text style={[styles.title, { color: '#FFFFFF' }]}>Welcome Back</Text>
+          <Text style={[styles.title, { color: '#FFFFFF' }]}>{t('auth.welcomeBack')}</Text>
           <Text style={[styles.subtitle, { color: 'rgba(255,255,255,0.7)' }]}>
-            Sign in to continue managing your dives
+            {t('auth.signInToContinue')}
           </Text>
         </View>
 
@@ -166,12 +168,12 @@ export default function LoginScreen() {
           ) : null}
 
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: '#FFFFFF' }]}>Email</Text>
+            <Text style={[styles.label, { color: '#FFFFFF' }]}>{t('auth.email')}</Text>
             <View style={[styles.inputContainer, { backgroundColor: 'rgba(0,0,0,0.5)', borderColor: 'rgba(255,255,255,0.3)' }]}>
               <Ionicons name="mail-outline" size={20} color={colors.primary} />
               <TextInput
                 style={[styles.input, { color: '#FFFFFF' }]}
-                placeholder="Enter your email"
+                placeholder={t('auth.enterEmail')}
                 placeholderTextColor="rgba(255,255,255,0.5)"
                 value={email}
                 onChangeText={setEmail}
@@ -183,12 +185,12 @@ export default function LoginScreen() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: '#FFFFFF' }]}>Password</Text>
+            <Text style={[styles.label, { color: '#FFFFFF' }]}>{t('auth.password')}</Text>
             <View style={[styles.inputContainer, { backgroundColor: 'rgba(0,0,0,0.5)', borderColor: 'rgba(255,255,255,0.3)' }]}>
               <Ionicons name="lock-closed-outline" size={20} color={colors.primary} />
               <TextInput
                 style={[styles.input, { color: '#FFFFFF' }]}
-                placeholder="Enter your password"
+                placeholder={t('auth.enterPassword')}
                 placeholderTextColor="rgba(255,255,255,0.5)"
                 value={password}
                 onChangeText={setPassword}
@@ -209,7 +211,7 @@ export default function LoginScreen() {
           </View>
 
           <Pressable onPress={() => setForgotPasswordVisible(true)}>
-            <Text style={[styles.forgotPassword, { color: colors.primary }]}>Forgot Password?</Text>
+            <Text style={[styles.forgotPassword, { color: colors.primary }]}>{t('auth.forgotPassword')}</Text>
           </Pressable>
 
           <Pressable
@@ -220,7 +222,7 @@ export default function LoginScreen() {
             {isLoading ? (
               <ActivityIndicator color="#FFFFFF" />
             ) : (
-              <Text style={styles.loginButtonText}>Sign In</Text>
+              <Text style={styles.loginButtonText}>{t('auth.signIn')}</Text>
             )}
           </Pressable>
 
@@ -240,7 +242,7 @@ export default function LoginScreen() {
                     color={colors.primary} 
                   />
                   <Text style={[styles.biometricButtonText, { color: '#FFFFFF' }]}>
-                    Login with {biometricCapability?.biometricTypeName || 'Biometric'}
+                    {t('auth.loginWithBiometric', { type: biometricCapability?.biometricTypeName || 'Biometric' })}
                   </Text>
                 </>
               )}
@@ -248,9 +250,9 @@ export default function LoginScreen() {
           )}
 
           <View style={styles.signupContainer}>
-            <Text style={[styles.signupText, { color: 'rgba(255,255,255,0.7)' }]}>Don't have an account? </Text>
+            <Text style={[styles.signupText, { color: 'rgba(255,255,255,0.7)' }]}>{t('auth.noAccount')} </Text>
             <Pressable onPress={() => router.push('/(auth)/signup')}>
-              <Text style={[styles.signupLink, { color: colors.primary }]}>Sign Up</Text>
+              <Text style={[styles.signupLink, { color: colors.primary }]}>{t('auth.signUp')}</Text>
             </Pressable>
           </View>
           </View>
@@ -265,14 +267,14 @@ export default function LoginScreen() {
             <Pressable style={styles.modalOverlay} onPress={closeForgotModal}>
               <Pressable style={[styles.modalContent, { backgroundColor: colors.surface }]} onPress={(e) => e.stopPropagation()}>
                 <View style={styles.modalHeader}>
-                  <Text style={[styles.modalTitle, { color: colors.text }]}>Forgot Password</Text>
+                  <Text style={[styles.modalTitle, { color: colors.text }]}>{t('auth.forgotPasswordTitle')}</Text>
                   <Pressable onPress={closeForgotModal}>
                     <Ionicons name="close" size={24} color={colors.text} />
                   </Pressable>
                 </View>
 
                 <Text style={[styles.modalDescription, { color: colors.textSecondary }]}>
-                  Enter your email address and we'll help you reset your password.
+                  {t('auth.forgotPasswordDescription')}
                 </Text>
 
                 {forgotMessage ? (
@@ -295,7 +297,7 @@ export default function LoginScreen() {
                       <Ionicons name="mail-outline" size={20} color={colors.primary} />
                       <TextInput
                         style={[styles.input, { color: colors.text }]}
-                        placeholder="Enter your email"
+                        placeholder={t('auth.enterEmail')}
                         placeholderTextColor={colors.textSecondary}
                         value={forgotEmail}
                         onChangeText={setForgotEmail}
@@ -312,7 +314,7 @@ export default function LoginScreen() {
                       {forgotLoading ? (
                         <ActivityIndicator color="#FFFFFF" />
                       ) : (
-                        <Text style={styles.loginButtonText}>Send Reset Request</Text>
+                        <Text style={styles.loginButtonText}>{t('auth.sendResetRequest')}</Text>
                       )}
                     </Pressable>
                   </>
@@ -323,7 +325,7 @@ export default function LoginScreen() {
                     style={[styles.loginButton, { backgroundColor: colors.primary, marginTop: 16 }]}
                     onPress={closeForgotModal}
                   >
-                    <Text style={styles.loginButtonText}>Done</Text>
+                    <Text style={styles.loginButtonText}>{t('common.done')}</Text>
                   </Pressable>
                 )}
               </Pressable>

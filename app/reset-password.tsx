@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getApiUrl } from '@/utils/apiConfig';
 import Logo from '@/components/Logo';
+import { useTranslation } from 'react-i18next';
 
 const darkCoralBackground = require('@/assets/images/coral-background-dark.jpg');
 
@@ -23,6 +24,7 @@ export default function ResetPasswordScreen() {
   const { colors, isDark } = useTheme();
   const router = useRouter();
   const { token } = useLocalSearchParams<{ token: string }>();
+  const { t } = useTranslation();
 
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -34,7 +36,7 @@ export default function ResetPasswordScreen() {
 
   useEffect(() => {
     if (!token) {
-      setError('Invalid or missing reset token. Please request a new password reset.');
+      setError(t('auth.invalidResetToken'));
     }
   }, [token]);
 
@@ -42,17 +44,17 @@ export default function ResetPasswordScreen() {
     setError('');
 
     if (!newPassword) {
-      setError('Please enter a new password');
+      setError(t('auth.pleaseEnterNewPassword'));
       return;
     }
 
     if (newPassword.length < 6) {
-      setError('Password must be at least 6 characters');
+      setError(t('auth.passwordMinLength'));
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setError('Passwords do not match');
+      setError(t('auth.passwordsDoNotMatch'));
       return;
     }
 
@@ -76,10 +78,10 @@ export default function ResetPasswordScreen() {
       if (response.ok) {
         setSuccess(true);
       } else {
-        setError(data.error || 'Failed to reset password. The link may have expired.');
+        setError(data.error || t('auth.failedToResetPassword'));
       }
     } catch (err) {
-      setError('Network error. Please try again.');
+      setError(t('common.networkError'));
     } finally {
       setIsLoading(false);
     }
@@ -108,23 +110,23 @@ export default function ResetPasswordScreen() {
             >
               <View style={styles.logoContainer}>
                 <Logo size={100} />
-                <Text style={[styles.appTitle, { color: colors.text }]}>EREBUS</Text>
+                <Text style={[styles.appTitle, { color: colors.text }]}>{t('splash.appName')}</Text>
               </View>
 
               <View style={[styles.formContainer, { backgroundColor: 'rgba(0,0,0,0.7)' }]}>
                 <View style={styles.successContainer}>
                   <Ionicons name="checkmark-circle" size={64} color="#4CAF50" />
                   <Text style={[styles.successTitle, { color: colors.text }]}>
-                    Password Reset Successful
+                    {t('auth.passwordResetSuccessful')}
                   </Text>
                   <Text style={[styles.successMessage, { color: colors.textSecondary }]}>
-                    Your password has been updated. You can now log in with your new password.
+                    {t('auth.passwordResetSuccessMessage')}
                   </Text>
                   <Pressable
                     style={[styles.button, { backgroundColor: colors.primary }]}
                     onPress={handleGoToLogin}
                   >
-                    <Text style={styles.buttonText}>Go to Login</Text>
+                    <Text style={styles.buttonText}>{t('auth.goToLogin')}</Text>
                   </Pressable>
                 </View>
               </View>
@@ -153,13 +155,13 @@ export default function ResetPasswordScreen() {
           >
             <View style={styles.logoContainer}>
               <Logo size={100} />
-              <Text style={[styles.appTitle, { color: colors.text }]}>EREBUS</Text>
+              <Text style={[styles.appTitle, { color: colors.text }]}>{t('splash.appName')}</Text>
             </View>
 
             <View style={[styles.formContainer, { backgroundColor: 'rgba(0,0,0,0.7)' }]}>
-              <Text style={[styles.title, { color: colors.text }]}>Reset Password</Text>
+              <Text style={[styles.title, { color: colors.text }]}>{t('auth.resetPassword')}</Text>
               <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-                Enter your new password below
+                {t('auth.enterNewPassword')}
               </Text>
 
               {error ? (
@@ -185,7 +187,7 @@ export default function ResetPasswordScreen() {
                       borderColor: colors.border,
                     },
                   ]}
-                  placeholder="New Password"
+                  placeholder={t('auth.newPassword')}
                   placeholderTextColor={colors.textSecondary}
                   value={newPassword}
                   onChangeText={setNewPassword}
@@ -221,7 +223,7 @@ export default function ResetPasswordScreen() {
                       borderColor: colors.border,
                     },
                   ]}
-                  placeholder="Confirm Password"
+                  placeholder={t('auth.confirmNewPassword')}
                   placeholderTextColor={colors.textSecondary}
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
@@ -253,14 +255,14 @@ export default function ResetPasswordScreen() {
                 {isLoading ? (
                   <ActivityIndicator color="#FFFFFF" />
                 ) : (
-                  <Text style={styles.buttonText}>Reset Password</Text>
+                  <Text style={styles.buttonText}>{t('auth.resetPasswordButton')}</Text>
                 )}
               </Pressable>
 
               <Pressable style={styles.backLink} onPress={handleGoToLogin}>
                 <Ionicons name="arrow-back" size={16} color={colors.primary} />
                 <Text style={[styles.backLinkText, { color: colors.primary }]}>
-                  Back to Login
+                  {t('auth.backToLogin')}
                 </Text>
               </Pressable>
             </View>

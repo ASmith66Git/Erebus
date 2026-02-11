@@ -1,19 +1,21 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Modal, FlatList } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useSettings, languageOptions, themeColorOptions, QUICK_ACTION_OPTIONS, UnitSystem, DateFormat, Language } from '@/contexts/SettingsContext';
 import PageHeader from '@/components/PageHeader';
 import ThemedBackground from '@/components/ThemedBackground';
 
-const dateFormatOptions: { value: DateFormat; label: string; example: string }[] = [
-  { value: 'DMY', label: 'Day / Month / Year', example: '25/12/2024' },
-  { value: 'MDY', label: 'Month / Day / Year', example: '12/25/2024' },
-  { value: 'YMD', label: 'Year - Month - Day', example: '2024-12-25' },
+const dateFormatOptions: { value: DateFormat; labelKey: string; example: string }[] = [
+  { value: 'DMY', labelKey: 'settings.dayMonthYear', example: '25/12/2024' },
+  { value: 'MDY', labelKey: 'settings.monthDayYear', example: '12/25/2024' },
+  { value: 'YMD', labelKey: 'settings.yearMonthDay', example: '2024-12-25' },
 ];
 
 export default function SettingsScreen() {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const { units, setUnits, dateFormat, setDateFormat, language, setLanguage, themeColor, setThemeColor, quickActions, setQuickActions } = useSettings();
   const [showLanguagePicker, setShowLanguagePicker] = useState(false);
 
@@ -33,12 +35,12 @@ export default function SettingsScreen() {
 
   return (
     <ThemedBackground>
-      <PageHeader title="Settings" />
+      <PageHeader title={t('settings.title')} />
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={[styles.section, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Units</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('settings.units')}</Text>
           <Text style={[styles.sectionDescription, { color: colors.textSecondary }]}>
-            Choose your preferred measurement system
+            {t('settings.chooseUnits')}
           </Text>
           <View style={styles.optionGroup}>
             <Pressable
@@ -50,10 +52,10 @@ export default function SettingsScreen() {
               onPress={() => setUnits('metric')}
             >
               <Text style={[styles.optionText, { color: units === 'metric' ? '#FFF' : colors.text }]}>
-                Metric
+                {t('settings.metric')}
               </Text>
               <Text style={[styles.optionSubtext, { color: units === 'metric' ? '#FFF' : colors.textSecondary }]}>
-                meters, °C, bar
+                {t('settings.metricUnits')}
               </Text>
             </Pressable>
             <Pressable
@@ -65,19 +67,19 @@ export default function SettingsScreen() {
               onPress={() => setUnits('imperial')}
             >
               <Text style={[styles.optionText, { color: units === 'imperial' ? '#FFF' : colors.text }]}>
-                Imperial
+                {t('settings.imperial')}
               </Text>
               <Text style={[styles.optionSubtext, { color: units === 'imperial' ? '#FFF' : colors.textSecondary }]}>
-                feet, °F, PSI
+                {t('settings.imperialUnits')}
               </Text>
             </Pressable>
           </View>
         </View>
 
         <View style={[styles.section, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Date Format</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('settings.dateFormat')}</Text>
           <Text style={[styles.sectionDescription, { color: colors.textSecondary }]}>
-            Choose how dates are displayed
+            {t('settings.chooseDateFormat')}
           </Text>
           <View style={styles.dateOptions}>
             {dateFormatOptions.map((option) => (
@@ -97,7 +99,7 @@ export default function SettingsScreen() {
                     )}
                   </View>
                   <View style={styles.dateOptionText}>
-                    <Text style={[styles.dateOptionLabel, { color: colors.text }]}>{option.label}</Text>
+                    <Text style={[styles.dateOptionLabel, { color: colors.text }]}>{t(option.labelKey)}</Text>
                     <Text style={[styles.dateOptionExample, { color: colors.textSecondary }]}>{option.example}</Text>
                   </View>
                 </View>
@@ -107,9 +109,9 @@ export default function SettingsScreen() {
         </View>
 
         <View style={[styles.section, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Language</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('settings.language')}</Text>
           <Text style={[styles.sectionDescription, { color: colors.textSecondary }]}>
-            Select your preferred language
+            {t('settings.selectLanguage')}
           </Text>
           <Pressable
             style={[styles.languageSelector, { borderColor: colors.border }]}
@@ -123,9 +125,9 @@ export default function SettingsScreen() {
         </View>
 
         <View style={[styles.section, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Theme Color</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('settings.themeColor')}</Text>
           <Text style={[styles.sectionDescription, { color: colors.textSecondary }]}>
-            Choose your accent color
+            {t('settings.chooseAccentColor')}
           </Text>
           <View style={styles.colorGrid}>
             {themeColorOptions.map((option) => (
@@ -150,9 +152,9 @@ export default function SettingsScreen() {
         </View>
 
         <View style={[styles.section, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Quick Actions</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('settings.quickActions')}</Text>
           <Text style={[styles.sectionDescription, { color: colors.textSecondary }]}>
-            Choose up to 5 shortcuts for your home screen
+            {t('settings.chooseQuickActions')}
           </Text>
           <View style={styles.quickActionsGrid}>
             {QUICK_ACTION_OPTIONS.map((option) => {
@@ -191,7 +193,7 @@ export default function SettingsScreen() {
             })}
           </View>
           <Text style={[styles.quickActionHint, { color: colors.textSecondary }]}>
-            {quickActions.length}/5 selected
+            {t('settings.quickActionsCount', { count: quickActions.length })}
           </Text>
         </View>
 
@@ -207,7 +209,7 @@ export default function SettingsScreen() {
         <Pressable style={styles.modalOverlay} onPress={() => setShowLanguagePicker(false)}>
           <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
             <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>Select Language</Text>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>{t('settings.selectLanguage')}</Text>
               <Pressable onPress={() => setShowLanguagePicker(false)}>
                 <Ionicons name="close" size={24} color={colors.text} />
               </Pressable>
