@@ -7,13 +7,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 
 function CustomDrawerContent(props: any) {
   const { colors } = useTheme();
   const { user, logout, isAdmin, isLoading } = useAuth();
   const router = useRouter();
+  const { t } = useTranslation();
   
-  // Force component to use current isAdmin value by including it in render key
   const adminKey = `admin-${isAdmin}-${user?.role || 'none'}`;
 
   const handleLogout = async () => {
@@ -23,7 +24,7 @@ function CustomDrawerContent(props: any) {
 
   const showComingSoon = (feature: string) => {
     props.navigation.closeDrawer();
-    Alert.alert('Coming Soon', `${feature} will be available in a future update.`);
+    Alert.alert(t('nav.comingSoon'), t('nav.comingSoonMessage', { feature }));
   };
 
   const handleNavigation = (path: string) => {
@@ -32,28 +33,28 @@ function CustomDrawerContent(props: any) {
   };
 
   const menuItems = [
-    { icon: 'home-outline', label: 'Home', action: () => handleNavigation('/(app)/(tabs)') },
-    { icon: 'journal-outline', label: 'Dive Logs', action: () => handleNavigation('/(app)/(tabs)/dive-logs') },
-    { icon: 'location-outline', label: 'Dive Sites', action: () => handleNavigation('/(app)/(tabs)/dive-sites') },
-    { icon: 'build-outline', label: 'Gear Profiles', action: () => handleNavigation('/(app)/(tabs)/gear-profiles') },
-    { icon: 'people-outline', label: 'Dive Buddies', action: () => handleNavigation('/(app)/(tabs)/dive-buddies') },
-    { icon: 'analytics-outline', label: 'Dive Planning', action: () => handleNavigation('/(app)/(tabs)/dive-planning') },
-    { icon: 'flask-outline', label: 'Gas', action: () => handleNavigation('/(app)/(tabs)/gas-calculator') },
-    { icon: 'images-outline', label: 'Photos', action: () => handleNavigation('/(app)/(tabs)/photos') },
-    { icon: 'ribbon-outline', label: 'Certifications', action: () => handleNavigation('/(app)/(tabs)/certifications') },
-    { icon: 'airplane-outline', label: 'Dive Trips', action: () => handleNavigation('/(app)/(tabs)/dive-trips') },
-    { icon: 'person-outline', label: 'Profile', action: () => handleNavigation('/(app)/(tabs)/profile') },
-    { icon: 'settings-outline', label: 'Settings', action: () => handleNavigation('/(app)/(tabs)/settings') },
+    { icon: 'home-outline', label: t('nav.home'), action: () => handleNavigation('/(app)/(tabs)') },
+    { icon: 'journal-outline', label: t('nav.diveLogs'), action: () => handleNavigation('/(app)/(tabs)/dive-logs') },
+    { icon: 'location-outline', label: t('nav.diveSites'), action: () => handleNavigation('/(app)/(tabs)/dive-sites') },
+    { icon: 'build-outline', label: t('nav.gearProfiles'), action: () => handleNavigation('/(app)/(tabs)/gear-profiles') },
+    { icon: 'people-outline', label: t('nav.diveBuddies'), action: () => handleNavigation('/(app)/(tabs)/dive-buddies') },
+    { icon: 'analytics-outline', label: t('nav.divePlanning'), action: () => handleNavigation('/(app)/(tabs)/dive-planning') },
+    { icon: 'flask-outline', label: t('nav.gas'), action: () => handleNavigation('/(app)/(tabs)/gas-calculator') },
+    { icon: 'images-outline', label: t('nav.photos'), action: () => handleNavigation('/(app)/(tabs)/photos') },
+    { icon: 'ribbon-outline', label: t('nav.certifications'), action: () => handleNavigation('/(app)/(tabs)/certifications') },
+    { icon: 'airplane-outline', label: t('nav.diveTrips'), action: () => handleNavigation('/(app)/(tabs)/dive-trips') },
+    { icon: 'person-outline', label: t('nav.profile'), action: () => handleNavigation('/(app)/(tabs)/profile') },
+    { icon: 'settings-outline', label: t('nav.settings'), action: () => handleNavigation('/(app)/(tabs)/settings') },
   ];
 
   const adminItems = [
-    { icon: 'stats-chart-outline', label: 'Stats', action: () => handleNavigation('/(app)/(tabs)/admin-stats') },
-    { icon: 'people-outline', label: 'User Management', action: () => handleNavigation('/(app)/(tabs)/admin') },
-    { icon: 'mail-outline', label: 'Support Messages', action: () => handleNavigation('/(app)/(tabs)/support-admin') },
-    { icon: 'chatbox-ellipses-outline', label: 'Dive Messages', action: () => handleNavigation('/(app)/(tabs)/dive-messages') },
-    { icon: 'rocket-outline', label: 'Roadmap', action: () => handleNavigation('/(app)/(tabs)/roadmap-admin') },
-    { icon: 'code-slash-outline', label: 'Dev Log', action: () => handleNavigation('/(app)/(tabs)/dev-log') },
-    { icon: 'bug-outline', label: 'Debug Logs', action: () => handleNavigation('/(app)/(tabs)/debug-log') },
+    { icon: 'stats-chart-outline', label: t('nav.stats'), action: () => handleNavigation('/(app)/(tabs)/admin-stats') },
+    { icon: 'people-outline', label: t('nav.userManagement'), action: () => handleNavigation('/(app)/(tabs)/admin') },
+    { icon: 'mail-outline', label: t('nav.supportMessages'), action: () => handleNavigation('/(app)/(tabs)/support-admin') },
+    { icon: 'chatbox-ellipses-outline', label: t('nav.diveMessages'), action: () => handleNavigation('/(app)/(tabs)/dive-messages') },
+    { icon: 'rocket-outline', label: t('nav.roadmap'), action: () => handleNavigation('/(app)/(tabs)/roadmap-admin') },
+    { icon: 'code-slash-outline', label: t('nav.devLog'), action: () => handleNavigation('/(app)/(tabs)/dev-log') },
+    { icon: 'bug-outline', label: t('nav.debugLogs'), action: () => handleNavigation('/(app)/(tabs)/debug-log') },
   ];
 
   return (
@@ -100,7 +101,7 @@ function CustomDrawerContent(props: any) {
           {isAdmin && (
             <>
               <View style={[styles.divider, { backgroundColor: colors.border, marginVertical: 12 }]} />
-              <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Admin</Text>
+              <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>{t('nav.admin')}</Text>
               {adminItems.map((item, index) => (
                 <DrawerItem
                   key={`admin-${index}`}
@@ -121,7 +122,7 @@ function CustomDrawerContent(props: any) {
         <View style={styles.logoutContainer}>
           <View style={[styles.divider, { backgroundColor: colors.border, marginBottom: 8 }]} />
           <DrawerItem
-            label="Logout"
+            label={t('nav.logout')}
             onPress={handleLogout}
             icon={() => (
               <Ionicons name="log-out-outline" size={22} color={colors.primary} />

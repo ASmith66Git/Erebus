@@ -3,9 +3,11 @@ import { Tabs } from 'expo-router';
 import { View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useTranslation } from 'react-i18next';
 
 export default function TabLayout() {
   const { colors } = useTheme();
+  const { t } = useTranslation();
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -34,7 +36,7 @@ export default function TabLayout() {
         <Tabs.Screen
           name="index"
           options={{
-            title: 'Home',
+            title: t('nav.home'),
             tabBarIcon: ({ focused }) => (
               <Ionicons name={focused ? 'home' : 'home-outline'} size={22} color={colors.primary} />
             ),
@@ -43,7 +45,7 @@ export default function TabLayout() {
         <Tabs.Screen
           name="dive-logs"
           options={{
-            title: 'Dive Logs',
+            title: t('nav.diveLogs'),
             tabBarIcon: ({ focused }) => (
               <Ionicons name={focused ? 'journal' : 'journal-outline'} size={22} color={colors.primary} />
             ),
@@ -52,7 +54,7 @@ export default function TabLayout() {
         <Tabs.Screen
           name="photos"
           options={{
-            title: 'Photos',
+            title: t('nav.photos'),
             tabBarIcon: ({ focused }) => (
               <Ionicons name={focused ? 'images' : 'images-outline'} size={22} color={colors.primary} />
             ),
@@ -61,7 +63,7 @@ export default function TabLayout() {
         <Tabs.Screen
           name="profile"
           options={{
-            title: 'Profile',
+            title: t('nav.profile'),
             tabBarIcon: ({ focused }) => (
               <Ionicons name={focused ? 'person' : 'person-outline'} size={22} color={colors.primary} />
             ),
