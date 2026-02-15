@@ -7,6 +7,7 @@ import fr from '@/locales/fr.json';
 import de from '@/locales/de.json';
 import es from '@/locales/es.json';
 import it from '@/locales/it.json';
+import sv from '@/locales/sv.json';
 
 const deviceLanguage = getLocales()[0]?.languageCode || 'en';
 
@@ -19,6 +20,7 @@ i18n
       de: { translation: de },
       es: { translation: es },
       it: { translation: it },
+      sv: { translation: sv },
     },
     lng: deviceLanguage,
     fallbackLng: 'en',

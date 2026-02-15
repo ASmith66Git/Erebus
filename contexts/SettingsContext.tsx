@@ -4,7 +4,7 @@ import i18n from '@/services/i18n';
 
 type UnitSystem = 'metric' | 'imperial';
 type DateFormat = 'YMD' | 'DMY' | 'MDY';
-type Language = 'en' | 'es' | 'fr' | 'de' | 'it' | 'pt' | 'nl' | 'ja' | 'zh';
+type Language = 'en' | 'es' | 'fr' | 'de' | 'it' | 'sv' | 'pt' | 'nl' | 'ja' | 'zh';
 type ThemeColor = string;
 
 interface QuickActionOption {
@@ -71,6 +71,7 @@ const languageOptions: { value: Language; label: string }[] = [
   { value: 'fr', label: 'Français' },
   { value: 'de', label: 'Deutsch' },
   { value: 'it', label: 'Italiano' },
+  { value: 'sv', label: 'Svenska' },
   { value: 'pt', label: 'Português' },
   { value: 'nl', label: 'Nederlands' },
   { value: 'ja', label: '日本語' },
