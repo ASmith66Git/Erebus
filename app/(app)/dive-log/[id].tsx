@@ -766,6 +766,7 @@ function DiveProfileChart({ samples, colors, showTemp, showNdl, showGf99, showPp
 }
 
 function DiveTab({ diveLog, colors, gearProfileName, gearProfileId }: { diveLog: DiveLog; colors: any; gearProfileName: string | null; gearProfileId: number | null }) {
+  const { t } = useTranslation();
   const router = useRouter();
   const [showTemp, setShowTemp] = useState(true);
   const [showNdl, setShowNdl] = useState(true);
@@ -1018,6 +1019,7 @@ function DiveTab({ diveLog, colors, gearProfileName, gearProfileId }: { diveLog:
 }
 
 function ProblemsTab({ diveLog, colors }: { diveLog: DiveLog; colors: any }) {
+  const { t } = useTranslation();
   return (
     <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
       <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -1081,6 +1083,7 @@ function ProblemsTab({ diveLog, colors }: { diveLog: DiveLog; colors: any }) {
 }
 
 function EquipmentTab({ colors, gearProfile }: { colors: any; gearProfile: any | null }) {
+  const { t } = useTranslation();
   if (!gearProfile) {
     return (
       <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
@@ -1146,6 +1149,7 @@ function EquipmentTab({ colors, gearProfile }: { colors: any; gearProfile: any |
 }
 
 function GasTab({ diveLog, colors, gearCylinders }: { diveLog: DiveLog; colors: any; gearCylinders: any[] }) {
+  const { t } = useTranslation();
   const hasCylinders = gearCylinders && gearCylinders.length > 0;
   const gasMixes = diveLog.gasMixes || [];
   
@@ -1188,6 +1192,7 @@ function GasTab({ diveLog, colors, gearCylinders }: { diveLog: DiveLog; colors: 
 }
 
 function SkillsTab({ diveLog, colors, token, onRefresh }: { diveLog: DiveLog; colors: any; token: string | null; onRefresh: () => void }) {
+  const { t } = useTranslation();
   const [editing, setEditing] = useState(false);
   const [skillsNotes, setSkillsNotes] = useState(diveLog.skillsNotes || '');
   const [saving, setSaving] = useState(false);
@@ -1276,6 +1281,7 @@ function SkillsTab({ diveLog, colors, token, onRefresh }: { diveLog: DiveLog; co
 }
 
 function NotesTab({ diveLog, colors }: { diveLog: DiveLog; colors: any }) {
+  const { t } = useTranslation();
   return (
     <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
       <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -1304,6 +1310,7 @@ interface Buddy {
 }
 
 function TeamTab({ diveLog, colors, token, onRefresh }: { diveLog: DiveLog; colors: any; token: string | null; onRefresh: () => void }) {
+  const { t } = useTranslation();
   const [linkedBuddies, setLinkedBuddies] = useState<Buddy[]>([]);
   const [allBuddies, setAllBuddies] = useState<Buddy[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
