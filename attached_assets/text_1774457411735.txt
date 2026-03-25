@@ -1,0 +1,39 @@
+{
+  "deviceInfo": {
+    "platform": "ios",
+    "version": "26.4",
+    "timestamp": "2026-03-25T16:49:15.533Z"
+  },
+  "logs": [
+    {
+      "id": "1774457338276-q85ysl7q1",
+      "timestamp": "2026-03-25T16:48:58.276Z",
+      "level": "error",
+      "message": "React Error: Property 't' doesn't exist",
+      "source": "ErrorBoundary",
+      "details": "Component Stack:\n\n    at DiveTab (/Users/justenable/Library/Developer/Xcode/DerivedData/Erebus-cyqpwhsuoiolfddlndvjeyoyjuzs/Build/Intermediates.noindex/ArchiveIntermediates/Erebus/BuildProductsPath/Release-iphoneos/main.jsbundle:333990:24)\n    at RCTView (<anonymous>)\n    at View (/Users/justenable/Library/Developer/Xcode/DerivedData/Erebus-cyqpwhsuoiolfddlndvjeyoyjuzs/Build/Intermediates.noindex/ArchiveIntermediates/Erebus/BuildProductsPath/Release-iphoneos/main.jsbundle:36047:19)\n    at RCTView (<anonymous>)\n    at View (/Users/justenable/Library/Developer/Xcode/DerivedData/Erebus-cyqpwhsuoiolfddlndvjeyoyjuzs/Build/Intermediates.noindex/ArchiveIntermediates/Erebus/BuildProductsPath/Release-iphoneos/main.jsbundle:36047:19)\n    at ThemedBackground (/Users/justenable/Library/Developer/Xcode/DerivedData/Erebus-cyqpwhsuoiolfddlndvjeyoyjuzs/Build/Intermediates.noindex/ArchiveIntermediates/Erebus/BuildProductsPath/Release-iphoneos/main.jsbundle:158795:24)\n    at DiveLogDetailScreen (/Users/justenable/Library/Developer/Xcode/DerivedData/Erebus-cyqpwhsuoiolfddlndvjeyoyjuzs/Build/Intermediates.noindex/ArchiveIntermediates/Erebus/BuildProductsPath/Release-iphoneos/main.jsbundle:335179:70)\n    at Suspense (<anonymous>)\n    at Route (/Users/justenable/Library/Developer/Xcode/DerivedData/Erebus-cyqpwhsuoiolfddlndvjeyoyjuzs/Build/Intermediates.noindex/ArchiveIntermediates/Erebus/BuildProductsPath/Release-iphoneos/main.jsbundle:78844:24)\n    at BaseRoute (/Users/justenable/Library/Developer/Xcode/DerivedData/Erebus-cyqpwhsuoiolfddlndvjeyoyjuzs/Build/Intermediates.noindex/ArchiveIntermediates/Erebus/BuildProductsPath/Release-iphoneos/main.jsbundle:79676:24)\n    at StaticContainer (/Users/justenable/Library/Developer/Xcode/DerivedData/Erebus-cyqpwhsuoiolfddlndvjeyoyjuzs/Build/Intermediates.noindex/ArchiveIntermediates/Erebus/BuildProductsPath/Release-iphoneos/main.jsbundle:76021:17)\n    at EnsureSingleNavigator (/Users/justenable/Library/Developer/Xcode/DerivedData/Erebus-cyqpwhsuo"
+    },
+    {
+      "id": "1774457338275-4zjdsil3b",
+      "timestamp": "2026-03-25T16:48:58.275Z",
+      "level": "error",
+      "message": "ReferenceError: Property 't' doesn't exist\nReferenceError: Property 't' doesn't exist\n    at DiveTab (/Users/justenable/Library/Developer/Xcode/DerivedData/Erebus-cyqpwhsuoiolfddlndvjeyoyjuzs/Build/Intermediates.noindex/ArchiveIntermediates/Erebus/BuildProductsPath/Release-iphoneos/main.jsbundle:334192:25)\n    at renderWithHooks (/Users/justenable/Library/Developer/Xcode/DerivedData/Erebus-cyqpwhsuoiolfddlndvjeyoyjuzs/Build/Intermediates.noindex/ArchiveIntermediates/Erebus/BuildProductsPath/Release-iphoneos/main.jsbundle:16530:32)\n    at updateFunctionComponent (/Users/justenable/Library/Developer/Xcode/DerivedData/Erebus-cyqpwhsuoiolfddlndvjeyoyjuzs/Build/Intermediates.noindex/ArchiveIntermediates/Erebus/BuildProductsPath/Release-iphoneos/main.jsbundle:18083:32)\n    at beginWork (/Users/justenable/Library/Developer/Xcode/DerivedData/Erebus-cyqpwhsuoiolfddlndvjeyoyjuzs/Build/Intermediates.noindex/ArchiveIntermediates/Erebus/BuildProductsPath/Release-iphoneos/main.jsbundle:18497:39)\n   ",
+      "source": "console.error"
+    },
+    {
+      "id": "1774376789206-eadxatvtv",
+      "timestamp": "2026-03-24T18:26:29.206Z",
+      "level": "error",
+      "message": "React Error: Property 't' doesn't exist",
+      "source": "ErrorBoundary",
+      "details": "Component Stack:\n\n    at DiveTab (/Users/justenable/Library/Developer/Xcode/DerivedData/Erebus-cyqpwhsuoiolfddlndvjeyoyjuzs/Build/Intermediates.noindex/ArchiveIntermediates/Erebus/BuildProductsPath/Release-iphoneos/main.jsbundle:333990:24)\n    at RCTView (<anonymous>)\n    at View (/Users/justenable/Library/Developer/Xcode/DerivedData/Erebus-cyqpwhsuoiolfddlndvjeyoyjuzs/Build/Intermediates.noindex/ArchiveIntermediates/Erebus/BuildProductsPath/Release-iphoneos/main.jsbundle:36047:19)\n    at RCTView (<anonymous>)\n    at View (/Users/justenable/Library/Developer/Xcode/DerivedData/Erebus-cyqpwhsuoiolfddlndvjeyoyjuzs/Build/Intermediates.noindex/ArchiveIntermediates/Erebus/BuildProductsPath/Release-iphoneos/main.jsbundle:36047:19)\n    at ThemedBackground (/Users/justenable/Library/Developer/Xcode/DerivedData/Erebus-cyqpwhsuoiolfddlndvjeyoyjuzs/Build/Intermediates.noindex/ArchiveIntermediates/Erebus/BuildProductsPath/Release-iphoneos/main.jsbundle:158795:24)\n    at DiveLogDetailScreen (/Users/justenable/Library/Developer/Xcode/DerivedData/Erebus-cyqpwhsuoiolfddlndvjeyoyjuzs/Build/Intermediates.noindex/ArchiveIntermediates/Erebus/BuildProductsPath/Release-iphoneos/main.jsbundle:335179:70)\n    at Suspense (<anonymous>)\n    at Route (/Users/justenable/Library/Developer/Xcode/DerivedData/Erebus-cyqpwhsuoiolfddlndvjeyoyjuzs/Build/Intermediates.noindex/ArchiveIntermediates/Erebus/BuildProductsPath/Release-iphoneos/main.jsbundle:78844:24)\n    at BaseRoute (/Users/justenable/Library/Developer/Xcode/DerivedData/Erebus-cyqpwhsuoiolfddlndvjeyoyjuzs/Build/Intermediates.noindex/ArchiveIntermediates/Erebus/BuildProductsPath/Release-iphoneos/main.jsbundle:79676:24)\n    at StaticContainer (/Users/justenable/Library/Developer/Xcode/DerivedData/Erebus-cyqpwhsuoiolfddlndvjeyoyjuzs/Build/Intermediates.noindex/ArchiveIntermediates/Erebus/BuildProductsPath/Release-iphoneos/main.jsbundle:76021:17)\n    at EnsureSingleNavigator (/Users/justenable/Library/Developer/Xcode/DerivedData/Erebus-cyqpwhsuo"
+    },
+    {
+      "id": "1774376789204-e7hcfmf5o",
+      "timestamp": "2026-03-24T18:26:29.204Z",
+      "level": "error",
+      "message": "ReferenceError: Property 't' doesn't exist\nReferenceError: Property 't' doesn't exist\n    at DiveTab (/Users/justenable/Library/Developer/Xcode/DerivedData/Erebus-cyqpwhsuoiolfddlndvjeyoyjuzs/Build/Intermediates.noindex/ArchiveIntermediates/Erebus/BuildProductsPath/Release-iphoneos/main.jsbundle:334192:25)\n    at renderWithHooks (/Users/justenable/Library/Developer/Xcode/DerivedData/Erebus-cyqpwhsuoiolfddlndvjeyoyjuzs/Build/Intermediates.noindex/ArchiveIntermediates/Erebus/BuildProductsPath/Release-iphoneos/main.jsbundle:16530:32)\n    at updateFunctionComponent (/Users/justenable/Library/Developer/Xcode/DerivedData/Erebus-cyqpwhsuoiolfddlndvjeyoyjuzs/Build/Intermediates.noindex/ArchiveIntermediates/Erebus/BuildProductsPath/Release-iphoneos/main.jsbundle:18083:32)\n    at beginWork (/Users/justenable/Library/Developer/Xcode/DerivedData/Erebus-cyqpwhsuoiolfddlndvjeyoyjuzs/Build/Intermediates.noindex/ArchiveIntermediates/Erebus/BuildProductsPath/Release-iphoneos/main.jsbundle:18497:39)\n   ",
+      "source": "console.error"
+    }
+  ]
+}
