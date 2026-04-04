@@ -155,7 +155,10 @@ export default function ManualDiveEntryScreen() {
 
   const [diveDate, setDiveDate] = useState(() => {
     const now = new Date();
-    return now.toISOString().split('T')[0];
+    const year = now.getFullYear();
+    const month = (now.getMonth() + 1).toString().padStart(2, '0');
+    const day = now.getDate().toString().padStart(2, '0');
+    return `${year}-${month}-${day}`;
   });
   const [diveTime, setDiveTime] = useState(() => {
     const now = new Date();

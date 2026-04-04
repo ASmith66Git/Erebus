@@ -424,7 +424,7 @@ export default function DiveTripScreen() {
   const formatDate = (dateStr: string) => {
     if (!dateStr) return '';
     try {
-      return new Date(dateStr).toLocaleDateString();
+      return new Date(dateStr).toLocaleDateString(undefined, { timeZone: 'UTC' });
     } catch {
       return dateStr;
     }

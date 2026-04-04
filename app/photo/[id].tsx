@@ -601,7 +601,7 @@ export default function PhotoDetailScreen() {
               </View>
               {trip.start_date && (
                 <Text style={[styles.diveItemDate, { color: colors.textSecondary }]}>
-                  {new Date(trip.start_date).toLocaleDateString()}
+                  {new Date(trip.start_date).toLocaleDateString(undefined, { timeZone: 'UTC' })}
                 </Text>
               )}
             </Pressable>
