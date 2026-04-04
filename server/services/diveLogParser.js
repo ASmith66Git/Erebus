@@ -1,6 +1,49 @@
 const xml2js = require('xml2js');
 const Papa = require('papaparse');
 
+function normalizeDateTime(dateStr, timeStr) {
+  if (!dateStr) return null;
+  try {
+    let d = dateStr.trim();
+    let t = timeStr ? timeStr.trim() : null;
+
+    if (!t && d.includes('T')) {
+      const parts = d.split('T');
+      d = parts[0];
+      t = parts[1];
+    }
+    if (!t && d.includes(' ') && d.split(' ').length >= 2) {
+      const parts = d.split(' ');
+      d = parts[0];
+      t = parts.slice(1).join(' ');
+    }
+
+    const datePart = d.replace(/\//g, '-').substring(0, 10);
+    const dateMatch = datePart.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+    if (!dateMatch) {
+      return new Date(dateStr).toISOString();
+    }
+    const year = dateMatch[1];
+    const month = dateMatch[2].padStart(2, '0');
+    const day = dateMatch[3].padStart(2, '0');
+
+    let hour = '00', minute = '00', second = '00';
+    if (t) {
+      t = t.replace(/Z$/i, '').replace(/[+-]\d{2}:\d{2}$/, '');
+      const timeMatch = t.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?/);
+      if (timeMatch) {
+        hour = timeMatch[1].padStart(2, '0');
+        minute = timeMatch[2];
+        second = timeMatch[3] || '00';
+      }
+    }
+
+    return `${year}-${month}-${day}T${hour}:${minute}:${second}.000Z`;
+  } catch {
+    return new Date(dateStr).toISOString();
+  }
+}
+
 class DiveLogParser {
   async parseFile(fileContent, filename, mimeType) {
     const ext = filename.toLowerCase().split('.').pop();
@@ -110,29 +153,20 @@ class DiveLogParser {
 
   extractUDDFDateTime(dive) {
     if (dive.informationbeforedive?.datetime) {
-      try {
-        return new Date(dive.informationbeforedive.datetime).toISOString();
-      } catch {}
+      const result = normalizeDateTime(dive.informationbeforedive.datetime);
+      if (result) return result;
     }
     
     if (dive.$?.date) {
-      try {
-        const datetime = dive.$.time ? `${dive.$.date}T${dive.$.time}` : dive.$.date;
-        return new Date(datetime).toISOString();
-      } catch {}
+      const result = normalizeDateTime(dive.$.date, dive.$.time);
+      if (result) return result;
     }
     
     return null;
   }
 
   parseUDDFDateTime(dateStr, timeStr) {
-    if (!dateStr) return null;
-    try {
-      const datetime = timeStr ? `${dateStr}T${timeStr}` : dateStr;
-      return new Date(datetime).toISOString();
-    } catch {
-      return null;
-    }
+    return normalizeDateTime(dateStr, timeStr);
   }
 
   parseUDDFGasMixes(gasDefs) {
@@ -165,7 +199,7 @@ class DiveLogParser {
       
       dives.push({
         dive_datetime: dive.$.date && dive.$.time 
-          ? new Date(`${dive.$.date}T${dive.$.time}`).toISOString()
+          ? normalizeDateTime(dive.$.date, dive.$.time)
           : new Date().toISOString(),
         duration_seconds: this.parseDuration(dive.$.duration),
         max_depth_meters: maxDepth || this.parseDepth(dive.$.maxdepth),
@@ -278,7 +312,7 @@ class DiveLogParser {
 
       if (date && !currentDive) {
         currentDive = {
-          dive_datetime: new Date(date).toISOString(),
+          dive_datetime: normalizeDateTime(date) || new Date().toISOString(),
           duration_seconds: null,
           max_depth_meters: null,
           avg_depth_meters: null,

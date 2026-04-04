@@ -3,6 +3,49 @@ const Papa = require('papaparse');
 const crypto = require('crypto');
 const { DiveImportDTO, EVENT_TYPES, DIVE_MODES, DECO_MODELS } = require('./diveImportDTO');
 
+function normalizeDateTime(dateStr, timeStr) {
+  if (!dateStr) return null;
+  try {
+    let d = dateStr.trim();
+    let t = timeStr ? timeStr.trim() : null;
+
+    if (!t && d.includes('T')) {
+      const parts = d.split('T');
+      d = parts[0];
+      t = parts[1];
+    }
+    if (!t && d.includes(' ') && d.split(' ').length >= 2) {
+      const parts = d.split(' ');
+      d = parts[0];
+      t = parts.slice(1).join(' ');
+    }
+
+    const datePart = d.replace(/\//g, '-').substring(0, 10);
+    const dateMatch = datePart.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+    if (!dateMatch) {
+      return new Date(dateStr).toISOString();
+    }
+    const year = dateMatch[1];
+    const month = dateMatch[2].padStart(2, '0');
+    const day = dateMatch[3].padStart(2, '0');
+
+    let hour = '00', minute = '00', second = '00';
+    if (t) {
+      t = t.replace(/Z$/i, '').replace(/[+-]\d{2}:\d{2}$/, '');
+      const timeMatch = t.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?/);
+      if (timeMatch) {
+        hour = timeMatch[1].padStart(2, '0');
+        minute = timeMatch[2];
+        second = timeMatch[3] || '00';
+      }
+    }
+
+    return `${year}-${month}-${day}T${hour}:${minute}:${second}.000Z`;
+  } catch {
+    return new Date(dateStr).toISOString();
+  }
+}
+
 class FormatDetector {
   static detect(fileContent, filename, mimeType) {
     const ext = filename.toLowerCase().split('.').pop();
@@ -166,29 +209,20 @@ class UDDFAdapter extends BaseAdapter {
   
   extractUDDFDateTime(dive) {
     if (dive.informationbeforedive?.datetime) {
-      try {
-        return new Date(dive.informationbeforedive.datetime).toISOString();
-      } catch {}
+      const result = normalizeDateTime(dive.informationbeforedive.datetime);
+      if (result) return result;
     }
     
     if (dive.$?.date) {
-      try {
-        const datetime = dive.$.time ? `${dive.$.date}T${dive.$.time}` : dive.$.date;
-        return new Date(datetime).toISOString();
-      } catch {}
+      const result = normalizeDateTime(dive.$.date, dive.$.time);
+      if (result) return result;
     }
     
     return null;
   }
   
   parseUDDFDateTime(dateStr, timeStr) {
-    if (!dateStr) return null;
-    try {
-      const datetime = timeStr ? `${dateStr}T${timeStr}` : dateStr;
-      return new Date(datetime).toISOString();
-    } catch {
-      return null;
-    }
+    return normalizeDateTime(dateStr, timeStr);
   }
   
   parseUDDFSamples(samplesData, dto) {
@@ -324,7 +358,7 @@ class SubsurfaceAdapter extends BaseAdapter {
       dto.import_metadata.raw_data_hash = this.hashContent(content);
       
       dto.header.dive_datetime = dive.$.date && dive.$.time
-        ? new Date(`${dive.$.date}T${dive.$.time}`).toISOString()
+        ? normalizeDateTime(dive.$.date, dive.$.time)
         : new Date().toISOString();
       dto.header.duration_seconds = this.parseDuration(dive.$.duration);
       dto.header.dive_number = dive.$.number ? parseInt(dive.$.number) : null;
@@ -583,7 +617,7 @@ class CSVAdapter extends BaseAdapter {
         currentDTO.import_metadata.raw_data_hash = this.hashContent(content);
         
         if (date) {
-          currentDTO.header.dive_datetime = new Date(date).toISOString();
+          currentDTO.header.dive_datetime = normalizeDateTime(date) || new Date().toISOString();
         } else {
           currentDTO.header.dive_datetime = new Date().toISOString();
         }

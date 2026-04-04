@@ -418,7 +418,7 @@ export default function EditDiveLogScreen() {
             <Text style={[styles.label, { color: colors.textSecondary }]}>{t('common.date')}</Text>
             <TextInput
               style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
-              value={diveDateTime ? new Date(diveDateTime).toLocaleDateString() : ''}
+              value={diveDateTime ? new Date(diveDateTime).toLocaleDateString(undefined, { timeZone: 'UTC' }) : ''}
               editable={false}
               placeholder={t("diveLogs.selectDate")}
               placeholderTextColor={colors.textSecondary}

@@ -290,6 +290,7 @@ export default function PhotoDetailScreen() {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
+      timeZone: 'UTC',
     });
   };
 
@@ -528,7 +529,7 @@ export default function PhotoDetailScreen() {
           <View style={styles.selectedDive}>
             <Ionicons name="water" size={18} color={colors.primary} />
             <Text style={[styles.selectedDiveText, { color: colors.text }]}>
-              {getSelectedDive()?.diveSiteName || t('photos.unknownSite')} - {getSelectedDive()?.diveDateTime ? new Date(getSelectedDive()!.diveDateTime).toLocaleDateString() : ''}
+              {getSelectedDive()?.diveSiteName || t('photos.unknownSite')} - {getSelectedDive()?.diveDateTime ? new Date(getSelectedDive()!.diveDateTime).toLocaleDateString(undefined, { timeZone: 'UTC' }) : ''}
             </Text>
           </View>
         ) : (
@@ -554,7 +555,7 @@ export default function PhotoDetailScreen() {
                 <Text style={[styles.diveItemText, { color: colors.text }]}>{dive.diveSiteName || t('photos.unknownSite')}</Text>
               </View>
               <Text style={[styles.diveItemDate, { color: colors.textSecondary }]}>
-                {new Date(dive.diveDateTime).toLocaleDateString()}
+                {new Date(dive.diveDateTime).toLocaleDateString(undefined, { timeZone: 'UTC' })}
               </Text>
             </Pressable>
           ))}

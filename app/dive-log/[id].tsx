@@ -77,6 +77,7 @@ function formatDateTime(dateStr: string): string {
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
+    timeZone: 'UTC',
   });
 }
 
@@ -87,6 +88,7 @@ function formatDate(dateStr: string): string {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
+    timeZone: 'UTC',
   });
 }
 
@@ -95,6 +97,7 @@ function formatTime(dateStr: string): string {
   return date.toLocaleTimeString(undefined, {
     hour: '2-digit',
     minute: '2-digit',
+    timeZone: 'UTC',
   });
 }
 
@@ -105,6 +108,7 @@ function calculateEndTime(startDateStr: string, durationSeconds: number | null):
   return endDate.toLocaleTimeString(undefined, {
     hour: '2-digit',
     minute: '2-digit',
+    timeZone: 'UTC',
   });
 }
 

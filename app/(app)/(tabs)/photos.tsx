@@ -471,7 +471,7 @@ export default function PhotosScreen() {
   const formatDate = (dateString: string | null) => {
     if (!dateString) return '';
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
   };
 
   // Helper to get the full image URL (relative paths need API URL prefix)
@@ -973,7 +973,7 @@ export default function PhotosScreen() {
                         <Ionicons name="water" size={24} color={colors.primary} />
                         <View>
                           <Text style={[styles.diveLogItemText, { color: colors.text }]}>
-                            {new Date(log.diveDateTime).toLocaleDateString()}
+                            {new Date(log.diveDateTime).toLocaleDateString(undefined, { timeZone: 'UTC' })}
                           </Text>
                           {log.diveSiteName && (
                             <Text style={[styles.diveLogItemSubtext, { color: colors.textSecondary }]}>
@@ -1011,8 +1011,8 @@ export default function PhotosScreen() {
                             {trip.name}
                           </Text>
                           <Text style={[styles.diveLogItemSubtext, { color: colors.textSecondary }]}>
-                            {new Date(trip.startDate).toLocaleDateString()}
-                            {trip.endDate && ` - ${new Date(trip.endDate).toLocaleDateString()}`}
+                            {new Date(trip.startDate).toLocaleDateString(undefined, { timeZone: 'UTC' })}
+                            {trip.endDate && ` - ${new Date(trip.endDate).toLocaleDateString(undefined, { timeZone: 'UTC' })}`}
                           </Text>
                         </View>
                       </View>

@@ -324,7 +324,7 @@ export default function ManualDiveEntryScreen() {
 
     setSaving(true);
     try {
-      const diveDateTime = new Date(`${diveDate}T${diveTime}:00`).toISOString();
+      const diveDateTime = `${diveDate}T${diveTime}:00.000Z`;
       
       const payload: any = {
         diveDateTime,
