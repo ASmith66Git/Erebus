@@ -124,6 +124,12 @@ export default function TabLayout() {
           }}
         />
         <Tabs.Screen
+          name="compressors"
+          options={{
+            href: null,
+          }}
+        />
+        <Tabs.Screen
           name="settings"
           options={{
             href: null,

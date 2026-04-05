@@ -256,6 +256,64 @@ async function initializeLocalDatabase(database: SQLite.SQLiteDatabase): Promise
     CREATE INDEX IF NOT EXISTS idx_dive_sites_server_id ON dive_sites(server_id);
     CREATE INDEX IF NOT EXISTS idx_dive_sites_is_synced ON dive_sites(is_synced);
     CREATE INDEX IF NOT EXISTS idx_pending_mutations_entity ON pending_mutations(entity_type, entity_id);
+
+    CREATE TABLE IF NOT EXISTS compressors (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      server_id INTEGER UNIQUE,
+      user_id INTEGER,
+      name TEXT NOT NULL,
+      make TEXT,
+      model TEXT,
+      serial_number TEXT,
+      purchase_date TEXT,
+      total_hours REAL DEFAULT 0,
+      oil_change_interval_hours INTEGER DEFAULT 100,
+      filter_change_interval_hours INTEGER DEFAULT 500,
+      independent_test_interval_months INTEGER DEFAULT 12,
+      notes TEXT,
+      status TEXT DEFAULT 'active',
+      created_at TEXT,
+      updated_at TEXT,
+      deleted_at TEXT,
+      is_synced INTEGER DEFAULT 1
+    );
+
+    CREATE TABLE IF NOT EXISTS compressor_service_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      server_id INTEGER UNIQUE,
+      compressor_id INTEGER,
+      user_id INTEGER,
+      service_type TEXT NOT NULL,
+      service_date TEXT NOT NULL,
+      hours_at_service REAL,
+      filter_type TEXT,
+      test_result TEXT,
+      test_certificate_number TEXT,
+      next_due_date TEXT,
+      cost REAL,
+      technician TEXT,
+      notes TEXT,
+      created_at TEXT,
+      updated_at TEXT,
+      is_synced INTEGER DEFAULT 1
+    );
+
+    CREATE TABLE IF NOT EXISTS compressor_usage_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      server_id INTEGER UNIQUE,
+      compressor_id INTEGER,
+      user_id INTEGER,
+      usage_date TEXT NOT NULL,
+      hours_used REAL NOT NULL,
+      fills_count INTEGER,
+      notes TEXT,
+      created_at TEXT,
+      is_synced INTEGER DEFAULT 1
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_compressors_server_id ON compressors(server_id);
+    CREATE INDEX IF NOT EXISTS idx_compressor_service_logs_compressor_id ON compressor_service_logs(compressor_id);
+    CREATE INDEX IF NOT EXISTS idx_compressor_usage_logs_compressor_id ON compressor_usage_logs(compressor_id);
   `);
 }
 
@@ -457,10 +515,162 @@ export async function markLocalSiteSynced(localId: number): Promise<void> {
   );
 }
 
+export interface LocalCompressor {
+  id: number;
+  serverId: number | null;
+  userId: number | null;
+  name: string;
+  make: string | null;
+  model: string | null;
+  serialNumber: string | null;
+  purchaseDate: string | null;
+  totalHours: number;
+  oilChangeIntervalHours: number;
+  filterChangeIntervalHours: number;
+  independentTestIntervalMonths: number;
+  notes: string | null;
+  status: string;
+  createdAt: string | null;
+  updatedAt: string | null;
+  deletedAt: string | null;
+  isSynced: boolean;
+}
+
+function mapRowToLocalCompressor(row: any): LocalCompressor {
+  return {
+    id: row.id,
+    serverId: row.server_id,
+    userId: row.user_id,
+    name: row.name,
+    make: row.make,
+    model: row.model,
+    serialNumber: row.serial_number,
+    purchaseDate: row.purchase_date,
+    totalHours: row.total_hours || 0,
+    oilChangeIntervalHours: row.oil_change_interval_hours || 100,
+    filterChangeIntervalHours: row.filter_change_interval_hours || 500,
+    independentTestIntervalMonths: row.independent_test_interval_months || 12,
+    notes: row.notes,
+    status: row.status || 'active',
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    deletedAt: row.deleted_at,
+    isSynced: !!row.is_synced,
+  };
+}
+
+export async function getAllLocalCompressors(): Promise<LocalCompressor[]> {
+  const db = await getDatabase();
+  const rows = await db.getAllAsync<any>(
+    'SELECT * FROM compressors WHERE deleted_at IS NULL ORDER BY created_at DESC'
+  );
+  return rows.map(mapRowToLocalCompressor);
+}
+
+export async function getLocalCompressorById(id: number): Promise<LocalCompressor | null> {
+  const db = await getDatabase();
+  const row = await db.getFirstAsync<any>(
+    'SELECT * FROM compressors WHERE id = ? AND deleted_at IS NULL',
+    [id]
+  );
+  return row ? mapRowToLocalCompressor(row) : null;
+}
+
+export async function getLocalCompressorByServerId(serverId: number): Promise<LocalCompressor | null> {
+  const db = await getDatabase();
+  const row = await db.getFirstAsync<any>(
+    'SELECT * FROM compressors WHERE server_id = ?',
+    [serverId]
+  );
+  return row ? mapRowToLocalCompressor(row) : null;
+}
+
+export async function upsertLocalCompressor(compressor: Partial<LocalCompressor> & { serverId?: number; id?: number }): Promise<number> {
+  const db = await getDatabase();
+
+  if (compressor.serverId) {
+    const existing = await getLocalCompressorByServerId(compressor.serverId);
+    if (existing) {
+      await db.runAsync(`
+        UPDATE compressors SET
+          user_id = ?, name = ?, make = ?, model = ?, serial_number = ?,
+          purchase_date = ?, total_hours = ?, oil_change_interval_hours = ?,
+          filter_change_interval_hours = ?, independent_test_interval_months = ?,
+          notes = ?, status = ?, created_at = ?, updated_at = ?, deleted_at = ?, is_synced = 1
+        WHERE server_id = ?
+      `, [
+        compressor.userId ?? null, compressor.name ?? '', compressor.make ?? null,
+        compressor.model ?? null, compressor.serialNumber ?? null,
+        compressor.purchaseDate ?? null, compressor.totalHours ?? 0,
+        compressor.oilChangeIntervalHours ?? 100, compressor.filterChangeIntervalHours ?? 500,
+        compressor.independentTestIntervalMonths ?? 12, compressor.notes ?? null,
+        compressor.status ?? 'active', compressor.createdAt ?? null,
+        compressor.updatedAt ?? null, compressor.deletedAt ?? null,
+        compressor.serverId
+      ]);
+      return existing.id;
+    }
+  }
+
+  if (compressor.id) {
+    const existing = await getLocalCompressorById(compressor.id);
+    if (existing) {
+      await db.runAsync(`
+        UPDATE compressors SET
+          user_id = ?, name = ?, make = ?, model = ?, serial_number = ?,
+          purchase_date = ?, total_hours = ?, oil_change_interval_hours = ?,
+          filter_change_interval_hours = ?, independent_test_interval_months = ?,
+          notes = ?, status = ?, updated_at = ?, is_synced = 0
+        WHERE id = ?
+      `, [
+        compressor.userId ?? existing.userId ?? null, compressor.name ?? '', compressor.make ?? null,
+        compressor.model ?? null, compressor.serialNumber ?? null,
+        compressor.purchaseDate ?? null, compressor.totalHours ?? 0,
+        compressor.oilChangeIntervalHours ?? 100, compressor.filterChangeIntervalHours ?? 500,
+        compressor.independentTestIntervalMonths ?? 12, compressor.notes ?? null,
+        compressor.status ?? 'active', compressor.updatedAt ?? new Date().toISOString(),
+        compressor.id
+      ]);
+      return compressor.id;
+    }
+  }
+
+  const result = await db.runAsync(`
+    INSERT INTO compressors (
+      server_id, user_id, name, make, model, serial_number, purchase_date,
+      total_hours, oil_change_interval_hours, filter_change_interval_hours,
+      independent_test_interval_months, notes, status, created_at, updated_at,
+      deleted_at, is_synced
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `, [
+    compressor.serverId ?? null, compressor.userId ?? null, compressor.name ?? '',
+    compressor.make ?? null, compressor.model ?? null, compressor.serialNumber ?? null,
+    compressor.purchaseDate ?? null, compressor.totalHours ?? 0,
+    compressor.oilChangeIntervalHours ?? 100, compressor.filterChangeIntervalHours ?? 500,
+    compressor.independentTestIntervalMonths ?? 12, compressor.notes ?? null,
+    compressor.status ?? 'active', compressor.createdAt ?? null,
+    compressor.updatedAt ?? null, compressor.deletedAt ?? null,
+    compressor.serverId ? 1 : 0
+  ]);
+
+  return result.lastInsertRowId;
+}
+
+export async function markLocalCompressorDeleted(id: number): Promise<void> {
+  const db = await getDatabase();
+  await db.runAsync(
+    'UPDATE compressors SET deleted_at = ?, is_synced = 0 WHERE id = ?',
+    [new Date().toISOString(), id]
+  );
+}
+
 export async function clearLocalDatabase(): Promise<void> {
   const db = await getDatabase();
   await db.execAsync(`
     DELETE FROM dive_sites;
+    DELETE FROM compressors;
+    DELETE FROM compressor_service_logs;
+    DELETE FROM compressor_usage_logs;
     DELETE FROM pending_mutations;
     DELETE FROM sync_meta;
   `);
@@ -504,6 +714,177 @@ function mapRowToLocalDiveSite(row: any): LocalDiveSite {
     deletedAt: row.deleted_at,
     isSynced: !!row.is_synced
   };
+}
+
+export interface LocalCompressorServiceLog {
+  id: number;
+  serverId: number | null;
+  compressorId: number;
+  userId: number | null;
+  serviceType: string;
+  serviceDate: string;
+  hoursAtService: number | null;
+  filterType: string | null;
+  testResult: string | null;
+  testCertificateNumber: string | null;
+  nextDueDate: string | null;
+  cost: number | null;
+  technician: string | null;
+  notes: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+  isSynced: boolean;
+}
+
+function mapRowToServiceLog(row: any): LocalCompressorServiceLog {
+  return {
+    id: row.id,
+    serverId: row.server_id,
+    compressorId: row.compressor_id,
+    userId: row.user_id,
+    serviceType: row.service_type,
+    serviceDate: row.service_date,
+    hoursAtService: row.hours_at_service,
+    filterType: row.filter_type,
+    testResult: row.test_result,
+    testCertificateNumber: row.test_certificate_number,
+    nextDueDate: row.next_due_date,
+    cost: row.cost,
+    technician: row.technician,
+    notes: row.notes,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    isSynced: !!row.is_synced,
+  };
+}
+
+export async function getServiceLogsByCompressorId(compressorId: number): Promise<LocalCompressorServiceLog[]> {
+  const db = await getDatabase();
+  const rows = await db.getAllAsync<any>(
+    'SELECT * FROM compressor_service_logs WHERE compressor_id = ? ORDER BY service_date DESC',
+    [compressorId]
+  );
+  return rows.map(mapRowToServiceLog);
+}
+
+export async function upsertLocalServiceLog(log: Partial<LocalCompressorServiceLog> & { serverId?: number }): Promise<number> {
+  const db = await getDatabase();
+
+  if (log.serverId) {
+    const existing = await db.getFirstAsync<any>(
+      'SELECT id FROM compressor_service_logs WHERE server_id = ?',
+      [log.serverId]
+    );
+    if (existing) {
+      await db.runAsync(`
+        UPDATE compressor_service_logs SET
+          compressor_id = ?, user_id = ?, service_type = ?, service_date = ?,
+          hours_at_service = ?, filter_type = ?, test_result = ?,
+          test_certificate_number = ?, next_due_date = ?, cost = ?,
+          technician = ?, notes = ?, created_at = ?, updated_at = ?, is_synced = 1
+        WHERE server_id = ?
+      `, [
+        log.compressorId ?? null, log.userId ?? null, log.serviceType ?? '',
+        log.serviceDate ?? '', log.hoursAtService ?? null, log.filterType ?? null,
+        log.testResult ?? null, log.testCertificateNumber ?? null,
+        log.nextDueDate ?? null, log.cost ?? null, log.technician ?? null,
+        log.notes ?? null, log.createdAt ?? null, log.updatedAt ?? null,
+        log.serverId
+      ]);
+      return existing.id;
+    }
+  }
+
+  const result = await db.runAsync(`
+    INSERT INTO compressor_service_logs (
+      server_id, compressor_id, user_id, service_type, service_date,
+      hours_at_service, filter_type, test_result, test_certificate_number,
+      next_due_date, cost, technician, notes, created_at, updated_at, is_synced
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `, [
+    log.serverId ?? null, log.compressorId ?? null, log.userId ?? null,
+    log.serviceType ?? '', log.serviceDate ?? '', log.hoursAtService ?? null,
+    log.filterType ?? null, log.testResult ?? null,
+    log.testCertificateNumber ?? null, log.nextDueDate ?? null,
+    log.cost ?? null, log.technician ?? null, log.notes ?? null,
+    log.createdAt ?? null, log.updatedAt ?? null, log.serverId ? 1 : 0
+  ]);
+
+  return result.lastInsertRowId;
+}
+
+export interface LocalCompressorUsageLog {
+  id: number;
+  serverId: number | null;
+  compressorId: number;
+  userId: number | null;
+  usageDate: string;
+  hoursUsed: number;
+  fillsCount: number | null;
+  notes: string | null;
+  createdAt: string | null;
+  isSynced: boolean;
+}
+
+function mapRowToUsageLog(row: any): LocalCompressorUsageLog {
+  return {
+    id: row.id,
+    serverId: row.server_id,
+    compressorId: row.compressor_id,
+    userId: row.user_id,
+    usageDate: row.usage_date,
+    hoursUsed: row.hours_used || 0,
+    fillsCount: row.fills_count,
+    notes: row.notes,
+    createdAt: row.created_at,
+    isSynced: !!row.is_synced,
+  };
+}
+
+export async function getUsageLogsByCompressorId(compressorId: number): Promise<LocalCompressorUsageLog[]> {
+  const db = await getDatabase();
+  const rows = await db.getAllAsync<any>(
+    'SELECT * FROM compressor_usage_logs WHERE compressor_id = ? ORDER BY usage_date DESC',
+    [compressorId]
+  );
+  return rows.map(mapRowToUsageLog);
+}
+
+export async function upsertLocalUsageLog(log: Partial<LocalCompressorUsageLog> & { serverId?: number }): Promise<number> {
+  const db = await getDatabase();
+
+  if (log.serverId) {
+    const existing = await db.getFirstAsync<any>(
+      'SELECT id FROM compressor_usage_logs WHERE server_id = ?',
+      [log.serverId]
+    );
+    if (existing) {
+      await db.runAsync(`
+        UPDATE compressor_usage_logs SET
+          compressor_id = ?, user_id = ?, usage_date = ?, hours_used = ?,
+          fills_count = ?, notes = ?, created_at = ?, is_synced = 1
+        WHERE server_id = ?
+      `, [
+        log.compressorId ?? null, log.userId ?? null, log.usageDate ?? '',
+        log.hoursUsed ?? 0, log.fillsCount ?? null, log.notes ?? null,
+        log.createdAt ?? null, log.serverId
+      ]);
+      return existing.id;
+    }
+  }
+
+  const result = await db.runAsync(`
+    INSERT INTO compressor_usage_logs (
+      server_id, compressor_id, user_id, usage_date, hours_used,
+      fills_count, notes, created_at, is_synced
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `, [
+    log.serverId ?? null, log.compressorId ?? null, log.userId ?? null,
+    log.usageDate ?? '', log.hoursUsed ?? 0, log.fillsCount ?? null,
+    log.notes ?? null, log.createdAt ?? null, log.serverId ? 1 : 0
+  ]);
+
+  return result.lastInsertRowId;
 }
 
 export function generateClientMutationId(): string {

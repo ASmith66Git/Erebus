@@ -1056,6 +1056,88 @@ async function initDatabase() {
       console.log('Default dive messages seeded successfully');
     }
     
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS compressors (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        name VARCHAR(255) NOT NULL,
+        make VARCHAR(255),
+        model VARCHAR(255),
+        serial_number VARCHAR(255),
+        purchase_date DATE,
+        total_hours NUMERIC(10,1) DEFAULT 0,
+        oil_change_interval_hours INTEGER DEFAULT 100,
+        filter_change_interval_hours INTEGER DEFAULT 500,
+        independent_test_interval_months INTEGER DEFAULT 12,
+        notes TEXT,
+        status VARCHAR(20) DEFAULT 'active',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        deleted_at TIMESTAMP
+      );
+    `).catch(() => {});
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_compressors_user_id ON compressors(user_id);
+    `).catch(() => {});
+
+    await client.query(`
+      DROP TRIGGER IF EXISTS update_compressors_updated_at ON compressors;
+      CREATE TRIGGER update_compressors_updated_at
+        BEFORE UPDATE ON compressors
+        FOR EACH ROW
+        EXECUTE FUNCTION update_updated_at_column();
+    `).catch(() => {});
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS compressor_service_logs (
+        id SERIAL PRIMARY KEY,
+        compressor_id INTEGER REFERENCES compressors(id) ON DELETE CASCADE,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        service_type VARCHAR(50) NOT NULL,
+        service_date DATE NOT NULL,
+        hours_at_service NUMERIC(10,1),
+        filter_type VARCHAR(100),
+        test_result VARCHAR(10),
+        test_certificate_number VARCHAR(255),
+        next_due_date DATE,
+        cost NUMERIC(10,2),
+        technician VARCHAR(255),
+        notes TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `).catch(() => {});
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_compressor_service_logs_compressor_id ON compressor_service_logs(compressor_id);
+    `).catch(() => {});
+
+    await client.query(`
+      DROP TRIGGER IF EXISTS update_compressor_service_logs_updated_at ON compressor_service_logs;
+      CREATE TRIGGER update_compressor_service_logs_updated_at
+        BEFORE UPDATE ON compressor_service_logs
+        FOR EACH ROW
+        EXECUTE FUNCTION update_updated_at_column();
+    `).catch(() => {});
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS compressor_usage_logs (
+        id SERIAL PRIMARY KEY,
+        compressor_id INTEGER REFERENCES compressors(id) ON DELETE CASCADE,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        usage_date DATE NOT NULL,
+        hours_used NUMERIC(10,1) NOT NULL,
+        fills_count INTEGER,
+        notes TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `).catch(() => {});
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_compressor_usage_logs_compressor_id ON compressor_usage_logs(compressor_id);
+    `).catch(() => {});
+
     console.log('Database initialized successfully');
   } catch (error) {
     console.error('Database initialization error:', error);
@@ -4343,6 +4425,160 @@ app.get('/api/sync/status', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Sync status error:', error);
     res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.get('/api/sync/compressors', authenticateToken, async (req, res) => {
+  const { since } = req.query;
+  try {
+    let query;
+    let params = [req.user.id];
+
+    if (since) {
+      query = `
+        SELECT * FROM compressors
+        WHERE user_id = $1 AND (updated_at > $2 OR deleted_at > $2)
+        ORDER BY updated_at ASC
+      `;
+      params.push(since);
+    } else {
+      query = `
+        SELECT * FROM compressors
+        WHERE user_id = $1 AND deleted_at IS NULL
+        ORDER BY updated_at ASC
+      `;
+    }
+
+    const result = await pool.query(query, params);
+
+    const compressors = result.rows.map(row => ({
+      id: row.id,
+      userId: row.user_id,
+      name: row.name,
+      make: row.make,
+      model: row.model,
+      serialNumber: row.serial_number,
+      purchaseDate: row.purchase_date,
+      totalHours: parseFloat(row.total_hours) || 0,
+      oilChangeIntervalHours: row.oil_change_interval_hours,
+      filterChangeIntervalHours: row.filter_change_interval_hours,
+      independentTestIntervalMonths: row.independent_test_interval_months,
+      notes: row.notes,
+      status: row.status,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+      deletedAt: row.deleted_at
+    }));
+
+    res.json({
+      compressors,
+      serverTime: new Date().toISOString(),
+      count: compressors.length
+    });
+  } catch (error) {
+    console.error('Sync compressors error:', error);
+    res.status(500).json({ error: 'Server error during compressor sync' });
+  }
+});
+
+app.get('/api/sync/compressor-service-logs', authenticateToken, async (req, res) => {
+  const { since } = req.query;
+  try {
+    let query;
+    let params = [req.user.id];
+
+    if (since) {
+      query = `
+        SELECT csl.* FROM compressor_service_logs csl
+        INNER JOIN compressors c ON csl.compressor_id = c.id
+        WHERE c.user_id = $1 AND (csl.updated_at > $2 OR csl.created_at > $2)
+        ORDER BY csl.service_date ASC
+      `;
+      params.push(since);
+    } else {
+      query = `
+        SELECT csl.* FROM compressor_service_logs csl
+        INNER JOIN compressors c ON csl.compressor_id = c.id
+        WHERE c.user_id = $1
+        ORDER BY csl.service_date ASC
+      `;
+    }
+
+    const result = await pool.query(query, params);
+
+    const serviceLogs = result.rows.map(row => ({
+      id: row.id,
+      compressorId: row.compressor_id,
+      userId: row.user_id,
+      serviceType: row.service_type,
+      serviceDate: row.service_date,
+      hoursAtService: row.hours_at_service ? parseFloat(row.hours_at_service) : null,
+      filterType: row.filter_type,
+      testResult: row.test_result,
+      testCertificateNumber: row.test_certificate_number,
+      nextDueDate: row.next_due_date,
+      cost: row.cost ? parseFloat(row.cost) : null,
+      technician: row.technician,
+      notes: row.notes,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at
+    }));
+
+    res.json({
+      serviceLogs,
+      serverTime: new Date().toISOString(),
+      count: serviceLogs.length
+    });
+  } catch (error) {
+    console.error('Sync compressor service logs error:', error);
+    res.status(500).json({ error: 'Server error during service log sync' });
+  }
+});
+
+app.get('/api/sync/compressor-usage-logs', authenticateToken, async (req, res) => {
+  const { since } = req.query;
+  try {
+    let query;
+    let params = [req.user.id];
+
+    if (since) {
+      query = `
+        SELECT cul.* FROM compressor_usage_logs cul
+        INNER JOIN compressors c ON cul.compressor_id = c.id
+        WHERE c.user_id = $1 AND cul.created_at > $2
+        ORDER BY cul.usage_date ASC
+      `;
+      params.push(since);
+    } else {
+      query = `
+        SELECT cul.* FROM compressor_usage_logs cul
+        INNER JOIN compressors c ON cul.compressor_id = c.id
+        WHERE c.user_id = $1
+        ORDER BY cul.usage_date ASC
+      `;
+    }
+
+    const result = await pool.query(query, params);
+
+    const usageLogs = result.rows.map(row => ({
+      id: row.id,
+      compressorId: row.compressor_id,
+      userId: row.user_id,
+      usageDate: row.usage_date,
+      hoursUsed: parseFloat(row.hours_used) || 0,
+      fillsCount: row.fills_count,
+      notes: row.notes,
+      createdAt: row.created_at
+    }));
+
+    res.json({
+      usageLogs,
+      serverTime: new Date().toISOString(),
+      count: usageLogs.length
+    });
+  } catch (error) {
+    console.error('Sync compressor usage logs error:', error);
+    res.status(500).json({ error: 'Server error during usage log sync' });
   }
 });
 
@@ -7944,6 +8180,243 @@ app.get('/api/admin/support/unread-count', authenticateToken, async (req, res) =
   } catch (error) {
     console.error('Admin get unread count error:', error);
     res.status(500).json({ error: 'Failed to fetch unread count' });
+  }
+});
+
+app.get('/api/compressors', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT c.*,
+        (SELECT MAX(service_date) FROM compressor_service_logs WHERE compressor_id = c.id AND service_type = 'oil_change') as last_oil_change_date,
+        (SELECT hours_at_service FROM compressor_service_logs WHERE compressor_id = c.id AND service_type = 'oil_change' ORDER BY service_date DESC LIMIT 1) as last_oil_change_hours,
+        (SELECT MAX(service_date) FROM compressor_service_logs WHERE compressor_id = c.id AND service_type = 'filter_change') as last_filter_change_date,
+        (SELECT hours_at_service FROM compressor_service_logs WHERE compressor_id = c.id AND service_type = 'filter_change' ORDER BY service_date DESC LIMIT 1) as last_filter_change_hours,
+        (SELECT MAX(service_date) FROM compressor_service_logs WHERE compressor_id = c.id AND service_type = 'independent_test') as last_test_date,
+        (SELECT test_result FROM compressor_service_logs WHERE compressor_id = c.id AND service_type = 'independent_test' ORDER BY service_date DESC LIMIT 1) as last_test_result,
+        (SELECT next_due_date FROM compressor_service_logs WHERE compressor_id = c.id AND service_type = 'independent_test' ORDER BY service_date DESC LIMIT 1) as next_test_due_date
+      FROM compressors c
+      WHERE c.user_id = $1 AND c.deleted_at IS NULL
+      ORDER BY c.created_at DESC`,
+      [req.user.id]
+    );
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Fetch compressors error:', error);
+    res.status(500).json({ error: 'Failed to fetch compressors' });
+  }
+});
+
+app.get('/api/compressors/:id', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT c.*,
+        (SELECT MAX(service_date) FROM compressor_service_logs WHERE compressor_id = c.id AND service_type = 'oil_change') as last_oil_change_date,
+        (SELECT hours_at_service FROM compressor_service_logs WHERE compressor_id = c.id AND service_type = 'oil_change' ORDER BY service_date DESC LIMIT 1) as last_oil_change_hours,
+        (SELECT MAX(service_date) FROM compressor_service_logs WHERE compressor_id = c.id AND service_type = 'filter_change') as last_filter_change_date,
+        (SELECT hours_at_service FROM compressor_service_logs WHERE compressor_id = c.id AND service_type = 'filter_change' ORDER BY service_date DESC LIMIT 1) as last_filter_change_hours,
+        (SELECT MAX(service_date) FROM compressor_service_logs WHERE compressor_id = c.id AND service_type = 'independent_test') as last_test_date,
+        (SELECT test_result FROM compressor_service_logs WHERE compressor_id = c.id AND service_type = 'independent_test' ORDER BY service_date DESC LIMIT 1) as last_test_result,
+        (SELECT next_due_date FROM compressor_service_logs WHERE compressor_id = c.id AND service_type = 'independent_test' ORDER BY service_date DESC LIMIT 1) as next_test_due_date
+      FROM compressors c
+      WHERE c.id = $1 AND c.user_id = $2 AND c.deleted_at IS NULL`,
+      [req.params.id, req.user.id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Compressor not found' });
+    }
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Fetch compressor error:', error);
+    res.status(500).json({ error: 'Failed to fetch compressor' });
+  }
+});
+
+app.post('/api/compressors', authenticateToken, async (req, res) => {
+  try {
+    const { name, make, model, serial_number, purchase_date, total_hours, oil_change_interval_hours, filter_change_interval_hours, independent_test_interval_months, notes, status } = req.body;
+    if (!name) {
+      return res.status(400).json({ error: 'Name is required' });
+    }
+    const result = await pool.query(
+      `INSERT INTO compressors (user_id, name, make, model, serial_number, purchase_date, total_hours, oil_change_interval_hours, filter_change_interval_hours, independent_test_interval_months, notes, status)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+       RETURNING *`,
+      [req.user.id, name, make || null, model || null, serial_number || null, purchase_date || null, total_hours || 0, oil_change_interval_hours || 100, filter_change_interval_hours || 500, independent_test_interval_months || 12, notes || null, status || 'active']
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('Create compressor error:', error);
+    res.status(500).json({ error: 'Failed to create compressor' });
+  }
+});
+
+app.put('/api/compressors/:id', authenticateToken, async (req, res) => {
+  try {
+    const { name, make, model, serial_number, purchase_date, total_hours, oil_change_interval_hours, filter_change_interval_hours, independent_test_interval_months, notes, status } = req.body;
+    const result = await pool.query(
+      `UPDATE compressors SET name = $1, make = $2, model = $3, serial_number = $4, purchase_date = $5, total_hours = $6, oil_change_interval_hours = $7, filter_change_interval_hours = $8, independent_test_interval_months = $9, notes = $10, status = $11
+       WHERE id = $12 AND user_id = $13 AND deleted_at IS NULL
+       RETURNING *`,
+      [name, make || null, model || null, serial_number || null, purchase_date || null, total_hours || 0, oil_change_interval_hours || 100, filter_change_interval_hours || 500, independent_test_interval_months || 12, notes || null, status || 'active', req.params.id, req.user.id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Compressor not found' });
+    }
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Update compressor error:', error);
+    res.status(500).json({ error: 'Failed to update compressor' });
+  }
+});
+
+app.delete('/api/compressors/:id', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(
+      'UPDATE compressors SET deleted_at = CURRENT_TIMESTAMP WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL RETURNING id',
+      [req.params.id, req.user.id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Compressor not found' });
+    }
+    res.json({ message: 'Compressor deleted' });
+  } catch (error) {
+    console.error('Delete compressor error:', error);
+    res.status(500).json({ error: 'Failed to delete compressor' });
+  }
+});
+
+app.get('/api/compressors/:id/services', authenticateToken, async (req, res) => {
+  try {
+    const compressor = await pool.query('SELECT id FROM compressors WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL', [req.params.id, req.user.id]);
+    if (compressor.rows.length === 0) {
+      return res.status(404).json({ error: 'Compressor not found' });
+    }
+    const { service_type } = req.query;
+    let query = 'SELECT * FROM compressor_service_logs WHERE compressor_id = $1 ORDER BY service_date DESC';
+    let params = [req.params.id];
+    if (service_type) {
+      query = 'SELECT * FROM compressor_service_logs WHERE compressor_id = $1 AND service_type = $2 ORDER BY service_date DESC';
+      params.push(service_type);
+    }
+    const result = await pool.query(query, params);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Fetch service logs error:', error);
+    res.status(500).json({ error: 'Failed to fetch service logs' });
+  }
+});
+
+app.post('/api/compressors/:id/services', authenticateToken, async (req, res) => {
+  try {
+    const compressor = await pool.query('SELECT id FROM compressors WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL', [req.params.id, req.user.id]);
+    if (compressor.rows.length === 0) {
+      return res.status(404).json({ error: 'Compressor not found' });
+    }
+    const { service_type, service_date, hours_at_service, filter_type, test_result, test_certificate_number, next_due_date, cost, technician, notes } = req.body;
+    if (!service_type || !service_date) {
+      return res.status(400).json({ error: 'Service type and date are required' });
+    }
+    const result = await pool.query(
+      `INSERT INTO compressor_service_logs (compressor_id, user_id, service_type, service_date, hours_at_service, filter_type, test_result, test_certificate_number, next_due_date, cost, technician, notes)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+       RETURNING *`,
+      [req.params.id, req.user.id, service_type, service_date, hours_at_service || null, filter_type || null, test_result || null, test_certificate_number || null, next_due_date || null, cost || null, technician || null, notes || null]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('Create service log error:', error);
+    res.status(500).json({ error: 'Failed to create service log' });
+  }
+});
+
+app.delete('/api/compressors/:compressorId/services/:serviceId', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(
+      'DELETE FROM compressor_service_logs WHERE id = $1 AND compressor_id = $2 AND user_id = $3 RETURNING id',
+      [req.params.serviceId, req.params.compressorId, req.user.id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Service log not found' });
+    }
+    res.json({ message: 'Service log deleted' });
+  } catch (error) {
+    console.error('Delete service log error:', error);
+    res.status(500).json({ error: 'Failed to delete service log' });
+  }
+});
+
+app.get('/api/compressors/:id/usage', authenticateToken, async (req, res) => {
+  try {
+    const compressor = await pool.query('SELECT id FROM compressors WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL', [req.params.id, req.user.id]);
+    if (compressor.rows.length === 0) {
+      return res.status(404).json({ error: 'Compressor not found' });
+    }
+    const result = await pool.query(
+      'SELECT * FROM compressor_usage_logs WHERE compressor_id = $1 ORDER BY usage_date DESC',
+      [req.params.id]
+    );
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Fetch usage logs error:', error);
+    res.status(500).json({ error: 'Failed to fetch usage logs' });
+  }
+});
+
+app.post('/api/compressors/:id/usage', authenticateToken, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const compressor = await client.query('SELECT id, total_hours FROM compressors WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL', [req.params.id, req.user.id]);
+    if (compressor.rows.length === 0) {
+      return res.status(404).json({ error: 'Compressor not found' });
+    }
+    const { usage_date, hours_used, fills_count, notes } = req.body;
+    if (!usage_date || !hours_used) {
+      return res.status(400).json({ error: 'Usage date and hours are required' });
+    }
+    await client.query('BEGIN');
+    const result = await client.query(
+      `INSERT INTO compressor_usage_logs (compressor_id, user_id, usage_date, hours_used, fills_count, notes)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING *`,
+      [req.params.id, req.user.id, usage_date, hours_used, fills_count || null, notes || null]
+    );
+    const newTotal = parseFloat(compressor.rows[0].total_hours) + parseFloat(hours_used);
+    await client.query('UPDATE compressors SET total_hours = $1 WHERE id = $2', [newTotal, req.params.id]);
+    await client.query('COMMIT');
+    res.status(201).json({ ...result.rows[0], new_total_hours: newTotal });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Create usage log error:', error);
+    res.status(500).json({ error: 'Failed to create usage log' });
+  } finally {
+    client.release();
+  }
+});
+
+app.delete('/api/compressors/:compressorId/usage/:usageId', authenticateToken, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const usage = await client.query(
+      'SELECT hours_used FROM compressor_usage_logs WHERE id = $1 AND compressor_id = $2 AND user_id = $3',
+      [req.params.usageId, req.params.compressorId, req.user.id]
+    );
+    if (usage.rows.length === 0) {
+      return res.status(404).json({ error: 'Usage log not found' });
+    }
+    await client.query('BEGIN');
+    await client.query('DELETE FROM compressor_usage_logs WHERE id = $1', [req.params.usageId]);
+    await client.query(
+      'UPDATE compressors SET total_hours = GREATEST(0, total_hours - $1) WHERE id = $2',
+      [usage.rows[0].hours_used, req.params.compressorId]
+    );
+    await client.query('COMMIT');
+    res.json({ message: 'Usage log deleted' });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Delete usage log error:', error);
+    res.status(500).json({ error: 'Failed to delete usage log' });
+  } finally {
+    client.release();
   }
 });
 
