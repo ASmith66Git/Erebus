@@ -121,3 +121,7 @@ EXPO_PUBLIC_GOOGLE_MAPS_API_KEY = "AIzaSyC54u4DF75GiCw-kAGfdVwjFeIkaBx25aw"
 deploymentTarget = "autoscale"
 run = ["node", "server/index.js"]
 build = ["bash", "-c", "npx expo export --platform web"]
+
+[postMerge]
+path = "scripts/post-merge.sh"
+timeoutMs = 180000
