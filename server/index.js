@@ -1138,6 +1138,83 @@ async function initDatabase() {
       CREATE INDEX IF NOT EXISTS idx_compressor_usage_logs_compressor_id ON compressor_usage_logs(compressor_id);
     `).catch(() => {});
 
+    // Cylinders tables
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS cylinders (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        nickname VARCHAR(255) NOT NULL,
+        cylinder_type VARCHAR(50) NOT NULL DEFAULT 'steel',
+        size_liters NUMERIC(6,2),
+        serial_number VARCHAR(100),
+        working_pressure NUMERIC(6,1),
+        manufacture_date DATE,
+        ownership_status VARCHAR(50) DEFAULT 'owned',
+        testing_standard VARCHAR(20) NOT NULL DEFAULT 'UK',
+        custom_visual_interval_months INTEGER,
+        custom_hydro_interval_months INTEGER,
+        is_enriched_gas BOOLEAN DEFAULT FALSE,
+        oxygen_clean_interval_months INTEGER DEFAULT 15,
+        last_visual_date DATE,
+        last_hydro_date DATE,
+        last_oxygen_clean_date DATE,
+        reminder_enabled BOOLEAN DEFAULT TRUE,
+        reminder_days_before INTEGER DEFAULT 30,
+        last_notified_at TIMESTAMP,
+        gear_profile_id INTEGER REFERENCES gear_profiles(id) ON DELETE SET NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `).catch(() => {});
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS cylinder_test_records (
+        id SERIAL PRIMARY KEY,
+        cylinder_id INTEGER REFERENCES cylinders(id) ON DELETE CASCADE,
+        test_date DATE NOT NULL,
+        test_type VARCHAR(50) NOT NULL,
+        result VARCHAR(20) NOT NULL DEFAULT 'pass',
+        facility_name VARCHAR(255),
+        notes TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `).catch(() => {});
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS cylinder_notifications_sent (
+        id SERIAL PRIMARY KEY,
+        cylinder_id INTEGER REFERENCES cylinders(id) ON DELETE CASCADE,
+        test_type VARCHAR(50) NOT NULL,
+        sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(cylinder_id, test_type)
+      );
+    `).catch(() => {});
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_cylinders_user_id ON cylinders(user_id);
+    `).catch(() => {});
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_cylinder_test_records_cylinder_id ON cylinder_test_records(cylinder_id);
+    `).catch(() => {});
+
+    await client.query(`
+      DROP TRIGGER IF EXISTS update_cylinders_updated_at ON cylinders;
+      CREATE TRIGGER update_cylinders_updated_at
+        BEFORE UPDATE ON cylinders
+        FOR EACH ROW
+        EXECUTE FUNCTION update_updated_at_column();
+    `).catch(() => {});
+
+    await client.query(`
+      DROP TRIGGER IF EXISTS update_cylinder_test_records_updated_at ON cylinder_test_records;
+      CREATE TRIGGER update_cylinder_test_records_updated_at
+        BEFORE UPDATE ON cylinder_test_records
+        FOR EACH ROW
+        EXECUTE FUNCTION update_updated_at_column();
+    `).catch(() => {});
+
     console.log('Database initialized successfully');
   } catch (error) {
     console.error('Database initialization error:', error);
@@ -6097,6 +6174,530 @@ app.post('/api/gear-profiles/:id/duplicate', authenticateToken, async (req, res)
     client.release();
   }
 });
+
+// ============ CYLINDER TESTING STANDARDS ============
+
+function getCylinderTestingSchedule(standard, customVisualMonths, customHydroMonths) {
+  switch (standard) {
+    case 'UK':
+    case 'EU':
+      return { visualMonths: 30, hydroMonths: 60 };
+    case 'US':
+      return { visualMonths: null, hydroMonths: 60 };
+    case 'custom':
+      return {
+        visualMonths: customVisualMonths || null,
+        hydroMonths: customHydroMonths || null,
+      };
+    default:
+      return { visualMonths: 30, hydroMonths: 60 };
+  }
+}
+
+function calculateCylinderNextDue(cylinder) {
+  const schedule = getCylinderTestingSchedule(
+    cylinder.testing_standard,
+    cylinder.custom_visual_interval_months,
+    cylinder.custom_hydro_interval_months
+  );
+
+  const now = new Date();
+  const results = {};
+
+  if (schedule.visualMonths && cylinder.last_visual_date) {
+    const d = new Date(cylinder.last_visual_date);
+    d.setMonth(d.getMonth() + schedule.visualMonths);
+    results.nextVisualDue = d;
+  } else if (schedule.visualMonths) {
+    results.nextVisualDue = null;
+  }
+
+  if (schedule.hydroMonths && cylinder.last_hydro_date) {
+    const d = new Date(cylinder.last_hydro_date);
+    d.setMonth(d.getMonth() + schedule.hydroMonths);
+    results.nextHydroDue = d;
+  } else if (schedule.hydroMonths) {
+    results.nextHydroDue = null;
+  }
+
+  if (cylinder.is_enriched_gas && cylinder.oxygen_clean_interval_months && cylinder.last_oxygen_clean_date) {
+    const d = new Date(cylinder.last_oxygen_clean_date);
+    d.setMonth(d.getMonth() + cylinder.oxygen_clean_interval_months);
+    results.nextOxygenCleanDue = d;
+  } else if (cylinder.is_enriched_gas) {
+    results.nextOxygenCleanDue = null;
+  }
+
+  return results;
+}
+
+async function recalcLastDatesFromHistory(cylinderId) {
+  const types = ['visual', 'hydrostatic', 'oxygen_clean'];
+  const cols = ['last_visual_date', 'last_hydro_date', 'last_oxygen_clean_date'];
+  for (let i = 0; i < types.length; i++) {
+    const latest = await pool.query(
+      `SELECT test_date FROM cylinder_test_records
+       WHERE cylinder_id = $1 AND test_type = $2 AND result = 'pass'
+       ORDER BY test_date DESC LIMIT 1`,
+      [cylinderId, types[i]]
+    );
+    const val = latest.rows.length > 0 ? latest.rows[0].test_date : null;
+    await pool.query(`UPDATE cylinders SET ${cols[i]} = $1 WHERE id = $2`, [val, cylinderId]);
+  }
+}
+
+const AMBER_THRESHOLD_DAYS = 30;
+
+function getCylinderStatus(cylinder) {
+  const now = new Date();
+  const dueDates = calculateCylinderNextDue(cylinder);
+  let worstStatus = 'green';
+
+  const checkDate = (dueDate) => {
+    if (dueDate === undefined) return 'green';
+    if (dueDate === null) return 'red';
+    const diffMs = dueDate.getTime() - now.getTime();
+    const diffDays = diffMs / (1000 * 60 * 60 * 24);
+    if (diffDays < 0) return 'red';
+    if (diffDays <= AMBER_THRESHOLD_DAYS) return 'amber';
+    return 'green';
+  };
+
+  const statusPriority = { green: 0, amber: 1, red: 2 };
+
+  for (const key of Object.keys(dueDates)) {
+    const s = checkDate(dueDates[key]);
+    if (statusPriority[s] > statusPriority[worstStatus]) {
+      worstStatus = s;
+    }
+  }
+
+  return { status: worstStatus, dueDates };
+}
+
+function formatCylinderRow(row) {
+  const { status, dueDates } = getCylinderStatus(row);
+  return {
+    id: row.id,
+    nickname: row.nickname,
+    cylinderType: row.cylinder_type,
+    sizeLiters: row.size_liters ? parseFloat(row.size_liters) : null,
+    serialNumber: row.serial_number,
+    workingPressure: row.working_pressure ? parseFloat(row.working_pressure) : null,
+    manufactureDate: row.manufacture_date,
+    ownershipStatus: row.ownership_status,
+    testingStandard: row.testing_standard,
+    customVisualIntervalMonths: row.custom_visual_interval_months,
+    customHydroIntervalMonths: row.custom_hydro_interval_months,
+    isEnrichedGas: row.is_enriched_gas,
+    oxygenCleanIntervalMonths: row.oxygen_clean_interval_months,
+    lastVisualDate: row.last_visual_date,
+    lastHydroDate: row.last_hydro_date,
+    lastOxygenCleanDate: row.last_oxygen_clean_date,
+    reminderEnabled: row.reminder_enabled,
+    reminderDaysBefore: row.reminder_days_before,
+    gearProfileId: row.gear_profile_id,
+    status,
+    nextVisualDue: dueDates.nextVisualDue || null,
+    nextHydroDue: dueDates.nextHydroDue || null,
+    nextOxygenCleanDue: dueDates.nextOxygenCleanDue || null,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+// ============ CYLINDERS API ============
+
+app.get('/api/cylinders', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT * FROM cylinders WHERE user_id = $1 ORDER BY updated_at DESC',
+      [req.user.id]
+    );
+    const cylinders = result.rows.map(formatCylinderRow);
+    res.json({ cylinders });
+  } catch (error) {
+    console.error('Get cylinders error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.get('/api/cylinders/summary', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT * FROM cylinders WHERE user_id = $1',
+      [req.user.id]
+    );
+    let inTest = 0, dueSoon = 0, overdue = 0;
+    for (const row of result.rows) {
+      const { status } = getCylinderStatus(row);
+      if (status === 'green') inTest++;
+      else if (status === 'amber') dueSoon++;
+      else overdue++;
+    }
+    res.json({ total: result.rows.length, inTest, dueSoon, overdue });
+  } catch (error) {
+    console.error('Get cylinder summary error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.get('/api/cylinders/:id', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT * FROM cylinders WHERE id = $1 AND user_id = $2',
+      [req.params.id, req.user.id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Cylinder not found' });
+    }
+    res.json(formatCylinderRow(result.rows[0]));
+  } catch (error) {
+    console.error('Get cylinder error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+const VALID_CYLINDER_TYPES = ['steel', 'aluminium', 'composite'];
+const VALID_OWNERSHIP_STATUSES = ['owned', 'rented', 'borrowed', 'club'];
+const VALID_TESTING_STANDARDS = ['UK', 'US', 'EU', 'custom'];
+const VALID_TEST_TYPES = ['visual', 'hydrostatic', 'oxygen_clean'];
+const VALID_TEST_RESULTS = ['pass', 'fail'];
+
+app.post('/api/cylinders', authenticateToken, async (req, res) => {
+  try {
+    const {
+      nickname, cylinderType, sizeLiters, serialNumber, workingPressure,
+      manufactureDate, ownershipStatus, testingStandard,
+      customVisualIntervalMonths, customHydroIntervalMonths,
+      isEnrichedGas, oxygenCleanIntervalMonths,
+      lastVisualDate, lastHydroDate, lastOxygenCleanDate,
+      reminderEnabled, reminderDaysBefore, gearProfileId,
+    } = req.body;
+
+    if (!nickname) {
+      return res.status(400).json({ error: 'Nickname is required' });
+    }
+    if (cylinderType && !VALID_CYLINDER_TYPES.includes(cylinderType)) {
+      return res.status(400).json({ error: 'Invalid cylinder type' });
+    }
+    if (ownershipStatus && !VALID_OWNERSHIP_STATUSES.includes(ownershipStatus)) {
+      return res.status(400).json({ error: 'Invalid ownership status' });
+    }
+    if (testingStandard && !VALID_TESTING_STANDARDS.includes(testingStandard)) {
+      return res.status(400).json({ error: 'Invalid testing standard' });
+    }
+
+    const result = await pool.query(`
+      INSERT INTO cylinders (
+        user_id, nickname, cylinder_type, size_liters, serial_number, working_pressure,
+        manufacture_date, ownership_status, testing_standard,
+        custom_visual_interval_months, custom_hydro_interval_months,
+        is_enriched_gas, oxygen_clean_interval_months,
+        last_visual_date, last_hydro_date, last_oxygen_clean_date,
+        reminder_enabled, reminder_days_before, gear_profile_id
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
+      RETURNING *
+    `, [
+      req.user.id, nickname, cylinderType || 'steel', sizeLiters || null,
+      serialNumber || null, workingPressure || null, manufactureDate || null,
+      ownershipStatus || 'owned', testingStandard || 'UK',
+      customVisualIntervalMonths || null, customHydroIntervalMonths || null,
+      isEnrichedGas || false, oxygenCleanIntervalMonths || 15,
+      lastVisualDate || null, lastHydroDate || null, lastOxygenCleanDate || null,
+      reminderEnabled !== false, reminderDaysBefore || 30, gearProfileId || null,
+    ]);
+
+    res.status(201).json(formatCylinderRow(result.rows[0]));
+  } catch (error) {
+    console.error('Create cylinder error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.put('/api/cylinders/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      nickname, cylinderType, sizeLiters, serialNumber, workingPressure,
+      manufactureDate, ownershipStatus, testingStandard,
+      customVisualIntervalMonths, customHydroIntervalMonths,
+      isEnrichedGas, oxygenCleanIntervalMonths,
+      lastVisualDate, lastHydroDate, lastOxygenCleanDate,
+      reminderEnabled, reminderDaysBefore, gearProfileId,
+    } = req.body;
+
+    const result = await pool.query(`
+      UPDATE cylinders SET
+        nickname = COALESCE($1, nickname),
+        cylinder_type = COALESCE($2, cylinder_type),
+        size_liters = $3,
+        serial_number = $4,
+        working_pressure = $5,
+        manufacture_date = $6,
+        ownership_status = COALESCE($7, ownership_status),
+        testing_standard = COALESCE($8, testing_standard),
+        custom_visual_interval_months = $9,
+        custom_hydro_interval_months = $10,
+        is_enriched_gas = COALESCE($11, is_enriched_gas),
+        oxygen_clean_interval_months = COALESCE($12, oxygen_clean_interval_months),
+        last_visual_date = $13,
+        last_hydro_date = $14,
+        last_oxygen_clean_date = $15,
+        reminder_enabled = COALESCE($16, reminder_enabled),
+        reminder_days_before = COALESCE($17, reminder_days_before),
+        gear_profile_id = $18
+      WHERE id = $19 AND user_id = $20
+      RETURNING *
+    `, [
+      nickname, cylinderType, sizeLiters ?? null, serialNumber ?? null,
+      workingPressure ?? null, manufactureDate ?? null, ownershipStatus,
+      testingStandard, customVisualIntervalMonths ?? null, customHydroIntervalMonths ?? null,
+      isEnrichedGas, oxygenCleanIntervalMonths, lastVisualDate ?? null,
+      lastHydroDate ?? null, lastOxygenCleanDate ?? null,
+      reminderEnabled, reminderDaysBefore, gearProfileId ?? null,
+      id, req.user.id,
+    ]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Cylinder not found' });
+    }
+
+    await pool.query(
+      'DELETE FROM cylinder_notifications_sent WHERE cylinder_id = $1',
+      [id]
+    );
+
+    res.json(formatCylinderRow(result.rows[0]));
+  } catch (error) {
+    console.error('Update cylinder error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.delete('/api/cylinders/:id', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(
+      'DELETE FROM cylinders WHERE id = $1 AND user_id = $2 RETURNING id',
+      [req.params.id, req.user.id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Cylinder not found' });
+    }
+    res.json({ message: 'Cylinder deleted successfully' });
+  } catch (error) {
+    console.error('Delete cylinder error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.get('/api/cylinders/:id/test-records', authenticateToken, async (req, res) => {
+  try {
+    const cyl = await pool.query(
+      'SELECT id FROM cylinders WHERE id = $1 AND user_id = $2',
+      [req.params.id, req.user.id]
+    );
+    if (cyl.rows.length === 0) {
+      return res.status(404).json({ error: 'Cylinder not found' });
+    }
+
+    const result = await pool.query(
+      'SELECT * FROM cylinder_test_records WHERE cylinder_id = $1 ORDER BY test_date DESC',
+      [req.params.id]
+    );
+
+    const records = result.rows.map(r => ({
+      id: r.id,
+      cylinderId: r.cylinder_id,
+      testDate: r.test_date,
+      testType: r.test_type,
+      result: r.result,
+      facilityName: r.facility_name,
+      notes: r.notes,
+      createdAt: r.created_at,
+    }));
+
+    res.json({ records });
+  } catch (error) {
+    console.error('Get test records error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.post('/api/cylinders/:id/test-records', authenticateToken, async (req, res) => {
+  try {
+    const cylinderId = req.params.id;
+    const cyl = await pool.query(
+      'SELECT id FROM cylinders WHERE id = $1 AND user_id = $2',
+      [cylinderId, req.user.id]
+    );
+    if (cyl.rows.length === 0) {
+      return res.status(404).json({ error: 'Cylinder not found' });
+    }
+
+    const { testDate, testType, result: testResult, facilityName, notes } = req.body;
+    if (!testDate || !testType) {
+      return res.status(400).json({ error: 'Test date and type are required' });
+    }
+    if (!VALID_TEST_TYPES.includes(testType)) {
+      return res.status(400).json({ error: 'Invalid test type' });
+    }
+    if (testResult && !VALID_TEST_RESULTS.includes(testResult)) {
+      return res.status(400).json({ error: 'Invalid test result' });
+    }
+
+    const insertResult = await pool.query(`
+      INSERT INTO cylinder_test_records (cylinder_id, test_date, test_type, result, facility_name, notes)
+      VALUES ($1,$2,$3,$4,$5,$6) RETURNING *
+    `, [cylinderId, testDate, testType, testResult || 'pass', facilityName || null, notes || null]);
+
+    await recalcLastDatesFromHistory(cylinderId);
+
+    await pool.query(
+      'DELETE FROM cylinder_notifications_sent WHERE cylinder_id = $1 AND test_type = $2',
+      [cylinderId, testType]
+    );
+
+    const r = insertResult.rows[0];
+    res.status(201).json({
+      id: r.id,
+      cylinderId: r.cylinder_id,
+      testDate: r.test_date,
+      testType: r.test_type,
+      result: r.result,
+      facilityName: r.facility_name,
+      notes: r.notes,
+      createdAt: r.created_at,
+    });
+  } catch (error) {
+    console.error('Create test record error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.put('/api/cylinders/:cylinderId/test-records/:recordId', authenticateToken, async (req, res) => {
+  try {
+    const { cylinderId, recordId } = req.params;
+    const cyl = await pool.query(
+      'SELECT id FROM cylinders WHERE id = $1 AND user_id = $2',
+      [cylinderId, req.user.id]
+    );
+    if (cyl.rows.length === 0) {
+      return res.status(404).json({ error: 'Cylinder not found' });
+    }
+
+    const { testDate, testType, result: testResult, facilityName, notes } = req.body;
+
+    const result = await pool.query(`
+      UPDATE cylinder_test_records SET
+        test_date = COALESCE($1, test_date),
+        test_type = COALESCE($2, test_type),
+        result = COALESCE($3, result),
+        facility_name = $4,
+        notes = $5
+      WHERE id = $6 AND cylinder_id = $7
+      RETURNING *
+    `, [testDate, testType, testResult, facilityName ?? null, notes ?? null, recordId, cylinderId]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Test record not found' });
+    }
+
+    await recalcLastDatesFromHistory(cylinderId);
+
+    const r = result.rows[0];
+    res.json({
+      id: r.id,
+      cylinderId: r.cylinder_id,
+      testDate: r.test_date,
+      testType: r.test_type,
+      result: r.result,
+      facilityName: r.facility_name,
+      notes: r.notes,
+      createdAt: r.created_at,
+    });
+  } catch (error) {
+    console.error('Update test record error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.delete('/api/cylinders/:cylinderId/test-records/:recordId', authenticateToken, async (req, res) => {
+  try {
+    const { cylinderId, recordId } = req.params;
+    const cyl = await pool.query(
+      'SELECT id FROM cylinders WHERE id = $1 AND user_id = $2',
+      [cylinderId, req.user.id]
+    );
+    if (cyl.rows.length === 0) {
+      return res.status(404).json({ error: 'Cylinder not found' });
+    }
+
+    const result = await pool.query(
+      'DELETE FROM cylinder_test_records WHERE id = $1 AND cylinder_id = $2 RETURNING id',
+      [recordId, cylinderId]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Test record not found' });
+    }
+
+    await recalcLastDatesFromHistory(cylinderId);
+
+    res.json({ message: 'Test record deleted successfully' });
+  } catch (error) {
+    console.error('Delete test record error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// ============ CYLINDER NOTIFICATION SCHEDULER ============
+
+async function checkCylinderReminders() {
+  try {
+    const result = await pool.query(
+      'SELECT c.*, u.id as uid FROM cylinders c JOIN users u ON c.user_id = u.id WHERE c.reminder_enabled = true'
+    );
+
+    const now = new Date();
+
+    for (const cyl of result.rows) {
+      const dueDates = calculateCylinderNextDue(cyl);
+      const reminderWindowMs = (cyl.reminder_days_before || 30) * 86400000;
+
+      const checks = [];
+      if (dueDates.nextVisualDue !== undefined) checks.push({ type: 'visual', due: dueDates.nextVisualDue, label: 'visual inspection' });
+      if (dueDates.nextHydroDue !== undefined) checks.push({ type: 'hydrostatic', due: dueDates.nextHydroDue, label: 'hydrostatic test' });
+      if (dueDates.nextOxygenCleanDue !== undefined) checks.push({ type: 'oxygen_clean', due: dueDates.nextOxygenCleanDue, label: 'oxygen cleaning' });
+
+      for (const check of checks) {
+        const isDueOrOverdue = check.due === null || (check.due && check.due.getTime() - now.getTime() <= reminderWindowMs);
+        if (isDueOrOverdue) {
+          const existing = await pool.query(
+            'SELECT id FROM cylinder_notifications_sent WHERE cylinder_id = $1 AND test_type = $2',
+            [cyl.id, check.type]
+          );
+          if (existing.rows.length > 0) continue;
+
+          const isOverdue = check.due === null || check.due.getTime() < now.getTime();
+          const title = isOverdue ? 'Cylinder Test Overdue' : 'Cylinder Test Due Soon';
+          const body = `${cyl.nickname}: ${check.label} is ${isOverdue ? 'overdue' : 'due soon'}`;
+
+          await sendPushNotification(cyl.user_id, title, body, { type: 'cylinder_reminder', cylinderId: cyl.id });
+
+          await pool.query(
+            'INSERT INTO cylinder_notifications_sent (cylinder_id, test_type) VALUES ($1, $2) ON CONFLICT (cylinder_id, test_type) DO UPDATE SET sent_at = CURRENT_TIMESTAMP',
+            [cyl.id, check.type]
+          );
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Cylinder reminder check error:', error);
+  }
+}
+
+setInterval(checkCylinderReminders, 24 * 60 * 60 * 1000);
+setTimeout(checkCylinderReminders, 60 * 1000);
 
 // ============ DIVE PLANNING API ============
 

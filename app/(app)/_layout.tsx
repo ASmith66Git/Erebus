@@ -43,6 +43,7 @@ function CustomDrawerContent(props: any) {
     { icon: 'images-outline', label: t('nav.photos'), action: () => handleNavigation('/(app)/(tabs)/photos') },
     { icon: 'ribbon-outline', label: t('nav.certifications'), action: () => handleNavigation('/(app)/(tabs)/certifications') },
     { icon: 'hardware-chip-outline', label: t('nav.compressors'), action: () => handleNavigation('/(app)/(tabs)/compressors') },
+    { icon: 'disc-outline', label: t('nav.cylinders'), action: () => handleNavigation('/(app)/(tabs)/cylinders') },
     { icon: 'airplane-outline', label: t('nav.diveTrips'), action: () => handleNavigation('/(app)/(tabs)/dive-trips') },
     { icon: 'person-outline', label: t('nav.profile'), action: () => handleNavigation('/(app)/(tabs)/profile') },
     { icon: 'settings-outline', label: t('nav.settings'), action: () => handleNavigation('/(app)/(tabs)/settings') },
@@ -156,6 +157,10 @@ export default function AppLayout() {
       >
         <Drawer.Screen
           name="(tabs)"
+          options={{ drawerItemStyle: { display: 'none' } }}
+        />
+        <Drawer.Screen
+          name="cylinder/[id]"
           options={{ drawerItemStyle: { display: 'none' } }}
         />
       </Drawer>

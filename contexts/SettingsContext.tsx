@@ -24,6 +24,7 @@ const QUICK_ACTION_OPTIONS: QuickActionOption[] = [
   { id: 'gas-calculator', icon: 'flask', label: 'Gas', route: '/(app)/(tabs)/gas-calculator' },
   { id: 'photos', icon: 'images', label: 'Photos', route: '/(app)/(tabs)/photos' },
   { id: 'certifications', icon: 'ribbon', label: 'Certifications', route: '/(app)/(tabs)/certifications' },
+  { id: 'cylinders', icon: 'disc', label: 'Cylinders', route: '/(app)/(tabs)/cylinders' },
   { id: 'dive-trips', icon: 'airplane', label: 'Dive Trips', route: '/(app)/(tabs)/dive-trips' },
   { id: 'profile', icon: 'person', label: 'Profile', route: '/(app)/(tabs)/profile' },
   { id: 'explore', icon: 'compass', label: 'Explore Sites', route: '/(app)/(tabs)/explore' },
