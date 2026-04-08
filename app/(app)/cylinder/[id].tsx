@@ -35,7 +35,6 @@ interface TestRecord {
 }
 
 const CYLINDER_TYPES = ['steel', 'aluminium', 'composite'];
-const OWNERSHIP_STATUSES = ['owned', 'rented', 'borrowed', 'club'];
 const TESTING_STANDARDS = ['UK', 'US', 'EU', 'custom'];
 const TEST_TYPES = ['visual', 'hydrostatic', 'oxygen_clean'];
 const TEST_RESULTS = ['pass', 'fail'];
@@ -71,7 +70,6 @@ export default function CylinderDetailScreen() {
     serialNumber: '',
     workingPressure: '',
     manufactureDate: '',
-    ownershipStatus: 'owned',
     testingStandard: 'UK',
     customVisualIntervalMonths: '',
     customHydroIntervalMonths: '',
@@ -140,7 +138,6 @@ export default function CylinderDetailScreen() {
           serialNumber: data.serialNumber || '',
           workingPressure: displayPressure,
           manufactureDate: data.manufactureDate ? data.manufactureDate.split('T')[0] : '',
-          ownershipStatus: data.ownershipStatus || 'owned',
           testingStandard: data.testingStandard || 'UK',
           customVisualIntervalMonths: data.customVisualIntervalMonths?.toString() || '',
           customHydroIntervalMonths: data.customHydroIntervalMonths?.toString() || '',
@@ -195,7 +192,6 @@ export default function CylinderDetailScreen() {
         serialNumber: form.serialNumber || null,
         workingPressure: workingPressureBar,
         manufactureDate: form.manufactureDate || null,
-        ownershipStatus: form.ownershipStatus,
         testingStandard: form.testingStandard,
         customVisualIntervalMonths: form.customVisualIntervalMonths ? parseInt(form.customVisualIntervalMonths) : null,
         customHydroIntervalMonths: form.customHydroIntervalMonths ? parseInt(form.customHydroIntervalMonths) : null,
@@ -437,8 +433,6 @@ export default function CylinderDetailScreen() {
               placeholder={t('cylinders.selectDate')}
             />
           </View>
-
-          {renderOptionPicker(t('cylinders.ownership'), form.ownershipStatus, OWNERSHIP_STATUSES, v => setForm(f => ({ ...f, ownershipStatus: v })))}
 
           <View style={styles.fieldGroup}>
             <Text style={[styles.label, { color: colors.textSecondary }]}>{t('cylinders.linkedGearProfile')}</Text>
