@@ -1012,7 +1012,7 @@ export default function CompressorDetailScreen() {
     return (
       <View style={styles.tabContent}>
         {activeTab === 'service' && (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterBar} contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterBar} contentContainerStyle={{ paddingHorizontal: 16, gap: 8, alignItems: 'center' }}>
             {['all', ...SERVICE_TYPES.filter(t => t !== 'independent_test')].map((type) => (
               <Pressable key={type} onPress={() => setServiceFilter(type)} style={[styles.filterChip, { backgroundColor: serviceFilter === type ? colors.primary : colors.surface, borderColor: serviceFilter === type ? colors.primary : colors.border }]}>
                 <Text style={{ color: serviceFilter === type ? '#FFF' : colors.text, fontSize: 12 }}>{type === 'all' ? t('common.all') : t(`compressors.serviceTypes.${type}`)}</Text>
@@ -1369,8 +1369,8 @@ const styles = StyleSheet.create({
   statusDetail: { fontSize: 12, marginTop: 2 },
   statusLabel: { fontSize: 12, fontWeight: '600' },
   statusDivider: { height: 1, marginVertical: 4 },
-  filterBar: { paddingVertical: 12 },
-  filterChip: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 16, borderWidth: 1 },
+  filterBar: { paddingVertical: 4, flexGrow: 0, flexShrink: 0 },
+  filterChip: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 12, borderWidth: 1 },
   listContent: { padding: 16 },
   emptyContainer: { flexGrow: 1, justifyContent: 'center', alignItems: 'center' },
   emptyList: { alignItems: 'center', paddingVertical: 40 },
