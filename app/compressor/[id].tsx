@@ -1022,6 +1022,7 @@ export default function CompressorDetailScreen() {
         )}
 
         <FlatList
+          style={{ flex: 1 }}
           data={displayLogs}
           keyExtractor={(item) => item.id.toString()}
           contentContainerStyle={[styles.listContent, displayLogs.length === 0 && styles.emptyContainer]}
@@ -1067,6 +1068,7 @@ export default function CompressorDetailScreen() {
   const renderUsageTab = () => (
     <View style={styles.tabContent}>
       <FlatList
+        style={{ flex: 1 }}
         data={usageLogs}
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={[styles.listContent, usageLogs.length === 0 && styles.emptyContainer]}
@@ -1370,7 +1372,7 @@ const styles = StyleSheet.create({
   filterBar: { paddingVertical: 12 },
   filterChip: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 16, borderWidth: 1 },
   listContent: { padding: 16 },
-  emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  emptyContainer: { flexGrow: 1, justifyContent: 'center', alignItems: 'center' },
   emptyList: { alignItems: 'center', paddingVertical: 40 },
   emptyText: { fontSize: 14, marginTop: 12 },
   logCard: { borderRadius: 10, borderWidth: 1, padding: 14, marginBottom: 10 },
