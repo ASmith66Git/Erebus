@@ -218,7 +218,7 @@ export default function DiveSitesScreen() {
         title={t('diveSites.title')} 
         rightAction={
           <Pressable onPress={handleMapPress} style={styles.mapButton}>
-            <Feather name="map" size={22} color={colors.text} />
+            <Feather name="map" size={18} color={colors.text} />
           </Pressable>
         }
       />

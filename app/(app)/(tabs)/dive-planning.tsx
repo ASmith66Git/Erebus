@@ -2496,7 +2496,7 @@ export default function DivePlanningScreen() {
         rightAction={
           currentResult ? (
             <Pressable onPress={handleExportPdf} style={{ padding: 8 }}>
-              <Feather name="download" size={22} color={colors.text} />
+              <Feather name="download" size={18} color={colors.text} />
             </Pressable>
           ) : null
         }

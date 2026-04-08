@@ -32,7 +32,7 @@ export default function PageHeader({ title, rightAction }: PageHeaderProps) {
       ]}
     >
       <Pressable onPress={openDrawer} style={styles.menuButton}>
-        <Ionicons name="menu-outline" size={24} color={colors.text} />
+        <Ionicons name="menu-outline" size={18} color={colors.text} />
       </Pressable>
       <View style={styles.headerCenter}>
         <View style={styles.logoWrapper}>
@@ -43,7 +43,7 @@ export default function PageHeader({ title, rightAction }: PageHeaderProps) {
       <View style={styles.rightActions}>
         {rightAction}
         <Pressable onPress={toggleTheme} style={styles.themeButton}>
-          <Ionicons name={isDark ? 'sunny-outline' : 'moon-outline'} size={22} color={colors.text} />
+          <Ionicons name={isDark ? 'sunny-outline' : 'moon-outline'} size={18} color={colors.text} />
         </Pressable>
       </View>
     </View>
@@ -78,7 +78,7 @@ const styles = StyleSheet.create({
   rightActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 8,
   },
   themeButton: {
     padding: 8,

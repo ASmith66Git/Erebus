@@ -164,13 +164,13 @@ export default function DebugLogScreen() {
         rightAction={
           <View style={styles.headerActions}>
             <Pressable onPress={handleDownloadToFile} style={styles.actionButton}>
-              <Ionicons name="download-outline" size={22} color={colors.primary} />
+              <Ionicons name="download-outline" size={18} color={colors.primary} />
             </Pressable>
             <Pressable onPress={handleShare} style={styles.actionButton}>
-              <Ionicons name="share-outline" size={22} color={colors.primary} />
+              <Ionicons name="share-outline" size={18} color={colors.primary} />
             </Pressable>
             <Pressable onPress={handleClear} style={styles.actionButton}>
-              <Ionicons name="trash-outline" size={22} color={colors.error} />
+              <Ionicons name="trash-outline" size={18} color={colors.error} />
             </Pressable>
           </View>
         }
