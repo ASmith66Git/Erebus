@@ -182,8 +182,8 @@ export default function ManualDiveEntryScreen() {
   
   const [deviceManufacturer, setDeviceManufacturer] = useState('');
   const [deviceModel, setDeviceModel] = useState('');
-  const [startPressure, setStartPressure] = useState('');
-  const [endPressure, setEndPressure] = useState('');
+  const [startPressure, setStartPressure] = useState('232');
+  const [endPressure, setEndPressure] = useState('0');
   const [o2Percent, setO2Percent] = useState('21');
   const [hePercent, setHePercent] = useState('0');
   
@@ -264,7 +264,8 @@ export default function ManualDiveEntryScreen() {
       if (profile && profile.cylinders && profile.cylinders.length > 0) {
         const cylindersWithEndPressure = profile.cylinders.map((c: GearCylinder) => ({
           ...c,
-          endPressure: ''
+          startPressure: c.startPressure ?? (c.workingPressure || 232),
+          endPressure: '0'
         }));
         console.log('[ManualDiveEntry] Setting profileCylinders:', cylindersWithEndPressure);
         setProfileCylinders(cylindersWithEndPressure);
@@ -772,6 +773,8 @@ export default function ManualDiveEntryScreen() {
                       style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
                       value={cylinder.endPressure || ''}
                       onChangeText={(val) => updateCylinderPressure(cylinder.id, 'endPressure', val)}
+                      onFocus={() => { if (cylinder.endPressure === '0') updateCylinderPressure(cylinder.id, 'endPressure', ''); }}
+                      onBlur={() => { if (!cylinder.endPressure) updateCylinderPressure(cylinder.id, 'endPressure', '0'); }}
                       placeholder={t('manualDiveEntry.endPressurePlaceholder')}
                       placeholderTextColor={colors.textSecondary}
                       keyboardType="numeric"
@@ -832,6 +835,8 @@ export default function ManualDiveEntryScreen() {
                 style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
                 value={endPressure}
                 onChangeText={setEndPressure}
+                onFocus={() => { if (endPressure === '0') setEndPressure(''); }}
+                onBlur={() => { if (!endPressure) setEndPressure('0'); }}
                 placeholder={t('manualDiveEntry.endPressurePlaceholder')}
                 placeholderTextColor={colors.textSecondary}
                 keyboardType="numeric"
