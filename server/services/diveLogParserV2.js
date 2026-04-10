@@ -59,6 +59,10 @@ class FormatDetector {
       return 'subsurface';
     }
     
+    if (contentStart.includes('schemas.datacontract.org/2004/07/suunto') || contentStart.includes('<dive xmlns="http://schemas.datacontract.org/2004/07/suunto')) {
+      return 'suunto_dm5';
+    }
+
     if (ext === 'xml' || mimeType === 'application/xml' || mimeType === 'text/xml') {
       if (contentStart.includes('<uddf')) return 'uddf';
       if (contentStart.includes('<divelog') || contentStart.includes('<subsurface')) return 'subsurface';
@@ -691,6 +695,180 @@ class CSVAdapter extends BaseAdapter {
   }
 }
 
+class SuuntoDM5Adapter extends BaseAdapter {
+  suuntoVal(field) {
+    if (field === null || field === undefined) return null;
+    if (typeof field === 'object' && field.$?.['i:nil'] === 'true') return null;
+    if (typeof field === 'string') return field;
+    return null;
+  }
+
+  suuntoNum(field) {
+    const val = this.suuntoVal(field);
+    if (val === null) return null;
+    const num = parseFloat(val);
+    return isNaN(num) ? null : num;
+  }
+
+  async parse(content, filename) {
+    const parser = new xml2js.Parser({ explicitArray: false, ignoreAttrs: false });
+    const result = await parser.parseStringPromise(content);
+    const dive = result.Dive;
+    if (!dive) throw new Error('Invalid Suunto DM5 XML: no <Dive> root element');
+
+    const dto = this.createDTO();
+
+    const startTime = this.suuntoVal(dive.StartTime);
+    dto.header.dive_datetime = startTime ? normalizeDateTime(startTime) : new Date().toISOString();
+    dto.header.duration_seconds = this.suuntoNum(dive.Duration);
+    dto.header.max_depth_meters = this.suuntoNum(dive.MaxDepth);
+    dto.header.avg_depth_meters = this.suuntoNum(dive.AvgDepth);
+    dto.header.notes = this.suuntoVal(dive.Note) || null;
+
+    const bottomTemp = this.suuntoNum(dive.BottomTemperature);
+    const startTemp = this.suuntoNum(dive.StartTemperature);
+    const endTemp = this.suuntoNum(dive.EndTemperature);
+    let minTemp = bottomTemp;
+    let maxTemp = startTemp;
+    if (endTemp !== null && (maxTemp === null || endTemp > maxTemp)) maxTemp = endTemp;
+    if (minTemp !== null && maxTemp !== null && minTemp > maxTemp) {
+      [minTemp, maxTemp] = [maxTemp, minTemp];
+    }
+    dto.header.min_temperature_celsius = minTemp;
+    dto.header.max_temperature_celsius = maxTemp;
+
+    const surfacePressure = this.suuntoNum(dive.SurfacePressure);
+    if (surfacePressure) dto.header.surface_pressure_mbar = surfacePressure;
+
+    dto.device.manufacturer = 'Suunto';
+    dto.device.model = this.suuntoVal(dive.Source) || null;
+    dto.device.serial = this.suuntoVal(dive.SerialNumber) || null;
+
+    const firmware = this.suuntoVal(dive.Software);
+    if (firmware) dto.settings.firmware_version = firmware;
+
+    const mode = this.suuntoNum(dive.Mode);
+    if (mode !== null) {
+      const modeMap = { 0: 'OC', 1: 'OC', 2: 'GAUGE', 3: 'APNEA', 4: 'CC', 5: 'CC' };
+      dto.header.dive_mode = modeMap[mode] || null;
+    }
+
+    this.parseSamples(dive, dto);
+    this.parseGases(dive, dto);
+    this.parseMarks(dive, dto);
+
+    dto.import_metadata.source_format = 'suunto_dm5';
+    dto.import_metadata.source_filename = filename;
+    dto.import_metadata.raw_data_hash = this.hashContent(content);
+
+    return [dto];
+  }
+
+  parseSamples(dive, dto) {
+    if (!dive.DiveSamples || !dive.DiveSamples['Dive.Sample']) return;
+
+    const rawSamples = [].concat(dive.DiveSamples['Dive.Sample']);
+    for (const s of rawSamples) {
+      const time = this.suuntoNum(s.Time);
+      if (time === null) continue;
+      const depth = this.suuntoNum(s.Depth) || 0;
+      const temp = this.suuntoNum(s.Temperature);
+
+      const metrics = {};
+      const ceiling = this.suuntoNum(s.Ceiling);
+      if (ceiling !== null) metrics.ceiling_m = ceiling;
+      const sacRate = this.suuntoNum(s.SacRate);
+      if (sacRate !== null) metrics.sac_rate = sacRate;
+      const heading = this.suuntoNum(s.Heading);
+      if (heading !== null) metrics.heading_deg = heading;
+      const pressure = this.suuntoNum(s.Pressure);
+      if (pressure !== null) metrics.tank_pressure_bar = pressure / 1000;
+
+      dto.addSample(time, depth, temp, Object.keys(metrics).length > 0 ? metrics : null);
+    }
+  }
+
+  parseGases(dive, dto) {
+    if (!dive.DiveMixtures || !dive.DiveMixtures.DiveMixture) return;
+
+    const rawMixes = [].concat(dive.DiveMixtures.DiveMixture);
+    const cylinderWorkPressure = this.suuntoNum(dive.CylinderWorkPressure);
+    const workPressureBar = cylinderWorkPressure ? cylinderWorkPressure / 1000 : null;
+
+    rawMixes.forEach((mix, index) => {
+      const o2 = this.suuntoNum(mix.Oxygen) || 21;
+      const he = this.suuntoNum(mix.Helium) || 0;
+      const size = this.suuntoNum(mix.Size);
+      const type = this.suuntoNum(mix.Type);
+      const startP = this.suuntoNum(mix.StartPressure);
+      const endP = this.suuntoNum(mix.EndPressure);
+
+      let name;
+      if (he > 0) {
+        name = `Tx${o2}/${he}`;
+      } else if (o2 === 21) {
+        name = 'Air';
+      } else if (o2 >= 99) {
+        name = 'O2';
+      } else {
+        name = `Nx${o2}`;
+      }
+
+      const isDiluent = type === 3;
+      const isBailout = type === 5;
+
+      dto.addGas(index, o2, he, {
+        name: name,
+        is_diluent: isDiluent,
+        is_bailout: isBailout,
+        tank_size_liters: size ? Math.round(size * 10) / 10 : null,
+        work_pressure_bar: workPressureBar,
+        start_pressure_bar: startP && startP > 0 ? startP / 1000 : null,
+        end_pressure_bar: endP && endP > 0 ? endP / 1000 : null,
+      });
+
+      if (mix.DiveGasChanges && mix.DiveGasChanges.DiveGasChange) {
+        const changes = [].concat(mix.DiveGasChanges.DiveGasChange);
+        for (const change of changes) {
+          const changeTime = this.suuntoNum(change.GasChangeTime);
+          if (changeTime !== null) {
+            const po2 = this.suuntoNum(change.PO2);
+            dto.addEvent(changeTime, EVENT_TYPES.GAS_SWITCH, {
+              gas_slot: index,
+              event_value: po2,
+            });
+          }
+        }
+      }
+    });
+  }
+
+  parseMarks(dive, dto) {
+    if (!dive.Marks || !dive.Marks.Mark) return;
+
+    const marks = [].concat(dive.Marks.Mark);
+    const markTypeMap = {
+      19: EVENT_TYPES.SURFACE,
+      257: EVENT_TYPES.BOOKMARK,
+      261: EVENT_TYPES.DECO_STOP,
+      262: EVENT_TYPES.DECO_STOP,
+      265: EVENT_TYPES.SAFETY_STOP,
+      270: EVENT_TYPES.SETPOINT_CHANGE,
+    };
+
+    for (const mark of marks) {
+      const time = this.suuntoNum(mark.MarkTime);
+      if (time === null) continue;
+      const type = this.suuntoNum(mark.Type);
+      const eventType = markTypeMap[type] || EVENT_TYPES.BOOKMARK;
+      dto.addEvent(time, eventType, {
+        event_value: type,
+        event_subtype: `suunto_mark_${type}`,
+      });
+    }
+  }
+}
+
 class BinaryAdapter extends BaseAdapter {
   async parse(content, filename) {
     throw new Error('Binary format parsing requires native libdivecomputer integration. Please use Subsurface or UDDF export from your dive computer software.');
@@ -702,6 +880,7 @@ class DiveLogParserV2 {
     this.adapters = {
       uddf: new UDDFAdapter(),
       subsurface: new SubsurfaceAdapter(),
+      suunto_dm5: new SuuntoDM5Adapter(),
       csv: new CSVAdapter(),
       binary: new BinaryAdapter(),
     };
