@@ -5111,7 +5111,8 @@ app.post('/api/dive-logs', authenticateToken, async (req, res) => {
     const {
       diveSiteId, diveDateTime, durationSeconds, maxDepthMeters, avgDepthMeters,
       minTemperatureCelsius, maxTemperatureCelsius, deviceManufacturer, deviceModel,
-      samples, gasMixes, notes, rating, gearProfileId
+      samples, gasMixes, notes, rating, gearProfileId,
+      surfaceConditions, weatherConditions
     } = req.body;
 
     if (!diveDateTime) {
@@ -5132,8 +5133,9 @@ app.post('/api/dive-logs', authenticateToken, async (req, res) => {
       INSERT INTO dive_logs (
         user_id, dive_site_id, dive_datetime, duration_seconds, max_depth_meters, avg_depth_meters,
         min_temperature_celsius, max_temperature_celsius, device_manufacturer, device_model,
-        samples, gas_mixes, notes, rating, import_source, gear_profile_id
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, 'manual', $15)
+        samples, gas_mixes, notes, rating, import_source, gear_profile_id,
+        surface_conditions, weather_conditions
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, 'manual', $15, $16, $17)
       RETURNING *
     `, [
       req.user.id,
@@ -5150,7 +5152,9 @@ app.post('/api/dive-logs', authenticateToken, async (req, res) => {
       gasMixes ? JSON.stringify(gasMixes) : null,
       notes || null,
       rating || null,
-      gearProfileId || null
+      gearProfileId || null,
+      surfaceConditions || null,
+      weatherConditions || null
     ]);
 
     const row = result.rows[0];
@@ -5177,7 +5181,8 @@ app.put('/api/dive-logs/:id', authenticateToken, async (req, res) => {
     const {
       diveSiteId, diveDateTime, durationSeconds, maxDepthMeters, avgDepthMeters,
       minTemperatureCelsius, maxTemperatureCelsius, notes, rating, gearProfileId, gasMixes,
-      skillsNotes, workload, thermalComfort, equipmentIssues, problemNotes
+      skillsNotes, workload, thermalComfort, equipmentIssues, problemNotes,
+      surfaceConditions, weatherConditions
     } = req.body;
 
     const existingResult = await pool.query(
@@ -5216,8 +5221,10 @@ app.put('/api/dive-logs/:id', authenticateToken, async (req, res) => {
         workload = $13,
         thermal_comfort = $14,
         equipment_issues = $15,
-        problem_notes = $16
-      WHERE id = $17 AND user_id = $18
+        problem_notes = $16,
+        surface_conditions = $17,
+        weather_conditions = $18
+      WHERE id = $19 AND user_id = $20
       RETURNING *
     `;
     const updateParams = [
@@ -5230,6 +5237,8 @@ app.put('/api/dive-logs/:id', authenticateToken, async (req, res) => {
       thermalComfort || null,
       equipmentIssues ? JSON.stringify(equipmentIssues) : null,
       problemNotes || null,
+      surfaceConditions || null,
+      weatherConditions || null,
       id, req.user.id
     ];
     
