@@ -69,11 +69,28 @@ class DiveLogParser {
       return this.parseSubsurfaceXML(result.divelog);
     } else if (result.dives) {
       return this.parseGenericDivesXML(result.dives);
-    } else if (result.Dive && result.Dive.$?.xmlns?.toLowerCase().includes('suunto')) {
-      return this.parseSuuntoDM5(result.Dive);
     } else {
+      const suuntoDive = this.findSuuntoDiveRoot(result);
+      if (suuntoDive) {
+        return this.parseSuuntoDM5(suuntoDive);
+      }
       throw new Error('Unknown XML format. Supported: UDDF, Subsurface, Suunto DM5');
     }
+  }
+
+  findSuuntoDiveRoot(result) {
+    for (const key of Object.keys(result)) {
+      const localName = key.split(':').pop();
+      if (localName === 'Dive') {
+        const node = result[key];
+        if (node?.$) {
+          const nsValues = Object.values(node.$).join(' ').toLowerCase();
+          if (nsValues.includes('suunto')) return node;
+        }
+        if (node?.DiveSamples || node?.MaxDepth) return node;
+      }
+    }
+    return null;
   }
 
   parseUDDF(uddf) {
@@ -489,6 +506,9 @@ class DiveLogParser {
 
     let minTemp = bottomTemp;
     let maxTemp = startTemp;
+    if (maxTemp === null && samples.length > 0) {
+      maxTemp = samples[0].temperature_celsius;
+    }
     if (endTemp !== null && (maxTemp === null || endTemp > maxTemp)) maxTemp = endTemp;
     if (minTemp !== null && maxTemp !== null && minTemp > maxTemp) {
       [minTemp, maxTemp] = [maxTemp, minTemp];

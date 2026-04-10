@@ -710,10 +710,25 @@ class SuuntoDM5Adapter extends BaseAdapter {
     return isNaN(num) ? null : num;
   }
 
+  findSuuntoDiveRoot(result) {
+    for (const key of Object.keys(result)) {
+      const localName = key.split(':').pop();
+      if (localName === 'Dive') {
+        const node = result[key];
+        if (node?.$) {
+          const nsValues = Object.values(node.$).join(' ').toLowerCase();
+          if (nsValues.includes('suunto')) return node;
+        }
+        if (node?.DiveSamples || node?.MaxDepth) return node;
+      }
+    }
+    return null;
+  }
+
   async parse(content, filename) {
     const parser = new xml2js.Parser({ explicitArray: false, ignoreAttrs: false });
     const result = await parser.parseStringPromise(content);
-    const dive = result.Dive;
+    const dive = this.findSuuntoDiveRoot(result);
     if (!dive) throw new Error('Invalid Suunto DM5 XML: no <Dive> root element');
 
     const dto = this.createDTO();
@@ -725,11 +740,26 @@ class SuuntoDM5Adapter extends BaseAdapter {
     dto.header.avg_depth_meters = this.suuntoNum(dive.AvgDepth);
     dto.header.notes = this.suuntoVal(dive.Note) || null;
 
+    const bottomTime = this.suuntoNum(dive.BottomTime);
+    if (bottomTime !== null) dto.header.bottom_time_seconds = bottomTime;
+
+    const cnsEnd = this.suuntoNum(dive.CnsEnd);
+    if (cnsEnd !== null) dto.header.cns_end = cnsEnd;
+
+    const otuEnd = this.suuntoNum(dive.OtuEnd);
+    if (otuEnd !== null) dto.header.otu_end = otuEnd;
+
     const bottomTemp = this.suuntoNum(dive.BottomTemperature);
     const startTemp = this.suuntoNum(dive.StartTemperature);
     const endTemp = this.suuntoNum(dive.EndTemperature);
     let minTemp = bottomTemp;
     let maxTemp = startTemp;
+
+    this.parseSamples(dive, dto);
+
+    if (maxTemp === null && dto.samples.length > 0) {
+      maxTemp = dto.samples[0].temperature_celsius;
+    }
     if (endTemp !== null && (maxTemp === null || endTemp > maxTemp)) maxTemp = endTemp;
     if (minTemp !== null && maxTemp !== null && minTemp > maxTemp) {
       [minTemp, maxTemp] = [maxTemp, minTemp];
@@ -753,7 +783,6 @@ class SuuntoDM5Adapter extends BaseAdapter {
       dto.header.dive_mode = modeMap[mode] || null;
     }
 
-    this.parseSamples(dive, dto);
     this.parseGases(dive, dto);
     this.parseMarks(dive, dto);
 
