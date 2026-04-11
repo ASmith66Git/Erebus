@@ -337,11 +337,8 @@ export default function HelpSupportScreen() {
       <ThemedBackground>
         <PageHeader 
           title={selectedConversation.subject}
-          rightAction={
-            <Pressable onPress={() => setSelectedConversation(null)} style={styles.backButton}>
-              <Ionicons name="arrow-back" size={24} color={colors.text} />
-            </Pressable>
-          }
+          showBack
+          onBack={() => setSelectedConversation(null)}
         />
         <KeyboardAvoidingView 
           style={styles.container}
@@ -392,7 +389,7 @@ export default function HelpSupportScreen() {
 
   return (
     <ThemedBackground>
-      <PageHeader title={t('support.title')} />
+      <PageHeader title={t('support.title')} showBack />
       <View style={styles.container}>
         {loading ? (
           <View style={styles.loadingContainer}>

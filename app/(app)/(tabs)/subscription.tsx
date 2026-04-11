@@ -34,7 +34,7 @@ export default function SubscriptionScreen() {
   return (
     <ThemedBackground>
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backButton}>
+        <Pressable onPress={() => { if (router.canGoBack()) { router.back(); } else { router.replace('/(app)/(tabs)/profile'); } }} style={styles.backButton}>
           <Feather name="arrow-left" size={24} color={colors.text} />
         </Pressable>
         <Text style={[styles.headerTitle, { color: colors.text }]}>{t('subscription.title')}</Text>

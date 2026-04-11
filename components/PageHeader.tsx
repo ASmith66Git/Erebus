@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, Pressable, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { DrawerActions, useNavigation } from '@react-navigation/native';
+import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/contexts/ThemeContext';
 import Logo from './Logo';
@@ -9,15 +10,28 @@ import Logo from './Logo';
 interface PageHeaderProps {
   title: string;
   rightAction?: React.ReactNode;
+  showBack?: boolean;
+  onBack?: () => void;
 }
 
-export default function PageHeader({ title, rightAction }: PageHeaderProps) {
+export default function PageHeader({ title, rightAction, showBack, onBack }: PageHeaderProps) {
   const { colors, isDark, toggleTheme } = useTheme();
   const navigation = useNavigation();
+  const router = useRouter();
   const insets = useSafeAreaInsets();
 
   const openDrawer = () => {
     navigation.dispatch(DrawerActions.openDrawer());
+  };
+
+  const handleBack = () => {
+    if (onBack) {
+      onBack();
+    } else if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/(app)/(tabs)/profile');
+    }
   };
 
   return (
@@ -31,9 +45,15 @@ export default function PageHeader({ title, rightAction }: PageHeaderProps) {
         }
       ]}
     >
-      <Pressable onPress={openDrawer} style={styles.menuButton}>
-        <Ionicons name="menu-outline" size={18} color={colors.text} />
-      </Pressable>
+      {showBack ? (
+        <Pressable onPress={handleBack} style={styles.menuButton}>
+          <Ionicons name="arrow-back" size={18} color={colors.text} />
+        </Pressable>
+      ) : (
+        <Pressable onPress={openDrawer} style={styles.menuButton}>
+          <Ionicons name="menu-outline" size={18} color={colors.text} />
+        </Pressable>
+      )}
       <View style={styles.headerCenter}>
         <View style={styles.logoWrapper}>
           <Logo size={28} primaryColor={colors.primary} />
