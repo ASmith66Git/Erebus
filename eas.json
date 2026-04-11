@@ -36,11 +36,6 @@
     }
   },
   "submit": {
-    "production": {
-      "ios": {
-        "ascAppId": "com.erebus.diveapp",
-        "appleId": "ASC_KEY_ID"
-      }
-    }
+    "production": {}
   }
 }
