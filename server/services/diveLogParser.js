@@ -552,8 +552,6 @@ class DiveLogParser {
     if (!diveMixtures || !diveMixtures.DiveMixture) return [];
 
     const rawMixes = [].concat(diveMixtures.DiveMixture);
-    const cylinderWorkPressure = this.suuntoNum(dive.CylinderWorkPressure);
-    const workPressureBar = cylinderWorkPressure ? cylinderWorkPressure / 1000 : null;
 
     return rawMixes.map(mix => {
       const o2 = this.suuntoNum(mix.Oxygen) || 21;
@@ -576,7 +574,7 @@ class DiveLogParser {
         o2: o2,
         he: he,
         size: size ? Math.round(size * 10) / 10 : null,
-        workpressure: workPressureBar,
+        workpressure: 232,
       };
     });
   }

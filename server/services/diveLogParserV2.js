@@ -821,16 +821,12 @@ class SuuntoDM5Adapter extends BaseAdapter {
     if (!dive.DiveMixtures || !dive.DiveMixtures.DiveMixture) return;
 
     const rawMixes = [].concat(dive.DiveMixtures.DiveMixture);
-    const cylinderWorkPressure = this.suuntoNum(dive.CylinderWorkPressure);
-    const workPressureBar = cylinderWorkPressure ? cylinderWorkPressure / 1000 : null;
 
     rawMixes.forEach((mix, index) => {
       const o2 = this.suuntoNum(mix.Oxygen) || 21;
       const he = this.suuntoNum(mix.Helium) || 0;
       const size = this.suuntoNum(mix.Size);
       const type = this.suuntoNum(mix.Type);
-      const startP = this.suuntoNum(mix.StartPressure);
-      const endP = this.suuntoNum(mix.EndPressure);
 
       let name;
       if (he > 0) {
@@ -851,9 +847,9 @@ class SuuntoDM5Adapter extends BaseAdapter {
         is_diluent: isDiluent,
         is_bailout: isBailout,
         tank_size_liters: size ? Math.round(size * 10) / 10 : null,
-        work_pressure_bar: workPressureBar,
-        start_pressure_bar: startP && startP > 0 ? startP / 1000 : null,
-        end_pressure_bar: endP && endP > 0 ? endP / 1000 : null,
+        work_pressure_bar: 232,
+        start_pressure_bar: null,
+        end_pressure_bar: null,
       });
 
       if (mix.DiveGasChanges && mix.DiveGasChanges.DiveGasChange) {
