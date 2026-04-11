@@ -30,9 +30,17 @@
       }
     },
     "production": {
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://erebus.nammu-tech.com"
+      }
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "ios": {
+        "ascAppId": "com.erebus.diveapp",
+        "appleId": "ASC_KEY_ID"
+      }
+    }
   }
 }
