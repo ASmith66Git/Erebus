@@ -1784,7 +1784,13 @@
     "noSupportMessagesYet": "Noch keine Support-Nachrichten",
     "from": "Von: {{name}} ({{email}})",
     "admin": "(Admin)",
-    "typeReply": "Antwort eingeben..."
+    "typeReply": "Antwort eingeben...",
+    "newMessageToUser": "Neue Nachricht an Benutzer",
+    "selectUser": "Benutzer auswählen",
+    "searchUsers": "Benutzer nach Name oder E-Mail suchen...",
+    "noUsersFound": "Keine Benutzer gefunden",
+    "messageToUserPlaceholder": "Nachricht an den Benutzer eingeben...",
+    "sendMessage": "Nachricht senden"
   },
   "notifications": {
     "title": "Benachrichtigungen",

@@ -1784,7 +1784,13 @@
     "noSupportMessagesYet": "Aucun message de support",
     "from": "De : {{name}} ({{email}})",
     "admin": "(Admin)",
-    "typeReply": "Tapez votre réponse..."
+    "typeReply": "Tapez votre réponse...",
+    "newMessageToUser": "Nouveau message à l'utilisateur",
+    "selectUser": "Sélectionner un utilisateur",
+    "searchUsers": "Rechercher par nom ou e-mail...",
+    "noUsersFound": "Aucun utilisateur trouvé",
+    "messageToUserPlaceholder": "Tapez votre message à l'utilisateur...",
+    "sendMessage": "Envoyer le message"
   },
   "notifications": {
     "title": "Notifications",

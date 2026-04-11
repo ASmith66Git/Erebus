@@ -8674,6 +8674,69 @@ app.get('/api/admin/support/conversations/:id/messages', authenticateToken, asyn
   }
 });
 
+// Admin create new conversation directed at a user
+app.post('/api/admin/support/conversations', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+    
+    const adminId = req.user.id;
+    const { userId, subject, message, priority } = req.body;
+    
+    if (!userId || !subject || !message) {
+      return res.status(400).json({ error: 'User ID, subject, and message are required' });
+    }
+    
+    const userCheck = await pool.query('SELECT id, first_name FROM users WHERE id = $1', [userId]);
+    if (userCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      
+      const convResult = await client.query(`
+        INSERT INTO support_conversations (user_id, subject, priority)
+        VALUES ($1, $2, $3)
+        RETURNING *
+      `, [userId, subject, priority || 'normal']);
+      
+      const conversation = convResult.rows[0];
+      
+      await client.query(`
+        INSERT INTO support_messages (conversation_id, sender_id, is_admin_reply, message)
+        VALUES ($1, $2, true, $3)
+      `, [conversation.id, adminId, message]);
+      
+      await client.query(
+        'UPDATE support_conversations SET status = $1 WHERE id = $2',
+        ['in_progress', conversation.id]
+      );
+      
+      await client.query('COMMIT');
+      
+      sendPushNotification(
+        userId,
+        'New Support Message',
+        `${subject}: ${message.length > 80 ? message.substring(0, 80) + '...' : message}`,
+        { type: 'support_reply', conversationId: conversation.id }
+      ).catch(err => console.error('Push notification error:', err));
+      
+      res.status(201).json(conversation);
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    console.error('Admin create conversation error:', error);
+    res.status(500).json({ error: 'Failed to create conversation' });
+  }
+});
+
 // Send admin reply
 app.post('/api/admin/support/conversations/:id/messages', authenticateToken, async (req, res) => {
   try {

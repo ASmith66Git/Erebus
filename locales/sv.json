@@ -1784,7 +1784,13 @@
     "noSupportMessagesYet": "Inga supportmeddelanden ännu",
     "from": "Från: {{name}} ({{email}})",
     "admin": "(Admin)",
-    "typeReply": "Skriv ditt svar..."
+    "typeReply": "Skriv ditt svar...",
+    "newMessageToUser": "Nytt meddelande till användare",
+    "selectUser": "Välj användare",
+    "searchUsers": "Sök användare efter namn eller e-post...",
+    "noUsersFound": "Inga användare hittades",
+    "messageToUserPlaceholder": "Skriv ditt meddelande till användaren...",
+    "sendMessage": "Skicka meddelande"
   },
   "notifications": {
     "title": "Aviseringar",

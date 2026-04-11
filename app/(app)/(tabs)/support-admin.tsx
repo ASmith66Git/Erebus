@@ -10,6 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Modal,
+  ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -64,6 +65,29 @@ const STATUS_ACTIONS = [
   { value: 'closed', labelKey: 'supportAdmin.closedTickets' },
 ];
 
+const PRIORITY_OPTIONS = [
+  { value: 'low', labelKey: 'support.priorityLow' },
+  { value: 'normal', labelKey: 'support.priorityNormal' },
+  { value: 'high', labelKey: 'support.priorityHigh' },
+  { value: 'urgent', labelKey: 'support.priorityUrgent' },
+];
+
+const CATEGORY_OPTIONS = [
+  { value: 'general', labelKey: 'support.categoryGeneral', icon: 'help-circle-outline' as const },
+  { value: 'bug', labelKey: 'support.categoryBug', icon: 'bug-outline' as const },
+  { value: 'feature', labelKey: 'support.categoryFeature', icon: 'bulb-outline' as const },
+  { value: 'account', labelKey: 'support.categoryAccount', icon: 'person-outline' as const },
+  { value: 'billing', labelKey: 'support.categoryBilling', icon: 'card-outline' as const },
+];
+
+interface UserOption {
+  id: number;
+  email: string;
+  firstName: string;
+  lastName: string;
+  isBlocked?: boolean;
+}
+
 export default function SupportAdminScreen() {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
@@ -82,8 +106,17 @@ export default function SupportAdminScreen() {
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   
+  const [showNewTicket, setShowNewTicket] = useState(false);
+  const [newSubject, setNewSubject] = useState('');
+  const [newTicketMessage, setNewTicketMessage] = useState('');
+  const [newPriority, setNewPriority] = useState('normal');
+  const [newCategory, setNewCategory] = useState('general');
+  const [creating, setCreating] = useState(false);
+  const [users, setUsers] = useState<UserOption[]>([]);
+  const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
+  const [userSearch, setUserSearch] = useState('');
+  
   const messagesListRef = useRef<FlatList>(null);
-  const isInitialLoadRef = useRef(true);
 
   const fetchConversations = useCallback(async (isBackgroundRefresh = false) => {
     try {
@@ -107,10 +140,7 @@ export default function SupportAdminScreen() {
     } catch (error) {
       console.error('Failed to fetch conversations:', error);
     } finally {
-      if (isInitialLoadRef.current) {
-        setLoading(false);
-        isInitialLoadRef.current = false;
-      }
+      setLoading(false);
       setRefreshing(false);
     }
   }, [token, statusFilter]);
@@ -128,6 +158,62 @@ export default function SupportAdminScreen() {
       console.error('Failed to fetch unread count:', error);
     }
   }, [token]);
+
+  const fetchUsers = useCallback(async () => {
+    try {
+      const response = await fetch(`${getApiUrl()}/api/admin/users`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setUsers(data.filter((u: UserOption) => !u.isBlocked));
+      }
+    } catch (error) {
+      console.error('Failed to fetch users:', error);
+    }
+  }, [token]);
+
+  const handleCreateTicket = async () => {
+    if (!newSubject.trim() || !newTicketMessage.trim() || !selectedUserId) return;
+    
+    setCreating(true);
+    try {
+      const categoryLabelKey = CATEGORY_OPTIONS.find(c => c.value === newCategory)?.labelKey || 'support.categoryGeneral';
+      const categoryLabel = t(categoryLabelKey);
+      const fullSubject = `[${categoryLabel}] ${newSubject.trim()}`;
+      
+      const response = await fetch(`${getApiUrl()}/api/admin/support/conversations`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          userId: selectedUserId,
+          subject: fullSubject,
+          message: newTicketMessage.trim(),
+          priority: newPriority,
+        }),
+      });
+      
+      if (response.ok) {
+        const conversation = await response.json();
+        setShowNewTicket(false);
+        setNewSubject('');
+        setNewTicketMessage('');
+        setNewPriority('normal');
+        setNewCategory('general');
+        setSelectedUserId(null);
+        setUserSearch('');
+        fetchConversations();
+        fetchMessages(conversation.id);
+      }
+    } catch (error) {
+      console.error('Failed to create ticket:', error);
+    } finally {
+      setCreating(false);
+    }
+  };
 
   const fetchMessages = useCallback(async (conversationId: number) => {
     setMessagesLoading(true);
@@ -480,8 +566,10 @@ export default function SupportAdminScreen() {
                   statusFilter === item.value && { backgroundColor: colors.primary, borderColor: colors.primary }
                 ]}
                 onPress={() => {
-                  setStatusFilter(item.value);
-                  setLoading(true);
+                  if (item.value !== statusFilter) {
+                    setStatusFilter(item.value);
+                    setLoading(true);
+                  }
                 }}
               >
                 <Text style={[
@@ -520,7 +608,171 @@ export default function SupportAdminScreen() {
             }}
           />
         )}
+        
+        <Pressable
+          style={[styles.fab, { backgroundColor: colors.primary }]}
+          onPress={() => {
+            fetchUsers();
+            setShowNewTicket(true);
+          }}
+        >
+          <Ionicons name="add" size={28} color="#FFFFFF" />
+        </Pressable>
       </View>
+      
+      <Modal visible={showNewTicket} transparent animationType="fade" onRequestClose={() => setShowNewTicket(false)}>
+        <Pressable style={styles.modalOverlay} onPress={() => setShowNewTicket(false)}>
+          <Pressable style={[styles.newTicketModalContent, { backgroundColor: colors.surface }]} onPress={e => e.stopPropagation()}>
+            <View style={styles.newTicketModalHeader}>
+              <Text style={[styles.newTicketModalTitle, { color: colors.text }]}>{t('supportAdmin.newMessageToUser')}</Text>
+              <Pressable onPress={() => setShowNewTicket(false)}>
+                <Ionicons name="close" size={24} color={colors.text} />
+              </Pressable>
+            </View>
+            
+            <ScrollView style={styles.newTicketModalBody}>
+              <Text style={[styles.inputLabel, { color: colors.text }]}>{t('supportAdmin.selectUser')}</Text>
+              <TextInput
+                style={[styles.textInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
+                placeholder={t('supportAdmin.searchUsers')}
+                placeholderTextColor={colors.textSecondary}
+                value={userSearch}
+                onChangeText={setUserSearch}
+              />
+              {userSearch.length > 0 && (
+                <View style={[styles.userDropdown, { backgroundColor: colors.background, borderColor: colors.border }]}>
+                  {users
+                    .filter(u => 
+                      `${u.firstName} ${u.lastName} ${u.email}`.toLowerCase().includes(userSearch.toLowerCase())
+                    )
+                    .slice(0, 5)
+                    .map(u => (
+                      <Pressable
+                        key={u.id}
+                        style={[
+                          styles.userDropdownItem,
+                          { borderBottomColor: colors.border },
+                          selectedUserId === u.id && { backgroundColor: colors.primary + '20' }
+                        ]}
+                        onPress={() => {
+                          setSelectedUserId(u.id);
+                          setUserSearch(`${u.firstName} ${u.lastName} (${u.email})`);
+                        }}
+                      >
+                        <Text style={[styles.userDropdownName, { color: colors.text }]}>
+                          {u.firstName} {u.lastName}
+                        </Text>
+                        <Text style={[styles.userDropdownEmail, { color: colors.textSecondary }]}>
+                          {u.email}
+                        </Text>
+                      </Pressable>
+                    ))
+                  }
+                  {users.filter(u => 
+                    `${u.firstName} ${u.lastName} ${u.email}`.toLowerCase().includes(userSearch.toLowerCase())
+                  ).length === 0 && (
+                    <Text style={[styles.noUsersText, { color: colors.textSecondary }]}>{t('supportAdmin.noUsersFound')}</Text>
+                  )}
+                </View>
+              )}
+              {selectedUserId && (
+                <View style={[styles.selectedUserChip, { backgroundColor: colors.primary + '20' }]}>
+                  <Text style={[styles.selectedUserText, { color: colors.primary }]}>
+                    {users.find(u => u.id === selectedUserId)?.firstName} {users.find(u => u.id === selectedUserId)?.lastName}
+                  </Text>
+                  <Pressable onPress={() => { setSelectedUserId(null); setUserSearch(''); }}>
+                    <Ionicons name="close-circle" size={18} color={colors.primary} />
+                  </Pressable>
+                </View>
+              )}
+              
+              <Text style={[styles.inputLabel, { color: colors.text }]}>{t('support.category')}</Text>
+              <View style={styles.categoryContainer}>
+                {CATEGORY_OPTIONS.map(opt => (
+                  <Pressable
+                    key={opt.value}
+                    style={[
+                      styles.categoryOption,
+                      { borderColor: colors.border, backgroundColor: colors.background },
+                      newCategory === opt.value && { backgroundColor: colors.primary, borderColor: colors.primary }
+                    ]}
+                    onPress={() => setNewCategory(opt.value)}
+                  >
+                    <Ionicons 
+                      name={opt.icon} 
+                      size={18} 
+                      color={newCategory === opt.value ? '#FFFFFF' : colors.textSecondary} 
+                    />
+                    <Text style={[
+                      styles.categoryText,
+                      { color: newCategory === opt.value ? '#FFFFFF' : colors.text }
+                    ]}>
+                      {t(`support.category${opt.value.charAt(0).toUpperCase() + opt.value.slice(1)}`)}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+              
+              <Text style={[styles.inputLabel, { color: colors.text }]}>{t('support.subject')}</Text>
+              <TextInput
+                style={[styles.textInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
+                placeholder={t('support.subjectPlaceholder')}
+                placeholderTextColor={colors.textSecondary}
+                value={newSubject}
+                onChangeText={setNewSubject}
+                maxLength={255}
+              />
+              
+              <Text style={[styles.inputLabel, { color: colors.text }]}>{t('support.priority')}</Text>
+              <View style={styles.priorityContainer}>
+                {PRIORITY_OPTIONS.map(opt => (
+                  <Pressable
+                    key={opt.value}
+                    style={[
+                      styles.priorityOption,
+                      { borderColor: colors.border },
+                      newPriority === opt.value && { backgroundColor: colors.primary, borderColor: colors.primary }
+                    ]}
+                    onPress={() => setNewPriority(opt.value)}
+                  >
+                    <Text style={[
+                      styles.priorityText,
+                      { color: newPriority === opt.value ? '#FFFFFF' : colors.text }
+                    ]}>
+                      {t(`support.priority${opt.value.charAt(0).toUpperCase() + opt.value.slice(1)}`)}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+              
+              <Text style={[styles.inputLabel, { color: colors.text }]}>{t('support.message')}</Text>
+              <TextInput
+                style={[styles.textInput, styles.textArea, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
+                placeholder={t('supportAdmin.messageToUserPlaceholder')}
+                placeholderTextColor={colors.textSecondary}
+                value={newTicketMessage}
+                onChangeText={setNewTicketMessage}
+                multiline
+                numberOfLines={6}
+                maxLength={2000}
+                textAlignVertical="top"
+              />
+            </ScrollView>
+            
+            <Pressable
+              style={[styles.submitButton, { backgroundColor: colors.primary, opacity: creating || !newSubject.trim() || !newTicketMessage.trim() || !selectedUserId ? 0.5 : 1 }]}
+              onPress={handleCreateTicket}
+              disabled={creating || !newSubject.trim() || !newTicketMessage.trim() || !selectedUserId}
+            >
+              {creating ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Text style={styles.submitButtonText}>{t('supportAdmin.sendMessage')}</Text>
+              )}
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </ThemedBackground>
   );
 }
@@ -792,5 +1044,139 @@ const styles = StyleSheet.create({
   statusOptionText: {
     flex: 1,
     fontSize: 14,
+  },
+  fab: {
+    position: 'absolute',
+    right: 16,
+    bottom: 16,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+  },
+  newTicketModalContent: {
+    width: '100%',
+    maxWidth: 500,
+    maxHeight: '80%',
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  newTicketModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.1)',
+  },
+  newTicketModalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  newTicketModalBody: {
+    padding: 16,
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 8,
+    marginTop: 12,
+  },
+  textInput: {
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 14,
+  },
+  textArea: {
+    minHeight: 120,
+  },
+  priorityContainer: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  priorityOption: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: 'center',
+  },
+  priorityText: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  categoryContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 8,
+  },
+  categoryOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    gap: 6,
+  },
+  categoryText: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  submitButton: {
+    margin: 16,
+    padding: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  submitButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  userDropdown: {
+    borderWidth: 1,
+    borderRadius: 8,
+    marginTop: 4,
+    maxHeight: 200,
+  },
+  userDropdownItem: {
+    padding: 12,
+    borderBottomWidth: 1,
+  },
+  userDropdownName: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  userDropdownEmail: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  noUsersText: {
+    padding: 12,
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  selectedUserChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    marginTop: 8,
+    alignSelf: 'flex-start',
+    gap: 6,
+  },
+  selectedUserText: {
+    fontSize: 13,
+    fontWeight: '500',
   },
 });

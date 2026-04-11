@@ -1784,7 +1784,13 @@
     "noSupportMessagesYet": "No support messages yet",
     "from": "From: {{name}} ({{email}})",
     "admin": "(Admin)",
-    "typeReply": "Type your reply..."
+    "typeReply": "Type your reply...",
+    "newMessageToUser": "New Message to User",
+    "selectUser": "Select User",
+    "searchUsers": "Search users by name or email...",
+    "noUsersFound": "No users found",
+    "messageToUserPlaceholder": "Type your message to the user...",
+    "sendMessage": "Send Message"
   },
   "notifications": {
     "title": "Notifications",
