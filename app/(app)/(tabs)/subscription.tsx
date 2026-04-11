@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -7,11 +7,13 @@ import {
   Platform,
   Linking,
   ScrollView,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useTranslation } from 'react-i18next';
+import { useSubscription, REVENUECAT_ENTITLEMENT_IDENTIFIER } from '@/lib/revenuecat';
 import ThemedBackground from '@/components/ThemedBackground';
 
 const PACKAGE_NAME = 'com.erebus.diveapp';
@@ -20,6 +22,10 @@ export default function SubscriptionScreen() {
   const { t } = useTranslation();
   const { colors } = useTheme();
   const router = useRouter();
+  const { customerInfo, isSubscribed, restore, isRestoring, refetch } = useSubscription();
+  const [restoreMessage, setRestoreMessage] = useState<string | null>(null);
+
+  const activeEntitlement = customerInfo?.entitlements.active?.[REVENUECAT_ENTITLEMENT_IDENTIFIER];
 
   const openSubscriptionSettings = () => {
     if (Platform.OS === 'ios') {
@@ -29,7 +35,29 @@ export default function SubscriptionScreen() {
     }
   };
 
+  const handleRestore = async () => {
+    setRestoreMessage(null);
+    try {
+      const info = await restore();
+      const hasActive = info?.entitlements?.active?.[REVENUECAT_ENTITLEMENT_IDENTIFIER] !== undefined;
+      if (hasActive) {
+        setRestoreMessage('Purchases restored successfully!');
+        refetch();
+      } else {
+        setRestoreMessage('No active subscription found to restore.');
+      }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Restore failed. Please try again.';
+      setRestoreMessage(message);
+    }
+  };
+
   const isNativePlatform = Platform.OS === 'ios' || Platform.OS === 'android';
+
+  const formatDate = (dateStr?: string | null) => {
+    if (!dateStr) return 'N/A';
+    return new Date(dateStr).toLocaleDateString();
+  };
 
   return (
     <ThemedBackground>
@@ -50,9 +78,46 @@ export default function SubscriptionScreen() {
           </View>
 
           <Text style={[styles.title, { color: colors.text }]}>{t('subscription.erebusPremium')}</Text>
+
+          {isSubscribed && activeEntitlement ? (
+            <View style={[styles.statusBadge, { backgroundColor: '#4CAF5020' }]}>
+              <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+              <Text style={[styles.statusText, { color: '#4CAF50' }]}>Active</Text>
+            </View>
+          ) : (
+            <View style={[styles.statusBadge, { backgroundColor: '#FF9F0020' }]}>
+              <Ionicons name="alert-circle" size={20} color="#FF9F00" />
+              <Text style={[styles.statusText, { color: '#FF9F00' }]}>Inactive</Text>
+            </View>
+          )}
+
           <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
             {t('subscription.manageSubscription')}
           </Text>
+
+          {isSubscribed && activeEntitlement && (
+            <>
+              <View style={[styles.divider, { backgroundColor: colors.border }]} />
+              <View style={styles.detailsSection}>
+                {activeEntitlement.expirationDate && (
+                  <View style={styles.detailRow}>
+                    <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Renews</Text>
+                    <Text style={[styles.detailValue, { color: colors.text }]}>
+                      {formatDate(activeEntitlement.expirationDate)}
+                    </Text>
+                  </View>
+                )}
+                {activeEntitlement.productIdentifier && (
+                  <View style={styles.detailRow}>
+                    <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Plan</Text>
+                    <Text style={[styles.detailValue, { color: colors.text }]}>
+                      {activeEntitlement.productIdentifier.includes('annual') ? 'Annual' : 'Monthly'}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </>
+          )}
 
           <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
@@ -78,28 +143,47 @@ export default function SubscriptionScreen() {
 
           <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
-          {isNativePlatform ? (
-            <>
-              <Text style={[styles.manageText, { color: colors.textSecondary }]}>
-                {t('subscription.managedThrough', { store: Platform.OS === 'ios' ? t('subscription.appStore') : t('subscription.googlePlay') })}
+          {isNativePlatform && (
+            <Pressable
+              style={[styles.manageButton, { backgroundColor: colors.primary }]}
+              onPress={openSubscriptionSettings}
+            >
+              <Ionicons
+                name={Platform.OS === 'ios' ? 'logo-apple' : 'logo-google-playstore'}
+                size={20}
+                color="#FFFFFF"
+              />
+              <Text style={styles.manageButtonText}>
+                {t('subscription.manageInStore', { store: Platform.OS === 'ios' ? t('subscription.appStore') : t('subscription.googlePlay') })}
               </Text>
+              <Feather name="external-link" size={16} color="#FFFFFF" />
+            </Pressable>
+          )}
 
-              <Pressable
-                style={[styles.manageButton, { backgroundColor: colors.primary }]}
-                onPress={openSubscriptionSettings}
-              >
-                <Ionicons 
-                  name={Platform.OS === 'ios' ? 'logo-apple' : 'logo-google-playstore'} 
-                  size={20} 
-                  color="#FFFFFF" 
-                />
-                <Text style={styles.manageButtonText}>
-                  {t('subscription.manageInStore', { store: Platform.OS === 'ios' ? t('subscription.appStore') : t('subscription.googlePlay') })}
+          <Pressable
+            style={[styles.restoreButton, { borderColor: colors.primary }]}
+            onPress={handleRestore}
+            disabled={isRestoring}
+          >
+            {isRestoring ? (
+              <ActivityIndicator color={colors.primary} size="small" />
+            ) : (
+              <>
+                <Ionicons name="refresh-outline" size={20} color={colors.primary} />
+                <Text style={[styles.restoreButtonText, { color: colors.primary }]}>
+                  Restore Purchases
                 </Text>
-                <Feather name="external-link" size={16} color="#FFFFFF" />
-              </Pressable>
-            </>
-          ) : (
+              </>
+            )}
+          </Pressable>
+
+          {restoreMessage && (
+            <Text style={[styles.restoreMessage, { color: colors.textSecondary }]}>
+              {restoreMessage}
+            </Text>
+          )}
+
+          {!isNativePlatform && (
             <View style={[styles.webNotice, { backgroundColor: colors.background, borderColor: colors.border }]}>
               <Ionicons name="information-circle-outline" size={24} color={colors.primary} />
               <Text style={[styles.webNoticeText, { color: colors.textSecondary }]}>
@@ -172,16 +256,46 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '700',
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: 12,
+  },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    alignSelf: 'center',
+    marginBottom: 12,
+  },
+  statusText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
   subtitle: {
     fontSize: 14,
     textAlign: 'center',
-    marginBottom: 16,
+    marginBottom: 8,
   },
   divider: {
     height: 1,
     marginVertical: 20,
+  },
+  detailsSection: {
+    gap: 12,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  detailLabel: {
+    fontSize: 14,
+  },
+  detailValue: {
+    fontSize: 14,
+    fontWeight: '600',
   },
   infoSection: {
     gap: 12,
@@ -199,12 +313,6 @@ const styles = StyleSheet.create({
   benefitText: {
     fontSize: 14,
   },
-  manageText: {
-    fontSize: 14,
-    textAlign: 'center',
-    lineHeight: 20,
-    marginBottom: 20,
-  },
   manageButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -213,11 +321,32 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 24,
     borderRadius: 12,
+    marginBottom: 12,
   },
   manageButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
+  },
+  restoreButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    marginBottom: 12,
+  },
+  restoreButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  restoreMessage: {
+    fontSize: 13,
+    textAlign: 'center',
+    marginBottom: 12,
   },
   webNotice: {
     flexDirection: 'row',

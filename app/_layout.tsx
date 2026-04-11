@@ -5,6 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { Platform } from 'react-native';
 import 'react-native-reanimated';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
@@ -12,6 +13,7 @@ import { SyncProvider } from '@/contexts/SyncContext';
 import { SettingsProvider } from '@/contexts/SettingsContext';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { errorLogger } from '@/services/errorLogger';
+import { SubscriptionProvider, useSubscription, initializeRevenueCat } from '@/lib/revenuecat';
 import '@/services/i18n';
 
 if (Platform.OS === 'web' && typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
@@ -20,9 +22,18 @@ if (Platform.OS === 'web' && typeof navigator !== 'undefined' && 'serviceWorker'
   });
 }
 
+const queryClient = new QueryClient();
+
+try {
+  initializeRevenueCat();
+} catch {
+  // Handled by SubscriptionProvider's reactive state
+}
+
 function RootLayoutNav() {
   const { colorScheme, isDark } = useTheme();
   const { isAuthenticated, isLoading } = useAuth();
+  const { isSubscribed, isLoading: isSubLoading, hasError: hasSubError } = useSubscription();
   const segments = useSegments();
   const router = useRouter();
 
@@ -36,19 +47,23 @@ function RootLayoutNav() {
     const inAuthGroup = segments[0] === '(auth)';
     const inSplash = segments[0] === 'splash';
     const inResetPassword = segments[0] === 'reset-password';
+    const inPaywall = segments[0] === 'paywall';
 
     if (!isAuthenticated && !inAuthGroup && !inSplash && !inResetPassword) {
-      router.replace('/splash' as any);
-    } else if (isAuthenticated && (inAuthGroup || inSplash)) {
-      router.replace('/(app)/(tabs)' as any);
+      router.replace('/splash');
+    } else if (isAuthenticated && !isSubLoading && (!isSubscribed || hasSubError) && !inPaywall) {
+      router.replace('/paywall');
+    } else if (isAuthenticated && isSubscribed && !hasSubError && (inAuthGroup || inSplash || inPaywall)) {
+      router.replace('/(app)/(tabs)');
     }
-  }, [isAuthenticated, isLoading, segments]);
+  }, [isAuthenticated, isLoading, isSubscribed, isSubLoading, hasSubError, segments]);
 
   return (
     <NavThemeProvider value={isDark ? DarkTheme : DefaultTheme}>
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="splash" options={{ headerShown: false }} />
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+        <Stack.Screen name="paywall" options={{ headerShown: false }} />
         <Stack.Screen name="(app)" options={{ headerShown: false }} />
         <Stack.Screen name="reset-password" options={{ headerShown: false }} />
         <Stack.Screen name="dive-site/[id]" options={{ headerShown: false }} />
@@ -70,15 +85,19 @@ export default function RootLayout() {
 
   return (
     <ErrorBoundary>
-      <SettingsProvider>
-        <ThemeProvider>
-          <AuthProvider>
-            <SyncProvider>
-              <RootLayoutNav />
-            </SyncProvider>
-          </AuthProvider>
-        </ThemeProvider>
-      </SettingsProvider>
+      <QueryClientProvider client={queryClient}>
+        <SettingsProvider>
+          <ThemeProvider>
+            <AuthProvider>
+              <SubscriptionProvider>
+                <SyncProvider>
+                  <RootLayoutNav />
+                </SyncProvider>
+              </SubscriptionProvider>
+            </AuthProvider>
+          </ThemeProvider>
+        </SettingsProvider>
+      </QueryClientProvider>
     </ErrorBoundary>
   );
 }

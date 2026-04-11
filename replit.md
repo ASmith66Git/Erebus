@@ -41,6 +41,7 @@ The application is built using Expo React Native, targeting both iOS and Android
 - **Internationalization (i18n)**: Full multi-language support using i18next + react-i18next + expo-localization. Supports English, French, German, Spanish, Italian, and Swedish. Auto-detects device language on first launch; user can override in Settings. Translation files stored in `locales/` directory as JSON. All screens use `useTranslation` hook with `t()` calls. Language changes sync between SettingsContext and i18next via `i18n.changeLanguage()`.
 - **Dive Buddies**: Manages social dive buddies with names, photos, notes, and the ability to link to dive logs.
 - **Data Export**: Two export options from profile - data-only (XLSX spreadsheet) or full export with media (ZIP archive containing JSON data plus all photos and videos from object storage).
+- **RevenueCat Subscriptions**: In-app subscription management using RevenueCat with monthly ($7.99/mo) and annual ($59.99/yr) plans. No free tier — all features require an active "premium" entitlement with 14-day trial (production only). Uses `react-native-purchases` on client, `@replit/revenuecat-sdk` for server-side seed script. Paywall screen shown to unauthenticated-to-subscription users after login. Subscription management and restore purchases available from profile > subscription page. RevenueCat project: "Leviathan Systems Ltd", entitlement: "premium". API keys stored as EXPO_PUBLIC_REVENUECAT_* env vars. `@tanstack/react-query` used for subscription state management via `SubscriptionProvider` context and `useSubscription` hook in `lib/revenuecat.tsx`.
 
 ## Development Notes
 ### Android Touch Handling
@@ -70,3 +71,6 @@ The application is built using Expo React Native, targeting both iOS and Android
 - **react-native-svg**: For rendering SVG graphics.
 - **expo-server-sdk**: For server-side push notifications.
 - **expo-av**: For video playback in the gallery viewer.
+- **react-native-purchases**: RevenueCat client SDK for in-app subscriptions.
+- **@replit/revenuecat-sdk**: RevenueCat REST API SDK for server-side product management.
+- **@tanstack/react-query**: Data fetching and caching for subscription state.
