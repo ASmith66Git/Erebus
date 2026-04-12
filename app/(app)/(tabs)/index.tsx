@@ -92,9 +92,11 @@ export default function HomeScreen() {
   const [diveTip, setDiveTip] = useState('');
 
   useEffect(() => {
-    fetchStats();
-    fetchDiveMessages();
-  }, []);
+    if (token) {
+      fetchStats();
+      fetchDiveMessages();
+    }
+  }, [token]);
 
   const fetchStats = async () => {
     try {
