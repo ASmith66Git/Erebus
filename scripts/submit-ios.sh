@@ -17,14 +17,25 @@ BUILD_NUMBER=$(node -e "try { const p = require('./ios/Erebus.xcodeproj/project.
 echo "2. Version: ${VERSION} (build ${BUILD_NUMBER})"
 echo ""
 
-# Build and auto-submit
-echo "3. Starting EAS build + auto-submit to App Store Connect..."
-echo ""
-EAS_SKIP_AUTO_FINGERPRINT=1 npx eas build \
-  --platform ios \
-  --profile production \
-  --non-interactive \
-  --auto-submit
+MODE="${1:-build}"
+
+if [ "$MODE" = "submit-only" ]; then
+  echo "3. Submitting latest iOS build to App Store Connect (no new build)..."
+  echo ""
+  npx eas submit \
+    --platform ios \
+    --profile production \
+    --latest \
+    --non-interactive
+else
+  echo "3. Starting EAS build + auto-submit to App Store Connect..."
+  echo ""
+  EAS_SKIP_AUTO_FINGERPRINT=1 npx eas build \
+    --platform ios \
+    --profile production \
+    --non-interactive \
+    --auto-submit
+fi
 
 echo ""
 echo "=== Done! Check TestFlight for the new build. ==="
