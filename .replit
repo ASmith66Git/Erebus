@@ -112,12 +112,12 @@ waitForPort = 3001
 name = "iOS Build & Submit"
 author = "agent"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "bash -c 'printenv ASC_API_KEY_CONTENT > asc-api-key.p8 && EAS_SKIP_AUTO_FINGERPRINT=1 npx eas build --platform ios --profile production --non-interactive --auto-submit'"
-
 [workflows.workflow.metadata]
 outputType = "console"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash scripts/submit-ios.sh"
 
 [agent]
 expertMode = true
