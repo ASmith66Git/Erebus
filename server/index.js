@@ -262,6 +262,10 @@ async function initDatabase() {
     await client.query(`
       UPDATE users SET trial_ends_at = created_at + INTERVAL '14 days' WHERE trial_ends_at IS NULL;
     `).catch(() => {});
+
+    await client.query(`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMP;
+    `).catch(() => {});
     
     await client.query(`
       CREATE TABLE IF NOT EXISTS dive_sites (
@@ -1509,6 +1513,8 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
     
+    await pool.query('UPDATE users SET last_login_at = CURRENT_TIMESTAMP WHERE id = $1', [user.id]);
+
     const token = jwt.sign(
       { id: user.id, email: user.email, role: user.role },
       JWT_SECRET,
