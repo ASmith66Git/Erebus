@@ -32,7 +32,7 @@ try {
 
 function RootLayoutNav() {
   const { colorScheme, isDark } = useTheme();
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, isAdmin, isTrialActive } = useAuth();
   const { isSubscribed, isLoading: isSubLoading, hasError: hasSubError } = useSubscription();
   const segments = useSegments();
   const router = useRouter();
@@ -40,6 +40,8 @@ function RootLayoutNav() {
   useEffect(() => {
     errorLogger.initialize();
   }, []);
+
+  const hasAccess = isAdmin || isTrialActive || isSubscribed;
 
   useEffect(() => {
     if (isLoading) return;
@@ -51,12 +53,12 @@ function RootLayoutNav() {
 
     if (!isAuthenticated && !inAuthGroup && !inSplash && !inResetPassword) {
       router.replace('/splash');
-    } else if (isAuthenticated && !isSubLoading && (!isSubscribed || hasSubError) && !inPaywall) {
+    } else if (isAuthenticated && !isSubLoading && !hasAccess && !inPaywall) {
       router.replace('/paywall');
-    } else if (isAuthenticated && isSubscribed && !hasSubError && (inAuthGroup || inSplash || inPaywall)) {
+    } else if (isAuthenticated && hasAccess && (inAuthGroup || inSplash || inPaywall)) {
       router.replace('/(app)/(tabs)');
     }
-  }, [isAuthenticated, isLoading, isSubscribed, isSubLoading, hasSubError, segments]);
+  }, [isAuthenticated, isLoading, isSubscribed, isSubLoading, hasSubError, hasAccess, segments]);
 
   return (
     <NavThemeProvider value={isDark ? DarkTheme : DefaultTheme}>

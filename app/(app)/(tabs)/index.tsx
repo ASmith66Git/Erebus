@@ -78,7 +78,7 @@ function generateColorShades(baseColor: string): string[][] {
 
 export default function HomeScreen() {
   const { colors, isDark } = useTheme();
-  const { user, token } = useAuth();
+  const { user, token, isTrialActive, trialDaysRemaining, isAdmin } = useAuth();
   const { getSelectedQuickActions } = useSettings();
   const router = useRouter();
   const { t } = useTranslation();
@@ -174,6 +174,19 @@ export default function HomeScreen() {
           </Text>
         </View>
 
+        {isTrialActive && !isAdmin && (
+          <Pressable
+            style={[styles.trialBanner, { backgroundColor: colors.primary + '15', borderColor: colors.primary + '30' }]}
+            onPress={() => router.push('/(app)/(tabs)/subscription')}
+          >
+            <Ionicons name="time-outline" size={20} color={colors.primary} />
+            <Text style={[styles.trialBannerText, { color: colors.primary }]}>
+              {t('trial.daysRemaining', { count: trialDaysRemaining })}
+            </Text>
+            <Ionicons name="chevron-forward" size={16} color={colors.primary} />
+          </Pressable>
+        )}
+
         <View style={styles.statsSection}>
           <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>{t('home.yourDiveStats')}</Text>
           <View style={styles.statsGrid}>
@@ -266,6 +279,20 @@ const styles = StyleSheet.create({
   welcomeMessage: {
     fontSize: 15,
     lineHeight: 22,
+  },
+  trialBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginTop: 12,
+  },
+  trialBannerText: {
+    fontSize: 14,
+    fontWeight: '600',
+    flex: 1,
   },
   statsSection: {
     marginTop: 8,

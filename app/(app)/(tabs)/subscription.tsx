@@ -12,6 +12,7 @@ import {
 import { useRouter } from 'expo-router';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
 import { useSubscription, REVENUECAT_ENTITLEMENT_IDENTIFIER } from '@/lib/revenuecat';
 import ThemedBackground from '@/components/ThemedBackground';
@@ -21,6 +22,7 @@ const PACKAGE_NAME = 'com.erebus.diveapp';
 export default function SubscriptionScreen() {
   const { t } = useTranslation();
   const { colors } = useTheme();
+  const { isTrialActive, trialDaysRemaining } = useAuth();
   const router = useRouter();
   const { customerInfo, isSubscribed, restore, isRestoring, refetch } = useSubscription();
   const [restoreMessage, setRestoreMessage] = useState<string | null>(null);
@@ -82,12 +84,19 @@ export default function SubscriptionScreen() {
           {isSubscribed && activeEntitlement ? (
             <View style={[styles.statusBadge, { backgroundColor: '#4CAF5020' }]}>
               <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
-              <Text style={[styles.statusText, { color: '#4CAF50' }]}>Active</Text>
+              <Text style={[styles.statusText, { color: '#4CAF50' }]}>{t('trial.statusActive')}</Text>
+            </View>
+          ) : isTrialActive ? (
+            <View style={[styles.statusBadge, { backgroundColor: colors.primary + '20' }]}>
+              <Ionicons name="time-outline" size={20} color={colors.primary} />
+              <Text style={[styles.statusText, { color: colors.primary }]}>
+                {t('trial.statusTrial', { count: trialDaysRemaining })}
+              </Text>
             </View>
           ) : (
             <View style={[styles.statusBadge, { backgroundColor: '#FF9F0020' }]}>
               <Ionicons name="alert-circle" size={20} color="#FF9F00" />
-              <Text style={[styles.statusText, { color: '#FF9F00' }]}>Inactive</Text>
+              <Text style={[styles.statusText, { color: '#FF9F00' }]}>{t('trial.statusInactive')}</Text>
             </View>
           )}
 

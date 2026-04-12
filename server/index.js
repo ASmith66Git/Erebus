@@ -254,6 +254,14 @@ async function initDatabase() {
     await client.query(`
       ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_image VARCHAR(500);
     `).catch(() => {});
+
+    await client.query(`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS trial_ends_at TIMESTAMP;
+    `).catch(() => {});
+
+    await client.query(`
+      UPDATE users SET trial_ends_at = created_at + INTERVAL '14 days' WHERE trial_ends_at IS NULL;
+    `).catch(() => {});
     
     await client.query(`
       CREATE TABLE IF NOT EXISTS dive_sites (
@@ -1270,10 +1278,11 @@ app.post('/api/auth/signup', async (req, res) => {
     
     const hashedPassword = await bcrypt.hash(password, 10);
     const now = new Date();
+    const trialEndsAt = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
     
     const result = await pool.query(
-      'INSERT INTO users (email, password, first_name, last_name, age, sex, privacy_accepted_at, terms_accepted_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, email, first_name, last_name, role, age, sex',
-      [email.toLowerCase(), hashedPassword, firstName || null, lastName || null, age || null, sex || null, now, now]
+      'INSERT INTO users (email, password, first_name, last_name, age, sex, privacy_accepted_at, terms_accepted_at, trial_ends_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id, email, first_name, last_name, role, age, sex, trial_ends_at',
+      [email.toLowerCase(), hashedPassword, firstName || null, lastName || null, age || null, sex || null, now, now, trialEndsAt]
     );
     
     const user = result.rows[0];
@@ -1309,7 +1318,8 @@ app.post('/api/auth/signup', async (req, res) => {
         email: user.email,
         firstName: user.first_name,
         lastName: user.last_name,
-        role: user.role
+        role: user.role,
+        trialEndsAt: user.trial_ends_at
       },
       token
     });
@@ -1511,7 +1521,8 @@ app.post('/api/auth/login', async (req, res) => {
         email: user.email,
         firstName: user.first_name,
         lastName: user.last_name,
-        role: user.role
+        role: user.role,
+        trialEndsAt: user.trial_ends_at
       },
       token
     });
@@ -1622,7 +1633,7 @@ app.post('/api/auth/reset-password', async (req, res) => {
 app.get('/api/auth/me', authenticateToken, async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT id, email, first_name, last_name, age, sex, role, profile_image, created_at FROM users WHERE id = $1',
+      'SELECT id, email, first_name, last_name, age, sex, role, profile_image, created_at, trial_ends_at FROM users WHERE id = $1',
       [req.user.id]
     );
     
@@ -1680,7 +1691,8 @@ app.get('/api/auth/me', authenticateToken, async (req, res) => {
       sex: user.sex,
       role: user.role,
       profileImage: profileImageUrl,
-      createdAt: user.created_at
+      createdAt: user.created_at,
+      trialEndsAt: user.trial_ends_at
     });
   } catch (error) {
     console.error('Get user error:', error);
@@ -2544,7 +2556,7 @@ app.put('/api/user/dive-computer', authenticateToken, async (req, res) => {
 app.get('/api/user/profile', authenticateToken, async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT id, email, first_name, last_name, age, sex, role, profile_image, created_at FROM users WHERE id = $1',
+      'SELECT id, email, first_name, last_name, age, sex, role, profile_image, created_at, trial_ends_at FROM users WHERE id = $1',
       [req.user.id]
     );
     
@@ -2583,7 +2595,8 @@ app.get('/api/user/profile', authenticateToken, async (req, res) => {
       sex: user.sex,
       role: user.role,
       profileImage: profileImageUrl,
-      createdAt: user.created_at
+      createdAt: user.created_at,
+      trialEndsAt: user.trial_ends_at
     });
   } catch (error) {
     console.error('Get user profile error:', error);

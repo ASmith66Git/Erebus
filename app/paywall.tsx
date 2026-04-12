@@ -12,12 +12,16 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription, REVENUECAT_ENTITLEMENT_IDENTIFIER } from '@/lib/revenuecat';
+import { useTranslation } from 'react-i18next';
 import ThemedBackground from '@/components/ThemedBackground';
 
 export default function PaywallScreen() {
   const { colors } = useTheme();
   const router = useRouter();
+  const { user } = useAuth();
+  const { t } = useTranslation();
   const {
     offerings,
     isLoading,
@@ -161,9 +165,11 @@ export default function PaywallScreen() {
           <View style={[styles.iconCircle, { backgroundColor: colors.primary + '20' }]}>
             <Ionicons name="diamond" size={48} color={colors.primary} />
           </View>
-          <Text style={[styles.title, { color: colors.text }]}>Erebus Premium</Text>
+          <Text style={[styles.title, { color: colors.text }]}>{t('trial.paywallTitle')}</Text>
           <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-            Unlock the full diving experience
+            {user?.trialEndsAt && new Date(user.trialEndsAt) <= new Date()
+              ? t('trial.trialExpiredMessage')
+              : t('trial.paywallSubtitle')}
           </Text>
         </View>
 

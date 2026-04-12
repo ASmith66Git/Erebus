@@ -2124,6 +2124,17 @@
     "cantFindAnswer": "Nicht gefunden, was Sie suchen?",
     "contactViaSupport": "Kontaktieren Sie uns über Hilfe & Support in Ihrem Profil."
   },
+  "trial": {
+    "daysRemaining": "{{count}} Tag verbleibend in Ihrer kostenlosen Testphase",
+    "daysRemaining_other": "{{count}} Tage verbleibend in Ihrer kostenlosen Testphase",
+    "paywallTitle": "Erebus Premium",
+    "paywallSubtitle": "Erleben Sie das vollständige Taucherlebnis",
+    "trialExpiredMessage": "Ihre kostenlose Testphase ist abgelaufen. Abonnieren Sie, um Erebus weiter zu nutzen.",
+    "statusActive": "Aktiv",
+    "statusInactive": "Inaktiv",
+    "statusTrial": "Testphase — {{count}} Tag übrig",
+    "statusTrial_other": "Testphase — {{count}} Tage übrig"
+  },
   "subscription": {
     "title": "Abonnement",
     "erebusPremium": "Erebus Premium",

@@ -2124,6 +2124,17 @@
     "cantFindAnswer": "Hittar du inte det du letar efter?",
     "contactViaSupport": "Kontakta oss via Hjälp & Support i din profil."
   },
+  "trial": {
+    "daysRemaining": "{{count}} dag kvar av din gratis provperiod",
+    "daysRemaining_other": "{{count}} dagar kvar av din gratis provperiod",
+    "paywallTitle": "Erebus Premium",
+    "paywallSubtitle": "Lås upp hela dykupplevelsen",
+    "trialExpiredMessage": "Din gratis provperiod har avslutats. Prenumerera för att fortsätta använda Erebus.",
+    "statusActive": "Aktiv",
+    "statusInactive": "Inaktiv",
+    "statusTrial": "Provperiod — {{count}} dag kvar",
+    "statusTrial_other": "Provperiod — {{count}} dagar kvar"
+  },
   "subscription": {
     "title": "Prenumeration",
     "erebusPremium": "Erebus Premium",

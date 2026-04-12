@@ -2124,6 +2124,17 @@
     "cantFindAnswer": "Can't find what you're looking for?",
     "contactViaSupport": "Contact us through Help & Support in your Profile."
   },
+  "trial": {
+    "daysRemaining": "{{count}} day remaining in your free trial",
+    "daysRemaining_other": "{{count}} days remaining in your free trial",
+    "paywallTitle": "Erebus Premium",
+    "paywallSubtitle": "Unlock the full diving experience",
+    "trialExpiredMessage": "Your free trial has ended. Subscribe to continue using Erebus.",
+    "statusActive": "Active",
+    "statusInactive": "Inactive",
+    "statusTrial": "Trial — {{count}} day left",
+    "statusTrial_other": "Trial — {{count}} days left"
+  },
   "subscription": {
     "title": "Subscription",
     "erebusPremium": "Erebus Premium",
