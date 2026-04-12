@@ -4756,7 +4756,7 @@ app.get('/api/dive-logs/stats', authenticateToken, async (req, res) => {
     const result = await pool.query(`
       SELECT 
         COUNT(*) as total_dives,
-        SUM(duration_seconds) as total_duration_seconds,
+        COALESCE(SUM(duration_seconds), 0) as total_duration_seconds,
         MAX(max_depth_meters) as deepest_dive_meters,
         AVG(max_depth_meters) as avg_max_depth_meters,
         MIN(min_temperature_celsius) as coldest_temp,
@@ -4766,14 +4766,7 @@ app.get('/api/dive-logs/stats', authenticateToken, async (req, res) => {
       WHERE user_id = $1 AND deleted_at IS NULL
     `, [req.user.id]);
 
-    const sitesResult = await pool.query(`
-      SELECT COUNT(*) as total_sites
-      FROM dive_sites
-      WHERE (user_id = $1 OR user_id IS NULL) AND deleted_at IS NULL AND is_archived = FALSE
-    `, [req.user.id]);
-
     const stats = result.rows[0];
-    const totalSites = parseInt(sitesResult.rows[0].total_sites) || 0;
     
     res.json({
       totalDives: parseInt(stats.total_dives) || 0,
@@ -4782,7 +4775,7 @@ app.get('/api/dive-logs/stats', authenticateToken, async (req, res) => {
       avgMaxDepthMeters: stats.avg_max_depth_meters ? parseFloat(stats.avg_max_depth_meters) : null,
       coldestTemp: stats.coldest_temp ? parseFloat(stats.coldest_temp) : null,
       warmestTemp: stats.warmest_temp ? parseFloat(stats.warmest_temp) : null,
-      sitesVisited: totalSites
+      sitesVisited: parseInt(stats.sites_visited) || 0
     });
   } catch (error) {
     console.error('Get dive stats error:', error);
@@ -5154,11 +5147,11 @@ app.post('/api/dive-logs', authenticateToken, async (req, res) => {
       req.user.id,
       diveSiteId || null,
       diveDateTime,
-      durationSeconds || null,
-      maxDepthMeters || null,
-      avgDepthMeters || null,
-      minTemperatureCelsius || null,
-      maxTemperatureCelsius || null,
+      durationSeconds != null ? durationSeconds : null,
+      maxDepthMeters != null ? maxDepthMeters : null,
+      avgDepthMeters != null ? avgDepthMeters : null,
+      minTemperatureCelsius != null ? minTemperatureCelsius : null,
+      maxTemperatureCelsius != null ? maxTemperatureCelsius : null,
       deviceManufacturer || null,
       deviceModel || null,
       samples ? JSON.stringify(samples) : null,
