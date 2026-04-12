@@ -21,7 +21,7 @@ import ServicesGrid from '@/components/ServicesGrid';
 export default function PaywallScreen() {
   const { colors } = useTheme();
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const { t } = useTranslation();
   const {
     offerings,
@@ -153,6 +153,15 @@ export default function PaywallScreen() {
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
       >
+        {isAdmin && (
+          <Pressable
+            onPress={() => router.back()}
+            style={styles.adminBackButton}
+          >
+            <Ionicons name="arrow-back" size={24} color={colors.text} />
+          </Pressable>
+        )}
+
         <View style={styles.headerSection}>
           <View style={[styles.iconCircle, { backgroundColor: colors.primary + '20' }]}>
             <Ionicons name="diamond" size={48} color={colors.primary} />
@@ -336,6 +345,13 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 16,
+  },
+  adminBackButton: {
+    position: 'absolute' as const,
+    top: 50,
+    left: 16,
+    zIndex: 10,
+    padding: 8,
   },
   headerSection: {
     alignItems: 'center',
