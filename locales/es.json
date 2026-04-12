@@ -20,6 +20,7 @@
     "roadmap": "Hoja de ruta",
     "devLog": "Registro de desarrollo",
     "debugLogs": "Registros de depuración",
+    "subscription": "Suscripción",
     "logout": "Cerrar sesión",
     "comingSoon": "Próximamente",
     "comingSoonMessage": "{{feature}} estará disponible en una futura actualización.",

@@ -20,6 +20,7 @@
     "roadmap": "Feuille de route",
     "devLog": "Journal de dev",
     "debugLogs": "Journaux de débogage",
+    "subscription": "Abonnement",
     "logout": "Déconnexion",
     "comingSoon": "Bientôt disponible",
     "comingSoonMessage": "{{feature}} sera disponible dans une prochaine mise à jour.",

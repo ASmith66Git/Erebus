@@ -21,6 +21,7 @@
     "roadmap": "Roadmap",
     "devLog": "Dev Log",
     "debugLogs": "Debug Logs",
+    "subscription": "Subscription",
     "logout": "Logout",
     "comingSoon": "Coming Soon",
     "comingSoonMessage": "{{feature}} will be available in a future update.",
