@@ -55,7 +55,7 @@ function RootLayoutNav() {
       router.replace('/splash');
     } else if (isAuthenticated && !isSubLoading && !hasAccess && !inPaywall) {
       router.replace('/paywall');
-    } else if (isAuthenticated && hasAccess && (inAuthGroup || inSplash || inPaywall)) {
+    } else if (isAuthenticated && hasAccess && (inAuthGroup || inSplash || (inPaywall && !isAdmin))) {
       router.replace('/(app)/(tabs)');
     }
   }, [isAuthenticated, isLoading, isSubscribed, isSubLoading, hasSubError, hasAccess, segments]);
