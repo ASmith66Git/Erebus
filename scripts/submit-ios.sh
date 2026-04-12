@@ -7,8 +7,8 @@ echo ""
 # Validate secrets
 [ -z "${ASC_API_KEY_CONTENT:-}" ] && { echo "ERROR: ASC_API_KEY_CONTENT is not set" >&2; exit 1; }
 
-# Write ASC API key
-printenv ASC_API_KEY_CONTENT > asc-api-key.p8
+# Write ASC API key (convert literal \n to real newlines if needed)
+printf '%b' "$ASC_API_KEY_CONTENT" > asc-api-key.p8
 echo "1. App Store Connect API key written"
 
 # Show version info
