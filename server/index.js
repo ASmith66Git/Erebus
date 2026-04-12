@@ -1809,7 +1809,7 @@ app.post('/api/admin/email-test/welcome', authenticateToken, requireAdmin, async
 app.get('/api/admin/users', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT id, email, first_name, last_name, role, is_blocked, is_archived, created_at FROM users ORDER BY created_at DESC'
+      'SELECT id, email, first_name, last_name, role, is_blocked, is_archived, created_at, last_login_at FROM users ORDER BY created_at DESC'
     );
     
     res.json(result.rows.map(user => ({
@@ -1820,7 +1820,8 @@ app.get('/api/admin/users', authenticateToken, requireAdmin, async (req, res) =>
       role: user.role,
       isBlocked: user.is_blocked || false,
       isArchived: user.is_archived || false,
-      createdAt: user.created_at
+      createdAt: user.created_at,
+      lastLoginAt: user.last_login_at
     })));
   } catch (error) {
     console.error('Get users error:', error);
