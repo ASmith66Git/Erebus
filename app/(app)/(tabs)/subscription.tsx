@@ -28,8 +28,36 @@ export default function SubscriptionScreen() {
   const [restoreMessage, setRestoreMessage] = useState<string | null>(null);
 
   const activeEntitlement = customerInfo?.entitlements.active?.[REVENUECAT_ENTITLEMENT_IDENTIFIER];
+  const allEntitlement = customerInfo?.entitlements.all?.[REVENUECAT_ENTITLEMENT_IDENTIFIER];
+  const entitlement = activeEntitlement ?? allEntitlement;
+
+  const periodType = entitlement?.periodType;
+  const willRenew = entitlement?.willRenew;
+  const billingIssueDetectedAt = entitlement?.billingIssueDetectedAt;
+  const unsubscribeDetectedAt = entitlement?.unsubscribeDetectedAt;
+  const originalPurchaseDate = entitlement?.originalPurchaseDate;
+  const latestPurchaseDate = entitlement?.latestPurchaseDate;
+  const managementURL = customerInfo?.managementURL;
+
+  const hasBillingIssue = !!billingIssueDetectedAt;
+  const isGracePeriod = hasBillingIssue && !!activeEntitlement;
+  const isBillingIssueExpired = hasBillingIssue && !activeEntitlement;
+  const isTrial = periodType === 'TRIAL' && !!activeEntitlement;
+  const isCancelled = !!unsubscribeDetectedAt && !hasBillingIssue;
+
+  const getTrialDaysRemaining = () => {
+    if (!activeEntitlement?.expirationDate) return 0;
+    const now = new Date();
+    const expiry = new Date(activeEntitlement.expirationDate);
+    const diffMs = expiry.getTime() - now.getTime();
+    return Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+  };
 
   const openSubscriptionSettings = () => {
+    if (managementURL) {
+      Linking.openURL(managementURL);
+      return;
+    }
     if (Platform.OS === 'ios') {
       Linking.openURL('https://apps.apple.com/account/subscriptions');
     } else if (Platform.OS === 'android') {
@@ -61,6 +89,109 @@ export default function SubscriptionScreen() {
     return new Date(dateStr).toLocaleDateString();
   };
 
+  const getPeriodTypeLabel = () => {
+    if (isGracePeriod) return t('subscription.periodTypeGrace');
+    switch (periodType) {
+      case 'TRIAL': return t('subscription.periodTypeTrial');
+      case 'INTRO': return t('subscription.periodTypeIntro');
+      case 'PREPAID':
+      case 'NORMAL':
+      default: return t('subscription.periodTypeNormal');
+    }
+  };
+
+  const renderStatusBadge = () => {
+    if (isBillingIssueExpired) {
+      return (
+        <View style={[styles.statusBadge, { backgroundColor: '#FF3B3020' }]}>
+          <Ionicons name="warning" size={20} color="#FF3B30" />
+          <Text style={[styles.statusText, { color: '#FF3B30' }]}>{t('subscription.statusBillingIssue')}</Text>
+        </View>
+      );
+    }
+    if (isSubscribed && activeEntitlement) {
+      if (isGracePeriod) {
+        return (
+          <View style={[styles.statusBadge, { backgroundColor: '#FF9F0020' }]}>
+            <Ionicons name="time-outline" size={20} color="#FF9F00" />
+            <Text style={[styles.statusText, { color: '#FF9F00' }]}>{t('subscription.statusGracePeriod')}</Text>
+          </View>
+        );
+      }
+      if (isCancelled && activeEntitlement.expirationDate) {
+        return (
+          <View style={[styles.statusBadge, { backgroundColor: '#FF9F0020' }]}>
+            <Ionicons name="close-circle" size={20} color="#FF9F00" />
+            <Text style={[styles.statusText, { color: '#FF9F00' }]}>
+              {t('subscription.statusCancelledAccess', { date: formatDate(activeEntitlement.expirationDate) })}
+            </Text>
+          </View>
+        );
+      }
+      if (isTrial) {
+        const days = getTrialDaysRemaining();
+        return (
+          <View style={[styles.statusBadge, { backgroundColor: colors.primary + '20' }]}>
+            <Ionicons name="time-outline" size={20} color={colors.primary} />
+            <Text style={[styles.statusText, { color: colors.primary }]}>
+              {t('subscription.statusTrialDays', { count: days })}
+            </Text>
+          </View>
+        );
+      }
+      return (
+        <View style={[styles.statusBadge, { backgroundColor: '#4CAF5020' }]}>
+          <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+          <Text style={[styles.statusText, { color: '#4CAF50' }]}>{t('trial.statusActive')}</Text>
+        </View>
+      );
+    }
+    if (isTrialActive) {
+      return (
+        <View style={[styles.statusBadge, { backgroundColor: colors.primary + '20' }]}>
+          <Ionicons name="time-outline" size={20} color={colors.primary} />
+          <Text style={[styles.statusText, { color: colors.primary }]}>
+            {t('trial.statusTrial', { count: trialDaysRemaining })}
+          </Text>
+        </View>
+      );
+    }
+    return (
+      <View style={[styles.statusBadge, { backgroundColor: '#FF9F0020' }]}>
+        <Ionicons name="alert-circle" size={20} color="#FF9F00" />
+        <Text style={[styles.statusText, { color: '#FF9F00' }]}>{t('trial.statusInactive')}</Text>
+      </View>
+    );
+  };
+
+  const renderWarningBanner = () => {
+    if (isBillingIssueExpired) {
+      return (
+        <View style={[styles.warningBanner, { backgroundColor: '#FF3B3015', borderColor: '#FF3B3040' }]}>
+          <Ionicons name="warning" size={22} color="#FF3B30" />
+          <Text style={[styles.warningText, { color: '#FF3B30' }]}>
+            {t('subscription.billingIssueBanner')}
+          </Text>
+        </View>
+      );
+    }
+
+    if (!isSubscribed || !activeEntitlement) return null;
+
+    if (isGracePeriod) {
+      return (
+        <View style={[styles.warningBanner, { backgroundColor: '#FF9F0015', borderColor: '#FF9F0040' }]}>
+          <Ionicons name="alert-circle" size={22} color="#FF9F00" />
+          <Text style={[styles.warningText, { color: '#FF9F00' }]}>
+            {t('subscription.gracePeriodBanner')}
+          </Text>
+        </View>
+      );
+    }
+
+    return null;
+  };
+
   return (
     <ThemedBackground>
       <View style={styles.header}>
@@ -72,6 +203,8 @@ export default function SubscriptionScreen() {
       </View>
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+        {renderWarningBanner()}
+
         <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <View style={styles.iconContainer}>
             <View style={[styles.iconCircle, { backgroundColor: colors.primary + '20' }]}>
@@ -81,46 +214,59 @@ export default function SubscriptionScreen() {
 
           <Text style={[styles.title, { color: colors.text }]}>{t('subscription.erebusPremium')}</Text>
 
-          {isSubscribed && activeEntitlement ? (
-            <View style={[styles.statusBadge, { backgroundColor: '#4CAF5020' }]}>
-              <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
-              <Text style={[styles.statusText, { color: '#4CAF50' }]}>{t('trial.statusActive')}</Text>
-            </View>
-          ) : isTrialActive ? (
-            <View style={[styles.statusBadge, { backgroundColor: colors.primary + '20' }]}>
-              <Ionicons name="time-outline" size={20} color={colors.primary} />
-              <Text style={[styles.statusText, { color: colors.primary }]}>
-                {t('trial.statusTrial', { count: trialDaysRemaining })}
-              </Text>
-            </View>
-          ) : (
-            <View style={[styles.statusBadge, { backgroundColor: '#FF9F0020' }]}>
-              <Ionicons name="alert-circle" size={20} color="#FF9F00" />
-              <Text style={[styles.statusText, { color: '#FF9F00' }]}>{t('trial.statusInactive')}</Text>
-            </View>
-          )}
+          {renderStatusBadge()}
 
           <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
             {t('subscription.manageSubscription')}
           </Text>
 
-          {isSubscribed && activeEntitlement && (
+          {entitlement && (isSubscribed || isBillingIssueExpired) && (
             <>
               <View style={[styles.divider, { backgroundColor: colors.border }]} />
               <View style={styles.detailsSection}>
-                {activeEntitlement.expirationDate && (
+                {entitlement.expirationDate && (
                   <View style={styles.detailRow}>
-                    <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Renews</Text>
+                    <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>
+                      {willRenew ? t('subscription.renewsLabel') : t('subscription.expiresLabel')}
+                    </Text>
                     <Text style={[styles.detailValue, { color: colors.text }]}>
-                      {formatDate(activeEntitlement.expirationDate)}
+                      {formatDate(entitlement.expirationDate)}
                     </Text>
                   </View>
                 )}
-                {activeEntitlement.productIdentifier && (
+                {entitlement.productIdentifier && (
                   <View style={styles.detailRow}>
-                    <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Plan</Text>
+                    <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>{t('subscription.planLabel')}</Text>
                     <Text style={[styles.detailValue, { color: colors.text }]}>
-                      {activeEntitlement.productIdentifier.includes('annual') ? 'Annual' : 'Monthly'}
+                      {entitlement.productIdentifier.includes('annual') ? t('subscription.planAnnual') : t('subscription.planMonthly')}
+                    </Text>
+                  </View>
+                )}
+                <View style={styles.detailRow}>
+                  <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>{t('subscription.periodTypeLabel')}</Text>
+                  <Text style={[styles.detailValue, { color: colors.text }]}>
+                    {getPeriodTypeLabel()}
+                  </Text>
+                </View>
+                <View style={styles.detailRow}>
+                  <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>{t('subscription.autoRenewLabel')}</Text>
+                  <Text style={[styles.detailValue, { color: willRenew ? '#4CAF50' : '#FF9F00' }]}>
+                    {willRenew ? t('subscription.autoRenewOn') : t('subscription.autoRenewOff')}
+                  </Text>
+                </View>
+                {originalPurchaseDate && (
+                  <View style={styles.detailRow}>
+                    <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>{t('subscription.originalPurchaseLabel')}</Text>
+                    <Text style={[styles.detailValue, { color: colors.text }]}>
+                      {formatDate(originalPurchaseDate)}
+                    </Text>
+                  </View>
+                )}
+                {latestPurchaseDate && (
+                  <View style={styles.detailRow}>
+                    <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>{t('subscription.latestPurchaseLabel')}</Text>
+                    <Text style={[styles.detailValue, { color: colors.text }]}>
+                      {formatDate(latestPurchaseDate)}
                     </Text>
                   </View>
                 )}
@@ -157,13 +303,17 @@ export default function SubscriptionScreen() {
               style={[styles.manageButton, { backgroundColor: colors.primary }]}
               onPress={openSubscriptionSettings}
             >
-              <Ionicons
-                name={Platform.OS === 'ios' ? 'logo-apple' : 'logo-google-playstore'}
-                size={20}
-                color="#FFFFFF"
-              />
+              {!managementURL && (
+                <Ionicons
+                  name={Platform.OS === 'ios' ? 'logo-apple' : 'logo-google-playstore'}
+                  size={20}
+                  color="#FFFFFF"
+                />
+              )}
               <Text style={styles.manageButtonText}>
-                {t('subscription.manageInStore', { store: Platform.OS === 'ios' ? t('subscription.appStore') : t('subscription.googlePlay') })}
+                {managementURL
+                  ? t('subscription.manageSubscription')
+                  : t('subscription.manageInStore', { store: Platform.OS === 'ios' ? t('subscription.appStore') : t('subscription.googlePlay') })}
               </Text>
               <Feather name="external-link" size={16} color="#FFFFFF" />
             </Pressable>
@@ -286,6 +436,20 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: 'center',
     marginBottom: 8,
+  },
+  warningBanner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  warningText: {
+    flex: 1,
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: '500',
   },
   divider: {
     height: 1,
