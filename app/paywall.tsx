@@ -16,6 +16,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription, REVENUECAT_ENTITLEMENT_IDENTIFIER } from '@/lib/revenuecat';
 import { useTranslation } from 'react-i18next';
 import ThemedBackground from '@/components/ThemedBackground';
+import ServicesGrid from '@/components/ServicesGrid';
 
 export default function PaywallScreen() {
   const { colors } = useTheme();
@@ -105,15 +106,6 @@ export default function PaywallScreen() {
     }
   };
 
-  const benefits = [
-    { icon: 'water-outline' as const, text: 'Unlimited dive logs' },
-    { icon: 'map-outline' as const, text: 'Advanced dive planning' },
-    { icon: 'cloud-upload-outline' as const, text: 'Cloud backup & sync' },
-    { icon: 'analytics-outline' as const, text: 'Detailed dive analytics' },
-    { icon: 'people-outline' as const, text: 'Dive buddy connections' },
-    { icon: 'headset-outline' as const, text: 'Priority support' },
-  ];
-
   if (isLoading) {
     return (
       <ThemedBackground>
@@ -173,18 +165,7 @@ export default function PaywallScreen() {
           </Text>
         </View>
 
-        <View style={styles.benefitsSection}>
-          {benefits.map((benefit, index) => (
-            <View key={index} style={styles.benefitRow}>
-              <View style={[styles.benefitIcon, { backgroundColor: colors.primary + '15' }]}>
-                <Ionicons name={benefit.icon} size={20} color={colors.primary} />
-              </View>
-              <Text style={[styles.benefitText, { color: colors.text }]}>
-                {benefit.text}
-              </Text>
-            </View>
-          ))}
-        </View>
+        <ServicesGrid />
 
         <View style={styles.plansSection}>
           {sortedPackages.map((pkg, index) => {
@@ -377,27 +358,6 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 16,
     textAlign: 'center',
-  },
-  benefitsSection: {
-    marginBottom: 32,
-    gap: 12,
-  },
-  benefitRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  benefitIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  benefitText: {
-    fontSize: 15,
-    fontWeight: '500',
-    flex: 1,
   },
   plansSection: {
     gap: 12,

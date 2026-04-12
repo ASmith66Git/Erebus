@@ -16,6 +16,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
 import { useSubscription, REVENUECAT_ENTITLEMENT_IDENTIFIER } from '@/lib/revenuecat';
 import ThemedBackground from '@/components/ThemedBackground';
+import ServicesGrid from '@/components/ServicesGrid';
 
 const PACKAGE_NAME = 'com.erebus.diveapp';
 
@@ -278,22 +279,7 @@ export default function SubscriptionScreen() {
 
           <View style={styles.infoSection}>
             <Text style={[styles.infoTitle, { color: colors.text }]}>{t('subscription.subscriptionBenefits')}</Text>
-            <View style={styles.benefitRow}>
-              <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
-              <Text style={[styles.benefitText, { color: colors.textSecondary }]}>{t('subscription.unlimitedDiveLogs')}</Text>
-            </View>
-            <View style={styles.benefitRow}>
-              <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
-              <Text style={[styles.benefitText, { color: colors.textSecondary }]}>{t('subscription.advancedPlanning')}</Text>
-            </View>
-            <View style={styles.benefitRow}>
-              <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
-              <Text style={[styles.benefitText, { color: colors.textSecondary }]}>{t('subscription.cloudBackup')}</Text>
-            </View>
-            <View style={styles.benefitRow}>
-              <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
-              <Text style={[styles.benefitText, { color: colors.textSecondary }]}>{t('subscription.prioritySupport')}</Text>
-            </View>
+            <ServicesGrid />
           </View>
 
           <View style={[styles.divider, { backgroundColor: colors.border }]} />
@@ -477,14 +463,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 4,
-  },
-  benefitRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  benefitText: {
-    fontSize: 14,
   },
   manageButton: {
     flexDirection: 'row',

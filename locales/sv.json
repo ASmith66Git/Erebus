@@ -2135,6 +2135,24 @@
     "statusTrial": "Provperiod — {{count}} dag kvar",
     "statusTrial_other": "Provperiod — {{count}} dagar kvar"
   },
+  "services": {
+    "unlimitedDiveLogs": "Obegränsade dyk",
+    "advancedDivePlanning": "Dykplanering",
+    "cloudBackupSync": "Molnbackup",
+    "detailedAnalytics": "Dykanalys",
+    "buddyConnections": "Buddykontakter",
+    "prioritySupport": "Prioriterad support",
+    "diveSites": "Dykplatser",
+    "gasCalculator": "Gaskalkylator",
+    "gearProfiles": "Utrustningsprofiler",
+    "cylinderTracking": "Flaskspårning",
+    "compressorManagement": "Kompressorer",
+    "certifications": "Certifieringar",
+    "diveTrips": "Dykresor",
+    "photosMedia": "Foton & media",
+    "dataExport": "Dataexport",
+    "bluetoothSync": "Bluetooth-synk"
+  },
   "subscription": {
     "title": "Prenumeration",
     "erebusPremium": "Erebus Premium",

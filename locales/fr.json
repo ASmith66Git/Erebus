@@ -2135,6 +2135,24 @@
     "statusTrial": "Essai — {{count}} jour restant",
     "statusTrial_other": "Essai — {{count}} jours restants"
   },
+  "services": {
+    "unlimitedDiveLogs": "Plongées illimitées",
+    "advancedDivePlanning": "Planification",
+    "cloudBackupSync": "Sauvegarde cloud",
+    "detailedAnalytics": "Analytiques",
+    "buddyConnections": "Binômes",
+    "prioritySupport": "Support prioritaire",
+    "diveSites": "Sites de plongée",
+    "gasCalculator": "Calculateur gaz",
+    "gearProfiles": "Profils équipement",
+    "cylinderTracking": "Suivi bouteilles",
+    "compressorManagement": "Compresseurs",
+    "certifications": "Certifications",
+    "diveTrips": "Voyages plongée",
+    "photosMedia": "Photos & médias",
+    "dataExport": "Export données",
+    "bluetoothSync": "Sync Bluetooth"
+  },
   "subscription": {
     "title": "Abonnement",
     "erebusPremium": "Erebus Premium",
