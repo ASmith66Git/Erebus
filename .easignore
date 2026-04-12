@@ -15,8 +15,11 @@ __tests__/
 *.md
 !README.md
 
-# Node modules cache
-node_modules/.cache/
+# Node modules (EAS installs its own)
+node_modules/
+
+# Build output
+dist/
 
 # Temporary files
 *.log
@@ -31,3 +34,5 @@ node_modules/.cache/
 .replit
 replit.nix
 .config/
+.local/
+.cache/
