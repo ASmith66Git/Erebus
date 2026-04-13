@@ -104,10 +104,15 @@ export default function ProfileScreen() {
 
   useEffect(() => {
     loadManufacturers();
-    loadUserDiveComputers();
-    loadSearchableStatus();
-    fetchSupportUnreadCount();
   }, []);
+
+  useEffect(() => {
+    if (token) {
+      loadUserDiveComputers();
+      loadSearchableStatus();
+      fetchSupportUnreadCount();
+    }
+  }, [token]);
 
   useEffect(() => {
     if (selectedBrand) {
