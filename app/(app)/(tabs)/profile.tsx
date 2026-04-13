@@ -177,10 +177,15 @@ export default function ProfileScreen() {
   };
 
   const loadUserDiveComputers = async () => {
+    if (!token) return;
     try {
       const response = await fetch(`${getApiUrl()}/api/user/dive-computers`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
+      if (!response.ok) {
+        console.error('Load dive computers failed:', response.status, await response.text());
+        return;
+      }
       const data = await response.json();
       setUserComputers(data.computers || []);
     } catch (error) {
@@ -456,9 +461,14 @@ export default function ProfileScreen() {
   };
 
   const addDiveComputer = async (brand: string, model: string) => {
+    if (!token) {
+      Alert.alert('Debug', 'No token available');
+      return;
+    }
     setLoading(true);
     try {
-      const response = await fetch(`${getApiUrl()}/api/user/dive-computers`, {
+      const url = `${getApiUrl()}/api/user/dive-computers`;
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -472,15 +482,21 @@ export default function ProfileScreen() {
         setSelectedBrand(null);
         setSelectedModel(null);
       } else {
-        const data = await response.json();
+        const text = await response.text();
+        const msg = `Status ${response.status}: ${text}`;
         if (Platform.OS === 'web') {
-          window.alert(data.error || t('common.error'));
+          window.alert(msg);
         } else {
-          Alert.alert(t('common.error'), data.error || t('profile.failedToSaveProfile'));
+          Alert.alert(t('common.error'), msg);
         }
       }
-    } catch (error) {
-      console.error('Error adding dive computer:', error);
+    } catch (error: any) {
+      const msg = error?.message || error?.toString() || JSON.stringify(error);
+      if (Platform.OS === 'web') {
+        window.alert('Fetch error: ' + msg);
+      } else {
+        Alert.alert('Error', 'Fetch error: ' + msg);
+      }
     } finally {
       setLoading(false);
     }
