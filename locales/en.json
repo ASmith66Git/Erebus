@@ -307,7 +307,13 @@
     "enterLastName": "Enter last name",
     "enterAge": "Enter age",
     "saveChanges": "Save Changes",
-    "selectSex": "Select Sex"
+    "selectSex": "Select Sex",
+    "diveComputers": "Dive Computers",
+    "noComputersYet": "No dive computers added yet. Add one to get personalized import options.",
+    "addComputer": "Add Dive Computer",
+    "removeComputer": "Remove Computer",
+    "confirmRemoveComputer": "Are you sure you want to remove this dive computer?",
+    "remove": "Remove"
   },
   "settings": {
     "title": "Settings",
@@ -735,7 +741,10 @@
     "importedFromFile": "Imported {{count}} dive(s) from {{fileName}}",
     "batchSuccessSummary": "{{successCount}} file(s) imported successfully\n{{totalDives}} total dive(s) added",
     "batchErrorSummary": "{{errorCount}} file(s) failed",
-    "importErrorTitle": "Import Error"
+    "importErrorTitle": "Import Error",
+    "selectComputer": "Select Dive Computer",
+    "importingWith": "Importing with",
+    "selectComputerFirst": "Please select which dive computer you are importing from before proceeding."
   },
   "diveSites": {
     "title": "Dive Sites",

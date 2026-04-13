@@ -307,7 +307,13 @@
     "enterLastName": "Inserisci il cognome",
     "enterAge": "Inserisci l'età",
     "saveChanges": "Salva modifiche",
-    "selectSex": "Seleziona sesso"
+    "selectSex": "Seleziona sesso",
+    "diveComputers": "Computer subacquei",
+    "noComputersYet": "Nessun computer subacqueo aggiunto. Aggiungine uno per opzioni di importazione personalizzate.",
+    "addComputer": "Aggiungi computer",
+    "removeComputer": "Rimuovi computer",
+    "confirmRemoveComputer": "Sei sicuro di voler rimuovere questo computer subacqueo?",
+    "remove": "Rimuovi"
   },
   "settings": {
     "title": "Impostazioni",
@@ -735,7 +741,10 @@
     "importedFromFile": "{{count}} immersione/i importata/e da {{fileName}}",
     "batchSuccessSummary": "{{successCount}} file importati con successo\n{{totalDives}} immersione/i totale/i aggiunta/e",
     "batchErrorSummary": "{{errorCount}} file non riusciti",
-    "importErrorTitle": "Errore di importazione"
+    "importErrorTitle": "Errore di importazione",
+    "selectComputer": "Seleziona computer subacqueo",
+    "importingWith": "Importazione con",
+    "selectComputerFirst": "Seleziona il computer subacqueo da cui stai importando prima di procedere."
   },
   "diveSites": {
     "title": "Siti di immersione",

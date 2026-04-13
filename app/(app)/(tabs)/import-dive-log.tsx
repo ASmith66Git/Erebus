@@ -9,6 +9,7 @@ import {
   Alert,
   Platform,
   FlatList,
+  Modal,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather, Ionicons } from '@expo/vector-icons';
@@ -37,39 +38,58 @@ interface DiveComputerCapabilities {
   } | null;
 }
 
+interface UserDiveComputer {
+  id: number;
+  brand: string;
+  model: string;
+  nickname: string | null;
+  capabilities: DiveComputerCapabilities | null;
+}
+
 export default function ImportDiveLogScreen() {
   const { colors } = useTheme();
   const { token } = useAuth();
   const router = useRouter();
   const { t } = useTranslation();
   const [importing, setImporting] = useState(false);
-  const [capabilities, setCapabilities] = useState<DiveComputerCapabilities | null>(null);
+  const [userComputers, setUserComputers] = useState<UserDiveComputer[]>([]);
+  const [selectedComputer, setSelectedComputer] = useState<UserDiveComputer | null>(null);
   const [loadingCapabilities, setLoadingCapabilities] = useState(true);
   const [batchResults, setBatchResults] = useState<BatchUploadResult[]>([]);
   const [showBatchResults, setShowBatchResults] = useState(false);
+  const [showComputerPicker, setShowComputerPicker] = useState(false);
 
+  const capabilities = selectedComputer?.capabilities || null;
   const hasBleSupport = capabilities?.model?.has_ble === true;
   const isWeb = Platform.OS === 'web';
 
   useEffect(() => {
-    loadDiveComputerCapabilities();
+    loadUserComputers();
   }, []);
 
-  const loadDiveComputerCapabilities = async () => {
+  const loadUserComputers = async () => {
     try {
-      const response = await fetch(`${getApiUrl()}/api/user/dive-computer`, {
+      const response = await fetch(`${getApiUrl()}/api/user/dive-computers`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
-      setCapabilities(data.capabilities);
+      const computers: UserDiveComputer[] = data.computers || [];
+      setUserComputers(computers);
+      if (computers.length === 1) {
+        setSelectedComputer(computers[0]);
+      }
     } catch (error) {
-      console.error('Error loading dive computer capabilities:', error);
+      console.error('Error loading user dive computers:', error);
     } finally {
       setLoadingCapabilities(false);
     }
   };
 
   const handleBluetoothConnect = () => {
+    if (requiresComputerSelection) {
+      promptComputerSelection();
+      return;
+    }
     router.push('/ble-connect');
   };
 
@@ -82,7 +102,11 @@ export default function ImportDiveLogScreen() {
         formData.append('file', file, file.name);
       }
 
-      const uploadResponse = await fetch(`${getApiUrl()}/api/dive-logs/import`, {
+      const importUrl = selectedComputer
+        ? `${getApiUrl()}/api/dive-logs/import?user_dive_computer_id=${selectedComputer.id}`
+        : `${getApiUrl()}/api/dive-logs/import`;
+
+      const uploadResponse = await fetch(importUrl, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -100,6 +124,17 @@ export default function ImportDiveLogScreen() {
     } catch (error: any) {
       return { divesImported: 0, error: error.message || 'Import failed' };
     }
+  };
+
+  const requiresComputerSelection = userComputers.length > 1 && !selectedComputer;
+
+  const promptComputerSelection = () => {
+    if (Platform.OS === 'web') {
+      alert(t('importDiveLog.selectComputerFirst'));
+    } else {
+      Alert.alert(t('importDiveLog.selectComputer'), t('importDiveLog.selectComputerFirst'));
+    }
+    setShowComputerPicker(true);
   };
 
   const handleWebFileSelect = async (event: any) => {
@@ -169,6 +204,11 @@ export default function ImportDiveLogScreen() {
   };
 
   const handleImportFile = async () => {
+    if (requiresComputerSelection) {
+      promptComputerSelection();
+      return;
+    }
+
     if (Platform.OS === 'web') {
       const input = document.createElement('input');
       input.type = 'file';
@@ -292,6 +332,12 @@ export default function ImportDiveLogScreen() {
     return t('importDiveLog.fileImportGuidance', { brand: capabilities.brand.name, formats });
   };
 
+  const getComputerDisplayName = (computer: UserDiveComputer) => {
+    const brandName = computer.capabilities?.brand?.name || computer.brand;
+    const modelName = computer.capabilities?.model?.name || computer.model;
+    return `${brandName} ${modelName}`;
+  };
+
   if (loadingCapabilities) {
     return (
       <ThemedBackground style={[styles.container, styles.centered]}>
@@ -314,6 +360,26 @@ export default function ImportDiveLogScreen() {
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
           {t('importDiveLog.chooseHowToAdd')}
         </Text>
+
+        {userComputers.length > 1 && (
+          <Pressable
+            style={[styles.computerSelector, { backgroundColor: colors.surface, borderColor: selectedComputer ? colors.primary : colors.border }]}
+            onPress={() => setShowComputerPicker(true)}
+          >
+            <View style={[styles.computerSelectorIcon, { backgroundColor: colors.primary + '20' }]}>
+              <Ionicons name="hardware-chip-outline" size={20} color={colors.primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.computerSelectorLabel, { color: colors.textSecondary }]}>
+                {t('importDiveLog.importingWith')}
+              </Text>
+              <Text style={[styles.computerSelectorValue, { color: colors.text }]}>
+                {selectedComputer ? getComputerDisplayName(selectedComputer) : t('importDiveLog.selectComputer')}
+              </Text>
+            </View>
+            <Ionicons name="chevron-down" size={20} color={colors.textSecondary} />
+          </Pressable>
+        )}
 
         <View style={styles.optionsContainer}>
           {hasBleSupport && !isWeb && (
@@ -450,6 +516,61 @@ export default function ImportDiveLogScreen() {
           </Text>
         </View>
       </ScrollView>
+
+      <Modal
+        visible={showComputerPicker}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowComputerPicker(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>{t('importDiveLog.selectComputer')}</Text>
+              <Pressable onPress={() => setShowComputerPicker(false)}>
+                <Ionicons name="close" size={24} color={colors.text} />
+              </Pressable>
+            </View>
+            <ScrollView style={styles.modalScroll}>
+              {userComputers.map((computer) => (
+                <Pressable
+                  key={computer.id}
+                  style={[
+                    styles.computerPickerItem,
+                    { borderBottomColor: colors.border },
+                    selectedComputer?.id === computer.id && { backgroundColor: colors.primary + '20' }
+                  ]}
+                  onPress={() => {
+                    setSelectedComputer(computer);
+                    setShowComputerPicker(false);
+                  }}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.computerPickerName, { color: colors.text }]}>
+                      {getComputerDisplayName(computer)}
+                    </Text>
+                    <View style={styles.computerPickerBadge}>
+                      <Ionicons
+                        name={computer.capabilities?.model?.has_ble ? 'bluetooth' : 'document-outline'}
+                        size={12}
+                        color={computer.capabilities?.model?.has_ble ? '#10B981' : '#F59200'}
+                      />
+                      <Text style={{ fontSize: 12, color: computer.capabilities?.model?.has_ble ? '#10B981' : '#F59200' }}>
+                        {computer.capabilities?.model?.has_ble
+                          ? t('profile.bluetoothSyncSupported')
+                          : t('profile.fileImportOnly')}
+                      </Text>
+                    </View>
+                  </View>
+                  {selectedComputer?.id === computer.id && (
+                    <Ionicons name="checkmark" size={20} color={colors.primary} />
+                  )}
+                </Pressable>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </ThemedBackground>
   );
 }
@@ -577,5 +698,74 @@ const styles = StyleSheet.create({
   },
   batchResultText: {
     fontSize: 12,
+  },
+  computerSelector: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    gap: 12,
+    marginBottom: 20,
+  },
+  computerSelectorIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  computerSelectorLabel: {
+    fontSize: 12,
+    marginBottom: 2,
+  },
+  computerSelectorValue: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '60%',
+    paddingBottom: 34,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0, 0, 0, 0.1)',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  modalScroll: {
+    paddingHorizontal: 16,
+  },
+  computerPickerItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+    paddingHorizontal: 8,
+    borderBottomWidth: 1,
+    borderRadius: 8,
+  },
+  computerPickerName: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  computerPickerBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 4,
   },
 });

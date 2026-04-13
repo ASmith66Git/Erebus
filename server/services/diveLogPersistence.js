@@ -5,13 +5,13 @@ class DiveLogPersistenceService {
     this.pool = pool;
   }
   
-  async saveDiveImport(dto, userId) {
+  async saveDiveImport(dto, userId, userDiveComputerId = null) {
     const client = await this.pool.connect();
     
     try {
       await client.query('BEGIN');
       
-      const diveLogId = await this.insertDiveLog(client, dto, userId);
+      const diveLogId = await this.insertDiveLog(client, dto, userId, userDiveComputerId);
       
       await this.insertSamples(client, diveLogId, dto.samples);
       await this.insertGases(client, diveLogId, dto.gases);
@@ -31,7 +31,7 @@ class DiveLogPersistenceService {
     }
   }
   
-  async insertDiveLog(client, dto, userId) {
+  async insertDiveLog(client, dto, userId, userDiveComputerId = null) {
     const diveComputerId = await this.findDiveComputerId(client, dto.device.manufacturer, dto.device.model);
     
     const result = await client.query(
@@ -45,11 +45,12 @@ class DiveLogPersistenceService {
         gas_pressures, equipment_issues, skills_practiced, buddy,
         decompression_symptoms, problem_notes,
         samples, gas_mixes,
+        user_dive_computer_id,
         created_at, updated_at
       ) VALUES (
         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12,
         $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24,
-        $25, $26, $27, $28, $29, $30, $31, $32,
+        $25, $26, $27, $28, $29, $30, $31, $32, $33,
         CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
       ) RETURNING id`,
       [
@@ -114,6 +115,7 @@ class DiveLogPersistenceService {
           start_pressure: g.start_pressure_bar,
           end_pressure: g.end_pressure_bar,
         }))),
+        userDiveComputerId,
       ]
     );
     

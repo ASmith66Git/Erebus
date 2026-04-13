@@ -413,7 +413,38 @@ async function initDatabase() {
     await client.query(`ALTER TABLE dive_logs ADD COLUMN IF NOT EXISTS gear_profile_id INTEGER REFERENCES gear_profiles(id) ON DELETE SET NULL;`).catch(() => {});
     await client.query(`ALTER TABLE dive_logs ADD COLUMN IF NOT EXISTS source_file_url TEXT;`).catch(() => {});
     await client.query(`ALTER TABLE dive_logs ADD COLUMN IF NOT EXISTS source_file_name TEXT;`).catch(() => {});
-    
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS user_dive_computers (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        brand VARCHAR(100) NOT NULL,
+        model VARCHAR(100) NOT NULL,
+        nickname VARCHAR(255),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `).catch(() => {});
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_user_dive_computers_user_id ON user_dive_computers(user_id);
+    `).catch(() => {});
+
+    await client.query(`ALTER TABLE dive_logs ADD COLUMN IF NOT EXISTS user_dive_computer_id INTEGER REFERENCES user_dive_computers(id) ON DELETE SET NULL;`).catch(() => {});
+
+    await client.query(`
+      INSERT INTO user_dive_computers (user_id, brand, model)
+      SELECT id, dive_computer_brand, dive_computer_model
+      FROM users
+      WHERE dive_computer_brand IS NOT NULL
+        AND dive_computer_model IS NOT NULL
+        AND NOT EXISTS (
+          SELECT 1 FROM user_dive_computers udc
+          WHERE udc.user_id = users.id
+            AND udc.brand = users.dive_computer_brand
+            AND udc.model = users.dive_computer_model
+        );
+    `).catch(() => {});
+
     await client.query(`
       CREATE TABLE IF NOT EXISTS push_tokens (
         id SERIAL PRIMARY KEY,
@@ -2556,6 +2587,94 @@ app.put('/api/user/dive-computer', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     console.error('Update user dive computer error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.get('/api/user/dive-computers', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT id, brand, model, nickname, created_at FROM user_dive_computers WHERE user_id = $1 ORDER BY created_at ASC',
+      [req.user.id]
+    );
+
+    const computers = result.rows.map(row => {
+      const modelInfo = diveComputerCatalog.getModel(row.brand, row.model);
+      const manufacturerInfo = diveComputerCatalog.getManufacturer(row.brand);
+      return {
+        ...row,
+        capabilities: modelInfo && manufacturerInfo ? {
+          brand: { id: manufacturerInfo.id, name: manufacturerInfo.name },
+          model: modelInfo
+        } : null
+      };
+    });
+
+    res.json({ computers });
+  } catch (error) {
+    console.error('Get user dive computers error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.post('/api/user/dive-computers', authenticateToken, async (req, res) => {
+  const { brand, model, nickname } = req.body;
+
+  if (!brand || !model) {
+    return res.status(400).json({ error: 'Brand and model are required' });
+  }
+
+  try {
+    const modelInfo = diveComputerCatalog.getModel(brand, model);
+    if (!modelInfo) {
+      return res.status(400).json({ error: 'Invalid dive computer brand or model' });
+    }
+
+    const existing = await pool.query(
+      'SELECT id FROM user_dive_computers WHERE user_id = $1 AND brand = $2 AND model = $3',
+      [req.user.id, brand, model]
+    );
+    if (existing.rows.length > 0) {
+      return res.status(409).json({ error: 'This dive computer is already in your list' });
+    }
+
+    const result = await pool.query(
+      'INSERT INTO user_dive_computers (user_id, brand, model, nickname) VALUES ($1, $2, $3, $4) RETURNING id, brand, model, nickname, created_at',
+      [req.user.id, brand, model, nickname || null]
+    );
+
+    const row = result.rows[0];
+    const manufacturerInfo = diveComputerCatalog.getManufacturer(brand);
+
+    res.status(201).json({
+      computer: {
+        ...row,
+        capabilities: modelInfo && manufacturerInfo ? {
+          brand: { id: manufacturerInfo.id, name: manufacturerInfo.name },
+          model: modelInfo
+        } : null
+      }
+    });
+  } catch (error) {
+    console.error('Add user dive computer error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.delete('/api/user/dive-computers/:id', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(
+      'DELETE FROM user_dive_computers WHERE id = $1 AND user_id = $2 RETURNING id',
+      [req.params.id, req.user.id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Dive computer not found' });
+    }
+
+    res.json({ message: 'Dive computer removed' });
+  } catch (error) {
+    console.error('Delete user dive computer error:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -4873,13 +4992,31 @@ app.post('/api/dive-logs/import', authenticateToken, upload.single('file'), asyn
     try {
       await client.query('BEGIN');
 
+      let userDiveComputerId = req.body?.user_dive_computer_id || req.query?.user_dive_computer_id || null;
+      if (userDiveComputerId) {
+        userDiveComputerId = parseInt(userDiveComputerId, 10);
+        if (isNaN(userDiveComputerId)) {
+          userDiveComputerId = null;
+        } else {
+          const ownerCheck = await client.query(
+            'SELECT id FROM user_dive_computers WHERE id = $1 AND user_id = $2',
+            [userDiveComputerId, req.user.id]
+          );
+          if (ownerCheck.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return res.status(403).json({ error: 'Invalid dive computer selection' });
+          }
+        }
+      }
+
       for (const dive of parsedDives) {
         const result = await client.query(`
           INSERT INTO dive_logs (
             user_id, dive_datetime, duration_seconds, max_depth_meters, avg_depth_meters,
             min_temperature_celsius, max_temperature_celsius, device_manufacturer, device_model,
-            device_serial, samples, gas_mixes, notes, import_source, import_filename
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+            device_serial, samples, gas_mixes, notes, import_source, import_filename,
+            user_dive_computer_id
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
           RETURNING id, dive_datetime, max_depth_meters, duration_seconds
         `, [
           req.user.id,
@@ -4896,7 +5033,8 @@ app.post('/api/dive-logs/import', authenticateToken, upload.single('file'), asyn
           JSON.stringify(dive.gas_mixes),
           dive.notes,
           dive.import_source,
-          filename
+          filename,
+          userDiveComputerId
         ]);
 
         insertedDives.push({
@@ -4944,10 +5082,26 @@ app.post('/api/dive-logs/import/v2', authenticateToken, upload.single('file'), a
     const insertedDives = [];
     const errors = [];
     
+    let userDiveComputerIdV2 = req.body?.user_dive_computer_id || req.query?.user_dive_computer_id || null;
+    if (userDiveComputerIdV2) {
+      userDiveComputerIdV2 = parseInt(userDiveComputerIdV2, 10);
+      if (isNaN(userDiveComputerIdV2)) {
+        userDiveComputerIdV2 = null;
+      } else {
+        const ownerCheckV2 = await pool.query(
+          'SELECT id FROM user_dive_computers WHERE id = $1 AND user_id = $2',
+          [userDiveComputerIdV2, req.user.id]
+        );
+        if (ownerCheckV2.rows.length === 0) {
+          return res.status(403).json({ error: 'Invalid dive computer selection' });
+        }
+      }
+    }
+
     for (let i = 0; i < dtos.length; i++) {
       const dto = dtos[i];
       try {
-        const diveLogId = await diveLogPersistence.saveDiveImport(dto, req.user.id);
+        const diveLogId = await diveLogPersistence.saveDiveImport(dto, req.user.id, userDiveComputerIdV2);
         insertedDives.push({
           id: diveLogId,
           diveDateTime: dto.header.dive_datetime,

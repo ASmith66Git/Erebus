@@ -48,6 +48,15 @@ interface DiveComputerCapabilities {
   };
 }
 
+interface UserDiveComputer {
+  id: number;
+  brand: string;
+  model: string;
+  nickname: string | null;
+  created_at: string;
+  capabilities: DiveComputerCapabilities | null;
+}
+
 export default function ProfileScreen() {
   const { colors } = useTheme();
   const { t } = useTranslation();
@@ -57,10 +66,11 @@ export default function ProfileScreen() {
   const [models, setModels] = useState<DiveComputerModel[]>([]);
   const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
   const [selectedModel, setSelectedModel] = useState<string | null>(null);
-  const [capabilities, setCapabilities] = useState<DiveComputerCapabilities | null>(null);
+  const [userComputers, setUserComputers] = useState<UserDiveComputer[]>([]);
   const [loading, setLoading] = useState(false);
   const [showBrandPicker, setShowBrandPicker] = useState(false);
   const [showModelPicker, setShowModelPicker] = useState(false);
+  const [showAddComputer, setShowAddComputer] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [searchableProfile, setSearchableProfile] = useState(false);
   const [searchableLoading, setSearchableLoading] = useState(false);
@@ -94,7 +104,7 @@ export default function ProfileScreen() {
 
   useEffect(() => {
     loadManufacturers();
-    loadUserDiveComputer();
+    loadUserDiveComputers();
     loadSearchableStatus();
     fetchSupportUnreadCount();
   }, []);
@@ -161,23 +171,21 @@ export default function ProfileScreen() {
     }
   };
 
-  const loadUserDiveComputer = async () => {
+  const loadUserDiveComputers = async () => {
     try {
-      const response = await fetch(`${getApiUrl()}/api/user/dive-computer`, {
+      const response = await fetch(`${getApiUrl()}/api/user/dive-computers`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
-      setSelectedBrand(data.dive_computer_brand);
-      setSelectedModel(data.dive_computer_model);
-      setCapabilities(data.capabilities);
+      setUserComputers(data.computers || []);
     } catch (error) {
-      console.error('Error loading user dive computer:', error);
+      console.error('Error loading user dive computers:', error);
     }
   };
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await Promise.all([loadManufacturers(), loadUserDiveComputer()]);
+    await Promise.all([loadManufacturers(), loadUserDiveComputers()]);
     setRefreshing(false);
   }, []);
 
@@ -442,44 +450,92 @@ export default function ProfileScreen() {
     }
   };
 
-  const saveDiveComputer = async (brand: string | null, model: string | null) => {
+  const addDiveComputer = async (brand: string, model: string) => {
     setLoading(true);
     try {
-      const response = await fetch(`${getApiUrl()}/api/user/dive-computer`, {
-        method: 'PUT',
+      const response = await fetch(`${getApiUrl()}/api/user/dive-computers`, {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({ brand, model })
       });
-      const data = await response.json();
-      setCapabilities(data.capabilities);
+      if (response.ok) {
+        await loadUserDiveComputers();
+        setShowAddComputer(false);
+        setSelectedBrand(null);
+        setSelectedModel(null);
+      } else {
+        const data = await response.json();
+        if (Platform.OS === 'web') {
+          window.alert(data.error || t('common.error'));
+        } else {
+          Alert.alert(t('common.error'), data.error || t('profile.failedToSaveProfile'));
+        }
+      }
     } catch (error) {
-      console.error('Error saving dive computer:', error);
+      console.error('Error adding dive computer:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const removeDiveComputer = async (computerId: number) => {
+    const doRemove = async () => {
+      try {
+        const response = await fetch(`${getApiUrl()}/api/user/dive-computers/${computerId}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (response.ok) {
+          setUserComputers(prev => prev.filter(c => c.id !== computerId));
+        }
+      } catch (error) {
+        console.error('Error removing dive computer:', error);
+      }
+    };
+
+    if (Platform.OS === 'web') {
+      if (window.confirm(t('profile.confirmRemoveComputer'))) {
+        await doRemove();
+      }
+    } else {
+      Alert.alert(
+        t('profile.removeComputer'),
+        t('profile.confirmRemoveComputer'),
+        [
+          { text: t('common.cancel'), style: 'cancel' },
+          { text: t('profile.remove'), style: 'destructive', onPress: doRemove }
+        ]
+      );
     }
   };
 
   const handleBrandSelect = (brand: Manufacturer) => {
     setSelectedBrand(brand.id);
     setSelectedModel(null);
-    setCapabilities(null);
     setShowBrandPicker(false);
   };
 
   const handleModelSelect = (model: DiveComputerModel) => {
     setSelectedModel(model.id);
     setShowModelPicker(false);
-    saveDiveComputer(selectedBrand, model.id);
+    if (selectedBrand) {
+      addDiveComputer(selectedBrand, model.id);
+    }
   };
 
-  const clearDiveComputer = () => {
+  const openAddComputer = () => {
     setSelectedBrand(null);
     setSelectedModel(null);
-    setCapabilities(null);
-    saveDiveComputer(null, null);
+    setShowAddComputer(true);
+  };
+
+  const closeAddComputer = () => {
+    setShowAddComputer(false);
+    setSelectedBrand(null);
+    setSelectedModel(null);
   };
 
   const pickProfilePhoto = async () => {
@@ -549,13 +605,6 @@ export default function ProfileScreen() {
     } finally {
       setUploadingPhoto(false);
     }
-  };
-
-  const getDisplayName = () => {
-    if (capabilities) {
-      return `${capabilities.brand.name} ${capabilities.model.name}`;
-    }
-    return t('profile.notSelected');
   };
 
   const openEditProfile = () => {
@@ -771,69 +820,56 @@ export default function ProfileScreen() {
       </View>
 
       <View style={[styles.section, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('profile.diveComputer')}</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('profile.diveComputers')}</Text>
         
-        <Pressable style={styles.menuRow} onPress={() => setShowBrandPicker(true)}>
-          <View style={[styles.menuIcon, { backgroundColor: colors.primary + '20' }]}>
-            <Ionicons name="hardware-chip-outline" size={20} color={colors.primary} />
-          </View>
-          <View style={styles.menuContent}>
-            <Text style={[styles.menuTitle, { color: colors.text }]}>{t('profile.brand')}</Text>
-            <Text style={[styles.menuDescription, { color: colors.textSecondary }]}>
-              {manufacturers.find(m => m.id === selectedBrand)?.name || t('profile.selectManufacturer')}
-            </Text>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
-        </Pressable>
-
-        <Pressable 
-          style={[styles.menuRow, { opacity: selectedBrand ? 1 : 0.5 }]} 
-          onPress={() => selectedBrand && setShowModelPicker(true)}
-          disabled={!selectedBrand}
-        >
-          <View style={[styles.menuIcon, { backgroundColor: colors.primary + '20' }]}>
-            <Ionicons name="watch-outline" size={20} color={colors.primary} />
-          </View>
-          <View style={styles.menuContent}>
-            <Text style={[styles.menuTitle, { color: colors.text }]}>{t('profile.model')}</Text>
-            <Text style={[styles.menuDescription, { color: colors.textSecondary }]}>
-              {models.find(m => m.id === selectedModel)?.name || t('profile.selectModel')}
-            </Text>
-          </View>
-          {loading ? (
-            <ActivityIndicator size="small" color={colors.primary} />
-          ) : (
-            <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
-          )}
-        </Pressable>
-
-        {capabilities && (
-          <View style={[styles.capabilityBadge, { backgroundColor: capabilities.model.has_ble ? '#10B98120' : '#F5920020' }]}>
-            <Ionicons 
-              name={capabilities.model.has_ble ? 'bluetooth' : 'document-outline'} 
-              size={16} 
-              color={capabilities.model.has_ble ? '#10B981' : '#F59200'} 
-            />
-            <Text style={[styles.capabilityText, { color: capabilities.model.has_ble ? '#10B981' : '#F59200' }]}>
-              {capabilities.model.has_ble 
-                ? t('profile.bluetoothSyncSupported') 
-                : t('profile.fileImportOnly')}
-            </Text>
-          </View>
-        )}
-
-        {capabilities?.model.note && (
-          <Text style={[styles.noteText, { color: colors.textSecondary }]}>
-            {capabilities.model.note}
+        {userComputers.length === 0 && (
+          <Text style={[styles.menuDescription, { color: colors.textSecondary, marginBottom: 12 }]}>
+            {t('profile.noComputersYet')}
           </Text>
         )}
 
-        {selectedBrand && (
-          <Pressable style={styles.clearButton} onPress={clearDiveComputer}>
-            <Ionicons name="close-circle-outline" size={18} color={colors.error} />
-            <Text style={[styles.clearButtonText, { color: colors.error }]}>{t('profile.clearSelection')}</Text>
-          </Pressable>
-        )}
+        {userComputers.map((computer) => (
+          <View key={computer.id} style={[styles.computerCard, { borderColor: colors.border }]}>
+            <View style={styles.computerCardHeader}>
+              <View style={[styles.menuIcon, { backgroundColor: colors.primary + '20' }]}>
+                <Ionicons name="hardware-chip-outline" size={20} color={colors.primary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.menuTitle, { color: colors.text }]}>
+                  {computer.capabilities?.brand?.name || computer.brand}{' '}
+                  {computer.capabilities?.model?.name || computer.model}
+                </Text>
+                {computer.nickname && (
+                  <Text style={[styles.menuDescription, { color: colors.textSecondary }]}>
+                    {computer.nickname}
+                  </Text>
+                )}
+              </View>
+              <Pressable onPress={() => removeDiveComputer(computer.id)} hitSlop={8}>
+                <Ionicons name="close-circle-outline" size={22} color={colors.error} />
+              </Pressable>
+            </View>
+            {computer.capabilities && (
+              <View style={[styles.capabilityBadge, { backgroundColor: computer.capabilities.model.has_ble ? '#10B98120' : '#F5920020' }]}>
+                <Ionicons 
+                  name={computer.capabilities.model.has_ble ? 'bluetooth' : 'document-outline'} 
+                  size={14} 
+                  color={computer.capabilities.model.has_ble ? '#10B981' : '#F59200'} 
+                />
+                <Text style={[styles.capabilityText, { color: computer.capabilities.model.has_ble ? '#10B981' : '#F59200' }]}>
+                  {computer.capabilities.model.has_ble 
+                    ? t('profile.bluetoothSyncSupported') 
+                    : t('profile.fileImportOnly')}
+                </Text>
+              </View>
+            )}
+          </View>
+        ))}
+
+        <Pressable style={[styles.addComputerButton, { borderColor: colors.primary }]} onPress={openAddComputer}>
+          <Ionicons name="add-circle-outline" size={20} color={colors.primary} />
+          <Text style={[styles.addComputerText, { color: colors.primary }]}>{t('profile.addComputer')}</Text>
+        </Pressable>
       </View>
 
       <View style={[styles.section, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
@@ -878,6 +914,59 @@ export default function ProfileScreen() {
       </View>
 
       <Text style={[styles.version, { color: colors.textSecondary }]}>Erebus v{Constants.expoConfig?.version || '1.0.0'}</Text>
+
+      <Modal
+        visible={showAddComputer}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={closeAddComputer}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: colors.cardBackground }]}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>{t('profile.addComputer')}</Text>
+              <Pressable onPress={closeAddComputer}>
+                <Ionicons name="close" size={24} color={colors.text} />
+              </Pressable>
+            </View>
+            <ScrollView style={styles.modalScroll} keyboardShouldPersistTaps="handled">
+              <Pressable style={[styles.menuRow]} onPress={() => setShowBrandPicker(true)}>
+                <View style={[styles.menuIcon, { backgroundColor: colors.primary + '20' }]}>
+                  <Ionicons name="hardware-chip-outline" size={20} color={colors.primary} />
+                </View>
+                <View style={styles.menuContent}>
+                  <Text style={[styles.menuTitle, { color: colors.text }]}>{t('profile.brand')}</Text>
+                  <Text style={[styles.menuDescription, { color: colors.textSecondary }]}>
+                    {manufacturers.find(m => m.id === selectedBrand)?.name || t('profile.selectManufacturer')}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+              </Pressable>
+
+              <Pressable 
+                style={[styles.menuRow, { opacity: selectedBrand ? 1 : 0.5 }]} 
+                onPress={() => selectedBrand && setShowModelPicker(true)}
+                disabled={!selectedBrand}
+              >
+                <View style={[styles.menuIcon, { backgroundColor: colors.primary + '20' }]}>
+                  <Ionicons name="watch-outline" size={20} color={colors.primary} />
+                </View>
+                <View style={styles.menuContent}>
+                  <Text style={[styles.menuTitle, { color: colors.text }]}>{t('profile.model')}</Text>
+                  <Text style={[styles.menuDescription, { color: colors.textSecondary }]}>
+                    {models.find(m => m.id === selectedModel)?.name || t('profile.selectModel')}
+                  </Text>
+                </View>
+                {loading ? (
+                  <ActivityIndicator size="small" color={colors.primary} />
+                ) : (
+                  <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+                )}
+              </Pressable>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
 
       <Modal
         visible={showBrandPicker}
@@ -1303,6 +1392,31 @@ const styles = StyleSheet.create({
   },
   clearButtonText: {
     fontSize: 14,
+    fontWeight: '500',
+  },
+  computerCard: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 10,
+  },
+  computerCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  addComputerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderRadius: 12,
+    borderStyle: 'dashed',
+    marginTop: 4,
+  },
+  addComputerText: {
+    fontSize: 15,
     fontWeight: '500',
   },
   modalOverlay: {

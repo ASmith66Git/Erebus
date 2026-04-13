@@ -307,7 +307,13 @@
     "enterLastName": "Nachname eingeben",
     "enterAge": "Alter eingeben",
     "saveChanges": "Änderungen speichern",
-    "selectSex": "Geschlecht auswählen"
+    "selectSex": "Geschlecht auswählen",
+    "diveComputers": "Tauchcomputer",
+    "noComputersYet": "Noch keine Tauchcomputer hinzugefügt. Fügen Sie einen hinzu für personalisierte Importoptionen.",
+    "addComputer": "Tauchcomputer hinzufügen",
+    "removeComputer": "Computer entfernen",
+    "confirmRemoveComputer": "Möchten Sie diesen Tauchcomputer wirklich entfernen?",
+    "remove": "Entfernen"
   },
   "settings": {
     "title": "Einstellungen",
@@ -735,7 +741,10 @@
     "importedFromFile": "{{count}} Tauchgang/Tauchgänge von {{fileName}} importiert",
     "batchSuccessSummary": "{{successCount}} Datei(en) erfolgreich importiert\n{{totalDives}} Tauchgang/Tauchgänge insgesamt hinzugefügt",
     "batchErrorSummary": "{{errorCount}} Datei(en) fehlgeschlagen",
-    "importErrorTitle": "Importfehler"
+    "importErrorTitle": "Importfehler",
+    "selectComputer": "Tauchcomputer auswählen",
+    "importingWith": "Importieren mit",
+    "selectComputerFirst": "Bitte wählen Sie den Tauchcomputer aus, von dem Sie importieren, bevor Sie fortfahren."
   },
   "diveSites": {
     "title": "Tauchplätze",

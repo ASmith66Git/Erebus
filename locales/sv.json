@@ -307,7 +307,13 @@
     "enterLastName": "Ange efternamn",
     "enterAge": "Ange ålder",
     "saveChanges": "Spara ändringar",
-    "selectSex": "Välj kön"
+    "selectSex": "Välj kön",
+    "diveComputers": "Dykdatorer",
+    "noComputersYet": "Inga dykdatorer tillagda ännu. Lägg till en för anpassade importalternativ.",
+    "addComputer": "Lägg till dykdator",
+    "removeComputer": "Ta bort dator",
+    "confirmRemoveComputer": "Är du säker på att du vill ta bort denna dykdator?",
+    "remove": "Ta bort"
   },
   "settings": {
     "title": "Inställningar",
@@ -735,7 +741,10 @@
     "importedFromFile": "Importerade {{count}} dyk från {{fileName}}",
     "batchSuccessSummary": "{{successCount}} fil(er) importerade\n{{totalDives}} totalt antal dyk tillagda",
     "batchErrorSummary": "{{errorCount}} fil(er) misslyckades",
-    "importErrorTitle": "Importfel"
+    "importErrorTitle": "Importfel",
+    "selectComputer": "Välj dykdator",
+    "importingWith": "Importerar med",
+    "selectComputerFirst": "Välj vilken dykdator du importerar från innan du fortsätter."
   },
   "diveSites": {
     "title": "Dykplatser",

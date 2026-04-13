@@ -307,7 +307,13 @@
     "enterLastName": "Introduce tu apellido",
     "enterAge": "Introduce tu edad",
     "saveChanges": "Guardar cambios",
-    "selectSex": "Seleccionar sexo"
+    "selectSex": "Seleccionar sexo",
+    "diveComputers": "Ordenadores de buceo",
+    "noComputersYet": "Aún no se han añadido ordenadores de buceo. Añade uno para obtener opciones de importación personalizadas.",
+    "addComputer": "Añadir ordenador",
+    "removeComputer": "Eliminar ordenador",
+    "confirmRemoveComputer": "¿Estás seguro de que quieres eliminar este ordenador de buceo?",
+    "remove": "Eliminar"
   },
   "settings": {
     "title": "Ajustes",
@@ -735,7 +741,10 @@
     "importedFromFile": "{{count}} inmersión(es) importada(s) desde {{fileName}}",
     "batchSuccessSummary": "{{successCount}} archivo(s) importado(s) correctamente\n{{totalDives}} inmersión(es) total(es) añadida(s)",
     "batchErrorSummary": "{{errorCount}} archivo(s) con error",
-    "importErrorTitle": "Error de importación"
+    "importErrorTitle": "Error de importación",
+    "selectComputer": "Seleccionar ordenador de buceo",
+    "importingWith": "Importando con",
+    "selectComputerFirst": "Por favor, selecciona el ordenador de buceo desde el que estás importando antes de continuar."
   },
   "diveSites": {
     "title": "Sitios de buceo",
