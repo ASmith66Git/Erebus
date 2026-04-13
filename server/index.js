@@ -2592,7 +2592,6 @@ app.put('/api/user/dive-computer', authenticateToken, async (req, res) => {
 });
 
 app.get('/api/user/dive-computers', authenticateToken, async (req, res) => {
-  console.log('[DEBUG] GET /api/user/dive-computers for user:', req.user?.id);
   try {
     const result = await pool.query(
       'SELECT id, brand, model, nickname, created_at FROM user_dive_computers WHERE user_id = $1 ORDER BY created_at ASC',
@@ -2619,7 +2618,6 @@ app.get('/api/user/dive-computers', authenticateToken, async (req, res) => {
 });
 
 app.post('/api/user/dive-computers', authenticateToken, async (req, res) => {
-  console.log('[DEBUG] POST /api/user/dive-computers for user:', req.user?.id, 'body:', req.body);
   const { brand, model, nickname } = req.body;
 
   if (!brand || !model) {

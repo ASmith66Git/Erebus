@@ -461,14 +461,10 @@ export default function ProfileScreen() {
   };
 
   const addDiveComputer = async (brand: string, model: string) => {
-    if (!token) {
-      Alert.alert('Debug', 'No token available');
-      return;
-    }
+    if (!token) return;
     setLoading(true);
     try {
-      const url = `${getApiUrl()}/api/user/dive-computers`;
-      const response = await fetch(url, {
+      const response = await fetch(`${getApiUrl()}/api/user/dive-computers`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -482,21 +478,15 @@ export default function ProfileScreen() {
         setSelectedBrand(null);
         setSelectedModel(null);
       } else {
-        const text = await response.text();
-        const msg = `Status ${response.status}: ${text}`;
+        const data = await response.json();
         if (Platform.OS === 'web') {
-          window.alert(msg);
+          window.alert(data.error || t('common.error'));
         } else {
-          Alert.alert(t('common.error'), msg);
+          Alert.alert(t('common.error'), data.error || t('profile.failedToSaveProfile'));
         }
       }
-    } catch (error: any) {
-      const msg = error?.message || error?.toString() || JSON.stringify(error);
-      if (Platform.OS === 'web') {
-        window.alert('Fetch error: ' + msg);
-      } else {
-        Alert.alert('Error', 'Fetch error: ' + msg);
-      }
+    } catch (error) {
+      console.error('Error adding dive computer:', error);
     } finally {
       setLoading(false);
     }
