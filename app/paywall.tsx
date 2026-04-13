@@ -38,6 +38,7 @@ export default function PaywallScreen() {
   const [selectedPackageIndex, setSelectedPackageIndex] = useState<number>(0);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isRetrying, setIsRetrying] = useState(false);
 
   const currentOffering = offerings?.current;
   const packages = currentOffering?.availablePackages || [];
@@ -106,6 +107,13 @@ export default function PaywallScreen() {
     }
   };
 
+  const handleRetry = () => {
+    setIsRetrying(true);
+    setErrorMessage(null);
+    retryInit();
+    setIsRetrying(false);
+  };
+
   if (isLoading) {
     return (
       <ThemedBackground>
@@ -128,16 +136,18 @@ export default function PaywallScreen() {
             Unable to Load Subscriptions
           </Text>
           <Text style={[styles.loadingText, { color: colors.textSecondary, textAlign: 'center', paddingHorizontal: 32 }]}>
-            We could not connect to the subscription service. Please check your connection and try again.
+            {initError}
           </Text>
           <Pressable
-            style={[styles.subscribeButton, { backgroundColor: colors.primary, marginTop: 24, paddingHorizontal: 32 }]}
-            onPress={() => {
-              retryInit();
-              setErrorMessage(null);
-            }}
+            style={[styles.subscribeButton, { backgroundColor: colors.primary, marginTop: 24, paddingHorizontal: 32, opacity: isRetrying ? 0.6 : 1 }]}
+            onPress={handleRetry}
+            disabled={isRetrying}
           >
-            <Text style={styles.subscribeButtonText}>Retry</Text>
+            {isRetrying ? (
+              <ActivityIndicator color="#fff" size="small" />
+            ) : (
+              <Text style={styles.subscribeButtonText}>Retry</Text>
+            )}
           </Pressable>
         </View>
       </ThemedBackground>

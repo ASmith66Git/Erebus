@@ -14,22 +14,30 @@ export const REVENUECAT_ENTITLEMENT_IDENTIFIER = "premium";
 let revenueCatConfigured = false;
 
 function getRevenueCatApiKey(): string {
-  if(!REVENUECAT_TEST_API_KEY || !REVENUECAT_IOS_API_KEY || !REVENUECAT_ANDROID_API_KEY) {
-    throw new Error("RevenueCat Public API Keys not found");
-  }
-
   if (__DEV__ || Platform.OS === "web" || Constants.executionEnvironment === "storeClient") {
+    if (!REVENUECAT_TEST_API_KEY) {
+      throw new Error("RevenueCat test API key not found (EXPO_PUBLIC_REVENUECAT_TEST_API_KEY)");
+    }
     return REVENUECAT_TEST_API_KEY;
   }
 
   if (Platform.OS === "ios") {
+    if (!REVENUECAT_IOS_API_KEY) {
+      throw new Error("RevenueCat iOS API key not found (EXPO_PUBLIC_REVENUECAT_IOS_API_KEY)");
+    }
     return REVENUECAT_IOS_API_KEY;
   }
 
   if (Platform.OS === "android") {
+    if (!REVENUECAT_ANDROID_API_KEY) {
+      throw new Error("RevenueCat Android API key not found (EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY)");
+    }
     return REVENUECAT_ANDROID_API_KEY;
   }
 
+  if (!REVENUECAT_TEST_API_KEY) {
+    throw new Error("RevenueCat test API key not found (EXPO_PUBLIC_REVENUECAT_TEST_API_KEY)");
+  }
   return REVENUECAT_TEST_API_KEY;
 }
 
@@ -55,6 +63,7 @@ function useSubscriptionContext() {
 
   const retryInit = useCallback(() => {
     try {
+      revenueCatConfigured = false;
       initializeRevenueCat();
       setInitialized(true);
       setInitError(null);
