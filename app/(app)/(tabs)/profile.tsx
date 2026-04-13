@@ -521,9 +521,6 @@ export default function ProfileScreen() {
   const handleModelSelect = (model: DiveComputerModel) => {
     setSelectedModel(model.id);
     setShowModelPicker(false);
-    if (selectedBrand) {
-      addDiveComputer(selectedBrand, model.id);
-    }
   };
 
   const openAddComputer = () => {
@@ -964,6 +961,24 @@ export default function ProfileScreen() {
                 )}
               </Pressable>
             </ScrollView>
+            <View style={styles.modalFooter}>
+              <Pressable
+                style={[
+                  styles.saveButton,
+                  { backgroundColor: selectedBrand && selectedModel ? colors.primary : colors.primary + '40' },
+                ]}
+                onPress={() => {
+                  if (selectedBrand && selectedModel) {
+                    addDiveComputer(selectedBrand, selectedModel);
+                  }
+                }}
+                disabled={!selectedBrand || !selectedModel}
+              >
+                <Text style={[styles.saveButtonText, { opacity: selectedBrand && selectedModel ? 1 : 0.5 }]}>
+                  {t('profile.addComputer')}
+                </Text>
+              </Pressable>
+            </View>
           </View>
         </View>
       </Modal>
@@ -1427,7 +1442,7 @@ const styles = StyleSheet.create({
   modalContent: {
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    maxHeight: '70%',
+    maxHeight: '80%',
     paddingBottom: 34,
   },
   modalHeader: {
@@ -1444,6 +1459,11 @@ const styles = StyleSheet.create({
   },
   modalScroll: {
     paddingHorizontal: 16,
+  },
+  modalFooter: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 8,
   },
   pickerItem: {
     flexDirection: 'row',
