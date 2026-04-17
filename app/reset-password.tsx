@@ -95,7 +95,8 @@ export default function ResetPasswordScreen() {
     return (
       <ImageBackground
         source={darkCoralBackground}
-        style={styles.backgroundImage}
+        style={[styles.backgroundImage, Platform.OS === 'web' && styles.webBackground]}
+        imageStyle={Platform.OS === 'web' ? styles.webBackgroundImage : undefined}
         resizeMode="cover"
       >
         <View style={styles.overlay}>
@@ -104,7 +105,7 @@ export default function ResetPasswordScreen() {
             style={styles.container}
           >
             <ScrollView
-              contentContainerStyle={styles.scrollContent}
+              contentContainerStyle={[styles.scrollContent, Platform.OS === 'web' && styles.webScrollContent]}
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
             >
@@ -140,7 +141,8 @@ export default function ResetPasswordScreen() {
   return (
     <ImageBackground
       source={darkCoralBackground}
-      style={styles.backgroundImage}
+      style={[styles.backgroundImage, Platform.OS === 'web' && styles.webBackground]}
+      imageStyle={Platform.OS === 'web' ? styles.webBackgroundImage : undefined}
       resizeMode="cover"
     >
       <View style={styles.overlay}>
@@ -149,7 +151,7 @@ export default function ResetPasswordScreen() {
           style={styles.container}
         >
           <ScrollView
-            contentContainerStyle={styles.scrollContent}
+            contentContainerStyle={[styles.scrollContent, Platform.OS === 'web' && styles.webScrollContent]}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
@@ -278,6 +280,19 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
     height: '100%',
+  },
+  webBackground: {
+    width: '100%',
+    height: '100%',
+  },
+  webBackgroundImage: {
+    width: '100%',
+    height: '100%',
+  },
+  webScrollContent: {
+    width: '100%',
+    maxWidth: 560,
+    alignSelf: 'center',
   },
   overlay: {
     flex: 1,

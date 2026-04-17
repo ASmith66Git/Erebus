@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, Pressable, useWindowDimensions, ImageBackground } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ImageBackground, Platform, useWindowDimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -27,9 +27,14 @@ export default function SplashScreen() {
   };
 
   return (
-    <ImageBackground source={darkCoralBackground} style={styles.safeArea} resizeMode="cover">
+    <ImageBackground
+      source={darkCoralBackground}
+      style={[styles.safeArea, Platform.OS === 'web' && styles.webBackground]}
+      imageStyle={Platform.OS === 'web' ? styles.webBackgroundImage : undefined}
+      resizeMode="cover"
+    >
       <View style={styles.overlay}>
-        <View style={styles.container}>
+        <View style={[styles.container, Platform.OS === 'web' && styles.webContentColumn]}>
         <View style={styles.brandContainer}>
           <View style={styles.logoContainer}>
             <Logo size={88} primaryColor={colors.primary} />
@@ -59,8 +64,11 @@ export default function SplashScreen() {
         <View style={styles.bottomSection}>
           <Pressable
             style={[
-              styles.getStartedButton, 
-              { backgroundColor: colors.primary, width: Math.min(width - 48, 320) }
+              styles.getStartedButton,
+              { backgroundColor: colors.primary },
+              Platform.OS === 'web'
+                ? styles.webGetStartedButton
+                : { width: Math.min(width - 48, 320) },
             ]}
             onPress={handleGetStarted}
           >
@@ -81,6 +89,19 @@ export default function SplashScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
+  },
+  webBackground: {
+    width: '100%',
+    height: '100%',
+  },
+  webBackgroundImage: {
+    width: '100%',
+    height: '100%',
+  },
+  webContentColumn: {
+    width: '100%',
+    maxWidth: 480,
+    alignSelf: 'center',
   },
   overlay: {
     flex: 1,
@@ -119,6 +140,10 @@ const styles = StyleSheet.create({
   bottomSection: {
     alignItems: 'center',
     gap: 12,
+    ...(Platform.OS === 'web' ? { alignSelf: 'stretch' as const } : {}),
+  },
+  webGetStartedButton: {
+    alignSelf: 'stretch',
   },
   getStartedButton: {
     flexDirection: 'row',

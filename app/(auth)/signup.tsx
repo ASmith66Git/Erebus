@@ -100,14 +100,19 @@ export default function SignupScreen() {
   };
 
   return (
-    <ImageBackground source={darkCoralBackground} style={styles.backgroundImage} resizeMode="cover">
+    <ImageBackground
+      source={darkCoralBackground}
+      style={[styles.backgroundImage, Platform.OS === 'web' && styles.webBackground]}
+      imageStyle={Platform.OS === 'web' ? styles.webBackgroundImage : undefined}
+      resizeMode="cover"
+    >
       <View style={styles.overlay}>
         <KeyboardAvoidingView
           style={styles.container}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
           <ScrollView
-            contentContainerStyle={styles.scrollContent}
+            contentContainerStyle={[styles.scrollContent, Platform.OS === 'web' && styles.webScrollContent]}
             keyboardShouldPersistTaps="handled"
           >
         <Pressable style={styles.backButton} onPress={() => router.back()}>
@@ -334,6 +339,19 @@ export default function SignupScreen() {
 const styles = StyleSheet.create({
   backgroundImage: {
     flex: 1,
+  },
+  webBackground: {
+    width: '100%',
+    height: '100%',
+  },
+  webBackgroundImage: {
+    width: '100%',
+    height: '100%',
+  },
+  webScrollContent: {
+    width: '100%',
+    maxWidth: 560,
+    alignSelf: 'center',
   },
   overlay: {
     flex: 1,

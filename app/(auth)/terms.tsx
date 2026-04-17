@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, ImageBackground, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, ImageBackground, SafeAreaView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
 import { router } from 'expo-router';
@@ -10,7 +10,12 @@ export default function TermsScreen() {
   const { colors } = useTheme();
 
   return (
-    <ImageBackground source={darkCoralBackground} style={styles.backgroundImage} resizeMode="cover">
+    <ImageBackground
+      source={darkCoralBackground}
+      style={[styles.backgroundImage, Platform.OS === 'web' && styles.webBackground]}
+      imageStyle={Platform.OS === 'web' ? styles.webBackgroundImage : undefined}
+      resizeMode="cover"
+    >
       <View style={styles.overlay}>
         <SafeAreaView style={styles.safeArea}>
           <View style={styles.header}>
@@ -85,12 +90,21 @@ const styles = StyleSheet.create({
   backgroundImage: {
     flex: 1,
   },
+  webBackground: {
+    width: '100%',
+    height: '100%',
+  },
+  webBackgroundImage: {
+    width: '100%',
+    height: '100%',
+  },
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
   },
   safeArea: {
     flex: 1,
+    ...(Platform.OS === 'web' ? { width: '100%', maxWidth: 560, alignSelf: 'center' as const } : {}),
   },
   header: {
     flexDirection: 'row',
