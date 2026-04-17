@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "BHYPGAwIhCcrNkC7wB3-B"
+uri = "file://assets/images/logo-source.svg"
+type = "image"
+title = "Logo (SVG)"
