@@ -120,6 +120,7 @@ export default function CertificationsScreen() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showCoursePickerModal, setShowCoursePickerModal] = useState(false);
   const [showAddWishlistModal, setShowAddWishlistModal] = useState(false);
+  const [showWishlistCoursePickerModal, setShowWishlistCoursePickerModal] = useState(false);
   const [wishlistCourse, setWishlistCourse] = useState<TrainingCourse | null>(null);
   const [wishlistDiveCenter, setWishlistDiveCenter] = useState('');
   const [editingWishlistItem, setEditingWishlistItem] = useState<WishlistItem | null>(null);
@@ -402,6 +403,7 @@ export default function CertificationsScreen() {
   };
 
   const handleSelectWishlistCourse = (course: any) => {
+    setShowWishlistCoursePickerModal(false);
     setWishlistCourse({
       ...course,
       agency_id: selectedAgency?.id,
@@ -920,6 +922,7 @@ export default function CertificationsScreen() {
                   setSelectedAgency(null);
                   setAgencyCourses([]);
                   setShowAddWishlistModal(true);
+                  setShowWishlistCoursePickerModal(true);
                 }}
               >
                 <Feather name="plus" size={18} color="#FFF" />
@@ -942,6 +945,7 @@ export default function CertificationsScreen() {
             setSelectedAgency(null);
             setAgencyCourses([]);
             setShowAddWishlistModal(true);
+            setShowWishlistCoursePickerModal(true);
           } else {
             resetForm(); 
             setShowAddModal(true); 
@@ -1454,6 +1458,7 @@ export default function CertificationsScreen() {
               </Text>
               <Pressable onPress={() => {
                 setShowAddWishlistModal(false);
+                setShowWishlistCoursePickerModal(false);
                 setWishlistCourse(null);
                 setWishlistDiveCenter('');
                 setEditingWishlistItem(null);
@@ -1463,111 +1468,156 @@ export default function CertificationsScreen() {
                 <Feather name="x" size={24} color={colors.text} />
               </Pressable>
             </View>
-            
-            <ScrollView style={styles.modalBody}>
-              {!wishlistCourse ? (
-                <>
-                  <Text style={[styles.formLabel, { color: colors.text, marginBottom: 12 }]}>
-                    {!selectedAgency ? t('certifications.selectAgency') : `${selectedAgency.name} ${t('certifications.courses')}`}
+
+            <ScrollView style={styles.modalBody} keyboardShouldPersistTaps="handled">
+              <Pressable
+                style={[styles.pickerButton, { backgroundColor: colors.background, borderColor: colors.border }]}
+                onPress={() => {
+                  if (editingWishlistItem) return;
+                  setSelectedAgency(null);
+                  setAgencyCourses([]);
+                  setShowWishlistCoursePickerModal(true);
+                }}
+                disabled={!!editingWishlistItem}
+              >
+                <Text style={[styles.pickerLabel, { color: colors.textSecondary }]}>{t('certifications.courseRequired')}</Text>
+                <View style={styles.pickerValue}>
+                  <Text style={[styles.pickerValueText, { color: wishlistCourse ? colors.text : colors.textSecondary }]}>
+                    {wishlistCourse ? `${wishlistCourse.agency_name} - ${wishlistCourse.name}` : t('certifications.selectCoursePlaceholder')}
                   </Text>
+                  {!editingWishlistItem && (
+                    <Feather name="chevron-right" size={20} color={colors.textSecondary} />
+                  )}
+                </View>
+              </Pressable>
+
+              <View style={styles.formGroup}>
+                <Text style={[styles.formLabel, { color: colors.text }]}>{t('certifications.diveCenterOptional')}</Text>
+                <TextInput
+                  style={[styles.formInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
+                  value={wishlistDiveCenter}
+                  onChangeText={setWishlistDiveCenter}
+                  placeholder={t('certifications.whereYouPlanToTrain')}
+                  placeholderTextColor={colors.textSecondary}
+                />
+              </View>
+            </ScrollView>
+
+            <View style={[styles.modalFooter, { borderTopColor: colors.border }]}>
+              <Pressable
+                style={[styles.modalBtn, styles.modalBtnSecondary, { borderColor: colors.border }]}
+                onPress={() => {
+                  setShowAddWishlistModal(false);
+                  setShowWishlistCoursePickerModal(false);
+                  setWishlistCourse(null);
+                  setWishlistDiveCenter('');
+                  setEditingWishlistItem(null);
+                  setSelectedAgency(null);
+                  setAgencyCourses([]);
+                }}
+              >
+                <Text style={[styles.modalBtnText, { color: colors.text }]}>{t('common.cancel')}</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.modalBtn, styles.modalBtnPrimary, { backgroundColor: colors.primary, opacity: wishlistCourse ? 1 : 0.5 }]}
+                onPress={handleAddToWishlist}
+                disabled={saving || !wishlistCourse}
+              >
+                {saving ? (
+                  <ActivityIndicator size="small" color="#FFF" />
+                ) : (
+                  <Text style={[styles.modalBtnText, { color: '#FFF' }]}>
+                    {editingWishlistItem ? t('certifications.saveChanges') : t('certifications.addToWishlist')}
+                  </Text>
+                )}
+              </Pressable>
+            </View>
+
+            {/* Wishlist Course Picker Overlay (rendered inside the same Modal to avoid nested-Modal touch issues on iOS) */}
+            {showWishlistCoursePickerModal && (
+              <View
+                style={[
+                  StyleSheet.absoluteFillObject,
+                  { backgroundColor: colors.surface, borderRadius: 16, overflow: 'hidden' },
+                ]}
+              >
+                <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
+                  <Pressable onPress={() => {
+                    if (selectedAgency && agencyCourses.length > 0) {
+                      setAgencyCourses([]);
+                      setSelectedAgency(null);
+                    } else {
+                      setShowWishlistCoursePickerModal(false);
+                      setSelectedAgency(null);
+                      setAgencyCourses([]);
+                    }
+                  }} hitSlop={10}>
+                    <Feather name="arrow-left" size={24} color={colors.text} />
+                  </Pressable>
+                  <Text style={[styles.modalTitle, { color: colors.text }]}>
+                    {selectedAgency && agencyCourses.length > 0 ? selectedAgency.name + ' ' + t('certifications.courses') : t('certifications.selectAgency')}
+                  </Text>
+                  <Pressable onPress={() => {
+                    setShowWishlistCoursePickerModal(false);
+                    setSelectedAgency(null);
+                    setAgencyCourses([]);
+                  }} hitSlop={10}>
+                    <Feather name="x" size={24} color={colors.text} />
+                  </Pressable>
+                </View>
+
+                <ScrollView style={styles.modalBody} keyboardShouldPersistTaps="handled">
                   {!selectedAgency ? (
-                    agencies.map((agency) => (
+                    agencies.length === 0 ? (
+                      <View style={{ padding: 20, alignItems: 'center' }}>
+                        <ActivityIndicator size="small" color={colors.primary} />
+                        <Text style={{ color: colors.textSecondary, marginTop: 8 }}>{t('certifications.loadingAgencies')}</Text>
+                      </View>
+                    ) : (
+                      agencies.map((agency) => (
+                        <Pressable
+                          key={agency.id}
+                          style={[styles.agencyRow, { borderBottomColor: colors.border }]}
+                          onPress={() => handleAgencySelect(agency)}
+                        >
+                          <View>
+                            <Text style={[styles.agencyRowName, { color: colors.text }]}>{agency.name}</Text>
+                            <Text style={[styles.agencyRowFullName, { color: colors.textSecondary }]}>{agency.full_name}</Text>
+                          </View>
+                          <Feather name="chevron-right" size={20} color={colors.textSecondary} />
+                        </Pressable>
+                      ))
+                    )
+                  ) : agencyCourses.length === 0 ? (
+                    <View style={{ padding: 20, alignItems: 'center' }}>
+                      <ActivityIndicator size="small" color={colors.primary} />
+                      <Text style={{ color: colors.textSecondary, marginTop: 8 }}>{t('certifications.loadingCourses')}</Text>
+                    </View>
+                  ) : (
+                    agencyCourses.map((course) => (
                       <Pressable
-                        key={agency.id}
-                        style={[styles.agencyRow, { borderBottomColor: colors.border }]}
-                        onPress={() => handleAgencySelect(agency)}
+                        key={course.id}
+                        style={[styles.courseRow, { borderBottomColor: colors.border }]}
+                        onPress={() => handleSelectWishlistCourse(course)}
                       >
-                        <View>
-                          <Text style={[styles.agencyName, { color: colors.text }]}>{agency.name}</Text>
-                          {agency.full_name && (
-                            <Text style={[styles.agencyFullName, { color: colors.textSecondary }]}>{agency.full_name}</Text>
-                          )}
+                        <View style={{ flex: 1 }}>
+                          <Text style={[styles.courseRowName, { color: colors.text }]}>{course.name}</Text>
+                          <View style={styles.courseRowMeta}>
+                            <View style={[styles.levelBadgeSmall, { backgroundColor: getLevelColor(course.level) + '20' }]}>
+                              <Text style={[styles.levelBadgeTextSmall, { color: getLevelColor(course.level) }]}>
+                                {course.level}
+                              </Text>
+                            </View>
+                            {course.category && (
+                              <Text style={[styles.courseCategory, { color: colors.textSecondary }]}>{course.category}</Text>
+                            )}
+                          </View>
                         </View>
                         <Feather name="chevron-right" size={20} color={colors.textSecondary} />
                       </Pressable>
                     ))
-                  ) : (
-                    <>
-                      <Pressable
-                        style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}
-                        onPress={() => { setSelectedAgency(null); setAgencyCourses([]); }}
-                      >
-                        <Feather name="arrow-left" size={20} color={colors.primary} />
-                        <Text style={{ color: colors.primary, marginLeft: 8 }}>{t('certifications.backToAgencies')}</Text>
-                      </Pressable>
-                      {agencyCourses.map((course) => (
-                        <Pressable
-                          key={course.id}
-                          style={[styles.courseRow, { borderBottomColor: colors.border }]}
-                          onPress={() => handleSelectWishlistCourse(course)}
-                        >
-                          <View style={{ flex: 1 }}>
-                            <Text style={[styles.courseName, { color: colors.text }]}>{course.name}</Text>
-                            <Text style={[styles.courseLevel, { color: colors.textSecondary }]}>{course.level}</Text>
-                          </View>
-                          <Feather name="chevron-right" size={20} color={colors.textSecondary} />
-                        </Pressable>
-                      ))}
-                    </>
                   )}
-                </>
-              ) : (
-                <>
-                  <View style={[styles.selectedCourseCard, { backgroundColor: colors.background, borderColor: colors.border }]}>
-                    <Text style={[styles.agencyName, { color: colors.primary }]}>{wishlistCourse.agency_name}</Text>
-                    <Text style={[styles.courseName, { color: colors.text, fontSize: 18 }]}>{wishlistCourse.name}</Text>
-                    {!editingWishlistItem && (
-                      <Pressable
-                        onPress={() => setWishlistCourse(null)}
-                        style={{ marginTop: 8 }}
-                      >
-                        <Text style={{ color: colors.primary }}>{t('certifications.changeCourse')}</Text>
-                      </Pressable>
-                    )}
-                  </View>
-                  
-                  <View style={styles.formGroup}>
-                    <Text style={[styles.formLabel, { color: colors.text }]}>{t('certifications.diveCenterOptional')}</Text>
-                    <TextInput
-                      style={[styles.formInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
-                      value={wishlistDiveCenter}
-                      onChangeText={setWishlistDiveCenter}
-                      placeholder={t('certifications.whereYouPlanToTrain')}
-                      placeholderTextColor={colors.textSecondary}
-                    />
-                  </View>
-                </>
-              )}
-            </ScrollView>
-            
-            {wishlistCourse && (
-              <View style={[styles.modalFooter, { borderTopColor: colors.border }]}>
-                <Pressable
-                  style={[styles.modalBtn, styles.modalBtnSecondary, { borderColor: colors.border }]}
-                  onPress={() => {
-                    setShowAddWishlistModal(false);
-                    setWishlistCourse(null);
-                    setWishlistDiveCenter('');
-                    setEditingWishlistItem(null);
-                    setSelectedAgency(null);
-                    setAgencyCourses([]);
-                  }}
-                >
-                  <Text style={[styles.modalBtnText, { color: colors.text }]}>{t('common.cancel')}</Text>
-                </Pressable>
-                <Pressable
-                  style={[styles.modalBtn, styles.modalBtnPrimary, { backgroundColor: colors.primary }]}
-                  onPress={handleAddToWishlist}
-                  disabled={saving}
-                >
-                  {saving ? (
-                    <ActivityIndicator size="small" color="#FFF" />
-                  ) : (
-                    <Text style={[styles.modalBtnText, { color: '#FFF' }]}>
-                      {editingWishlistItem ? t('certifications.saveChanges') : t('certifications.addToWishlist')}
-                    </Text>
-                  )}
-                </Pressable>
+                </ScrollView>
               </View>
             )}
           </View>
