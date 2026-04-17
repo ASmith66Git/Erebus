@@ -5611,11 +5611,21 @@ app.post('/api/dive-logs/:id/merge-file', authenticateToken, upload.single('file
       // Insert new gases (only if file has gases)
       if (dto.gases && dto.gases.length > 0) {
         await client.query('DELETE FROM dive_log_gases WHERE dive_log_id = $1', [id]);
-        for (const gas of dto.gases) {
+        for (let i = 0; i < dto.gases.length; i++) {
+          const gas = dto.gases[i];
+          const slot = (gas.gas_slot !== undefined && gas.gas_slot !== null) ? gas.gas_slot : i;
+          const o2 = gas.o2_percent ?? 21;
+          const he = gas.he_percent ?? 0;
+          const n2 = gas.n2_percent ?? (100 - o2 - he);
           await client.query(
-            `INSERT INTO dive_log_gases (dive_log_id, gas_name, o2_percent, he_percent, start_pressure_bar, end_pressure_bar, is_active)
-             VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-            [id, gas.gas_name, gas.o2_percent, gas.he_percent || 0, gas.start_pressure_bar, gas.end_pressure_bar, gas.is_active !== false]
+            `INSERT INTO dive_log_gases (dive_log_id, gas_slot, name, o2_percent, he_percent, n2_percent,
+              is_diluent, is_bailout, tank_size_liters, work_pressure_bar, start_pressure_bar, end_pressure_bar, transmitter_serial)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
+            [id, slot, gas.name || gas.gas_name || null, o2, he, n2,
+              gas.is_diluent || false, gas.is_bailout || false,
+              gas.tank_size_liters || null, gas.work_pressure_bar || null,
+              gas.start_pressure_bar || null, gas.end_pressure_bar || null,
+              gas.transmitter_serial || null]
           );
         }
       }
@@ -5624,10 +5634,16 @@ app.post('/api/dive-logs/:id/merge-file', authenticateToken, upload.single('file
       if (dto.events && dto.events.length > 0) {
         await client.query('DELETE FROM dive_log_events WHERE dive_log_id = $1', [id]);
         for (const event of dto.events) {
+          let payload = event.payload || null;
+          if (event.event_description) {
+            payload = { ...(payload || {}), description: event.event_description };
+          }
           await client.query(
-            `INSERT INTO dive_log_events (dive_log_id, event_time_seconds, event_type, event_value, event_description)
-             VALUES ($1, $2, $3, $4, $5)`,
-            [id, event.event_time_seconds, event.event_type, event.event_value, event.event_description]
+            `INSERT INTO dive_log_events (dive_log_id, event_time_seconds, event_type, event_subtype, event_value, gas_slot, payload)
+             VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+            [id, event.event_time_seconds, event.event_type, event.event_subtype || null,
+              event.event_value || null, event.gas_slot ?? null,
+              payload ? JSON.stringify(payload) : null]
           );
         }
       }
@@ -5636,10 +5652,13 @@ app.post('/api/dive-logs/:id/merge-file', authenticateToken, upload.single('file
       if (dto.tank_pressures && dto.tank_pressures.length > 0) {
         await client.query('DELETE FROM dive_log_tank_pressures WHERE dive_log_id = $1', [id]);
         for (const tp of dto.tank_pressures) {
+          const slot = (tp.gas_slot !== undefined && tp.gas_slot !== null)
+            ? tp.gas_slot
+            : (tp.tank_index || 0);
           await client.query(
-            `INSERT INTO dive_log_tank_pressures (dive_log_id, sample_time_seconds, tank_index, pressure_bar)
-             VALUES ($1, $2, $3, $4)`,
-            [id, tp.sample_time_seconds, tp.tank_index || 0, tp.pressure_bar]
+            `INSERT INTO dive_log_tank_pressures (dive_log_id, gas_slot, sample_time_seconds, pressure_bar, transmitter_serial)
+             VALUES ($1, $2, $3, $4, $5)`,
+            [id, slot, tp.sample_time_seconds, tp.pressure_bar, tp.transmitter_serial || null]
           );
         }
       }
