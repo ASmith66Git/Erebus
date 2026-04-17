@@ -5638,11 +5638,23 @@ app.post('/api/dive-logs/:id/merge-file', authenticateToken, upload.single('file
           if (event.event_description) {
             payload = { ...(payload || {}), description: event.event_description };
           }
+          // event_value column is integer; if the parser supplied a non-integer
+          // (e.g. PO2 setpoints like 0.7), stash the raw value in payload and
+          // store NULL in the integer column to avoid a type error.
+          let eventValueInt = null;
+          const rawValue = event.event_value;
+          if (rawValue !== null && rawValue !== undefined) {
+            if (Number.isInteger(rawValue)) {
+              eventValueInt = rawValue;
+            } else if (typeof rawValue === 'number') {
+              payload = { ...(payload || {}), value: rawValue };
+            }
+          }
           await client.query(
             `INSERT INTO dive_log_events (dive_log_id, event_time_seconds, event_type, event_subtype, event_value, gas_slot, payload)
              VALUES ($1, $2, $3, $4, $5, $6, $7)`,
             [id, event.event_time_seconds, event.event_type, event.event_subtype || null,
-              event.event_value ?? null, event.gas_slot ?? null,
+              eventValueInt, event.gas_slot ?? null,
               payload ? JSON.stringify(payload) : null]
           );
         }
