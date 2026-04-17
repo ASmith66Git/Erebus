@@ -415,6 +415,29 @@ async function initDatabase() {
     await client.query(`ALTER TABLE dive_logs ADD COLUMN IF NOT EXISTS source_file_name TEXT;`).catch(() => {});
 
     await client.query(`
+      CREATE TABLE IF NOT EXISTS dive_log_samples (
+        id SERIAL PRIMARY KEY,
+        dive_log_id INTEGER REFERENCES dive_logs(id) ON DELETE CASCADE,
+        sample_time_seconds INTEGER,
+        depth_meters NUMERIC,
+        temperature_celsius NUMERIC,
+        metrics JSONB
+      );
+    `).catch(() => {});
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_dive_log_samples_dive_log_id ON dive_log_samples(dive_log_id);`).catch(() => {});
+    await client.query(`ALTER TABLE dive_log_samples ADD COLUMN IF NOT EXISTS sample_time_seconds INTEGER;`).catch(() => {});
+    await client.query(`ALTER TABLE dive_log_samples ADD COLUMN IF NOT EXISTS depth_meters NUMERIC;`).catch(() => {});
+    await client.query(`ALTER TABLE dive_log_samples ADD COLUMN IF NOT EXISTS temperature_celsius NUMERIC;`).catch(() => {});
+    await client.query(`ALTER TABLE dive_log_samples ADD COLUMN IF NOT EXISTS ndl_seconds INTEGER;`).catch(() => {});
+    await client.query(`ALTER TABLE dive_log_samples ADD COLUMN IF NOT EXISTS gf99_percent NUMERIC;`).catch(() => {});
+    await client.query(`ALTER TABLE dive_log_samples ADD COLUMN IF NOT EXISTS ceiling_meters NUMERIC;`).catch(() => {});
+    await client.query(`ALTER TABLE dive_log_samples ADD COLUMN IF NOT EXISTS tts_seconds INTEGER;`).catch(() => {});
+    await client.query(`ALTER TABLE dive_log_samples ADD COLUMN IF NOT EXISTS ppo2_bar NUMERIC;`).catch(() => {});
+    await client.query(`ALTER TABLE dive_log_samples ADD COLUMN IF NOT EXISTS sac_lpm NUMERIC;`).catch(() => {});
+    await client.query(`ALTER TABLE dive_log_samples ADD COLUMN IF NOT EXISTS heartrate_bpm INTEGER;`).catch(() => {});
+    await client.query(`ALTER TABLE dive_log_samples ADD COLUMN IF NOT EXISTS cns_percent NUMERIC;`).catch(() => {});
+
+    await client.query(`
       CREATE TABLE IF NOT EXISTS user_dive_computers (
         id SERIAL PRIMARY KEY,
         user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
