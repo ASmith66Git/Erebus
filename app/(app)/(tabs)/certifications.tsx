@@ -1147,85 +1147,94 @@ export default function CertificationsScreen() {
                 )}
               </Pressable>
             </View>
-          </View>
-        </View>
-      </Modal>
 
-      {/* Course Picker Modal */}
-      <Modal visible={showCoursePickerModal} animationType="slide" transparent>
-        <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
-          <View style={[styles.modalContent, { backgroundColor: colors.surface, height: '80%' }]}>
-            <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
-              <Pressable onPress={() => {
-                if (selectedAgency && agencyCourses.length > 0) {
-                  setAgencyCourses([]);
-                  setSelectedAgency(null);
-                } else {
-                  setShowCoursePickerModal(false);
-                  setSelectedAgency(null);
-                  setAgencyCourses([]);
-                }
-              }}>
-                <Feather name="arrow-left" size={24} color={colors.text} />
-              </Pressable>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>
-                {selectedAgency && agencyCourses.length > 0 ? selectedAgency.name + ' ' + t('certifications.courses') : t('certifications.selectAgency')}
-              </Text>
-              <View style={{ width: 24 }} />
-            </View>
-            
-            <ScrollView style={styles.modalBody}>
-              {!selectedAgency ? (
-                agencies.length === 0 ? (
-                  <View style={{ padding: 20, alignItems: 'center' }}>
-                    <ActivityIndicator size="small" color={colors.primary} />
-                    <Text style={{ color: colors.textSecondary, marginTop: 8 }}>{t('certifications.loadingAgencies')}</Text>
-                  </View>
-                ) : (
-                  agencies.map((agency) => (
-                    <Pressable
-                      key={agency.id}
-                      style={[styles.agencyRow, { borderBottomColor: colors.border }]}
-                      onPress={() => handleAgencySelect(agency)}
-                    >
-                      <View>
-                        <Text style={[styles.agencyRowName, { color: colors.text }]}>{agency.name}</Text>
-                        <Text style={[styles.agencyRowFullName, { color: colors.textSecondary }]}>{agency.full_name}</Text>
-                      </View>
-                      <Feather name="chevron-right" size={20} color={colors.textSecondary} />
-                    </Pressable>
-                  ))
-                )
-              ) : agencyCourses.length === 0 ? (
-                <View style={{ padding: 20, alignItems: 'center' }}>
-                  <ActivityIndicator size="small" color={colors.primary} />
-                  <Text style={{ color: colors.textSecondary, marginTop: 8 }}>{t('certifications.loadingCourses')}</Text>
-                </View>
-              ) : (
-                agencyCourses.map((course) => (
-                  <Pressable
-                    key={course.id}
-                    style={[styles.courseRow, { borderBottomColor: colors.border }]}
-                    onPress={() => handleCourseSelect(course)}
-                  >
-                    <View style={{ flex: 1 }}>
-                      <Text style={[styles.courseRowName, { color: colors.text }]}>{course.name}</Text>
-                      <View style={styles.courseRowMeta}>
-                        <View style={[styles.levelBadgeSmall, { backgroundColor: getLevelColor(course.level) + '20' }]}>
-                          <Text style={[styles.levelBadgeTextSmall, { color: getLevelColor(course.level) }]}>
-                            {course.level}
-                          </Text>
-                        </View>
-                        {course.category && (
-                          <Text style={[styles.courseCategory, { color: colors.textSecondary }]}>{course.category}</Text>
-                        )}
-                      </View>
-                    </View>
-                    <Feather name="check" size={20} color={colors.primary} style={{ opacity: 0 }} />
+            {/* Course Picker Overlay (rendered inside the same Modal to avoid nested-Modal touch issues on iOS) */}
+            {showCoursePickerModal && (
+              <View
+                style={[
+                  StyleSheet.absoluteFillObject,
+                  { backgroundColor: colors.surface, borderRadius: 16, overflow: 'hidden' },
+                ]}
+              >
+                <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
+                  <Pressable onPress={() => {
+                    if (selectedAgency && agencyCourses.length > 0) {
+                      setAgencyCourses([]);
+                      setSelectedAgency(null);
+                    } else {
+                      setShowCoursePickerModal(false);
+                      setSelectedAgency(null);
+                      setAgencyCourses([]);
+                    }
+                  }} hitSlop={10}>
+                    <Feather name="arrow-left" size={24} color={colors.text} />
                   </Pressable>
-                ))
-              )}
-            </ScrollView>
+                  <Text style={[styles.modalTitle, { color: colors.text }]}>
+                    {selectedAgency && agencyCourses.length > 0 ? selectedAgency.name + ' ' + t('certifications.courses') : t('certifications.selectAgency')}
+                  </Text>
+                  <Pressable onPress={() => {
+                    setShowCoursePickerModal(false);
+                    setSelectedAgency(null);
+                    setAgencyCourses([]);
+                  }} hitSlop={10}>
+                    <Feather name="x" size={24} color={colors.text} />
+                  </Pressable>
+                </View>
+
+                <ScrollView style={styles.modalBody} keyboardShouldPersistTaps="handled">
+                  {!selectedAgency ? (
+                    agencies.length === 0 ? (
+                      <View style={{ padding: 20, alignItems: 'center' }}>
+                        <ActivityIndicator size="small" color={colors.primary} />
+                        <Text style={{ color: colors.textSecondary, marginTop: 8 }}>{t('certifications.loadingAgencies')}</Text>
+                      </View>
+                    ) : (
+                      agencies.map((agency) => (
+                        <Pressable
+                          key={agency.id}
+                          style={[styles.agencyRow, { borderBottomColor: colors.border }]}
+                          onPress={() => handleAgencySelect(agency)}
+                        >
+                          <View>
+                            <Text style={[styles.agencyRowName, { color: colors.text }]}>{agency.name}</Text>
+                            <Text style={[styles.agencyRowFullName, { color: colors.textSecondary }]}>{agency.full_name}</Text>
+                          </View>
+                          <Feather name="chevron-right" size={20} color={colors.textSecondary} />
+                        </Pressable>
+                      ))
+                    )
+                  ) : agencyCourses.length === 0 ? (
+                    <View style={{ padding: 20, alignItems: 'center' }}>
+                      <ActivityIndicator size="small" color={colors.primary} />
+                      <Text style={{ color: colors.textSecondary, marginTop: 8 }}>{t('certifications.loadingCourses')}</Text>
+                    </View>
+                  ) : (
+                    agencyCourses.map((course) => (
+                      <Pressable
+                        key={course.id}
+                        style={[styles.courseRow, { borderBottomColor: colors.border }]}
+                        onPress={() => handleCourseSelect(course)}
+                      >
+                        <View style={{ flex: 1 }}>
+                          <Text style={[styles.courseRowName, { color: colors.text }]}>{course.name}</Text>
+                          <View style={styles.courseRowMeta}>
+                            <View style={[styles.levelBadgeSmall, { backgroundColor: getLevelColor(course.level) + '20' }]}>
+                              <Text style={[styles.levelBadgeTextSmall, { color: getLevelColor(course.level) }]}>
+                                {course.level}
+                              </Text>
+                            </View>
+                            {course.category && (
+                              <Text style={[styles.courseCategory, { color: colors.textSecondary }]}>{course.category}</Text>
+                            )}
+                          </View>
+                        </View>
+                        <Feather name="check" size={20} color={colors.primary} style={{ opacity: 0 }} />
+                      </Pressable>
+                    ))
+                  )}
+                </ScrollView>
+              </View>
+            )}
           </View>
         </View>
       </Modal>
