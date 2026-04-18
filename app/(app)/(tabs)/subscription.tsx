@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -25,6 +26,7 @@ export default function SubscriptionScreen() {
   const { colors } = useTheme();
   const { isTrialActive, trialDaysRemaining } = useAuth();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { customerInfo, isSubscribed, restore, isRestoring, refetch } = useSubscription();
   const [restoreMessage, setRestoreMessage] = useState<string | null>(null);
 
@@ -195,8 +197,12 @@ export default function SubscriptionScreen() {
 
   return (
     <ThemedBackground>
-      <View style={styles.header}>
-        <Pressable onPress={() => { if (router.canGoBack()) { router.back(); } else { router.replace('/(app)/(tabs)/profile'); } }} style={styles.backButton}>
+      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
+        <Pressable
+          onPress={() => { if (router.canGoBack()) { router.back(); } else { router.replace('/(app)/(tabs)/profile'); } }}
+          style={styles.backButton}
+          hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
+        >
           <Feather name="arrow-left" size={24} color={colors.text} />
         </Pressable>
         <Text style={[styles.headerTitle, { color: colors.text }]}>{t('subscription.title')}</Text>
