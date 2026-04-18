@@ -26,12 +26,18 @@
         "key": "force-rebuild-v6"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://expo-erebus--anthony606.replit.app"
+        "EXPO_PUBLIC_API_URL": "https://expo-erebus--anthony606.replit.app",
+        "EXPO_PUBLIC_REVENUECAT_IOS_API_KEY": "appl_fefLlLgUXEoGoEuvOLZDMabRenk",
+        "EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY": "goog_OPCPYAKwmwJvSQdpYqlgyoobrUy",
+        "EXPO_PUBLIC_REVENUECAT_TEST_API_KEY": "test_mKtTuejTqKLKfDoMVBaMdoDMtbI"
       }
     },
     "production": {
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://erebus.nammu-tech.com"
+        "EXPO_PUBLIC_API_URL": "https://erebus.nammu-tech.com",
+        "EXPO_PUBLIC_REVENUECAT_IOS_API_KEY": "appl_fefLlLgUXEoGoEuvOLZDMabRenk",
+        "EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY": "goog_OPCPYAKwmwJvSQdpYqlgyoobrUy",
+        "EXPO_PUBLIC_REVENUECAT_TEST_API_KEY": "test_mKtTuejTqKLKfDoMVBaMdoDMtbI"
       }
     }
   },
