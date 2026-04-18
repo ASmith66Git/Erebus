@@ -197,7 +197,7 @@ export default function SubscriptionScreen() {
 
   return (
     <ThemedBackground>
-      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
+      <View style={[styles.header, Platform.OS === 'ios' && { paddingTop: insets.top + 12 }]}>
         <Pressable
           onPress={() => { if (router.canGoBack()) { router.back(); } else { router.replace('/(app)/(tabs)/profile'); } }}
           style={styles.backButton}
