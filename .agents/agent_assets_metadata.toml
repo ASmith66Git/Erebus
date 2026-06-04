@@ -6,3 +6,9 @@ id = "BHYPGAwIhCcrNkC7wB3-B"
 uri = "file://assets/images/logo-source.svg"
 type = "image"
 title = "Logo (SVG)"
+
+[[outputs]]
+id = "xeQcJe-ApemkmvkS4ySI8"
+uri = "file://docs/libdivecomputer-shearwater-mapping.md"
+type = "text"
+title = "Shearwater (Perdix) → Erebus Data Mapping via libdivecomputer"
