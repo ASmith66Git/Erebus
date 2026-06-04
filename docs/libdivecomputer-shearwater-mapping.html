@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Shearwater (Perdix) → Erebus Data Mapping via libdivecomputer</title>
+<style>
+  :root { --red:#D22F00; --ink:#111; --muted:#555; --line:#e3e3e3; --bg:#fff; --code:#f5f5f5; }
+  * { box-sizing:border-box; }
+  body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+         color:var(--ink); background:var(--bg); line-height:1.6; max-width:880px;
+         margin:0 auto; padding:48px 28px 96px; }
+  h1 { font-size:1.9rem; line-height:1.25; border-bottom:3px solid var(--red); padding-bottom:.4em; }
+  h2 { font-size:1.3rem; margin-top:2.2em; border-bottom:1px solid var(--line); padding-bottom:.25em; }
+  h3 { font-size:1.05rem; margin-top:1.6em; color:var(--muted); }
+  p, li { font-size:.96rem; }
+  code { background:var(--code); padding:.12em .4em; border-radius:4px;
+         font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:.85em; }
+  blockquote { border-left:4px solid var(--red); margin:1.2em 0; padding:.4em 1em;
+               background:#fafafa; color:var(--muted); font-size:.9rem; }
+  table { border-collapse:collapse; width:100%; margin:1.1em 0; font-size:.88rem; }
+  th, td { border:1px solid var(--line); padding:.5em .7em; text-align:left; vertical-align:top; }
+  th { background:#fafafa; font-weight:600; }
+  tr:nth-child(even) td { background:#fcfcfc; }
+  hr { border:none; border-top:1px solid var(--line); margin:2.4em 0; }
+  .lead { color:var(--muted); font-size:1rem; }
+  strong { color:var(--ink); }
+  @media print { body { padding:0 12px; } a { color:inherit; text-decoration:none; } }
+</style>
+</head>
+<body>
+
+<h1>Shearwater (Perdix) → Erebus Data Mapping via libdivecomputer</h1>
+
+<p class="lead">How libdivecomputer decodes a Shearwater Perdix dive, why a download can
+return only summary fields (time / duration / depth) without the minute-by-minute
+profile, and how each decoded value maps to the Erebus <code>dive_logs</code> /
+<code>dive_log_samples</code> schema.</p>
+
+<blockquote>
+Reference source (authoritative): <code>src/shearwater_predator_parser.c</code>
+(the Shearwater Predator/Petrel parser). Erebus schema:
+<code>server/services/diveImportDTO.js</code>, <code>server/services/diveLogPersistence.js</code>.
+</blockquote>
+
+<hr />
+
+<h2>1. Root cause: libdivecomputer has two separate extraction APIs</h2>
+
+<p>When a downloaded dive is parsed, the data comes out through <strong>two completely
+different calls that do not overlap</strong>:</p>
+
+<table>
+<thead><tr><th>API call</th><th>What it returns</th><th>Maps to</th></tr></thead>
+<tbody>
+<tr><td><code>dc_parser_get_field()</code></td><td><strong>Summary only</strong> — divetime, max depth, gas mixes, tanks, atmospheric pressure, dive mode, deco model</td><td><code>dive_logs</code> header row</td></tr>
+<tr><td><code>dc_parser_samples_foreach()</code></td><td><strong>The minute-by-minute profile</strong> — every sample's depth / temp / ppO₂ / NDL / deco / CNS / tank pressure</td><td><code>dive_log_samples</code> rows</td></tr>
+</tbody>
+</table>
+
+<p><strong>Symptom → cause:</strong> "We get basic time, duration, depth, but none of the
+minute-by-minute data" is exactly what happens when the integration calls
+<code>get_field()</code> (and <code>get_datetime()</code>) but <strong>never registers a
+sample callback and calls <code>dc_parser_samples_foreach()</code></strong> — or calls it but
+discards the callback output. The profile is never emitted by <code>get_field</code>; it
+only ever arrives through the <code>samples_foreach</code> callback.</p>
+
+<p>UDDF import works because the UDDF importer (<code>parseUDDFSamples</code> →
+<code>dto.addSample(...)</code>) explicitly walks every <code>&lt;waypoint&gt;</code>. The
+libdivecomputer path needs the equivalent loop over <code>samples_foreach</code>.</p>
+
+<h2>2. How <code>samples_foreach</code> emits a sample</h2>
+
+<p>It does <strong>not</strong> hand over one struct per sample. It calls the callback
+<strong>multiple times per time-step</strong>, once per field, all sharing the same
+<code>sample.time</code>.</p>
+
+<p>Accumulator pattern (standard Subsurface / dctool approach):</p>
+<ul>
+<li>On <code>DC_SAMPLE_TIME</code> → flush the previous sample, start a new one.</li>
+<li>On every other <code>DC_SAMPLE_*</code> → set a field on the <em>current</em> sample.</li>
+</ul>
+
+<h3>Callback → Erebus <code>dive_log_samples</code> mapping</h3>
+
+<p>Erebus stores <code>sample_time_seconds</code>, <code>depth_meters</code>,
+<code>temperature_celsius</code>, plus a <code>metrics</code> JSON blob, with tank
+pressures and events in side tables.</p>
+
+<table>
+<thead><tr><th>libdivecomputer callback</th><th>Value (SI; already converted by the parser)</th><th>Erebus column / <code>metrics</code> key</th></tr></thead>
+<tbody>
+<tr><td><code>DC_SAMPLE_TIME</code></td><td>seconds</td><td><code>sample_time_seconds</code></td></tr>
+<tr><td><code>DC_SAMPLE_DEPTH</code></td><td>metres</td><td><code>depth_meters</code></td></tr>
+<tr><td><code>DC_SAMPLE_TEMPERATURE</code></td><td>°C</td><td><code>temperature_celsius</code></td></tr>
+<tr><td><code>DC_SAMPLE_PPO2</code></td><td>bar (<code>.value</code>; <code>.sensor</code>)</td><td><code>metrics.ppo2_bar</code></td></tr>
+<tr><td><code>DC_SAMPLE_SETPOINT</code></td><td>bar</td><td><code>metrics.setpoint_bar</code></td></tr>
+<tr><td><code>DC_SAMPLE_CNS</code></td><td>fraction (×100 for %)</td><td><code>metrics.cns_percent</code></td></tr>
+<tr><td><code>DC_SAMPLE_DECO</code> (<code>type = NDL</code>)</td><td><code>.time</code> seconds</td><td><code>metrics.ndl_seconds</code> (<code>/60</code> → <code>ndl_min</code>)</td></tr>
+<tr><td><code>DC_SAMPLE_DECO</code> (<code>type = DECOSTOP</code>)</td><td><code>.depth</code> m, <code>.time</code> s, <code>.tts</code> s</td><td><code>metrics.stop_depth_m</code>, <code>metrics.tts_seconds</code>, → <code>metrics.ceiling_meters</code></td></tr>
+<tr><td><code>DC_SAMPLE_GASMIX</code></td><td>gas index</td><td>event <code>gas_switch</code> + <code>gas_slot</code></td></tr>
+<tr><td><code>DC_SAMPLE_PRESSURE</code></td><td><code>.tank</code>, <code>.value</code> bar</td><td><code>dive_log_tank_pressures</code> row (<code>gas_slot</code>, <code>pressure_bar</code>)</td></tr>
+<tr><td><code>DC_SAMPLE_RBT</code></td><td>minutes</td><td><code>metrics</code> (gas time remaining)</td></tr>
+<tr><td><code>DC_SAMPLE_BEARING</code></td><td>degrees</td><td><code>metrics.bearing_deg</code></td></tr>
+<tr><td><code>DC_SAMPLE_EVENT</code></td><td>bookmark / alarm</td><td><code>dive_log_events</code> row</td></tr>
+</tbody>
+</table>
+
+<hr />
+
+<h2>3. Raw byte layout — Perdix (Petrel Native Format)</h2>
+
+<p>The Perdix is a <strong>Petrel-family</strong> device, so:</p>
+<ul>
+<li><code>samplesize = 0x20</code> (<strong>32 bytes</strong> per record).</li>
+<li><strong>PNF (Petrel Native Format) is active</strong> when the first two bytes ≠
+<code>0xFFFF</code>. In PNF, <code>pnf = 1</code>, so the record-type byte is at
+<code>data[offset]</code> and <strong>every field offset below is shifted by +1</strong>
+(this is what the <code>+ pnf</code> in the source means).</li>
+</ul>
+
+<p><strong>Sample interval:</strong> logversion ≥ 9 → <code>uint16_be(opening[5] + 23)</code> ms;
+otherwise the default is <strong>10000 ms (10 s)</strong>. Time accumulates
+<code>+= interval</code> on each dive-sample record — it is <em>not</em> stored per sample.</p>
+
+<p><strong>Record type</strong> at <code>data[offset]</code>:</p>
+
+<table>
+<thead><tr><th>Type</th><th>Meaning</th></tr></thead>
+<tbody>
+<tr><td><code>0x01</code></td><td>dive sample</td></tr>
+<tr><td><code>0x02</code></td><td>freedive sample (4× 8-byte sub-samples packed in 32 bytes)</td></tr>
+<tr><td><code>0x03</code></td><td>Avelo sample</td></tr>
+<tr><td><code>0xE1</code></td><td>extended record (extra tank pressures)</td></tr>
+<tr><td><code>0x30</code></td><td>info / bookmark event</td></tr>
+<tr><td><code>0xFF</code></td><td>final record</td></tr>
+</tbody>
+</table>
+
+<p>All-zero records are skipped.</p>
+
+<h3><code>0x01</code> dive-sample record (offsets relative to <code>offset + pnf</code>)</h3>
+
+<table>
+<thead><tr><th>Bytes</th><th>Field</th><th>Conversion</th></tr></thead>
+<tbody>
+<tr><td>+0..1</td><td>depth</td><td><code>uint16_be / 10</code> → m (metric)</td></tr>
+<tr><td>+2..3</td><td>deco stop depth</td><td><code>uint16_be</code> m; <code>0</code> ⇒ NDL</td></tr>
+<tr><td>+4..5</td><td>TTS</td><td><code>uint16_be × 60</code> → s</td></tr>
+<tr><td>+6</td><td>ppO₂ (CC, internal)</td><td><code>/100</code> → bar</td></tr>
+<tr><td>+7</td><td>O₂ %</td><td>gas-change detection</td></tr>
+<tr><td>+8</td><td>He %</td><td>gas-change detection</td></tr>
+<tr><td>+9</td><td>deco stop time</td><td><code>× 60</code> → s</td></tr>
+<tr><td>+11</td><td>status flags</td><td>bit <code>OC (0x10)</code> clear ⇒ CCR; also <code>SC</code>, <code>PPO2_EXTERNAL</code>, <code>SETPOINT_HIGH</code></td></tr>
+<tr><td>+12 / +14 / +15</td><td>external ppO₂ sensors 0 / 1 / 2</td><td><code>× calibration[n]</code> (only if calibrated)</td></tr>
+<tr><td>+13</td><td>temperature</td><td><code>signed char</code> °C (negative-fix: if &lt; 0, <code>+= 102</code>, clamp ≤ 0) — <strong>whole °C, not Kelvin</strong></td></tr>
+<tr><td>+18</td><td>setpoint (Petrel)</td><td><code>/100</code> → bar</td></tr>
+<tr><td>+19 &amp; +27</td><td>tank pressure (logv ≥ 7)</td><td>low 12 bits <code>× 2 psi</code>; <code>≥ 0xFFF0</code> = special code, ignore</td></tr>
+<tr><td>+21</td><td>RBT / gas time</td><td>minutes (<code>≥ 0xF0</code> = special code, ignore)</td></tr>
+<tr><td>+22</td><td>CNS (Petrel)</td><td><code>/100</code> → fraction</td></tr>
+</tbody>
+</table>
+
+<h3>Header / summary (PNF reads from <code>opening[]</code> / <code>closing[]</code> blocks)</h3>
+
+<table>
+<thead><tr><th>Field</th><th>Source</th><th>Conversion</th></tr></thead>
+<tbody>
+<tr><td>datetime</td><td><code>uint32_be(opening[0] + 12)</code></td><td>unix ticks</td></tr>
+<tr><td>divetime</td><td><code>uint24_be(closing[0] + 6)</code></td><td>seconds</td></tr>
+<tr><td>max depth</td><td><code>uint16_be(closing[0] + 4)</code></td><td><code>/10</code> → m</td></tr>
+<tr><td>gas mixes</td><td>O₂ / He bytes</td><td>percentages</td></tr>
+<tr><td>GF low / high</td><td><code>opening[0] + 4</code></td><td>values</td></tr>
+</tbody>
+</table>
+
+<hr />
+
+<h2>4. Important: this does NOT match the in-app TS decoder</h2>
+
+<p>The homegrown <code>services/protocols/shearwaterProtocol.ts</code> uses a
+<strong>different and incorrect</strong> sample layout (it reads depth at +2,
+temperature as <code>uint16 / 10 − 273.15</code> Kelvin at +8, ppO₂ at +10, etc.). The
+real Perdix PNF format is the table in §3 — temperature is a <em>signed byte in whole
+°C</em> at +13, depth is at +0, and so on.</p>
+
+<p>That mismatch is why the original react-plugin path produced wrong / empty profile
+data. <strong><code>src/shearwater_predator_parser.c</code> is the authoritative layout —
+trust it over the TS file.</strong></p>
+
+<hr />
+
+<h2>5. Bottom line</h2>
+
+<p>The profile is missing because the libdivecomputer integration isn't consuming
+<code>dc_parser_samples_foreach()</code>. To fill <code>dive_log_samples</code> the way
+UDDF does:</p>
+
+<ol>
+<li>Register a <code>dc_sample_callback_t</code>.</li>
+<li>Accumulate one sample per <code>DC_SAMPLE_TIME</code> boundary.</li>
+<li>Map each <code>DC_SAMPLE_*</code> to the columns / <code>metrics</code> keys in §2.</li>
+</ol>
+
+</body>
+</html>

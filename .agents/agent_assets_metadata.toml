@@ -11,4 +11,10 @@ title = "Logo (SVG)"
 id = "xeQcJe-ApemkmvkS4ySI8"
 uri = "file://docs/libdivecomputer-shearwater-mapping.md"
 type = "text"
-title = "Shearwater (Perdix) → Erebus Data Mapping via libdivecomputer"
+title = "Same doc (Markdown source)"
+
+[[outputs]]
+id = "iXXQjQ6b6FwPnhqUP8dTd"
+uri = "file://docs/libdivecomputer-shearwater-mapping.pdf"
+type = "pdf"
+title = "Shearwater (Perdix) → Erebus Data Mapping (PDF)"
