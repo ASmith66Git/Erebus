@@ -84,10 +84,6 @@ args = "API Server"
 task = "workflow.run"
 args = "iOS Build & Submit"
 
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "Docs Server"
-
 [[workflows.workflow]]
 name = "Expo Web"
 author = "agent"
@@ -122,18 +118,6 @@ outputType = "console"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "bash scripts/submit-ios.sh"
-
-[[workflows.workflow]]
-name = "Docs Server"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "python3 -m http.server 5000 --bind 0.0.0.0 --directory docs"
-waitForPort = 5000
-
-[workflows.workflow.metadata]
-outputType = "webview"
 
 [agent]
 expertMode = true
