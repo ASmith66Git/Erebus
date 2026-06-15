@@ -33,6 +33,9 @@
       }
     },
     "production": {
+      "ios": {
+        "credentialsSource": "local"
+      },
       "env": {
         "EXPO_PUBLIC_API_URL": "https://erebus.nammu-tech.com",
         "EXPO_PUBLIC_REVENUECAT_IOS_API_KEY": "appl_fefLlLgUXEoGoEuvOLZDMabRenk",

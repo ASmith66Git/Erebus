@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Build the project archive without invoking git (uses .easignore instead of
+# .gitignore). Required when building from the Replit environment, where direct
+# git operations are restricted.
+export EAS_NO_VCS=1
+
 echo "=== Erebus iOS Build & Submit ==="
 echo ""
 

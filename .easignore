@@ -1,38 +1,42 @@
-# Attached assets (screenshots, dev images)
-attached_assets/
+# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
 
-# Git
-.git/
-
-# Development files
-*.test.js
-*.test.ts
-*.spec.js
-*.spec.ts
-__tests__/
-
-# Documentation
-*.md
-!README.md
-
-# Node modules (EAS installs its own)
+# dependencies
 node_modules/
 
-# Build output
+# Expo
+.expo/
 dist/
+web-build/
+expo-env.d.ts
 
-# Temporary files
-*.log
-*.tmp
+# Native
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Metro
+.metro-health-check*
+
+# debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# macOS
 .DS_Store
+*.pem
 
-# IDE files
-.idea/
-.vscode/
+# local env files
+.env*.local
 
-# Replit specific
-.replit
-replit.nix
-.config/
-.local/
-.cache/
+# typescript
+*.tsbuildinfo
+
+app-example
+asc-api-key.p8
+ios/certs/
+credentials.json

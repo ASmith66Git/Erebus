@@ -38,3 +38,5 @@ yarn-error.*
 
 app-example
 asc-api-key.p8
+ios/certs/
+credentials.json

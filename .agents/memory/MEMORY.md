@@ -1,0 +1,1 @@
+- [iOS EAS credentials & builds on Replit](ios-eas-credentials.md) — EAS_NO_VCS=1 + .easignore to dodge git guard; mint cert+profile via ASC API; local credentials.json wiring.
