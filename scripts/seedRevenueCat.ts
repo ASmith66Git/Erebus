@@ -40,7 +40,7 @@ const ANNUAL_PRODUCT_USER_FACING_TITLE = "Premium Annual";
 const ANNUAL_PRODUCT_DURATION = "P1Y" as const;
 
 const APP_STORE_APP_NAME = "Erebus iOS";
-const APP_STORE_BUNDLE_ID = "com.erebus.diveapp";
+const APP_STORE_BUNDLE_ID = "com.leviathan-sys.erebus";
 const PLAY_STORE_APP_NAME = "Erebus Android";
 const PLAY_STORE_PACKAGE_NAME = "com.erebus.diveapp";
 

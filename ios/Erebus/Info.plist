@@ -28,7 +28,7 @@
         <key>CFBundleURLSchemes</key>
         <array>
           <string>myapp</string>
-          <string>com.erebus.diveapp</string>
+          <string>com.leviathan-sys.erebus</string>
         </array>
       </dict>
     </array>

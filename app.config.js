@@ -11,7 +11,7 @@ module.exports = {
     newArchEnabled: true,
     ios: {
       supportsTablet: true,
-      bundleIdentifier: "com.erebus.diveapp",
+      bundleIdentifier: "com.leviathan-sys.erebus",
       buildNumber: "93",
       infoPlist: {
         NSBluetoothAlwaysUsageDescription: "Erebus needs Bluetooth access to connect to your dive computer and download dive logs.",
