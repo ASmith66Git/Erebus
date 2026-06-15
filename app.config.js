@@ -2,6 +2,7 @@ module.exports = {
   expo: {
     name: "Erebus",
     slug: "erebus-dive-app",
+    owner: "leviathan-systems-ltd",
     version: "1.1.78",
     runtimeVersion: "1.1.74",
     orientation: "default",

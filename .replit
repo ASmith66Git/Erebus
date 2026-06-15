@@ -52,14 +52,6 @@ task = "shell.exec"
 args = "npx eas update --auto"
 
 [[workflows.workflow]]
-name = "EAS Publish Preview iOS"
-mode = "sequential"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "npx eas build --platform ios --profile preview"
-
-[[workflows.workflow]]
 name = "EAS Publish Preview Android"
 mode = "sequential"
 
@@ -83,6 +75,10 @@ args = "API Server"
 [[workflows.workflow.tasks]]
 task = "workflow.run"
 args = "iOS Build & Submit"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "EAS Publish Preview iOS"
 
 [[workflows.workflow]]
 name = "Expo Web"
@@ -118,6 +114,17 @@ outputType = "console"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "bash scripts/submit-ios.sh"
+
+[[workflows.workflow]]
+name = "EAS Publish Preview iOS"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npx eas build --platform ios --profile preview"
+
+[workflows.workflow.metadata]
+outputType = "console"
 
 [agent]
 expertMode = true
