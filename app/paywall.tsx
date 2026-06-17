@@ -262,16 +262,17 @@ export default function PaywallScreen() {
           {selectedPackage
             ? (() => {
                 const intro = selectedPackage.product.introPrice;
-                const period = selectedPackage.packageType === 'ANNUAL' || selectedPackage.identifier === '$rc_annual' ? 'year' : 'month';
+                const isAnnual = selectedPackage.packageType === 'ANNUAL' || selectedPackage.identifier === '$rc_annual';
+                const period = isAnnual ? 'year' : 'month';
                 const trialLabel = intro
                   ? `${intro.periodNumberOfUnits}-${intro.periodUnit.toLowerCase()}`
                   : '14-day';
-                return `Start your ${trialLabel} free trial, then ${selectedPackage.product.priceString}/${period}. Cancel before the trial ends and you will not be charged.`;
+                return `You are signing up for a ${trialLabel} free trial starting today. You will not be charged during the trial. After the trial, you will be billed ${selectedPackage.product.priceString}/${period} unless you cancel before the trial ends.`;
               })()
-            : '14-day free trial available for new subscribers.'
+            : 'You are signing up for a 14-day free trial starting today. You will not be charged during the trial period.'
           }{'\n\n'}{Platform.OS === 'ios'
-            ? 'Payment will be charged to your Apple ID account at confirmation of purchase. Subscription automatically renews unless cancelled at least 24 hours before the end of the current period. Your Apple ID account will be charged for renewal within 24 hours prior to the end of the current period. Manage or cancel subscriptions in your Apple ID account settings after purchase.'
-            : 'Payment will be charged to your Google Play account at confirmation of purchase. Subscription automatically renews unless cancelled at least 24 hours before the end of the current period. Manage or cancel subscriptions in Google Play after purchase.'
+            ? 'Payment will be charged to your Apple ID account at confirmation of purchase. Subscription automatically renews unless cancelled at least 24 hours before the end of the current period. Manage or cancel your subscription in Apple ID account settings at any time.'
+            : 'Payment will be charged to your Google Play account at confirmation of purchase. Subscription automatically renews unless cancelled at least 24 hours before the end of the current period. Manage or cancel your subscription in Google Play at any time.'
           }
         </Text>
 
@@ -297,9 +298,16 @@ export default function PaywallScreen() {
           {isPurchasing ? (
             <ActivityIndicator color="#FFF" />
           ) : (
-            <Text style={styles.subscribeButtonText}>Subscribe Now</Text>
+            <Text style={styles.subscribeButtonText}>
+              {selectedPackage?.product?.introPrice
+                ? `Start ${selectedPackage.product.introPrice.periodNumberOfUnits}-${selectedPackage.product.introPrice.periodUnit.toLowerCase().replace('day','Day').replace('week','Week').replace('month','Month')} Free Trial`
+                : 'Subscribe Now'}
+            </Text>
           )}
         </Pressable>
+        <Text style={[styles.cancelAnytime, { color: colors.textSecondary }]}>
+          Cancel anytime — no charge until your free trial ends
+        </Text>
 
         <Pressable
           style={[styles.restoreButton]}
@@ -526,6 +534,13 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlign: 'center',
     lineHeight: 18,
+  },
+  cancelAnytime: {
+    fontSize: 13,
+    textAlign: 'center',
+    marginTop: 8,
+    marginBottom: 4,
+    fontWeight: '500',
   },
   modalOverlay: {
     flex: 1,
