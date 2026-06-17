@@ -2081,6 +2081,22 @@ app.delete('/api/user/account', authenticateToken, async (req, res) => {
 
     await client.query('COMMIT');
 
+    // Convert any stored URL (relative path OR full https://) to an object-storage key.
+    // Relative paths like /objects/abc or bucket/abc are used as-is.
+    // Full https:// URLs (e.g. from older upload flows or GCS signed URLs) have their
+    // /objects/... path portion extracted.  Unrecognised or external URLs return null.
+    const toStorageKey = (url) => {
+      if (!url) return null;
+      if (!url.startsWith('http')) return url; // already a relative key
+      try {
+        const parsed = new URL(url);
+        const match = parsed.pathname.match(/\/objects\/.+/);
+        return match ? match[0] : null;
+      } catch {
+        return null;
+      }
+    };
+
     // Best-effort object storage cleanup after the transaction succeeds
     const keys = [
       userRow.rows[0]?.profile_image,
@@ -2088,7 +2104,7 @@ app.delete('/api/user/account', authenticateToken, async (req, res) => {
       ...buddyPhotos.rows.map(r => r.photo_url),
       ...siteImages.rows.map(r => r.image_url),
       ...userPhotos.rows.flatMap(r => [r.image_url, r.thumbnail_url]),
-    ].filter(k => k && !k.startsWith('http'));
+    ].map(toStorageKey).filter(Boolean);
 
     if (keys.length > 0) {
       try {
