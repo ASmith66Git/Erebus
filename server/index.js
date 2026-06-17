@@ -1336,11 +1336,10 @@ app.post('/api/auth/signup', async (req, res) => {
     
     const hashedPassword = await bcrypt.hash(password, 10);
     const now = new Date();
-    const trialEndsAt = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
     
     const result = await pool.query(
-      'INSERT INTO users (email, password, first_name, last_name, age, sex, privacy_accepted_at, terms_accepted_at, trial_ends_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id, email, first_name, last_name, role, age, sex, trial_ends_at',
-      [email.toLowerCase(), hashedPassword, firstName || null, lastName || null, age || null, sex || null, now, now, trialEndsAt]
+      'INSERT INTO users (email, password, first_name, last_name, age, sex, privacy_accepted_at, terms_accepted_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, email, first_name, last_name, role, age, sex, trial_ends_at',
+      [email.toLowerCase(), hashedPassword, firstName || null, lastName || null, age || null, sex || null, now, now]
     );
     
     const user = result.rows[0];

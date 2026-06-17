@@ -22,14 +22,8 @@ import ServicesGrid from '@/components/ServicesGrid';
 export default function PaywallScreen() {
   const { colors } = useTheme();
   const router = useRouter();
-  const { user, isAdmin, isTrialActive } = useAuth();
+  const { user, isAdmin } = useAuth();
   const { t } = useTranslation();
-
-  useEffect(() => {
-    if (isTrialActive && !isAdmin) {
-      router.replace('/(app)/(tabs)');
-    }
-  }, [isTrialActive, isAdmin, router]);
 
   const {
     offerings,
