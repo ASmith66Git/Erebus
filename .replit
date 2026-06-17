@@ -147,7 +147,7 @@ REVENUECAT_APPLE_APP_STORE_APP_ID = "app08f17c4f16"
 REVENUECAT_GOOGLE_PLAY_STORE_APP_ID = "appcc3038417c"
 
 [deployment]
-deploymentTarget = "autoscale"
+deploymentTarget = "vm"
 run = ["node", "server/index.js"]
 build = ["bash", "-c", "npx expo export --platform web"]
 
