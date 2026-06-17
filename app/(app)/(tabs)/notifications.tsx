@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Switch, Platform, Linking, Alert, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { getApiUrl } from '@/utils/apiConfig';
@@ -201,7 +202,7 @@ export default function NotificationsScreen() {
   if (loading) {
     return (
       <ThemedBackground>
-        <PageHeader title={t('notifications.title')} showBack />
+        <PageHeader title={t('notifications.title')} showBack onBack={() => router.replace('/(app)/(tabs)/profile')} />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
@@ -211,7 +212,7 @@ export default function NotificationsScreen() {
 
   return (
     <ThemedBackground>
-      <PageHeader title={t('notifications.title')} showBack />
+      <PageHeader title={t('notifications.title')} showBack onBack={() => router.replace('/(app)/(tabs)/profile')} />
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={[styles.section, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('notifications.pushNotifications')}</Text>

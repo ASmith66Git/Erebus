@@ -13,6 +13,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -389,7 +390,7 @@ export default function HelpSupportScreen() {
 
   return (
     <ThemedBackground>
-      <PageHeader title={t('support.title')} showBack />
+      <PageHeader title={t('support.title')} showBack onBack={() => router.replace('/(app)/(tabs)/profile')} />
       <View style={styles.container}>
         {loading ? (
           <View style={styles.loadingContainer}>

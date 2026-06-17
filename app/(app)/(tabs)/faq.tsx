@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { router } from 'expo-router';
 import { useTheme } from '@/contexts/ThemeContext';
 import PageHeader from '@/components/PageHeader';
 import ThemedBackground from '@/components/ThemedBackground';
@@ -81,7 +82,7 @@ export default function FAQScreen() {
 
   return (
     <ThemedBackground style={styles.container}>
-      <PageHeader title={t('faq.title')} showBack />
+      <PageHeader title={t('faq.title')} showBack onBack={() => router.replace('/(app)/(tabs)/profile')} />
       
       <View style={styles.categoryScrollWrapper}>
         <ScrollView 
