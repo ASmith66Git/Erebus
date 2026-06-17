@@ -2042,7 +2042,7 @@ app.delete('/api/user/account', authenticateToken, async (req, res) => {
     await client.query('BEGIN');
 
     // Collect object storage keys before deletion (best-effort cleanup)
-    const [userRow, certImages, buddyPhotos] = await Promise.all([
+    const [userRow, certImages, buddyPhotos, siteImages] = await Promise.all([
       client.query('SELECT profile_image FROM users WHERE id = $1', [userId]),
       client.query(
         `SELECT ci.image_url FROM certification_images ci
@@ -2054,12 +2054,21 @@ app.delete('/api/user/account', authenticateToken, async (req, res) => {
         'SELECT photo_url FROM dive_buddies WHERE user_id = $1 AND photo_url IS NOT NULL',
         [userId]
       ),
+      client.query(
+        `SELECT dsi.image_url FROM dive_site_images dsi
+         JOIN dive_sites ds ON dsi.dive_site_id = ds.id
+         WHERE ds.user_id = $1 AND dsi.image_url IS NOT NULL AND dsi.is_stock = FALSE`,
+        [userId]
+      ),
     ]);
 
     // Explicitly delete tables that may not have ON DELETE CASCADE on user_id
     await client.query('DELETE FROM dive_logs WHERE user_id = $1', [userId]);
     await client.query('DELETE FROM dive_buddies WHERE user_id = $1', [userId]);
     await client.query('DELETE FROM support_conversations WHERE user_id = $1', [userId]);
+    // dive_sites has ON DELETE SET NULL; we must delete the rows explicitly so
+    // dive_site_images (which cascade from dive_sites) are also removed
+    await client.query('DELETE FROM dive_sites WHERE user_id = $1', [userId]);
 
     // Delete the user — all other tables with REFERENCES users(id) ON DELETE CASCADE
     // are handled automatically by PostgreSQL
@@ -2072,6 +2081,7 @@ app.delete('/api/user/account', authenticateToken, async (req, res) => {
       userRow.rows[0]?.profile_image,
       ...certImages.rows.map(r => r.image_url),
       ...buddyPhotos.rows.map(r => r.photo_url),
+      ...siteImages.rows.map(r => r.image_url),
     ].filter(k => k && !k.startsWith('http'));
 
     if (keys.length > 0) {
@@ -9372,6 +9382,70 @@ app.delete('/api/compressors/:compressorId/usage/:usageId', authenticateToken, a
   } finally {
     client.release();
   }
+});
+
+// Public legal pages — required for App Store / Play Store compliance review
+const legalHtmlShell = (title, bodyHtml) => `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${title} — Erebus</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 780px; margin: 40px auto; padding: 0 20px; color: #111; line-height: 1.65; }
+  h1 { font-size: 28px; margin-bottom: 6px; } h2 { font-size: 18px; margin-top: 32px; color: #D22F00; }
+  p, li { font-size: 15px; } ul { padding-left: 20px; } a { color: #D22F00; }
+  .meta { color: #666; font-size: 13px; margin-bottom: 28px; font-style: italic; }
+</style>
+</head>
+<body>${bodyHtml}</body>
+</html>`;
+
+app.get('/privacy', (req, res) => {
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(legalHtmlShell('Privacy Policy', `
+    <h1>Privacy Policy</h1>
+    <p class="meta">Last Updated: January 20, 2026</p>
+    <p>At Erebus, we believe your dive data is personal. Whether it's your bottom time, your gas mixes, or your favorite dive sites, that information belongs to you. This policy outlines how we handle your data with a "user-first" approach.</p>
+    <h2>1. Data Ownership &amp; Minimization</h2>
+    <p>You own your data. We follow a strict principle of Data Minimization: we only collect what is strictly necessary to run the app.</p>
+    <ul>
+      <li><strong>Logs &amp; Plans:</strong> Stored to provide the core service.</li>
+      <li><strong>Location Data:</strong> Only used to log dive sites at your request.</li>
+      <li><strong>Health Data:</strong> If you sync dive computer data (e.g., heart rate), this is used only for your personal log history and is never shared.</li>
+    </ul>
+    <h2>2. GDPR (European Union) Compliance</h2>
+    <p>If you are located in the EEA, the GDPR gives you specific rights including access, rectification, erasure (right to be forgotten), and data portability. We process your data based on Contractual Necessity and Consent.</p>
+    <h2>3. CCPA/CPRA (California, USA) Compliance</h2>
+    <p>California residents have the right to know what data we collect, the right to deletion, and confirmation that we do not sell or share personal information for cross-contextual behavioral advertising.</p>
+    <h2>4. Automated Decision-Making</h2>
+    <p>We do not use automated algorithms to make significant decisions affecting your legal or financial status. All decompression and gas planning tools are informational mathematical models only.</p>
+    <h2>5. How to Exercise Your Rights</h2>
+    <p>To request a copy of your data, request deletion, or correct an error, email us at: <a href="mailto:privacy@erebusdive.com">privacy@erebusdive.com</a>. We will respond within 30 days.</p>
+    <h2>6. Data Security</h2>
+    <p>We use industry-standard encryption to protect your dive logs. We do not store your data longer than necessary to provide the service or until you request its deletion. You may delete your account and all associated data at any time from the app's Profile screen.</p>
+  `));
+});
+
+app.get('/terms', (req, res) => {
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(legalHtmlShell('Terms & Conditions', `
+    <h1>Terms &amp; Conditions</h1>
+    <p class="meta">Last Updated: January 20, 2026</p>
+    <p>Welcome to Erebus. By downloading or using the Erebus app you agree to these Terms. Please read them carefully.</p>
+    <h2>1. Use of the App</h2>
+    <p>Erebus is a dive management tool intended for informational purposes only. Dive planning and decompression calculations provided by the app are based on standard mathematical models (Bühlmann ZHL-16C) and must not be used as a substitute for professional dive training, certification, or in-water judgement.</p>
+    <h2>2. Subscriptions &amp; Billing</h2>
+    <p>Erebus offers monthly and annual auto-renewing subscriptions with a 14-day free trial for new users. Payment is charged to your Apple ID or Google Play account at confirmation of purchase. Subscriptions automatically renew unless cancelled at least 24 hours before the end of the current period. Manage or cancel at any time in your device's account settings.</p>
+    <h2>3. User Content</h2>
+    <p>You retain ownership of all dive data you create in Erebus. You grant us a limited licence to store and serve your content solely to provide the app's functionality. You may export or delete your data at any time.</p>
+    <h2>4. Limitation of Liability</h2>
+    <p>Erebus and Leviathan Systems Ltd are not liable for any personal injury, death, or property damage arising from reliance on information provided by the app. Always dive within your training and certification limits.</p>
+    <h2>5. Account Termination</h2>
+    <p>You may delete your account at any time from the Profile screen. Upon deletion, all your data is permanently removed from our servers. We may suspend accounts that violate these Terms.</p>
+    <h2>6. Contact</h2>
+    <p>Questions or concerns? Email <a href="mailto:support@erebusdive.com">support@erebusdive.com</a>.</p>
+  `));
 });
 
 if (process.env.NODE_ENV === 'production' || process.env.PORT) {

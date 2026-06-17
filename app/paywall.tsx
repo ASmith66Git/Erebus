@@ -289,10 +289,17 @@ export default function PaywallScreen() {
         </Pressable>
 
         <Text style={[styles.disclaimer, { color: colors.textSecondary }]}>
-          {Platform.OS === 'ios'
+          {selectedPackage
+            ? `Start your 14-day free trial, then ${selectedPackage.product.priceString}/${
+                selectedPackage.packageType === 'ANNUAL' || selectedPackage.identifier === '$rc_annual'
+                  ? 'year'
+                  : 'month'
+              }. Cancel before the trial ends and you will not be charged.`
+            : '14-day free trial available for new subscribers.'
+          }{'\n\n'}{Platform.OS === 'ios'
             ? 'Payment will be charged to your Apple ID account at confirmation of purchase. Subscription automatically renews unless cancelled at least 24 hours before the end of the current period. Your Apple ID account will be charged for renewal within 24 hours prior to the end of the current period. Manage or cancel subscriptions in your Apple ID account settings after purchase.'
             : 'Payment will be charged to your Google Play account at confirmation of purchase. Subscription automatically renews unless cancelled at least 24 hours before the end of the current period. Manage or cancel subscriptions in Google Play after purchase.'
-          }{'\n'}Free trials are available in production builds only.
+          }
         </Text>
         <View style={styles.legalLinks}>
           <Pressable onPress={() => router.push('/privacy' as any)}>
