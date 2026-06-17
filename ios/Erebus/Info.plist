@@ -54,7 +54,7 @@
     <key>NSFaceIDUsageDescription</key>
     <string>Allow Erebus to use Face ID for quick login.</string>
     <key>NSLocationWhenInUseUsageDescription</key>
-    <string>Allow Erebus to access your location to record dive site locations and find nearby dive spots.</string>
+    <string>Allow Erebus to access your location to record dive site positions, find nearby dive spots, and provide weather forecasts for dive planning.</string>
     <key>NSMicrophoneUsageDescription</key>
     <string>Allow Erebus to access your microphone to record audio with your dive videos.</string>
     <key>NSPhotoLibraryUsageDescription</key>

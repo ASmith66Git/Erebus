@@ -2097,7 +2097,7 @@ app.delete('/api/user/account', authenticateToken, async (req, res) => {
       }
     };
 
-    // Best-effort object storage cleanup after the transaction succeeds
+    // Build the full list of object-storage keys to purge
     const keys = [
       userRow.rows[0]?.profile_image,
       ...certImages.rows.map(r => r.image_url),
@@ -2106,13 +2106,17 @@ app.delete('/api/user/account', authenticateToken, async (req, res) => {
       ...userPhotos.rows.flatMap(r => [r.image_url, r.thumbnail_url]),
     ].map(toStorageKey).filter(Boolean);
 
+    // Storage cleanup is awaited synchronously — the request only succeeds once
+    // cleanup has been attempted.  Individual file failures are tolerated (the DB
+    // record is already gone) but a storage-client initialisation failure will
+    // propagate to the outer catch and return a 500.
     if (keys.length > 0) {
-      try {
-        const { Client } = require('@replit/object-storage');
-        const objectStorage = new Client();
-        await Promise.allSettled(keys.map(key => objectStorage.delete(key)));
-      } catch (storageError) {
-        console.error('Object storage cleanup error (non-fatal):', storageError);
+      const { Client } = require('@replit/object-storage');
+      const objectStorage = new Client();
+      const results = await Promise.allSettled(keys.map(key => objectStorage.delete(key)));
+      const failed = results.filter(r => r.status === 'rejected');
+      if (failed.length > 0) {
+        console.warn(`Account deletion: ${failed.length}/${keys.length} storage objects could not be removed (orphaned). DB record is deleted.`);
       }
     }
 
