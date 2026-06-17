@@ -8,6 +8,7 @@ import {
   ScrollView,
   Modal,
   Platform,
+  Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -288,9 +289,20 @@ export default function PaywallScreen() {
         </Pressable>
 
         <Text style={[styles.disclaimer, { color: colors.textSecondary }]}>
-          Free trials are available in production builds only.{'\n'}
-          Subscription automatically renews unless cancelled at least 24 hours before the end of the current period.
+          {Platform.OS === 'ios'
+            ? 'Payment will be charged to your Apple ID account at confirmation of purchase. Subscription automatically renews unless cancelled at least 24 hours before the end of the current period. Your Apple ID account will be charged for renewal within 24 hours prior to the end of the current period. Manage or cancel subscriptions in your Apple ID account settings after purchase.'
+            : 'Payment will be charged to your Google Play account at confirmation of purchase. Subscription automatically renews unless cancelled at least 24 hours before the end of the current period. Manage or cancel subscriptions in Google Play after purchase.'
+          }{'\n'}Free trials are available in production builds only.
         </Text>
+        <View style={styles.legalLinks}>
+          <Pressable onPress={() => router.push('/privacy' as any)}>
+            <Text style={[styles.legalLink, { color: colors.primary }]}>Privacy Policy</Text>
+          </Pressable>
+          <Text style={[styles.legalSeparator, { color: colors.textSecondary }]}> • </Text>
+          <Pressable onPress={() => router.push('/terms' as any)}>
+            <Text style={[styles.legalLink, { color: colors.primary }]}>Terms & Conditions</Text>
+          </Pressable>
+        </View>
 
         <View style={{ height: 40 }} />
       </ScrollView>
@@ -544,5 +556,20 @@ const styles = StyleSheet.create({
   modalButtonText: {
     fontSize: 16,
     fontWeight: '600',
+  },
+  legalLinks: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 12,
+    marginBottom: 4,
+  },
+  legalLink: {
+    fontSize: 13,
+    fontWeight: '500',
+    textDecorationLine: 'underline',
+  },
+  legalSeparator: {
+    fontSize: 13,
   },
 });

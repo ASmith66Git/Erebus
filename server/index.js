@@ -2034,6 +2034,66 @@ app.delete('/api/admin/users/:id', authenticateToken, requireAdmin, async (req, 
   }
 });
 
+// Self-delete: authenticated user deletes their own account
+app.delete('/api/user/account', authenticateToken, async (req, res) => {
+  const userId = req.user.id;
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    // Collect object storage keys before deletion (best-effort cleanup)
+    const [userRow, certImages, buddyPhotos] = await Promise.all([
+      client.query('SELECT profile_image FROM users WHERE id = $1', [userId]),
+      client.query(
+        `SELECT ci.image_url FROM certification_images ci
+         JOIN user_certifications uc ON ci.certification_id = uc.id
+         WHERE uc.user_id = $1 AND ci.image_url IS NOT NULL`,
+        [userId]
+      ),
+      client.query(
+        'SELECT photo_url FROM dive_buddies WHERE user_id = $1 AND photo_url IS NOT NULL',
+        [userId]
+      ),
+    ]);
+
+    // Explicitly delete tables that may not have ON DELETE CASCADE on user_id
+    await client.query('DELETE FROM dive_logs WHERE user_id = $1', [userId]);
+    await client.query('DELETE FROM dive_buddies WHERE user_id = $1', [userId]);
+    await client.query('DELETE FROM support_conversations WHERE user_id = $1', [userId]);
+
+    // Delete the user — all other tables with REFERENCES users(id) ON DELETE CASCADE
+    // are handled automatically by PostgreSQL
+    await client.query('DELETE FROM users WHERE id = $1', [userId]);
+
+    await client.query('COMMIT');
+
+    // Best-effort object storage cleanup after the transaction succeeds
+    const keys = [
+      userRow.rows[0]?.profile_image,
+      ...certImages.rows.map(r => r.image_url),
+      ...buddyPhotos.rows.map(r => r.photo_url),
+    ].filter(k => k && !k.startsWith('http'));
+
+    if (keys.length > 0) {
+      try {
+        const { Client } = require('@replit/object-storage');
+        const objectStorage = new Client();
+        await Promise.allSettled(keys.map(key => objectStorage.delete(key)));
+      } catch (storageError) {
+        console.error('Object storage cleanup error (non-fatal):', storageError);
+      }
+    }
+
+    res.json({ message: 'Account deleted successfully' });
+  } catch (error) {
+    await client.query('ROLLBACK').catch(() => {});
+    console.error('Delete account error:', error);
+    res.status(500).json({ error: 'Server error' });
+  } finally {
+    client.release();
+  }
+});
+
 // Get user stats for admin detail view
 app.get('/api/admin/users/:id/stats', authenticateToken, requireAdmin, async (req, res) => {
   const { id } = req.params;

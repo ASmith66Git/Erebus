@@ -50,19 +50,15 @@
     <key>NSBluetoothPeripheralUsageDescription</key>
     <string>Erebus needs Bluetooth access to connect to your dive computer.</string>
     <key>NSCameraUsageDescription</key>
-    <string>Allow Erebus to scan certification cards using your camera.</string>
+    <string>Allow Erebus to use your camera to take photos, record videos, and scan certification cards.</string>
     <key>NSFaceIDUsageDescription</key>
     <string>Allow Erebus to use Face ID for quick login.</string>
-    <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-    <string>Allow $(PRODUCT_NAME) to access your location</string>
-    <key>NSLocationAlwaysUsageDescription</key>
-    <string>Allow $(PRODUCT_NAME) to access your location</string>
     <key>NSLocationWhenInUseUsageDescription</key>
-    <string>Allow $(PRODUCT_NAME) to access your location</string>
+    <string>Allow Erebus to access your location to record dive site locations and find nearby dive spots.</string>
     <key>NSMicrophoneUsageDescription</key>
-    <string>Allow $(PRODUCT_NAME) to access your microphone</string>
+    <string>Allow Erebus to access your microphone to record audio with your dive videos.</string>
     <key>NSPhotoLibraryUsageDescription</key>
-    <string>Allow $(PRODUCT_NAME) to access your photos</string>
+    <string>Allow Erebus to access your photo library to upload and manage dive photos and videos.</string>
     <key>NSUserActivityTypes</key>
     <array>
       <string>$(PRODUCT_BUNDLE_IDENTIFIER).expo.index_route</string>

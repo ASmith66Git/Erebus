@@ -16,7 +16,11 @@ module.exports = {
       buildNumber: "93",
       infoPlist: {
         NSBluetoothAlwaysUsageDescription: "Erebus needs Bluetooth access to connect to your dive computer and download dive logs.",
-        NSBluetoothPeripheralUsageDescription: "Erebus needs Bluetooth access to connect to your dive computer."
+        NSBluetoothPeripheralUsageDescription: "Erebus needs Bluetooth access to connect to your dive computer.",
+        NSCameraUsageDescription: "Allow Erebus to use your camera to take photos, record videos, and scan certification cards.",
+        NSMicrophoneUsageDescription: "Allow Erebus to access your microphone to record audio with your dive videos.",
+        NSPhotoLibraryUsageDescription: "Allow Erebus to access your photo library to upload and manage dive photos and videos.",
+        NSLocationWhenInUseUsageDescription: "Allow Erebus to access your location to record dive site locations and find nearby dive spots."
       },
       config: {
         googleMapsApiKey: process.env.GOOGLE_MAPS_IOS_API_KEY || ''
@@ -88,7 +92,7 @@ module.exports = {
       [
         "react-native-document-scanner-plugin",
         {
-          cameraPermission: "Allow Erebus to scan certification cards using your camera."
+          cameraPermission: "Allow Erebus to use your camera to take photos, record videos, and scan certification cards."
         }
       ]
     ],

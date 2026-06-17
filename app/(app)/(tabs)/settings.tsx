@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Modal, FlatList } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Modal, FlatList, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useSettings, languageOptions, themeColorOptions, QUICK_ACTION_OPTIONS, UnitSystem, DateFormat, Language } from '@/contexts/SettingsContext';
@@ -195,6 +196,30 @@ export default function SettingsScreen() {
           <Text style={[styles.quickActionHint, { color: colors.textSecondary }]}>
             {t('settings.quickActionsCount', { count: quickActions.length })}
           </Text>
+        </View>
+
+        <View style={[styles.section, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Legal</Text>
+          <Pressable style={styles.legalRow} onPress={() => router.push('/privacy' as any)}>
+            <View style={[styles.legalIcon, { backgroundColor: colors.primary + '20' }]}>
+              <Ionicons name="shield-checkmark-outline" size={20} color={colors.primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.legalRowTitle, { color: colors.text }]}>{t('profile.privacy')}</Text>
+              <Text style={[styles.legalRowDesc, { color: colors.textSecondary }]}>{t('profile.controlYourData')}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+          </Pressable>
+          <Pressable style={styles.legalRow} onPress={() => router.push('/terms' as any)}>
+            <View style={[styles.legalIcon, { backgroundColor: colors.primary + '20' }]}>
+              <Ionicons name="document-text-outline" size={20} color={colors.primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.legalRowTitle, { color: colors.text }]}>{t('profile.termsConditions')}</Text>
+              <Text style={[styles.legalRowDesc, { color: colors.textSecondary }]}>{t('profile.legalInformation')}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+          </Pressable>
         </View>
 
         <View style={{ height: 40 }} />
@@ -428,5 +453,26 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 12,
     textAlign: 'center',
+  },
+  legalRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    gap: 12,
+  },
+  legalIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  legalRowTitle: {
+    fontSize: 15,
+    fontWeight: '500',
+    marginBottom: 2,
+  },
+  legalRowDesc: {
+    fontSize: 13,
   },
 });

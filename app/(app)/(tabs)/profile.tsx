@@ -60,7 +60,7 @@ interface UserDiveComputer {
 export default function ProfileScreen() {
   const { colors } = useTheme();
   const { t } = useTranslation();
-  const { user, isAdmin, token, biometricCapability, isBiometricEnabled, setBiometricEnabled, refreshUser } = useAuth();
+  const { user, isAdmin, token, biometricCapability, isBiometricEnabled, setBiometricEnabled, refreshUser, logout } = useAuth();
   
   const [manufacturers, setManufacturers] = useState<Manufacturer[]>([]);
   const [models, setModels] = useState<DiveComputerModel[]>([]);
@@ -79,6 +79,7 @@ export default function ProfileScreen() {
   const [showSexPicker, setShowSexPicker] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
   const [supportUnreadCount, setSupportUnreadCount] = useState(0);
   const [editFormData, setEditFormData] = useState({
     firstName: '',
@@ -684,6 +685,44 @@ export default function ProfileScreen() {
     return t(key);
   };
 
+  const handleDeleteAccount = () => {
+    const doDelete = async () => {
+      setDeletingAccount(true);
+      try {
+        const response = await fetch(`${getApiUrl()}/api/user/account`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
+        if (response.ok) {
+          await logout();
+        } else {
+          const data = await response.json();
+          Alert.alert(t('common.error'), data.error || t('profile.failedToDeleteAccount'));
+        }
+      } catch (error) {
+        console.error('Delete account error:', error);
+        Alert.alert(t('common.error'), t('profile.failedToDeleteAccount'));
+      } finally {
+        setDeletingAccount(false);
+      }
+    };
+
+    if (Platform.OS === 'web') {
+      if (window.confirm(t('profile.deleteAccountConfirmMessage'))) {
+        doDelete();
+      }
+    } else {
+      Alert.alert(
+        t('profile.deleteAccountConfirmTitle'),
+        t('profile.deleteAccountConfirmMessage'),
+        [
+          { text: t('common.cancel'), style: 'cancel' },
+          { text: t('profile.deleteAccountButton'), style: 'destructive', onPress: doDelete },
+        ]
+      );
+    }
+  };
+
   const menuItems = [
     { icon: 'diamond-outline', title: t('profile.subscription'), description: t('profile.manageYourPlan'), route: '/(app)/(tabs)/subscription' },
     { icon: 'rocket-outline', title: t('profile.roadmap'), description: t('profile.seeUpcomingFeatures'), route: '/(app)/(tabs)/roadmap' },
@@ -919,6 +958,27 @@ export default function ProfileScreen() {
             <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
           </Pressable>
         ))}
+      </View>
+
+      <View style={[styles.section, styles.dangerSection, { backgroundColor: colors.cardBackground, borderColor: '#D22F00' }]}>
+        <Text style={[styles.sectionTitle, { color: '#D22F00' }]}>{t('profile.deleteAccount')}</Text>
+        <Text style={[styles.menuDescription, { color: colors.textSecondary, marginBottom: 12 }]}>
+          {t('profile.deleteAccountConfirmMessage')}
+        </Text>
+        <Pressable
+          style={[styles.deleteAccountButton, deletingAccount && { opacity: 0.6 }]}
+          onPress={handleDeleteAccount}
+          disabled={deletingAccount}
+        >
+          {deletingAccount ? (
+            <ActivityIndicator color="#D22F00" size="small" />
+          ) : (
+            <>
+              <Ionicons name="trash-outline" size={18} color="#D22F00" />
+              <Text style={styles.deleteAccountButtonText}>{t('profile.deleteAccountButton')}</Text>
+            </>
+          )}
+        </Pressable>
       </View>
 
       <Text style={[styles.version, { color: colors.textSecondary }]}>Erebus v{Constants.expoConfig?.version || '1.0.0'}</Text>
@@ -1388,6 +1448,24 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 12,
     marginBottom: 24,
+  },
+  dangerSection: {
+    borderWidth: 1,
+  },
+  deleteAccountButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#D22F00',
+  },
+  deleteAccountButtonText: {
+    color: '#D22F00',
+    fontSize: 15,
+    fontWeight: '600',
   },
   capabilityBadge: {
     flexDirection: 'row',
