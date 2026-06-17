@@ -2042,7 +2042,7 @@ app.delete('/api/user/account', authenticateToken, async (req, res) => {
     await client.query('BEGIN');
 
     // Collect object storage keys before deletion (best-effort cleanup)
-    const [userRow, certImages, buddyPhotos, siteImages] = await Promise.all([
+    const [userRow, certImages, buddyPhotos, siteImages, userPhotos] = await Promise.all([
       client.query('SELECT profile_image FROM users WHERE id = $1', [userId]),
       client.query(
         `SELECT ci.image_url FROM certification_images ci
@@ -2058,6 +2058,11 @@ app.delete('/api/user/account', authenticateToken, async (req, res) => {
         `SELECT dsi.image_url FROM dive_site_images dsi
          JOIN dive_sites ds ON dsi.dive_site_id = ds.id
          WHERE ds.user_id = $1 AND dsi.image_url IS NOT NULL AND dsi.is_stock = FALSE`,
+        [userId]
+      ),
+      // Gallery photos and videos (both original and thumbnails)
+      client.query(
+        'SELECT image_url, thumbnail_url FROM dive_photos WHERE user_id = $1',
         [userId]
       ),
     ]);
@@ -2082,6 +2087,7 @@ app.delete('/api/user/account', authenticateToken, async (req, res) => {
       ...certImages.rows.map(r => r.image_url),
       ...buddyPhotos.rows.map(r => r.photo_url),
       ...siteImages.rows.map(r => r.image_url),
+      ...userPhotos.rows.flatMap(r => [r.image_url, r.thumbnail_url]),
     ].filter(k => k && !k.startsWith('http'));
 
     if (keys.length > 0) {
