@@ -1,0 +1,141 @@
+{
+  "deviceInfo": {
+    "platform": "ios",
+    "version": "26.5",
+    "timestamp": "2026-06-17T16:11:21.621Z"
+  },
+  "logs": [
+    {
+      "id": "1781712679712-n4jt9xvfx",
+      "timestamp": "2026-06-17T16:11:19.712Z",
+      "level": "error",
+      "message": "[RevenueCat] 🍎‼️ Error fetching offerings - The operation couldn’t be completed. (RevenueCat.OfferingsManager.Error error 1.)\nYou have configured the SDK with an App Store API key, but there are no App Store products registered in the RevenueCat dashboard for your offerings. If you don't want to use the offerings system, you can safely ignore this message. To configure offerings and their products, follow the instructions in https://rev.cat/how-to-configure-offerings.\nMore information: https://rev.cat/why-are-offerings-empty",
+      "source": "console.error"
+    },
+    {
+      "id": "1781711928085-fes68buqf",
+      "timestamp": "2026-06-17T15:58:48.085Z",
+      "level": "error",
+      "message": "[RevenueCat] 🍎‼️ There was a problem with the App Store.",
+      "source": "console.error"
+    },
+    {
+      "id": "1781711922635-jhi56xhkd",
+      "timestamp": "2026-06-17T15:58:42.635Z",
+      "level": "error",
+      "message": "Error loading searchable status: SyntaxError: JSON Parse error: Unexpected character: <\nSyntaxError: JSON Parse error: Unexpected character: <\n    at parse (native)\n    at tryCallOne (address at InternalBytecode.js:1:1180)\n    at anonymous (address at InternalBytecode.js:1:1874)",
+      "source": "console.error"
+    },
+    {
+      "id": "1781711922625-3xbv9xw2o",
+      "timestamp": "2026-06-17T15:58:42.625Z",
+      "level": "error",
+      "message": "Error loading manufacturers: SyntaxError: JSON Parse error: Unexpected character: <\nSyntaxError: JSON Parse error: Unexpected character: <\n    at parse (native)\n    at tryCallOne (address at InternalBytecode.js:1:1180)\n    at anonymous (address at InternalBytecode.js:1:1874)",
+      "source": "console.error"
+    },
+    {
+      "id": "1781711922621-kl0gqn391",
+      "timestamp": "2026-06-17T15:58:42.621Z",
+      "level": "error",
+      "message": "Load dive computers failed: 404 <!DOCTYPE html>\n<html lang=\"en\">\n\n<head>\n  <title>This app isn&#39;t live yet</title>\n  <link rel=\"stylesheet\" href=\"https://fonts.googleapis.com/css?family=IBM+Plex+Sans\">\n  <style>\n    body {\n      margin: 0;\n      height: 100vh;\n      display: flex;\n      justify-content: center;\n      align-items: center;\n      background: #1c2333;\n      font-family: \"IBM Plex Sans\", \"sans\";\n      color: #f5f9fc;\n    }\n\n    .title-box {\n      font-size: 12px;\n      inline-size: max-content;\n      max-width: 100%;\n    }\n\n    .description-box {\n      font-size: 10px;\n      inline-size: max-content;\n      max-width: 100%;\n    }\n\n    .err-box {\n      padding: 1em;\n      width: 100vw;\n      max-width: 100vw;\n      overflow: hidden;\n    }\n\n    .message {\n      display: flex;\n      flex-direction: column;\n      align-items: center;\n    }\n\n    .ascii {\n      font-size: 6px;\n      text-align: center;\n      opacity: .8;\n    }\n\n    .eval-bot {\n      margin: 4em;\n    }\n\n    @med",
+      "source": "console.error"
+    },
+    {
+      "id": "1781711920494-qiafe1i1p",
+      "timestamp": "2026-06-17T15:58:40.494Z",
+      "level": "error",
+      "message": "[RevenueCat] 😿‼️ There is an issue with your configuration. Check the underlying error for more details.\nMore information: https://rev.cat/sdk-troubleshooting You have configured the SDK with an App Store API key, but there are no App Store products registered in the RevenueCat dashboard for your offerings. If you don't want to use the offerings system, you can safely ignore this message. To configure offerings and their products, follow the instructions in https://rev.cat/how-to-configure-offerings.\nMore information: https://rev.cat/why-are-offerings-empty",
+      "source": "console.error"
+    },
+    {
+      "id": "1781711920487-47ugd2kly",
+      "timestamp": "2026-06-17T15:58:40.487Z",
+      "level": "error",
+      "message": "[RevenueCat] 🍎‼️ Error fetching offerings - The operation couldn’t be completed. (RevenueCat.OfferingsManager.Error error 1.)\nYou have configured the SDK with an App Store API key, but there are no App Store products registered in the RevenueCat dashboard for your offerings. If you don't want to use the offerings system, you can safely ignore this message. To configure offerings and their products, follow the instructions in https://rev.cat/how-to-configure-offerings.\nMore information: https://rev.cat/why-are-offerings-empty",
+      "source": "console.error"
+    },
+    {
+      "id": "1781711916338-ozter4dbn",
+      "timestamp": "2026-06-17T15:58:36.338Z",
+      "level": "error",
+      "message": "[RevenueCat] 😿‼️ There is an issue with your configuration. Check the underlying error for more details.\nMore information: https://rev.cat/sdk-troubleshooting You have configured the SDK with an App Store API key, but there are no App Store products registered in the RevenueCat dashboard for your offerings. If you don't want to use the offerings system, you can safely ignore this message. To configure offerings and their products, follow the instructions in https://rev.cat/how-to-configure-offerings.\nMore information: https://rev.cat/why-are-offerings-empty",
+      "source": "console.error"
+    },
+    {
+      "id": "1781711916334-d4uf1ai5q",
+      "timestamp": "2026-06-17T15:58:36.334Z",
+      "level": "error",
+      "message": "[RevenueCat] 🍎‼️ Error fetching offerings - The operation couldn’t be completed. (RevenueCat.OfferingsManager.Error error 1.)\nYou have configured the SDK with an App Store API key, but there are no App Store products registered in the RevenueCat dashboard for your offerings. If you don't want to use the offerings system, you can safely ignore this message. To configure offerings and their products, follow the instructions in https://rev.cat/how-to-configure-offerings.\nMore information: https://rev.cat/why-are-offerings-empty",
+      "source": "console.error"
+    },
+    {
+      "id": "1781711914207-55e6z0gkc",
+      "timestamp": "2026-06-17T15:58:34.207Z",
+      "level": "error",
+      "message": "[RevenueCat] 😿‼️ There is an issue with your configuration. Check the underlying error for more details.\nMore information: https://rev.cat/sdk-troubleshooting You have configured the SDK with an App Store API key, but there are no App Store products registered in the RevenueCat dashboard for your offerings. If you don't want to use the offerings system, you can safely ignore this message. To configure offerings and their products, follow the instructions in https://rev.cat/how-to-configure-offerings.\nMore information: https://rev.cat/why-are-offerings-empty",
+      "source": "console.error"
+    },
+    {
+      "id": "1781711914201-emmluzdd5",
+      "timestamp": "2026-06-17T15:58:34.201Z",
+      "level": "error",
+      "message": "[RevenueCat] 🍎‼️ Error fetching offerings - The operation couldn’t be completed. (RevenueCat.OfferingsManager.Error error 1.)\nYou have configured the SDK with an App Store API key, but there are no App Store products registered in the RevenueCat dashboard for your offerings. If you don't want to use the offerings system, you can safely ignore this message. To configure offerings and their products, follow the instructions in https://rev.cat/how-to-configure-offerings.\nMore information: https://rev.cat/why-are-offerings-empty",
+      "source": "console.error"
+    },
+    {
+      "id": "1781711913897-60ynbytep",
+      "timestamp": "2026-06-17T15:58:33.897Z",
+      "level": "error",
+      "message": "[RevenueCat] 🍎‼️ Error fetching offerings - The operation couldn’t be completed. (RevenueCat.OfferingsManager.Error error 1.)\nYou have configured the SDK with an App Store API key, but there are no App Store products registered in the RevenueCat dashboard for your offerings. If you don't want to use the offerings system, you can safely ignore this message. To configure offerings and their products, follow the instructions in https://rev.cat/how-to-configure-offerings.\nMore information: https://rev.cat/why-are-offerings-empty",
+      "source": "console.error"
+    },
+    {
+      "id": "1781711913293-ihh30nvei",
+      "timestamp": "2026-06-17T15:58:33.293Z",
+      "level": "error",
+      "message": "[RevenueCat] 😿‼️ Error when syncing subscriber attributes. Details: The operation couldn’t be completed. (RevenueCat.BackendError error 0.) \nUserInfo: [:]",
+      "source": "console.error"
+    },
+    {
+      "id": "1781711913204-m0xopagbe",
+      "timestamp": "2026-06-17T15:58:33.204Z",
+      "level": "warn",
+      "message": "RevenueCat identity sync error: LogOut was called but the current user is anonymous.",
+      "source": "console.warn"
+    },
+    {
+      "id": "1781711913186-m0cxf3dl5",
+      "timestamp": "2026-06-17T15:58:33.186Z",
+      "level": "error",
+      "message": "[RevenueCat] 😿‼️ LogOut was called but the current user is anonymous.",
+      "source": "console.error"
+    },
+    {
+      "id": "1781711913182-uvh2ehjto",
+      "timestamp": "2026-06-17T15:58:33.182Z",
+      "level": "error",
+      "message": "[RevenueCat] 😿‼️ Error when syncing subscriber attributes. Details: The operation couldn’t be completed. (RevenueCat.BackendError error 0.) \nUserInfo: [:]",
+      "source": "console.error"
+    },
+    {
+      "id": "1781711913067-r9vyj5v5u",
+      "timestamp": "2026-06-17T15:58:33.067Z",
+      "level": "error",
+      "message": "[RevenueCat] 😿‼️ There is an issue with your configuration. Check the underlying error for more details.\nMore information: https://rev.cat/sdk-troubleshooting You have configured the SDK with an App Store API key, but there are no App Store products registered in the RevenueCat dashboard for your offerings. If you don't want to use the offerings system, you can safely ignore this message. To configure offerings and their products, follow the instructions in https://rev.cat/how-to-configure-offerings.\nMore information: https://rev.cat/why-are-offerings-empty",
+      "source": "console.error"
+    },
+    {
+      "id": "1781711913064-8t8c5zrav",
+      "timestamp": "2026-06-17T15:58:33.064Z",
+      "level": "error",
+      "message": "[RevenueCat] 🍎‼️ Error fetching offerings - The operation couldn’t be completed. (RevenueCat.OfferingsManager.Error error 1.)\nYou have configured the SDK with an App Store API key, but there are no App Store products registered in the RevenueCat dashboard for your offerings. If you don't want to use the offerings system, you can safely ignore this message. To configure offerings and their products, follow the instructions in https://rev.cat/how-to-configure-offerings.\nMore information: https://rev.cat/why-are-offerings-empty",
+      "source": "console.error"
+    },
+    {
+      "id": "1781711913060-arz2n88jt",
+      "timestamp": "2026-06-17T15:58:33.060Z",
+      "level": "error",
+      "message": "[RevenueCat] 🍎‼️ Error fetching offerings - The operation couldn’t be completed. (RevenueCat.OfferingsManager.Error error 1.)\nYou have configured the SDK with an App Store API key, but there are no App Store products registered in the RevenueCat dashboard for your offerings. If you don't want to use the offerings system, you can safely ignore this message. To configure offerings and their products, follow the instructions in https://rev.cat/how-to-configure-offerings.\nMore information: https://rev.cat/why-are-offerings-empty",
+      "source": "console.error"
+    },
+    {
