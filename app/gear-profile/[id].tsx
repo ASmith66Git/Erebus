@@ -9,6 +9,7 @@ import {
   TextInput,
   Alert,
   Platform,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
@@ -1460,13 +1461,19 @@ export default function GearProfileScreen() {
         ))}
       </View>
 
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-        {activeTab === 'config' && (isEditing ? renderConfigTab() : renderConfigViewTab())}
-        {activeTab === 'exposure' && (isEditing ? renderExposureTab() : renderExposureViewTab())}
-        {activeTab === 'gas' && (isEditing ? renderGasTab() : renderGasViewTab())}
-        {activeTab === 'weight' && (isEditing ? renderWeightTab() : renderWeightViewTab())}
-        {activeTab === 'equipment' && (isEditing ? renderEquipmentTab() : renderEquipmentViewTab())}
-      </ScrollView>
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoidingView}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+      >
+        <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+          {activeTab === 'config' && (isEditing ? renderConfigTab() : renderConfigViewTab())}
+          {activeTab === 'exposure' && (isEditing ? renderExposureTab() : renderExposureViewTab())}
+          {activeTab === 'gas' && (isEditing ? renderGasTab() : renderGasViewTab())}
+          {activeTab === 'weight' && (isEditing ? renderWeightTab() : renderWeightViewTab())}
+          {activeTab === 'equipment' && (isEditing ? renderEquipmentTab() : renderEquipmentViewTab())}
+        </ScrollView>
+      </KeyboardAvoidingView>
     </ThemedBackground>
   );
 }
@@ -1516,6 +1523,9 @@ const styles = StyleSheet.create({
   tabLabel: {
     fontSize: 13,
     fontWeight: '500',
+  },
+  keyboardAvoidingView: {
+    flex: 1,
   },
   scrollView: {
     flex: 1,
