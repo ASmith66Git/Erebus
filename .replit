@@ -68,91 +68,91 @@ args = "Dev Server"
 name = "Expo Web"
 author = "agent"
 
-[workflows.workflow.metadata]
-outputType = "webview"
-
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "npx expo start --web --port 5000 --clear"
 waitForPort = 5000
 
+[workflows.workflow.metadata]
+outputType = "webview"
+
 [[workflows.workflow]]
 name = "API Server"
 author = "agent"
-
-[workflows.workflow.metadata]
-outputType = "console"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "node server/index.js"
 waitForPort = 3001
 
+[workflows.workflow.metadata]
+outputType = "console"
+
 [[workflows.workflow]]
 name = "iOS Build & Submit"
 author = "agent"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "iOS Build & Submit"
+
 [workflows.workflow.metadata]
 outputType = "console"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "[ -f \".trigger-ios-build\" ] && rm \".trigger-ios-build\" && bash scripts/submit-ios.sh || echo \"⛔ iOS Build & Submit: auto-start blocked. Trigger file not present.\""
 
 [[workflows.workflow]]
 name = "EAS Publish Preview iOS"
 author = "agent"
 
-[workflows.workflow.metadata]
-outputType = "console"
-
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "[ -f \".trigger-eas-preview-ios\" ] && rm \".trigger-eas-preview-ios\" && npx eas build --platform ios --profile preview || echo \"⛔ EAS Publish Preview iOS: auto-start blocked. Trigger file not present.\""
+
+[workflows.workflow.metadata]
+outputType = "console"
 
 [[workflows.workflow]]
 name = "EAS Publish Preview Android"
 author = "agent"
 
-[workflows.workflow.metadata]
-outputType = "console"
-
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "[ -f \".trigger-eas-preview-android\" ] && rm \".trigger-eas-preview-android\" && npx eas build --platform android --profile preview || echo \"⛔ EAS Publish Preview Android: auto-start blocked. Trigger file not present.\""
+
+[workflows.workflow.metadata]
+outputType = "console"
 
 [[workflows.workflow]]
 name = "EAS Init"
 author = "agent"
 
-[workflows.workflow.metadata]
-outputType = "console"
-
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "[ -f \".trigger-eas-init\" ] && rm \".trigger-eas-init\" && npx eas init || echo \"⛔ EAS Init: auto-start blocked. Trigger file not present.\""
+
+[workflows.workflow.metadata]
+outputType = "console"
 
 [[workflows.workflow]]
 name = "EAS Update"
 author = "agent"
 
-[workflows.workflow.metadata]
-outputType = "console"
-
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "[ -f \".trigger-eas-update\" ] && rm \".trigger-eas-update\" && npx eas update --auto || echo \"⛔ EAS Update: auto-start blocked. Trigger file not present.\""
+
+[workflows.workflow.metadata]
+outputType = "console"
 
 [[workflows.workflow]]
 name = "Dev Server"
 author = "agent"
 
-[workflows.workflow.metadata]
-outputType = "console"
-
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "[ -f \".trigger-dev-server\" ] && rm \".trigger-dev-server\" && EXPO_PACKAGER_PROXY_URL=https://$REPLIT_DEV_DOMAIN REACT_NATIVE_PACKAGER_HOSTNAME=$REPLIT_DEV_DOMAIN npx expo start || echo \"⛔ Dev Server: auto-start blocked. Trigger file not present.\""
+
+[workflows.workflow.metadata]
+outputType = "console"
 
 [agent]
 expertMode = true
