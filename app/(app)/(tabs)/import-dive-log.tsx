@@ -18,6 +18,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { getApiUrl } from '@/utils/apiConfig';
 import * as DocumentPicker from 'expo-document-picker';
 import ThemedBackground from '@/components/ThemedBackground';
+import PageHeader from '@/components/PageHeader';
 import { useTranslation } from 'react-i18next';
 
 interface BatchUploadResult {
@@ -348,13 +349,11 @@ export default function ImportDiveLogScreen() {
 
   return (
     <ThemedBackground>
-      <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <Pressable onPress={() => router.back()} style={styles.backButton}>
-          <Feather name="arrow-left" size={24} color={colors.text} />
-        </Pressable>
-        <Text style={[styles.title, { color: colors.text }]}>{t('importDiveLog.addDiveLog')}</Text>
-        <View style={styles.placeholder} />
-      </View>
+      <PageHeader
+        title={t('importDiveLog.addDiveLog')}
+        showBack
+        onBack={() => router.replace('/(app)/(tabs)/dive-logs')}
+      />
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
@@ -582,24 +581,6 @@ const styles = StyleSheet.create({
   centered: {
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-  },
-  backButton: {
-    padding: 8,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  placeholder: {
-    width: 40,
   },
   content: {
     flex: 1,
