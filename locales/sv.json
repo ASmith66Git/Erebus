@@ -2086,7 +2086,20 @@
     "pageNamePlaceholder": "t.ex. DiveSiteDetail, DiveLogCard",
     "taskRequired": "Uppgift krävs",
     "failedToCopy": "Kunde inte kopiera till urklipp",
-    "deviceSelectMultiple": "Enhet (välj flera)"
+    "deviceSelectMultiple": "Enhet (välj flera)",
+    "pageTypeOther": "Annat",
+    "linkedTo": "Länkad till",
+    "notesTitle": "Anteckningar",
+    "hideNotes": "Dölj anteckningar",
+    "noNotesYet": "Inga anteckningar ännu",
+    "addNotePlaceholder": "Lägg till kontext...",
+    "noteAdded": "Anteckning tillagd",
+    "failedToAddNote": "Kunde inte lägga till anteckning",
+    "sentToReplit": "Skickat till Replit-agent",
+    "failedToSend": "Misslyckades med att skicka",
+    "screenshotsTitle": "Skärmdumpar",
+    "addScreenshotBtn": "Lägg till skärmdump",
+    "failedToUploadScreenshot": "Kunde inte ladda upp skärmdump"
   },
   "faq": {
     "title": "FAQ",

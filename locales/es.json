@@ -2086,7 +2086,20 @@
     "pageNamePlaceholder": "ej., DiveSiteDetail, DiveLogCard",
     "taskRequired": "La tarea es obligatoria",
     "failedToCopy": "Error al copiar al portapapeles",
-    "deviceSelectMultiple": "Dispositivo (selección múltiple)"
+    "deviceSelectMultiple": "Dispositivo (selección múltiple)",
+    "pageTypeOther": "Otro",
+    "linkedTo": "Vinculado a",
+    "notesTitle": "Notas",
+    "hideNotes": "Ocultar notas",
+    "noNotesYet": "Sin notas todavía",
+    "addNotePlaceholder": "Añadir contexto...",
+    "noteAdded": "Nota añadida",
+    "failedToAddNote": "Error al añadir nota",
+    "sentToReplit": "Enviado al agente de Replit",
+    "failedToSend": "Error al enviar",
+    "screenshotsTitle": "Capturas de pantalla",
+    "addScreenshotBtn": "Añadir captura",
+    "failedToUploadScreenshot": "Error al subir la captura"
   },
   "faq": {
     "title": "Preguntas frecuentes",

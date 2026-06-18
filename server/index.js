@@ -13,6 +13,7 @@ const diveLogParserV2 = require('./services/diveLogParserV2');
 const DiveLogPersistenceService = require('./services/diveLogPersistence');
 const diveComputerCatalog = require('./data/diveComputerCatalog');
 const archiver = require('archiver');
+const fs = require('fs');
 
 const expo = new Expo();
 
@@ -510,7 +511,22 @@ async function initDatabase() {
         FOR EACH ROW
         EXECUTE FUNCTION update_updated_at_column();
     `).catch(() => {});
-    
+
+    await client.query(`
+      ALTER TABLE dev_log ADD COLUMN IF NOT EXISTS device VARCHAR(255);
+      ALTER TABLE dev_log ADD COLUMN IF NOT EXISTS task_ref VARCHAR(20);
+      ALTER TABLE dev_log ADD COLUMN IF NOT EXISTS screenshots TEXT[] DEFAULT '{}';
+    `).catch(() => {});
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS dev_log_notes (
+        id SERIAL PRIMARY KEY,
+        dev_log_id INTEGER NOT NULL REFERENCES dev_log(id) ON DELETE CASCADE,
+        note TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `).catch(() => {});
+
     // Gear Profiles tables
     await client.query(`
       CREATE TABLE IF NOT EXISTS gear_profiles (
@@ -2270,6 +2286,8 @@ app.get('/api/admin/dev-log', authenticateToken, requireAdmin, async (req, res) 
       pageType: row.page_type,
       status: row.status,
       devices: row.device ? row.device.split(',').filter(d => d) : [],
+      taskRef: row.task_ref || null,
+      screenshots: row.screenshots || [],
       createdAt: row.created_at,
       updatedAt: row.updated_at
     })));
@@ -2292,20 +2310,21 @@ app.get('/api/admin/dev-log/page-names', authenticateToken, requireAdmin, async 
 });
 
 app.post('/api/admin/dev-log', authenticateToken, requireAdmin, async (req, res) => {
-  const { task, pageName, pageType, status, devices } = req.body;
+  const { task, pageName, pageType, status, devices, taskRef, screenshots } = req.body;
   
   if (!task) {
     return res.status(400).json({ error: 'Task is required' });
   }
   
   const deviceString = Array.isArray(devices) && devices.length > 0 ? devices.join(',') : null;
+  const screenshotsArray = Array.isArray(screenshots) ? screenshots : [];
   
   try {
     const result = await pool.query(
-      `INSERT INTO dev_log (task, page_name, page_type, status, device) 
-       VALUES ($1, $2, $3, $4, $5) 
+      `INSERT INTO dev_log (task, page_name, page_type, status, device, task_ref, screenshots) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7) 
        RETURNING *`,
-      [task, pageName || null, pageType || 'card', status || 'todo', deviceString]
+      [task, pageName || null, pageType || 'card', status || 'todo', deviceString, taskRef || null, screenshotsArray]
     );
     
     const row = result.rows[0];
@@ -2316,6 +2335,8 @@ app.post('/api/admin/dev-log', authenticateToken, requireAdmin, async (req, res)
       pageType: row.page_type,
       status: row.status,
       devices: row.device ? row.device.split(',').filter(d => d) : [],
+      taskRef: row.task_ref || null,
+      screenshots: row.screenshots || [],
       createdAt: row.created_at,
       updatedAt: row.updated_at
     });
@@ -2327,9 +2348,11 @@ app.post('/api/admin/dev-log', authenticateToken, requireAdmin, async (req, res)
 
 app.put('/api/admin/dev-log/:id', authenticateToken, requireAdmin, async (req, res) => {
   const { id } = req.params;
-  const { task, pageName, pageType, status, devices } = req.body;
+  const { task, pageName, pageType, status, devices, taskRef, screenshots } = req.body;
   
   const deviceString = Array.isArray(devices) && devices.length > 0 ? devices.join(',') : null;
+  const screenshotsValue = Array.isArray(screenshots) ? screenshots : null;
+  const taskRefValue = taskRef !== undefined ? (taskRef || null) : undefined;
   
   try {
     const result = await pool.query(
@@ -2339,9 +2362,11 @@ app.put('/api/admin/dev-log/:id', authenticateToken, requireAdmin, async (req, r
         page_type = COALESCE($3, page_type),
         status = COALESCE($4, status),
         device = $5,
+        task_ref = CASE WHEN $6::text IS NOT NULL THEN $6::varchar(20) ELSE task_ref END,
+        screenshots = COALESCE($7, screenshots),
         updated_at = CURRENT_TIMESTAMP
-       WHERE id = $6 RETURNING *`,
-      [task, pageName, pageType, status, deviceString, id]
+       WHERE id = $8 RETURNING *`,
+      [task, pageName, pageType, status, deviceString, taskRefValue !== undefined ? taskRefValue : null, screenshotsValue, id]
     );
     
     if (result.rows.length === 0) {
@@ -2356,11 +2381,127 @@ app.put('/api/admin/dev-log/:id', authenticateToken, requireAdmin, async (req, r
       pageType: row.page_type,
       status: row.status,
       devices: row.device ? row.device.split(',').filter(d => d) : [],
+      taskRef: row.task_ref || null,
+      screenshots: row.screenshots || [],
       createdAt: row.created_at,
       updatedAt: row.updated_at
     });
   } catch (error) {
     console.error('Update dev log error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.get('/api/admin/dev-log/:id/notes', authenticateToken, requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await pool.query(
+      'SELECT * FROM dev_log_notes WHERE dev_log_id = $1 ORDER BY created_at ASC',
+      [id]
+    );
+    res.json(result.rows.map(row => ({
+      id: row.id,
+      note: row.note,
+      createdAt: row.created_at,
+    })));
+  } catch (error) {
+    console.error('Get dev log notes error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.post('/api/admin/dev-log/:id/notes', authenticateToken, requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  const { note } = req.body;
+  if (!note || !note.trim()) {
+    return res.status(400).json({ error: 'Note text is required' });
+  }
+  try {
+    const entryCheck = await pool.query('SELECT id FROM dev_log WHERE id = $1', [id]);
+    if (entryCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Dev log entry not found' });
+    }
+    const result = await pool.query(
+      'INSERT INTO dev_log_notes (dev_log_id, note) VALUES ($1, $2) RETURNING *',
+      [id, note.trim()]
+    );
+    const row = result.rows[0];
+    res.status(201).json({ id: row.id, note: row.note, createdAt: row.created_at });
+  } catch (error) {
+    console.error('Add dev log note error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.post('/api/admin/dev-log/:id/send-to-agent', authenticateToken, requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  try {
+    const entryResult = await pool.query('SELECT * FROM dev_log WHERE id = $1', [id]);
+    if (entryResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Dev log entry not found' });
+    }
+    const entry = entryResult.rows[0];
+    const notesResult = await pool.query(
+      'SELECT * FROM dev_log_notes WHERE dev_log_id = $1 ORDER BY created_at ASC',
+      [id]
+    );
+    const notes = notesResult.rows;
+
+    const devices = entry.device ? entry.device.split(',').filter(d => d).join(', ') : 'Not specified';
+    const screenshots = entry.screenshots || [];
+
+    let notesSection = '';
+    if (notes.length > 0) {
+      notesSection = '\n## Notes History\n' + notes.map(n => {
+        const d = new Date(n.created_at);
+        const dateStr = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+        return `- [${dateStr}] ${n.note}`;
+      }).join('\n');
+    }
+
+    let screenshotsSection = '';
+    if (screenshots.length > 0) {
+      screenshotsSection = '\n## Screenshots\n' + screenshots.map(url => `- ${url}`).join('\n');
+    }
+
+    const previousTaskRef = entry.task_ref || null;
+    const retryNote = previousTaskRef
+      ? `\n> **Retry**: This is a re-submission. Previous task ref: ${previousTaskRef}\n`
+      : '';
+
+    const content = `---
+devLogId: ${id}
+${previousTaskRef ? `previousTaskRef: "${previousTaskRef}"` : ''}
+---
+# [Dev Log #${id}] ${entry.task.split('\n')[0].substring(0, 80)}
+
+${retryNote}
+**Page**: ${entry.page_name || 'N/A'} (${entry.page_type})
+**Devices**: ${devices}
+**Status**: ${entry.status}
+
+## Description
+${entry.task}
+${notesSection}
+${screenshotsSection}
+
+## Agent Instructions
+When you create a Replit task from this entry, call:
+  PUT /api/admin/dev-log/${id}
+  Body: { "taskRef": "<assigned task ref>" }
+to link the task number back to this dev log entry automatically.
+`;
+
+    const tasksDir = path.join(process.cwd(), '.local', 'tasks');
+    if (!fs.existsSync(tasksDir)) {
+      fs.mkdirSync(tasksDir, { recursive: true });
+    }
+    const draftPath = path.join(tasksDir, `devlog-draft-${id}.md`);
+    fs.writeFileSync(draftPath, content, 'utf8');
+
+    res.json({ success: true, draftPath: `devlog-draft-${id}.md` });
+  } catch (error) {
+    console.error('Send to agent error:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });

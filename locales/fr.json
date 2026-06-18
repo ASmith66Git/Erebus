@@ -2086,7 +2086,20 @@
     "pageNamePlaceholder": "ex. : DiveSiteDetail, DiveLogCard",
     "taskRequired": "La tâche est obligatoire",
     "failedToCopy": "Échec de la copie dans le presse-papiers",
-    "deviceSelectMultiple": "Appareil (sélection multiple)"
+    "deviceSelectMultiple": "Appareil (sélection multiple)",
+    "pageTypeOther": "Autre",
+    "linkedTo": "Lié à",
+    "notesTitle": "Notes",
+    "hideNotes": "Masquer les notes",
+    "noNotesYet": "Aucune note pour l'instant",
+    "addNotePlaceholder": "Ajouter du contexte...",
+    "noteAdded": "Note ajoutée",
+    "failedToAddNote": "Échec de l'ajout de la note",
+    "sentToReplit": "Envoyé à l'agent Replit",
+    "failedToSend": "Échec de l'envoi",
+    "screenshotsTitle": "Captures d'écran",
+    "addScreenshotBtn": "Ajouter une capture",
+    "failedToUploadScreenshot": "Échec du téléchargement de la capture"
   },
   "faq": {
     "title": "FAQ",

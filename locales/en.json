@@ -2086,7 +2086,20 @@
     "pageNamePlaceholder": "e.g., DiveSiteDetail, DiveLogCard",
     "taskRequired": "Task is required",
     "failedToCopy": "Failed to copy to clipboard",
-    "deviceSelectMultiple": "Device (select multiple)"
+    "deviceSelectMultiple": "Device (select multiple)",
+    "pageTypeOther": "Other",
+    "linkedTo": "Linked to",
+    "notesTitle": "Notes",
+    "hideNotes": "Hide notes",
+    "noNotesYet": "No notes yet",
+    "addNotePlaceholder": "Add context about what was tried...",
+    "noteAdded": "Note added",
+    "failedToAddNote": "Failed to add note",
+    "sentToReplit": "Sent to Replit agent",
+    "failedToSend": "Failed to send",
+    "screenshotsTitle": "Screenshots",
+    "addScreenshotBtn": "Add Screenshot",
+    "failedToUploadScreenshot": "Failed to upload screenshot"
   },
   "faq": {
     "title": "FAQ",

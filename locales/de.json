@@ -2086,7 +2086,20 @@
     "pageNamePlaceholder": "z.B. DiveSiteDetail, DiveLogCard",
     "taskRequired": "Aufgabe ist erforderlich",
     "failedToCopy": "Kopieren in Zwischenablage fehlgeschlagen",
-    "deviceSelectMultiple": "Gerät (Mehrfachauswahl)"
+    "deviceSelectMultiple": "Gerät (Mehrfachauswahl)",
+    "pageTypeOther": "Andere",
+    "linkedTo": "Verknüpft mit",
+    "notesTitle": "Notizen",
+    "hideNotes": "Notizen ausblenden",
+    "noNotesYet": "Noch keine Notizen",
+    "addNotePlaceholder": "Kontext hinzufügen...",
+    "noteAdded": "Notiz hinzugefügt",
+    "failedToAddNote": "Notiz konnte nicht hinzugefügt werden",
+    "sentToReplit": "An Replit-Agenten gesendet",
+    "failedToSend": "Senden fehlgeschlagen",
+    "screenshotsTitle": "Screenshots",
+    "addScreenshotBtn": "Screenshot hinzufügen",
+    "failedToUploadScreenshot": "Screenshot konnte nicht hochgeladen werden"
   },
   "faq": {
     "title": "FAQ",
