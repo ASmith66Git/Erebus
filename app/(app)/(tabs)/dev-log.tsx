@@ -41,6 +41,7 @@ interface DevLogEntry {
   devices: ('android' | 'ios' | 'web')[];
   taskRef: string | null;
   screenshots: string[];
+  lastSentAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -313,6 +314,9 @@ export default function DevLogScreen() {
         method: 'POST',
       });
       if (response.ok) {
+        const data = await response.json();
+        const sentAt = data.lastSentAt || new Date().toISOString();
+        setEntries(prev => prev.map(e => e.id === entry.id ? { ...e, lastSentAt: sentAt } : e));
         showToast(t('devLog.sentToReplit'));
       } else if (response.status !== 401) {
         Alert.alert(t('common.error'), t('devLog.failedToSend'));
@@ -409,6 +413,14 @@ export default function DevLogScreen() {
     const notes = notesMap[entry.id] || [];
     const isExpanded = expandedNotes.has(entry.id);
     const sending = !!isSendingToAgent[entry.id];
+    const notesLoaded = notesMap[entry.id] !== undefined;
+    const hasNewNotesSinceSend = entry.lastSentAt
+      ? notes.some(n => new Date(n.createdAt) > new Date(entry.lastSentAt!))
+      : true;
+    const canResend = !entry.taskRef || !entry.lastSentAt || !notesLoaded || hasNewNotesSinceSend;
+    const displayTaskRef = entry.taskRef
+      ? (entry.taskRef.startsWith('#') ? entry.taskRef : `#${entry.taskRef}`)
+      : null;
 
     return (
       <View
@@ -418,9 +430,9 @@ export default function DevLogScreen() {
         <Pressable onPress={() => openEditModal(entry)}>
           <View style={styles.cardHeader}>
             <View style={styles.cardHeaderLeft}>
-              {entry.taskRef && (
+              {displayTaskRef && (
                 <View style={[styles.taskRefBadge, { backgroundColor: colors.text }]}>
-                  <Text style={[styles.taskRefText, { color: colors.background }]}>{entry.taskRef}</Text>
+                  <Text style={[styles.taskRefText, { color: colors.background }]}>{displayTaskRef}</Text>
                 </View>
               )}
               <Text style={[styles.dateText, { color: colors.textSecondary }]}>
@@ -429,15 +441,15 @@ export default function DevLogScreen() {
             </View>
             <View style={styles.cardActions}>
               <Pressable
-                onPress={() => handleSendToAgent(entry)}
+                onPress={() => canResend ? handleSendToAgent(entry) : undefined}
                 hitSlop={8}
-                style={styles.actionButton}
-                disabled={sending}
+                style={[styles.actionButton, { opacity: (!sending && !canResend) ? 0.3 : 1 }]}
+                disabled={sending || !canResend}
               >
                 {sending ? (
                   <ActivityIndicator size="small" color={colors.primary} />
                 ) : entry.taskRef ? (
-                  <Feather name="refresh-cw" size={16} color={colors.textSecondary} />
+                  <Feather name="refresh-cw" size={16} color={canResend ? colors.textSecondary : colors.textSecondary} />
                 ) : (
                   <Feather name="zap" size={16} color={colors.primary} />
                 )}

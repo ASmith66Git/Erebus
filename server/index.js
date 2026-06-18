@@ -516,6 +516,7 @@ async function initDatabase() {
       ALTER TABLE dev_log ADD COLUMN IF NOT EXISTS device VARCHAR(255);
       ALTER TABLE dev_log ADD COLUMN IF NOT EXISTS task_ref VARCHAR(20);
       ALTER TABLE dev_log ADD COLUMN IF NOT EXISTS screenshots TEXT[] DEFAULT '{}';
+      ALTER TABLE dev_log ADD COLUMN IF NOT EXISTS last_sent_at TIMESTAMP;
     `).catch(() => {});
 
     await client.query(`
@@ -2288,6 +2289,7 @@ app.get('/api/admin/dev-log', authenticateToken, requireAdmin, async (req, res) 
       devices: row.device ? row.device.split(',').filter(d => d) : [],
       taskRef: row.task_ref || null,
       screenshots: row.screenshots || [],
+      lastSentAt: row.last_sent_at || null,
       createdAt: row.created_at,
       updatedAt: row.updated_at
     })));
@@ -2348,31 +2350,45 @@ app.post('/api/admin/dev-log', authenticateToken, requireAdmin, async (req, res)
 
 app.put('/api/admin/dev-log/:id', authenticateToken, requireAdmin, async (req, res) => {
   const { id } = req.params;
-  const { task, pageName, pageType, status, devices, taskRef, screenshots } = req.body;
-  
-  const deviceString = Array.isArray(devices) && devices.length > 0 ? devices.join(',') : null;
-  const screenshotsValue = Array.isArray(screenshots) ? screenshots : null;
-  const taskRefValue = taskRef !== undefined ? (taskRef || null) : undefined;
-  
   try {
-    const result = await pool.query(
-      `UPDATE dev_log SET 
-        task = COALESCE($1, task),
-        page_name = $2,
-        page_type = COALESCE($3, page_type),
-        status = COALESCE($4, status),
-        device = $5,
-        task_ref = CASE WHEN $6::text IS NOT NULL THEN $6::varchar(20) ELSE task_ref END,
-        screenshots = COALESCE($7, screenshots),
-        updated_at = CURRENT_TIMESTAMP
-       WHERE id = $8 RETURNING *`,
-      [task, pageName, pageType, status, deviceString, taskRefValue !== undefined ? taskRefValue : null, screenshotsValue, id]
-    );
-    
-    if (result.rows.length === 0) {
+    const current = await pool.query('SELECT * FROM dev_log WHERE id = $1', [id]);
+    if (current.rows.length === 0) {
       return res.status(404).json({ error: 'Dev log entry not found' });
     }
-    
+    const cur = current.rows[0];
+
+    const task = req.body.task !== undefined ? req.body.task : cur.task;
+    const pageName = Object.prototype.hasOwnProperty.call(req.body, 'pageName') ? req.body.pageName : cur.page_name;
+    const pageType = req.body.pageType || cur.page_type;
+    const status = req.body.status || cur.status;
+
+    let deviceString;
+    if (Object.prototype.hasOwnProperty.call(req.body, 'devices')) {
+      const d = req.body.devices;
+      deviceString = Array.isArray(d) && d.length > 0 ? d.join(',') : null;
+    } else {
+      deviceString = cur.device;
+    }
+
+    const taskRef = req.body.taskRef !== undefined ? (req.body.taskRef || null) : cur.task_ref;
+    const screenshots = Object.prototype.hasOwnProperty.call(req.body, 'screenshots')
+      ? (Array.isArray(req.body.screenshots) ? req.body.screenshots : cur.screenshots)
+      : cur.screenshots;
+
+    const result = await pool.query(
+      `UPDATE dev_log SET 
+        task = $1,
+        page_name = $2,
+        page_type = $3,
+        status = $4,
+        device = $5,
+        task_ref = $6,
+        screenshots = $7,
+        updated_at = CURRENT_TIMESTAMP
+       WHERE id = $8 RETURNING *`,
+      [task, pageName, pageType, status, deviceString, taskRef, screenshots, id]
+    );
+
     const row = result.rows[0];
     res.json({
       id: row.id,
@@ -2383,6 +2399,7 @@ app.put('/api/admin/dev-log/:id', authenticateToken, requireAdmin, async (req, r
       devices: row.device ? row.device.split(',').filter(d => d) : [],
       taskRef: row.task_ref || null,
       screenshots: row.screenshots || [],
+      lastSentAt: row.last_sent_at || null,
       createdAt: row.created_at,
       updatedAt: row.updated_at
     });
@@ -2499,7 +2516,9 @@ to link the task number back to this dev log entry automatically.
     const draftPath = path.join(tasksDir, `devlog-draft-${id}.md`);
     fs.writeFileSync(draftPath, content, 'utf8');
 
-    res.json({ success: true, draftPath: `devlog-draft-${id}.md` });
+    await pool.query('UPDATE dev_log SET last_sent_at = NOW() WHERE id = $1', [id]);
+
+    res.json({ success: true, draftPath: `devlog-draft-${id}.md`, lastSentAt: new Date().toISOString() });
   } catch (error) {
     console.error('Send to agent error:', error);
     res.status(500).json({ error: 'Server error' });
