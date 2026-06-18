@@ -32,7 +32,7 @@ export async function authFetch(
     headers,
   });
 
-  if (response.status === 401 && logoutCallback) {
+  if ((response.status === 401 || response.status === 403) && logoutCallback) {
     logoutCallback();
   }
 
