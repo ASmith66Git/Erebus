@@ -2137,9 +2137,8 @@
   "trial": {
     "daysRemaining": "{{count}} giorno rimanente nella tua prova gratuita",
     "daysRemaining_other": "{{count}} giorni rimanenti nella tua prova gratuita",
-    "paywallTitle": "Erebus Premium",
-    "paywallSubtitle": "Sblocca l'esperienza subacquea completa",
-    "trialExpiredMessage": "La tua prova gratuita è terminata. Abbonati per continuare a usare Erebus.",
+    "paywallTitle": "Inizia la tua prova gratuita",
+    "paywallSubtitle": "Goditi 14 giorni gratis — nessun addebito fino alla fine della prova.",
     "statusActive": "Attivo",
     "statusInactive": "Inattivo",
     "statusTrial": "Prova — {{count}} giorno rimanente",

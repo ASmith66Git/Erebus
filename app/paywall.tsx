@@ -180,9 +180,7 @@ export default function PaywallScreen() {
           </View>
           <Text style={[styles.title, { color: colors.text }]}>{t('trial.paywallTitle')}</Text>
           <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-            {user?.trialEndsAt && new Date(user.trialEndsAt) <= new Date()
-              ? t('trial.trialExpiredMessage')
-              : t('trial.paywallSubtitle')}
+            {t('trial.paywallSubtitle')}
           </Text>
         </View>
 

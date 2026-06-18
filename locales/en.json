@@ -2137,9 +2137,8 @@
   "trial": {
     "daysRemaining": "{{count}} day remaining in your free trial",
     "daysRemaining_other": "{{count}} days remaining in your free trial",
-    "paywallTitle": "Erebus Premium",
-    "paywallSubtitle": "Unlock the full diving experience",
-    "trialExpiredMessage": "Your free trial has ended. Subscribe to continue using Erebus.",
+    "paywallTitle": "Start Your Free Trial",
+    "paywallSubtitle": "Enjoy 14 days free — no charge until your trial ends.",
     "statusActive": "Active",
     "statusInactive": "Inactive",
     "statusTrial": "Trial — {{count}} day left",

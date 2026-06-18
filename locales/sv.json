@@ -2137,9 +2137,8 @@
   "trial": {
     "daysRemaining": "{{count}} dag kvar av din gratis provperiod",
     "daysRemaining_other": "{{count}} dagar kvar av din gratis provperiod",
-    "paywallTitle": "Erebus Premium",
-    "paywallSubtitle": "Lås upp hela dykupplevelsen",
-    "trialExpiredMessage": "Din gratis provperiod har avslutats. Prenumerera för att fortsätta använda Erebus.",
+    "paywallTitle": "Starta din kostnadsfria provperiod",
+    "paywallSubtitle": "Njut av 14 dagar gratis — ingen kostnad förrän din provperiod avslutas.",
     "statusActive": "Aktiv",
     "statusInactive": "Inaktiv",
     "statusTrial": "Provperiod — {{count}} dag kvar",
