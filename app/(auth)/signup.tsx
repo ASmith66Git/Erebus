@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { validatePassword } from '@/utils/passwordValidation';
 import {
   View,
   Text,
@@ -128,8 +129,9 @@ export default function SignupScreen() {
       setError(t('auth.pleaseEnterNewPassword'));
       return;
     }
-    if (password.length < 6) {
-      setError(t('auth.passwordMinLength'));
+    const pwCheck = validatePassword(password);
+    if (!pwCheck.valid) {
+      setError(t(pwCheck.errorKey));
       return;
     }
     if (password !== confirmPassword) {

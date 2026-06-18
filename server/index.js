@@ -1317,10 +1317,19 @@ app.post('/api/auth/signup', async (req, res) => {
     return res.status(400).json({ error: 'Email and password are required' });
   }
   
-  if (password.length < 6) {
-    return res.status(400).json({ error: 'Password must be at least 6 characters' });
+  if (password.length < 12) {
+    return res.status(400).json({ error: 'Password must be at least 12 characters' });
   }
-  
+  if (!/[A-Z]/.test(password)) {
+    return res.status(400).json({ error: 'Password must contain at least one uppercase letter' });
+  }
+  if (!/[0-9]/.test(password)) {
+    return res.status(400).json({ error: 'Password must contain at least one number' });
+  }
+  if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>/?]/.test(password)) {
+    return res.status(400).json({ error: 'Password must contain at least one special character' });
+  }
+
   if (!privacyAccepted || !termsAccepted) {
     return res.status(400).json({ error: 'You must accept the Privacy Policy and Terms & Conditions' });
   }
@@ -1658,10 +1667,19 @@ app.post('/api/auth/reset-password', async (req, res) => {
     return res.status(400).json({ error: 'Token and new password are required' });
   }
   
-  if (newPassword.length < 6) {
-    return res.status(400).json({ error: 'Password must be at least 6 characters' });
+  if (newPassword.length < 12) {
+    return res.status(400).json({ error: 'Password must be at least 12 characters' });
   }
-  
+  if (!/[A-Z]/.test(newPassword)) {
+    return res.status(400).json({ error: 'Password must contain at least one uppercase letter' });
+  }
+  if (!/[0-9]/.test(newPassword)) {
+    return res.status(400).json({ error: 'Password must contain at least one number' });
+  }
+  if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>/?]/.test(newPassword)) {
+    return res.status(400).json({ error: 'Password must contain at least one special character' });
+  }
+
   try {
     const result = await pool.query(
       'SELECT id FROM users WHERE password_reset_token = $1 AND password_reset_expires > NOW()',
