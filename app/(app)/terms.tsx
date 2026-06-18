@@ -9,7 +9,7 @@ export default function TermsScreen() {
   const { colors } = useTheme();
 
   const handleBack = () => {
-    router.replace('/(app)/(tabs)/profile');
+    router.back();
   };
 
   return (
