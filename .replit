@@ -30,34 +30,50 @@ runButton = "Project"
 [[workflows.workflow]]
 name = "Dev Server"
 mode = "sequential"
+author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "EXPO_PACKAGER_PROXY_URL=https://$REPLIT_DEV_DOMAIN REACT_NATIVE_PACKAGER_HOSTNAME=$REPLIT_DEV_DOMAIN npx expo start"
 
+[workflows.workflow.metadata]
+outputType = "console"
+
 [[workflows.workflow]]
 name = "EAS Init"
 mode = "sequential"
+author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "npx eas init"
 
+[workflows.workflow.metadata]
+outputType = "console"
+
 [[workflows.workflow]]
 name = "EAS Update"
 mode = "sequential"
+author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "npx eas update --auto"
 
+[workflows.workflow.metadata]
+outputType = "console"
+
 [[workflows.workflow]]
 name = "EAS Publish Preview Android"
 mode = "sequential"
+author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "npx eas build --platform android --profile preview"
+
+[workflows.workflow.metadata]
+outputType = "console"
 
 [[workflows.workflow]]
 name = "Project"
@@ -79,6 +95,22 @@ args = "iOS Build & Submit"
 [[workflows.workflow.tasks]]
 task = "workflow.run"
 args = "EAS Publish Preview iOS"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "EAS Publish Preview Android"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "EAS Init"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "EAS Update"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Dev Server"
 
 [[workflows.workflow]]
 name = "Expo Web"
@@ -119,12 +151,12 @@ args = "bash scripts/submit-ios.sh"
 name = "EAS Publish Preview iOS"
 author = "agent"
 
+[workflows.workflow.metadata]
+outputType = "console"
+
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "npx eas build --platform ios --profile preview"
-
-[workflows.workflow.metadata]
-outputType = "console"
 
 [agent]
 expertMode = true
