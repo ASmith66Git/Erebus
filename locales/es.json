@@ -156,6 +156,8 @@
     "iAcceptThe": "Acepto la",
     "privacyPolicy": "Política de Privacidad",
     "termsAndConditions": "Términos y Condiciones",
+    "mobileAppOnly": "Erebus es una aplicación móvil",
+    "mobileAppOnlySubtitle": "Para crear una cuenta y comenzar tu prueba gratuita, descarga Erebus desde el App Store o Google Play.",
     "alreadyHaveAccount": "¿Ya tienes una cuenta?",
     "logIn": "Iniciar sesión",
     "loginWithBiometric": "Iniciar sesión con {{type}}",

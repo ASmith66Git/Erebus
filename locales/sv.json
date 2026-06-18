@@ -156,6 +156,8 @@
     "iAcceptThe": "Jag accepterar",
     "privacyPolicy": "Integritetspolicy",
     "termsAndConditions": "Villkor",
+    "mobileAppOnly": "Erebus är en mobilapp",
+    "mobileAppOnlySubtitle": "För att skapa ett konto och starta din kostnadsfria provperiod, ladda ner Erebus från App Store eller Google Play.",
     "alreadyHaveAccount": "Har du redan ett konto?",
     "logIn": "Logga in",
     "loginWithBiometric": "Logga in med {{type}}",

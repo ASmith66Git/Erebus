@@ -23,11 +23,80 @@ const SEX_OPTIONS = ['Male', 'Female', 'Other', 'Prefer not to say'];
 
 const darkCoralBackground = require('@/assets/images/coral-background-dark.jpg');
 
+const IOS_STORE_URL = 'https://apps.apple.com/app/id6780519891';
+const ANDROID_STORE_URL = 'https://play.google.com/store/apps/details?id=com.erebus.diveapp';
+
+function WebSignupBlock() {
+  const { colors } = useTheme();
+  const router = useRouter();
+  const { t } = useTranslation();
+
+  return (
+    <ImageBackground
+      source={darkCoralBackground}
+      style={styles.backgroundImage}
+      imageStyle={styles.webBackgroundImage}
+      resizeMode="cover"
+    >
+      <View style={styles.overlay}>
+        <ScrollView contentContainerStyle={[styles.scrollContent, styles.webScrollContent]}>
+          <Pressable style={styles.backButton} onPress={() => router.back()}>
+            <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+          </Pressable>
+
+          <View style={styles.header}>
+            <Logo size={80} primaryColor={colors.primary} />
+            <Text style={[styles.title, { color: '#FFFFFF' }]}>{t('auth.mobileAppOnly')}</Text>
+            <Text style={[styles.subtitle, { color: 'rgba(255,255,255,0.7)' }]}>
+              {t('auth.mobileAppOnlySubtitle')}
+            </Text>
+          </View>
+
+          <View style={styles.form}>
+            <Pressable
+              style={[styles.storeButton, { backgroundColor: '#000000', borderColor: 'rgba(255,255,255,0.3)' }]}
+              onPress={() => Linking.openURL(IOS_STORE_URL)}
+            >
+              <Ionicons name="logo-apple" size={24} color="#FFFFFF" />
+              <View style={styles.storeButtonText}>
+                <Text style={styles.storeButtonTop}>Download on the</Text>
+                <Text style={styles.storeButtonMain}>App Store</Text>
+              </View>
+            </Pressable>
+
+            <Pressable
+              style={[styles.storeButton, { backgroundColor: '#000000', borderColor: 'rgba(255,255,255,0.3)' }]}
+              onPress={() => Linking.openURL(ANDROID_STORE_URL)}
+            >
+              <Ionicons name="logo-google-playstore" size={24} color="#FFFFFF" />
+              <View style={styles.storeButtonText}>
+                <Text style={styles.storeButtonTop}>Get it on</Text>
+                <Text style={styles.storeButtonMain}>Google Play</Text>
+              </View>
+            </Pressable>
+
+            <View style={styles.loginContainer}>
+              <Text style={[styles.loginText, { color: 'rgba(255,255,255,0.7)' }]}>{t('auth.alreadyHaveAccount')} </Text>
+              <Pressable onPress={() => router.push('/(auth)/login')}>
+                <Text style={[styles.loginLink, { color: colors.primary }]}>{t('auth.signIn')}</Text>
+              </Pressable>
+            </View>
+          </View>
+        </ScrollView>
+      </View>
+    </ImageBackground>
+  );
+}
+
 export default function SignupScreen() {
   const { colors } = useTheme();
   const { signup } = useAuth();
   const router = useRouter();
   const { t } = useTranslation();
+
+  if (Platform.OS === 'web') {
+    return <WebSignupBlock />;
+  }
 
   const sexOptionLabels: Record<string, string> = {
     'Male': t('auth.male'),
@@ -507,5 +576,27 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     lineHeight: 20,
+  },
+  storeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 60,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 12,
+  },
+  storeButtonText: {
+    alignItems: 'flex-start',
+  },
+  storeButtonTop: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 11,
+    fontWeight: '400',
+  },
+  storeButtonMain: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '700',
   },
 });
