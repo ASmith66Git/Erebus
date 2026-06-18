@@ -2426,5 +2426,12 @@
     "sort_name": "Name",
     "sort_status": "Status",
     "linkedGearProfile": "Linked Gear Profile"
+  },
+  "welcome": {
+    "heading": "Willkommen bei Erebus",
+    "subheading": "Ihr Tauchbuch ist bereit zur Erkundung.",
+    "body1": "Um Ihnen den Einstieg zu erleichtern, haben wir Ihr Konto mit Beispiel-Tauchdaten vorbefüllt — einschließlich Tauchgänge, Tauchplätze und einen Trip — damit Sie sofort alles entdecken können, was Erebus zu bieten hat.",
+    "body2": "Sie können diese Beispieldaten jederzeit durchsuchen, bearbeiten oder löschen. Wenn Sie Ihren ersten echten Tauchgang eintragen, wird Ihnen alles vertraut sein.",
+    "cta": "Eintauchen"
   }
 }

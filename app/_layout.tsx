@@ -3,8 +3,9 @@ import { useFonts } from 'expo-font';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import 'react-native-reanimated';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
@@ -33,14 +34,25 @@ try {
 
 function RootLayoutNav() {
   const { colorScheme, isDark } = useTheme();
-  const { isAuthenticated, isLoading, isAdmin, isTrialActive } = useAuth();
+  const { isAuthenticated, isLoading, isAdmin, isTrialActive, user } = useAuth();
   const { isSubscribed, isLoading: isSubLoading, hasError: hasSubError } = useSubscription();
   const segments = useSegments();
   const router = useRouter();
+  const [welcomeSeen, setWelcomeSeen] = useState<boolean | null>(null);
 
   useEffect(() => {
     errorLogger.initialize();
   }, []);
+
+  useEffect(() => {
+    if (isAuthenticated && user?.id) {
+      AsyncStorage.getItem(`welcome_seen_${user.id}`).then((val) => {
+        setWelcomeSeen(val === 'true');
+      });
+    } else {
+      setWelcomeSeen(null);
+    }
+  }, [isAuthenticated, user?.id]);
 
   const hasAccess = isAdmin || isTrialActive || isSubscribed;
 
@@ -51,15 +63,21 @@ function RootLayoutNav() {
     const inSplash = segments[0] === 'splash';
     const inResetPassword = segments[0] === 'reset-password';
     const inPaywall = segments[0] === 'paywall';
+    const inWelcome = segments[0] === 'welcome';
 
     if (!isAuthenticated && !inAuthGroup && !inSplash && !inResetPassword) {
       router.replace('/splash');
     } else if (isAuthenticated && !isSubLoading && !hasAccess && !inPaywall) {
       router.replace('/paywall');
     } else if (isAuthenticated && hasAccess && (inAuthGroup || inSplash || (inPaywall && !isAdmin))) {
-      router.replace('/(app)/(tabs)');
+      if (welcomeSeen === null) return;
+      if (!welcomeSeen && !inWelcome) {
+        router.replace('/welcome');
+      } else if (welcomeSeen) {
+        router.replace('/(app)/(tabs)');
+      }
     }
-  }, [isAuthenticated, isLoading, isSubscribed, isSubLoading, hasSubError, hasAccess, segments]);
+  }, [isAuthenticated, isLoading, isSubscribed, isSubLoading, hasSubError, hasAccess, segments, welcomeSeen]);
 
   return (
     <NavThemeProvider value={isDark ? DarkTheme : DefaultTheme}>
@@ -67,6 +85,7 @@ function RootLayoutNav() {
         <Stack.Screen name="splash" options={{ headerShown: false }} />
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         <Stack.Screen name="paywall" options={{ headerShown: false }} />
+        <Stack.Screen name="welcome" options={{ headerShown: false }} />
         <Stack.Screen name="(app)" options={{ headerShown: false }} />
         <Stack.Screen name="reset-password" options={{ headerShown: false }} />
         <Stack.Screen name="dive-site/[id]" options={{ headerShown: false }} />

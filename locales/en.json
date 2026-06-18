@@ -2426,5 +2426,12 @@
     "sort_name": "Name",
     "sort_status": "Status",
     "linkedGearProfile": "Linked Gear Profile"
+  },
+  "welcome": {
+    "heading": "Welcome to Erebus",
+    "subheading": "Your dive log is ready to explore.",
+    "body1": "To help you get started, we've pre-populated your account with sample dive data — including dive logs, dive sites, and a trip — so you can discover everything Erebus has to offer right away.",
+    "body2": "Feel free to browse, edit, or delete any of this sample data whenever you're ready. When you log your first real dive, everything will feel familiar.",
+    "cta": "Dive In"
   }
 }

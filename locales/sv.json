@@ -2426,5 +2426,12 @@
     "sort_name": "Namn",
     "sort_status": "Status",
     "linkedGearProfile": "Länkad utrustningsprofil"
+  },
+  "welcome": {
+    "heading": "Välkommen till Erebus",
+    "subheading": "Din dykarlogg är redo att utforska.",
+    "body1": "För att hjälpa dig komma igång har vi förifyllt ditt konto med exempeldykdata — inklusive dykloggar, dykplatser och en resa — så att du kan upptäcka allt Erebus har att erbjuda direkt.",
+    "body2": "Du är välkommen att bläddra, redigera eller ta bort dessa exempeldata när du är redo. När du loggar din första riktiga dykning kommer allt att kännas bekant.",
+    "cta": "Dyk in"
   }
 }

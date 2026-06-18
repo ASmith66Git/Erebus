@@ -2426,5 +2426,12 @@
     "sort_name": "Name",
     "sort_status": "Status",
     "linkedGearProfile": "Linked Gear Profile"
+  },
+  "welcome": {
+    "heading": "Bienvenido a Erebus",
+    "subheading": "Tu diario de buceo está listo para explorar.",
+    "body1": "Para ayudarte a empezar, hemos prellenado tu cuenta con datos de buceo de muestra — incluidos registros de inmersiones, sitios de buceo y un viaje — para que puedas descubrir todo lo que Erebus tiene para ofrecer de inmediato.",
+    "body2": "Siéntete libre de explorar, editar o eliminar estos datos de muestra cuando quieras. Cuando registres tu primera inmersión real, todo te resultará familiar.",
+    "cta": "Zambullirse"
   }
 }

@@ -10,6 +10,7 @@ import {
   Platform,
   Linking,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -84,7 +85,9 @@ export default function PaywallScreen() {
     if (!selectedPackage) return;
     try {
       await purchase(selectedPackage);
-      router.replace('/(app)/(tabs)');
+      const welcomeKey = user?.id ? `welcome_seen_${user.id}` : null;
+      const seen = welcomeKey ? await AsyncStorage.getItem(welcomeKey) : 'true';
+      router.replace(seen === 'true' ? '/(app)/(tabs)' : '/welcome');
     } catch (err: unknown) {
       if (err && typeof err === 'object' && 'userCancelled' in err && err.userCancelled) return;
       const message = err instanceof Error ? err.message : 'Purchase failed. Please try again.';
@@ -99,7 +102,9 @@ export default function PaywallScreen() {
       const hasActive =
         info?.entitlements?.active?.[REVENUECAT_ENTITLEMENT_IDENTIFIER] !== undefined;
       if (hasActive) {
-        router.replace('/(app)/(tabs)');
+        const welcomeKey = user?.id ? `welcome_seen_${user.id}` : null;
+        const seen = welcomeKey ? await AsyncStorage.getItem(welcomeKey) : 'true';
+        router.replace(seen === 'true' ? '/(app)/(tabs)' : '/welcome');
       } else {
         setErrorMessage('No active subscription found to restore.');
       }

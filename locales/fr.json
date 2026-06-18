@@ -2426,5 +2426,12 @@
     "sort_name": "Name",
     "sort_status": "Status",
     "linkedGearProfile": "Linked Gear Profile"
+  },
+  "welcome": {
+    "heading": "Bienvenue sur Erebus",
+    "subheading": "Votre journal de plongée est prêt à explorer.",
+    "body1": "Pour vous aider à démarrer, nous avons prérempli votre compte avec des données de plongée exemples — incluant des journaux de plongée, des sites et un voyage — afin que vous puissiez découvrir tout ce qu'Erebus a à offrir immédiatement.",
+    "body2": "N'hésitez pas à parcourir, modifier ou supprimer ces données exemples quand vous le souhaitez. Lorsque vous enregistrerez votre première vraie plongée, tout vous semblera familier.",
+    "cta": "Plonger"
   }
 }

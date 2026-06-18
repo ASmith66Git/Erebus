@@ -2426,5 +2426,12 @@
     "sort_name": "Name",
     "sort_status": "Status",
     "linkedGearProfile": "Linked Gear Profile"
+  },
+  "welcome": {
+    "heading": "Benvenuto su Erebus",
+    "subheading": "Il tuo diario immersioni è pronto da esplorare.",
+    "body1": "Per aiutarti a iniziare, abbiamo precompilato il tuo account con dati di immersione di esempio — inclusi diari di immersioni, siti e un viaggio — così puoi scoprire subito tutto ciò che Erebus ha da offrire.",
+    "body2": "Sentiti libero di sfogliare, modificare o eliminare questi dati di esempio quando vuoi. Quando registrerai la tua prima immersione reale, tutto ti sembrerà familiare.",
+    "cta": "Immergersi"
   }
 }
