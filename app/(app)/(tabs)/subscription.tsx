@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -7,7 +7,6 @@ import {
   Platform,
   Linking,
   ScrollView,
-  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -27,8 +26,7 @@ export default function SubscriptionScreen() {
   const { isTrialActive, trialDaysRemaining } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { customerInfo, isSubscribed, restore, isRestoring, refetch } = useSubscription();
-  const [restoreMessage, setRestoreMessage] = useState<string | null>(null);
+  const { customerInfo, isSubscribed } = useSubscription();
 
   const activeEntitlement = customerInfo?.entitlements.active?.[REVENUECAT_ENTITLEMENT_IDENTIFIER];
   const allEntitlement = customerInfo?.entitlements.all?.[REVENUECAT_ENTITLEMENT_IDENTIFIER];
@@ -65,23 +63,6 @@ export default function SubscriptionScreen() {
       Linking.openURL('https://apps.apple.com/account/subscriptions');
     } else if (Platform.OS === 'android') {
       Linking.openURL(`https://play.google.com/store/account/subscriptions?package=${PACKAGE_NAME}`);
-    }
-  };
-
-  const handleRestore = async () => {
-    setRestoreMessage(null);
-    try {
-      const info = await restore();
-      const hasActive = info?.entitlements?.active?.[REVENUECAT_ENTITLEMENT_IDENTIFIER] !== undefined;
-      if (hasActive) {
-        setRestoreMessage('Purchases restored successfully!');
-        refetch();
-      } else {
-        setRestoreMessage('No active subscription found to restore.');
-      }
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Restore failed. Please try again.';
-      setRestoreMessage(message);
     }
   };
 
@@ -311,29 +292,6 @@ export default function SubscriptionScreen() {
             </Pressable>
           )}
 
-          <Pressable
-            style={[styles.restoreButton, { borderColor: colors.primary }]}
-            onPress={handleRestore}
-            disabled={isRestoring}
-          >
-            {isRestoring ? (
-              <ActivityIndicator color={colors.primary} size="small" />
-            ) : (
-              <>
-                <Ionicons name="refresh-outline" size={20} color={colors.primary} />
-                <Text style={[styles.restoreButtonText, { color: colors.primary }]}>
-                  Restore Purchases
-                </Text>
-              </>
-            )}
-          </Pressable>
-
-          {restoreMessage && (
-            <Text style={[styles.restoreMessage, { color: colors.textSecondary }]}>
-              {restoreMessage}
-            </Text>
-          )}
-
           {!isNativePlatform && (
             <View style={[styles.webNotice, { backgroundColor: colors.background, borderColor: colors.border }]}>
               <Ionicons name="information-circle-outline" size={24} color={colors.primary} />
@@ -484,26 +442,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
-  },
-  restoreButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    marginBottom: 12,
-  },
-  restoreButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  restoreMessage: {
-    fontSize: 13,
-    textAlign: 'center',
-    marginBottom: 12,
   },
   webNotice: {
     flexDirection: 'row',
