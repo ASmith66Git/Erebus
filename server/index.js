@@ -2258,28 +2258,33 @@ app.put('/api/admin/users/:id/archive', authenticateToken, requireAdmin, async (
 app.get('/api/admin/dev-log', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { status, page_name } = req.query;
-    let query = 'SELECT * FROM dev_log';
     const params = [];
     const conditions = [];
-    
+
     if (status) {
       params.push(status);
-      conditions.push(`status = $${params.length}`);
+      conditions.push(`dl.status = $${params.length}`);
     }
-    
+
     if (page_name) {
       params.push(page_name);
-      conditions.push(`page_name = $${params.length}`);
+      conditions.push(`dl.page_name = $${params.length}`);
     }
-    
-    if (conditions.length > 0) {
-      query += ' WHERE ' + conditions.join(' AND ');
-    }
-    
-    query += ' ORDER BY created_at DESC';
-    
+
+    const whereClause = conditions.length > 0 ? ' WHERE ' + conditions.join(' AND ') : '';
+    const query = `
+      SELECT dl.*,
+        (SELECT COUNT(*) FROM dev_log_notes n
+         WHERE n.dev_log_id = dl.id
+           AND (dl.last_sent_at IS NULL OR n.created_at > dl.last_sent_at)
+        ) AS new_notes_count
+      FROM dev_log dl
+      ${whereClause}
+      ORDER BY dl.created_at DESC
+    `;
+
     const result = await pool.query(query, params);
-    
+
     res.json(result.rows.map(row => ({
       id: row.id,
       task: row.task,
@@ -2290,6 +2295,7 @@ app.get('/api/admin/dev-log', authenticateToken, requireAdmin, async (req, res) 
       taskRef: row.task_ref || null,
       screenshots: row.screenshots || [],
       lastSentAt: row.last_sent_at || null,
+      newNotesSinceSent: parseInt(row.new_notes_count || '0', 10) > 0,
       createdAt: row.created_at,
       updatedAt: row.updated_at
     })));

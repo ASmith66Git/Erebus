@@ -21,7 +21,6 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'expo-router';
 import { authFetch } from '@/utils/authFetch';
-import { getApiUrl } from '@/utils/apiConfig';
 import { useTranslation } from 'react-i18next';
 import PageHeader from '@/components/PageHeader';
 import ThemedBackground from '@/components/ThemedBackground';
@@ -42,6 +41,7 @@ interface DevLogEntry {
   taskRef: string | null;
   screenshots: string[];
   lastSentAt: string | null;
+  newNotesSinceSent: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -296,6 +296,7 @@ export default function DevLogScreen() {
       if (response.ok) {
         setNewNoteTexts(prev => ({ ...prev, [entryId]: '' }));
         await fetchNotes(entryId);
+        setEntries(prev => prev.map(e => e.id === entryId ? { ...e, newNotesSinceSent: true } : e));
         showToast(t('devLog.noteAdded'));
       } else if (response.status !== 401) {
         Alert.alert(t('common.error'), t('devLog.failedToAddNote'));
@@ -316,7 +317,7 @@ export default function DevLogScreen() {
       if (response.ok) {
         const data = await response.json();
         const sentAt = data.lastSentAt || new Date().toISOString();
-        setEntries(prev => prev.map(e => e.id === entry.id ? { ...e, lastSentAt: sentAt } : e));
+        setEntries(prev => prev.map(e => e.id === entry.id ? { ...e, lastSentAt: sentAt, newNotesSinceSent: false } : e));
         showToast(t('devLog.sentToReplit'));
       } else if (response.status !== 401) {
         Alert.alert(t('common.error'), t('devLog.failedToSend'));
@@ -413,11 +414,7 @@ export default function DevLogScreen() {
     const notes = notesMap[entry.id] || [];
     const isExpanded = expandedNotes.has(entry.id);
     const sending = !!isSendingToAgent[entry.id];
-    const notesLoaded = notesMap[entry.id] !== undefined;
-    const hasNewNotesSinceSend = entry.lastSentAt
-      ? notes.some(n => new Date(n.createdAt) > new Date(entry.lastSentAt!))
-      : true;
-    const canResend = !entry.taskRef || !entry.lastSentAt || !notesLoaded || hasNewNotesSinceSend;
+    const canResend = !entry.taskRef || !entry.lastSentAt || entry.newNotesSinceSent;
     const displayTaskRef = entry.taskRef
       ? (entry.taskRef.startsWith('#') ? entry.taskRef : `#${entry.taskRef}`)
       : null;
