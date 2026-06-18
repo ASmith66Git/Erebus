@@ -24,7 +24,7 @@ type TabType = 'gases' | 'density' | 'fill' | 'mix' | 'bestmix';
 
 export default function GasCalculatorScreen() {
   const { t } = useTranslation();
-  const { isDark } = useTheme();
+  const { isDark, colors: themeColors } = useTheme();
   const navigation = useNavigation();
   const { units, getVolumeUnit, getPressureUnit, getDepthUnit, formatVolume, formatPressure, formatDepth } = useSettings();
 
@@ -34,7 +34,7 @@ export default function GasCalculatorScreen() {
     text: isDark ? '#FFFFFF' : '#000000',
     textSecondary: isDark ? '#8E8E93' : '#6B6B6B',
     border: isDark ? '#38383A' : '#E5E5EA',
-    primary: '#D22F00',
+    primary: themeColors.primary,
     accent: '#007AFF',
     warning: '#FF9500',
     success: '#34C759',
