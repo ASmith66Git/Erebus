@@ -1113,7 +1113,7 @@ export default function GearProfileScreen() {
         <View style={{ marginTop: 24 }}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('gearProfiles.myEquipmentInventory')}</Text>
           <Text style={[{ color: colors.textSecondary, fontSize: 13, marginBottom: 12 }]}>
-            All your saved equipment. Switch to edit mode to link items to this profile.
+            Tap the + button on any item to link it to this profile.
           </Text>
           
           {allEquipment.length === 0 ? (
@@ -1124,26 +1124,46 @@ export default function GearProfileScreen() {
             </View>
           ) : (
             <View style={[styles.equipmentListContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              {allEquipment.map((item, index) => (
-                <View 
-                  key={item.id} 
-                  style={[
-                    styles.equipmentRow,
-                    { borderBottomColor: colors.border },
-                    index === allEquipment.length - 1 && { borderBottomWidth: 0 }
-                  ]}
-                >
-                  <Text style={[styles.equipmentRowType, { color: colors.textSecondary }]}>
-                    {getEquipmentTypeLabel(item.equipmentType)}
-                  </Text>
-                  <Text style={[styles.equipmentRowName, { color: colors.text }]} numberOfLines={1}>
-                    {item.name}
-                  </Text>
-                  {item.quantity > 1 && (
-                    <Text style={[styles.equipmentRowQty, { color: colors.textSecondary }]}>x{item.quantity}</Text>
-                  )}
-                </View>
-              ))}
+              {(() => {
+                const linkedIds = new Set(profileEquipment.map(e => e.id));
+                return allEquipment.map((item, index) => {
+                  const isLinked = linkedIds.has(item.id);
+                  return (
+                    <Pressable
+                      key={item.id}
+                      style={[
+                        styles.equipmentRow,
+                        { borderBottomColor: colors.border },
+                        index === allEquipment.length - 1 && { borderBottomWidth: 0 }
+                      ]}
+                      onPress={isLinked ? undefined : () => handleAddToProfile(item.id)}
+                      disabled={isLinked}
+                    >
+                      <Text style={[styles.equipmentRowType, { color: colors.textSecondary }]}>
+                        {getEquipmentTypeLabel(item.equipmentType)}
+                      </Text>
+                      <Text style={[styles.equipmentRowName, { color: colors.text }]} numberOfLines={1}>
+                        {item.name}
+                      </Text>
+                      {item.quantity > 1 && (
+                        <Text style={[styles.equipmentRowQty, { color: colors.textSecondary }]}>x{item.quantity}</Text>
+                      )}
+                      <Pressable
+                        style={{ marginLeft: 8, padding: 4 }}
+                        onPress={isLinked ? undefined : () => handleAddToProfile(item.id)}
+                        disabled={isLinked}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <Feather
+                          name={isLinked ? 'check' : 'plus'}
+                          size={16}
+                          color={isLinked ? colors.textSecondary : colors.primary}
+                        />
+                      </Pressable>
+                    </Pressable>
+                  );
+                });
+              })()}
             </View>
           )}
         </View>
@@ -1815,7 +1835,7 @@ const styles = StyleSheet.create({
   equipmentListContainer: {
     borderRadius: 8,
     borderWidth: 1,
-    overflow: 'hidden',
+    overflow: 'visible',
   },
   equipmentRow: {
     flexDirection: 'row',
