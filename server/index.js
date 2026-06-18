@@ -259,9 +259,6 @@ async function initDatabase() {
       ALTER TABLE users ADD COLUMN IF NOT EXISTS trial_ends_at TIMESTAMP;
     `).catch(() => {});
 
-    await client.query(`
-      UPDATE users SET trial_ends_at = created_at + INTERVAL '14 days' WHERE trial_ends_at IS NULL;
-    `).catch(() => {});
 
     await client.query(`
       ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMP;
