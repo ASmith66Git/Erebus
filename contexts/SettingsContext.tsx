@@ -27,7 +27,7 @@ const QUICK_ACTION_OPTIONS: QuickActionOption[] = [
   { id: 'cylinders', icon: 'disc', label: 'Cylinders', route: '/(app)/(tabs)/cylinders' },
   { id: 'dive-trips', icon: 'airplane', label: 'Dive Trips', route: '/(app)/(tabs)/dive-trips' },
   { id: 'profile', icon: 'person', label: 'Profile', route: '/(app)/(tabs)/profile' },
-  { id: 'explore', icon: 'compass', label: 'Explore Sites', route: '/(app)/(tabs)/explore' },
+  { id: 'explore', icon: 'compass', label: 'Explore Sites', route: '/(app)/(tabs)/dive-sites' },
   { id: 'manual-dive', icon: 'add-circle', label: 'Log Dive', route: '/(app)/(tabs)/manual-dive-entry' },
 ];
 
