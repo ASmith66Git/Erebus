@@ -517,6 +517,8 @@ async function initDatabase() {
       ALTER TABLE dev_log ADD COLUMN IF NOT EXISTS task_ref VARCHAR(20);
       ALTER TABLE dev_log ADD COLUMN IF NOT EXISTS screenshots TEXT[] DEFAULT '{}';
       ALTER TABLE dev_log ADD COLUMN IF NOT EXISTS last_sent_at TIMESTAMP;
+      ALTER TABLE dev_log ADD COLUMN IF NOT EXISTS agent_draft_content TEXT;
+      ALTER TABLE dev_log ADD COLUMN IF NOT EXISTS agent_draft_pending BOOLEAN DEFAULT FALSE;
     `).catch(() => {});
 
     await client.query(`
@@ -2381,6 +2383,7 @@ app.put('/api/admin/dev-log/:id', authenticateToken, requireAdmin, async (req, r
       ? (Array.isArray(req.body.screenshots) ? req.body.screenshots : cur.screenshots)
       : cur.screenshots;
 
+    const clearPending = req.body.taskRef !== undefined && req.body.taskRef;
     const result = await pool.query(
       `UPDATE dev_log SET 
         task = $1,
@@ -2390,9 +2393,10 @@ app.put('/api/admin/dev-log/:id', authenticateToken, requireAdmin, async (req, r
         device = $5,
         task_ref = $6,
         screenshots = $7,
+        agent_draft_pending = CASE WHEN $9 THEN FALSE ELSE agent_draft_pending END,
         updated_at = CURRENT_TIMESTAMP
        WHERE id = $8 RETURNING *`,
-      [task, pageName, pageType, status, deviceString, taskRef, screenshots, id]
+      [task, pageName, pageType, status, deviceString, taskRef, screenshots, id, clearPending]
     );
 
     const row = result.rows[0];
@@ -2515,18 +2519,41 @@ When you create a Replit task from this entry, call:
 to link the task number back to this dev log entry automatically.
 `;
 
-    const tasksDir = path.join(process.cwd(), '.local', 'tasks');
-    if (!fs.existsSync(tasksDir)) {
-      fs.mkdirSync(tasksDir, { recursive: true });
-    }
-    const draftPath = path.join(tasksDir, `devlog-draft-${id}.md`);
-    fs.writeFileSync(draftPath, content, 'utf8');
+    await pool.query(
+      'UPDATE dev_log SET last_sent_at = NOW(), agent_draft_content = $1, agent_draft_pending = TRUE WHERE id = $2',
+      [content, id]
+    );
 
-    await pool.query('UPDATE dev_log SET last_sent_at = NOW() WHERE id = $1', [id]);
+    try {
+      const tasksDir = path.join(process.cwd(), '.local', 'tasks');
+      if (!fs.existsSync(tasksDir)) fs.mkdirSync(tasksDir, { recursive: true });
+      fs.writeFileSync(path.join(tasksDir, `devlog-draft-${id}.md`), content, 'utf8');
+    } catch (_) {}
 
     res.json({ success: true, draftPath: `devlog-draft-${id}.md`, lastSentAt: new Date().toISOString() });
   } catch (error) {
     console.error('Send to agent error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.get('/api/admin/dev-log/pending-agent-drafts', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT id, task, page_name, page_type, status, agent_draft_content, last_sent_at
+       FROM dev_log WHERE agent_draft_pending = TRUE ORDER BY last_sent_at ASC`
+    );
+    const drafts = result.rows;
+    if (drafts.length > 0) {
+      const tasksDir = path.join(process.cwd(), '.local', 'tasks');
+      if (!fs.existsSync(tasksDir)) fs.mkdirSync(tasksDir, { recursive: true });
+      for (const draft of drafts) {
+        fs.writeFileSync(path.join(tasksDir, `devlog-draft-${draft.id}.md`), draft.agent_draft_content, 'utf8');
+      }
+    }
+    res.json({ count: drafts.length, drafts: drafts.map(d => ({ id: d.id, title: d.task.split('\n')[0].substring(0, 80), lastSentAt: d.last_sent_at })) });
+  } catch (error) {
+    console.error('Pending agent drafts error:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });
