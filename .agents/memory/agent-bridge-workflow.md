@@ -1,40 +1,41 @@
 ---
 name: Agent bridge workflow
-description: How to link and complete dev log entries after finishing a task — two internal endpoints called via localhost:3001.
+description: How to link dev log entries after finishing a task — production-only endpoints, in_progress only (user confirms completion).
 ---
 
 # Agent Bridge Workflow
 
-After completing work on a dev log task, call BOTH endpoints in sequence.
+After completing work on a dev log task, call **agent-link on the PRODUCTION server** to set task_ref and status=in_progress. Do NOT call agent-complete — that is the user's decision after they verify the fix.
 
-**Why:** The dev log in the Erebus app tracks tasks with a status (`todo → in_progress → completed`) and a `task_ref` badge (`#64`, etc.). Users can see these in the in-app dev log screen. Forgetting to call these leaves the entry stale at `todo` with no task number.
+**Why:** Dev and production run on separate PostgreSQL databases. Calling localhost:3001 updates the dev DB only, which the app never reads from. The dev log UI at erebusapp.nammu-tech.com reads from the production DB.
 
-## Step 1 — Link (sets task_ref + marks in_progress)
+**Why in_progress only:** The user reviews and confirms fixes before marking completed. Agent sets in_progress; user sets completed.
+
+## Command (run after every task that links to a DL entry)
 
 ```bash
 SECRET=$(node -e "require('dotenv').config(); console.log(process.env.AGENT_BRIDGE_SECRET || '')" 2>/dev/null)
-curl -s -X POST "http://localhost:3001/api/internal/agent-link" \
+curl -s -X POST "https://erebusapp.nammu-tech.com/api/internal/agent-link" \
   -H "Content-Type: application/json" \
   -H "x-agent-key: ${SECRET}" \
   -d '{"id": <DEV_LOG_ID>, "taskRef": "#<TASK_NUMBER>"}'
 ```
 
-## Step 2 — Complete (sets status = completed)
+Expected response: `{"ok":true}`
+
+## How to find DEV_LOG_ID
+
+The DL badge on a dev log entry shows `DL-{id}` — the number after the dash is the database primary key.
+
+## agent-complete (for future use if needed)
+
+The `POST /api/internal/agent-complete` endpoint exists on the production server (added in same session). Only call it if explicitly asked to mark something done:
 
 ```bash
-SECRET=$(node -e "require('dotenv').config(); console.log(process.env.AGENT_BRIDGE_SECRET || '')" 2>/dev/null)
-curl -s -X POST "http://localhost:3001/api/internal/agent-complete" \
+curl -s -X POST "https://erebusapp.nammu-tech.com/api/internal/agent-complete" \
   -H "Content-Type: application/json" \
   -H "x-agent-key: ${SECRET}" \
   -d '{"id": <DEV_LOG_ID>}'
 ```
 
-## How to find DEV_LOG_ID
-
-The DL badge on a dev log entry shows `DL-{id}` — the number after the dash is the database primary key to pass as `id`.
-
-## Production note
-
-The production server at `erebusapp.nammu-tech.com` won't have newly-added endpoints until redeployed. Always use `localhost:3001` (the local API Server workflow) for these internal calls — it shares the same PostgreSQL database.
-
-**How to apply:** After every `mark_task_complete` call, if the task was linked to a dev log entry (DL-xxx), run both curl commands above. The DL id comes from the task description; the task number comes from the project task ref.
+**How to apply:** After every `mark_task_complete`, if the task was linked to a DL entry, run the agent-link curl command above against the PRODUCTION URL. Never use localhost for this.
