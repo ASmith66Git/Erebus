@@ -2462,6 +2462,7 @@ app.post('/api/admin/dev-log/:id/notes', authenticateToken, requireAdmin, async 
 
 app.post('/api/admin/dev-log/:id/send-to-agent', authenticateToken, requireAdmin, async (req, res) => {
   const { id } = req.params;
+  console.log(`[send-to-agent] Request for dev log id=${id}`);
   try {
     const entryResult = await pool.query('SELECT * FROM dev_log WHERE id = $1', [id]);
     if (entryResult.rows.length === 0) {
@@ -2523,6 +2524,7 @@ to link the task number back to this dev log entry automatically.
       'UPDATE dev_log SET last_sent_at = NOW(), agent_draft_content = $1, agent_draft_pending = TRUE WHERE id = $2',
       [content, id]
     );
+    console.log(`[send-to-agent] DB updated for id=${id}, draft stored`);
 
     try {
       const tasksDir = path.join(process.cwd(), '.local', 'tasks');
