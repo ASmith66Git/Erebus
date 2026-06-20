@@ -14,6 +14,8 @@ const DiveLogPersistenceService = require('./services/diveLogPersistence');
 const diveComputerCatalog = require('./data/diveComputerCatalog');
 const archiver = require('archiver');
 const fs = require('fs');
+const sharp = require('sharp');
+const { encode: encodeBlurhash } = require('blurhash');
 
 const expo = new Expo();
 
@@ -1297,11 +1299,56 @@ async function initDatabase() {
         EXECUTE FUNCTION update_updated_at_column();
     `).catch(() => {});
 
+    await client.query(`
+      ALTER TABLE dive_photos ADD COLUMN IF NOT EXISTS blurhash VARCHAR(100);
+    `).catch(() => {});
+
     console.log('Database initialized successfully');
   } catch (error) {
     console.error('Database initialization error:', error);
   } finally {
     client.release();
+  }
+}
+
+async function downloadImageBuffer(imageUrl) {
+  // Relative /objects/... paths: download directly from GCS (no external HTTP fetch)
+  if (imageUrl && imageUrl.startsWith('/objects/')) {
+    const entityId = imageUrl.slice('/objects/'.length);
+    let entityDir = process.env.PRIVATE_OBJECT_DIR || '';
+    if (entityDir && !entityDir.endsWith('/')) entityDir = `${entityDir}/`;
+    const objectEntityPath = `${entityDir}${entityId}`;
+    const { bucketName, objectName } = parseObjectPath(objectEntityPath);
+    const [buffer] = await objectStorageClient.bucket(bucketName).file(objectName).download();
+    return buffer;
+  }
+
+  // Absolute GCS signed URLs: extract bucket/object and download via SDK (no SSRF risk)
+  if (imageUrl && imageUrl.startsWith('https://storage.googleapis.com/')) {
+    const url = new URL(imageUrl);
+    const { bucketName, objectName } = parseObjectPath(url.pathname);
+    const [buffer] = await objectStorageClient.bucket(bucketName).file(objectName).download();
+    return buffer;
+  }
+
+  // All other URL forms are rejected — do not fetch arbitrary user-supplied URLs
+  return null;
+}
+
+async function generateBlurhashFromUrl(imageUrl) {
+  try {
+    const buffer = await downloadImageBuffer(imageUrl);
+    if (!buffer) return null;
+    const { data, info } = await sharp(buffer)
+      .resize(32, 32, { fit: 'cover' })
+      .ensureAlpha()
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+    const pixels = new Uint8ClampedArray(data);
+    return encodeBlurhash(pixels, info.width, info.height, 4, 3);
+  } catch (err) {
+    console.error('Blurhash generation failed:', err.message);
+    return null;
   }
 }
 
@@ -4455,6 +4502,7 @@ app.get('/api/photos', authenticateToken, async (req, res) => {
         mediaType: row.media_type || 'image',
         duration: row.duration,
         isFavorite: row.is_favorite,
+        blurhash: row.blurhash,
         createdAt: row.created_at,
         updatedAt: row.updated_at
       })),
@@ -4508,6 +4556,7 @@ app.get('/api/photos/:id', authenticateToken, async (req, res) => {
       mediaType: row.media_type || 'image',
       duration: row.duration,
       isFavorite: row.is_favorite,
+      blurhash: row.blurhash,
       createdAt: row.created_at,
       updatedAt: row.updated_at
     });
@@ -4533,12 +4582,14 @@ app.post('/api/photos', authenticateToken, async (req, res) => {
         return res.status(403).json({ error: 'Dive log not found or access denied' });
       }
     }
+
+    const blurhash = (mediaType !== 'video') ? await generateBlurhashFromUrl(imageUrl) : null;
     
     const result = await pool.query(`
-      INSERT INTO dive_photos (user_id, dive_log_id, image_url, thumbnail_url, caption, taken_at, location_lat, location_lng, width, height, file_size, media_type, duration)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+      INSERT INTO dive_photos (user_id, dive_log_id, image_url, thumbnail_url, caption, taken_at, location_lat, location_lng, width, height, file_size, media_type, duration, blurhash)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
       RETURNING *
-    `, [req.user.id, diveLogId || null, imageUrl, thumbnailUrl || null, caption || null, takenAt || null, locationLat || null, locationLng || null, width || null, height || null, fileSize || null, mediaType || 'image', duration || null]);
+    `, [req.user.id, diveLogId || null, imageUrl, thumbnailUrl || null, caption || null, takenAt || null, locationLat || null, locationLng || null, width || null, height || null, fileSize || null, mediaType || 'image', duration || null, blurhash || null]);
     
     const row = result.rows[0];
     res.status(201).json({
@@ -4557,6 +4608,7 @@ app.post('/api/photos', authenticateToken, async (req, res) => {
       mediaType: row.media_type,
       duration: row.duration,
       isFavorite: row.is_favorite,
+      blurhash: row.blurhash,
       createdAt: row.created_at,
       updatedAt: row.updated_at
     });
@@ -4753,6 +4805,7 @@ app.get('/api/dive-logs/:id/photos', authenticateToken, async (req, res) => {
         caption: row.caption,
         takenAt: row.taken_at,
         isFavorite: row.is_favorite,
+        blurhash: row.blurhash,
         createdAt: row.created_at
       }))
     });

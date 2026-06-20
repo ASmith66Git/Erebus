@@ -45,6 +45,7 @@ interface Photo {
   mediaType: 'image' | 'video';
   duration: number | null;
   isFavorite: boolean;
+  blurhash: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -523,6 +524,9 @@ export default function PhotosScreen() {
               source={{ uri: getImageUrl(photo.thumbnailUrl || photo.imageUrl) }}
               style={styles.photoImage}
               contentFit="cover"
+              placeholder={photo.blurhash ? { blurhash: photo.blurhash } : { blurhash: '001fuc' }}
+              placeholderContentFit="cover"
+              transition={250}
             />
             {isVideo && (
               <View style={styles.videoIndicator}>
@@ -660,6 +664,9 @@ export default function PhotosScreen() {
                     source={{ uri: getImageUrl(photo.imageUrl) }}
                     style={[styles.viewerImage, { maxWidth: screenWidth, maxHeight: screenHeight - 200 }]}
                     contentFit="contain"
+                    placeholder={photo.blurhash ? { blurhash: photo.blurhash } : { blurhash: '001fuc' }}
+                    placeholderContentFit="cover"
+                    transition={300}
                   />
                 )}
               </View>
@@ -710,6 +717,9 @@ export default function PhotosScreen() {
                     source={{ uri: getImageUrl(photo.thumbnailUrl || photo.imageUrl) }}
                     style={styles.thumbnailImage}
                     contentFit="cover"
+                    placeholder={photo.blurhash ? { blurhash: photo.blurhash } : { blurhash: '001fuc' }}
+                    placeholderContentFit="cover"
+                    transition={200}
                   />
                 </Pressable>
               ))}
