@@ -6,6 +6,7 @@ import {
   ScrollView,
   FlatList,
   Pressable,
+  KeyboardAvoidingView,
   ActivityIndicator,
   Modal,
   TextInput,
@@ -57,7 +58,7 @@ export default function DiveBuddiesScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
-  const [showSearchModal, setShowSearchModal] = useState(false);
+  const [showInlineSearch, setShowInlineSearch] = useState(false);
   const [selectedBuddy, setSelectedBuddy] = useState<Buddy | null>(null);
   const [editingBuddy, setEditingBuddy] = useState<Buddy | null>(null);
   const [saving, setSaving] = useState(false);
@@ -300,7 +301,7 @@ export default function DiveBuddiesScreen() {
       name: user.username,
       linked_user_id: user.id,
     });
-    setShowSearchModal(false);
+    setShowInlineSearch(false);
     setSearchQuery('');
     setSearchResults([]);
   };
@@ -405,17 +406,18 @@ export default function DiveBuddiesScreen() {
 
       <Modal visible={showAddModal} animationType="slide" transparent>
         <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
+          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ width: '100%' }}>
           <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
             <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
               <Text style={[styles.modalTitle, { color: colors.text }]}>
                 {editingBuddy ? t('diveBuddies.editBuddy') : t('diveBuddies.addBuddyTitle')}
               </Text>
-              <Pressable onPress={() => { setShowAddModal(false); resetForm(); }}>
+              <Pressable onPress={() => { setShowAddModal(false); resetForm(); setShowInlineSearch(false); setSearchQuery(''); setSearchResults([]); }}>
                 <Feather name="x" size={24} color={colors.text} />
               </Pressable>
             </View>
 
-            <ScrollView style={styles.modalBody}>
+            <ScrollView style={styles.modalBody} keyboardShouldPersistTaps="handled">
               <View style={styles.photoSection}>
                 {formData.photo_url ? (
                   <Pressable onPress={pickImage}>
@@ -454,11 +456,54 @@ export default function DiveBuddiesScreen() {
 
               <Pressable
                 style={[styles.findUserBtn, { backgroundColor: colors.primary + '15', borderColor: colors.primary }]}
-                onPress={() => setShowSearchModal(true)}
+                onPress={() => { setShowInlineSearch(v => !v); setSearchQuery(''); setSearchResults([]); }}
               >
                 <Feather name="search" size={18} color={colors.primary} />
                 <Text style={[styles.findUserBtnText, { color: colors.primary }]}>{t('diveBuddies.findDiverOnErebus')}</Text>
               </Pressable>
+
+              {showInlineSearch && (
+                <View style={[styles.inlineSearchContainer, { backgroundColor: colors.background, borderColor: colors.border }]}>
+                  <View style={[styles.searchInputContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                    <Feather name="search" size={20} color={colors.textSecondary} />
+                    <TextInput
+                      style={[styles.searchInput, { color: colors.text }]}
+                      value={searchQuery}
+                      onChangeText={setSearchQuery}
+                      placeholder={t('diveBuddies.searchUserPlaceholder')}
+                      placeholderTextColor={colors.textSecondary}
+                      autoFocus
+                    />
+                    {searching && <ActivityIndicator size="small" color={colors.primary} />}
+                  </View>
+                  <Text style={[styles.searchHint, { color: colors.textSecondary }]}>
+                    {t('diveBuddies.searchHint')}
+                  </Text>
+                  <ScrollView style={styles.searchResults} keyboardShouldPersistTaps="handled">
+                    {searchResults.map((user) => (
+                      <Pressable
+                        key={user.id}
+                        style={[styles.searchResultItem, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                        onPress={() => handleSelectUser(user)}
+                      >
+                        <View style={[styles.searchResultAvatar, { backgroundColor: colors.primary + '20' }]}>
+                          <Feather name="user" size={20} color={colors.primary} />
+                        </View>
+                        <View style={styles.searchResultInfo}>
+                          <Text style={[styles.searchResultName, { color: colors.text }]}>{user.username}</Text>
+                          <Text style={[styles.searchResultEmail, { color: colors.textSecondary }]}>{user.email}</Text>
+                        </View>
+                        <Feather name="plus-circle" size={22} color={colors.primary} />
+                      </Pressable>
+                    ))}
+                    {searchQuery.length >= 2 && !searching && searchResults.length === 0 && (
+                      <Text style={[styles.noResults, { color: colors.textSecondary }]}>
+                        {t('diveBuddies.noDiversFound', { query: searchQuery })}
+                      </Text>
+                    )}
+                  </ScrollView>
+                </View>
+              )}
 
               {formData.linked_user_id && (
                 <View style={[styles.linkedUserBox, { backgroundColor: colors.primary + '10', borderColor: colors.primary }]}>
@@ -498,7 +543,7 @@ export default function DiveBuddiesScreen() {
             <View style={[styles.modalFooter, { borderTopColor: colors.border }]}>
               <Pressable
                 style={[styles.modalBtn, styles.modalBtnSecondary, { borderColor: colors.border }]}
-                onPress={() => { setShowAddModal(false); resetForm(); }}
+                onPress={() => { setShowAddModal(false); resetForm(); setShowInlineSearch(false); setSearchQuery(''); setSearchResults([]); }}
               >
                 <Text style={[styles.modalBtnText, { color: colors.text }]}>{t('common.cancel')}</Text>
               </Pressable>
@@ -517,6 +562,7 @@ export default function DiveBuddiesScreen() {
               </Pressable>
             </View>
           </View>
+          </KeyboardAvoidingView>
         </View>
       </Modal>
 
@@ -576,61 +622,6 @@ export default function DiveBuddiesScreen() {
         </View>
       </Modal>
 
-      <Modal visible={showSearchModal} animationType="slide" transparent>
-        <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
-          <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
-            <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>{t('diveBuddies.findDiver')}</Text>
-              <Pressable onPress={() => { setShowSearchModal(false); setSearchQuery(''); setSearchResults([]); }}>
-                <Feather name="x" size={24} color={colors.text} />
-              </Pressable>
-            </View>
-
-            <View style={styles.modalBody}>
-              <View style={[styles.searchInputContainer, { backgroundColor: colors.background, borderColor: colors.border }]}>
-                <Feather name="search" size={20} color={colors.textSecondary} />
-                <TextInput
-                  style={[styles.searchInput, { color: colors.text }]}
-                  value={searchQuery}
-                  onChangeText={setSearchQuery}
-                  placeholder={t('diveBuddies.searchUserPlaceholder')}
-                  placeholderTextColor={colors.textSecondary}
-                  autoFocus
-                />
-                {searching && <ActivityIndicator size="small" color={colors.primary} />}
-              </View>
-
-              <Text style={[styles.searchHint, { color: colors.textSecondary }]}>
-                {t('diveBuddies.searchHint')}
-              </Text>
-
-              <ScrollView style={styles.searchResults}>
-                {searchResults.map((user) => (
-                  <Pressable
-                    key={user.id}
-                    style={[styles.searchResultItem, { backgroundColor: colors.background, borderColor: colors.border }]}
-                    onPress={() => handleSelectUser(user)}
-                  >
-                    <View style={[styles.searchResultAvatar, { backgroundColor: colors.primary + '20' }]}>
-                      <Feather name="user" size={20} color={colors.primary} />
-                    </View>
-                    <View style={styles.searchResultInfo}>
-                      <Text style={[styles.searchResultName, { color: colors.text }]}>{user.username}</Text>
-                      <Text style={[styles.searchResultEmail, { color: colors.textSecondary }]}>{user.email}</Text>
-                    </View>
-                    <Feather name="plus-circle" size={22} color={colors.primary} />
-                  </Pressable>
-                ))}
-                {searchQuery.length >= 2 && !searching && searchResults.length === 0 && (
-                  <Text style={[styles.noResults, { color: colors.textSecondary }]}>
-                    {t('diveBuddies.noDiversFound', { query: searchQuery })}
-                  </Text>
-                )}
-              </ScrollView>
-            </View>
-          </View>
-        </View>
-      </Modal>
     </ThemedBackground>
   );
 }
@@ -727,4 +718,5 @@ const styles = StyleSheet.create({
   searchResultName: { fontSize: 16, fontWeight: '600' },
   searchResultEmail: { fontSize: 13, marginTop: 2 },
   noResults: { fontSize: 14, textAlign: 'center', paddingVertical: 24 },
+  inlineSearchContainer: { borderRadius: 10, borderWidth: 1, padding: 12, marginBottom: 16 },
 });
