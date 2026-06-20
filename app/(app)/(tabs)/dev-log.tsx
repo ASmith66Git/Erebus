@@ -427,6 +427,9 @@ export default function DevLogScreen() {
         <Pressable onPress={() => openEditModal(entry)}>
           <View style={styles.cardHeader}>
             <View style={styles.cardHeaderLeft}>
+              <View style={[styles.taskRefBadge, { backgroundColor: '#4A5568' }]}>
+                <Text style={[styles.taskRefText, { color: '#FFFFFF' }]}>DL-{entry.id}</Text>
+              </View>
               {displayTaskRef && (
                 <View style={[styles.taskRefBadge, { backgroundColor: colors.text }]}>
                   <Text style={[styles.taskRefText, { color: colors.background }]}>{displayTaskRef}</Text>

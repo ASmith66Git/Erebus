@@ -2560,6 +2560,24 @@ app.get('/api/admin/dev-log/pending-agent-drafts', authenticateToken, requireAdm
   }
 });
 
+app.post('/api/internal/agent-link', async (req, res) => {
+  const secret = process.env.AGENT_BRIDGE_SECRET;
+  const provided = (req.headers['x-agent-key'] || '');
+  if (!secret || provided !== secret) return res.status(401).json({ error: 'Unauthorized' });
+  const { id, taskRef } = req.body;
+  if (!id || !taskRef) return res.status(400).json({ error: 'id and taskRef required' });
+  try {
+    await pool.query(
+      `UPDATE dev_log SET task_ref = $1, agent_draft_pending = FALSE WHERE id = $2`,
+      [taskRef, id]
+    );
+    res.json({ ok: true });
+  } catch (error) {
+    console.error('[agent-link] error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 app.get('/api/internal/agent-drafts', async (req, res) => {
   const secret = process.env.AGENT_BRIDGE_SECRET;
   const provided = (req.headers['x-agent-key'] || '');
