@@ -985,7 +985,7 @@ export default function CertificationsScreen() {
               <DatePickerField
                 label={t('certifications.certificationDate')}
                 value={formData.certificationDate}
-                onChange={(v) => setFormData({ ...formData, certificationDate: v })}
+                onChange={(v) => setFormData(prev => ({ ...prev, certificationDate: v }))}
                 placeholder={t('certifications.selectCertDate')}
               />
               
@@ -994,7 +994,7 @@ export default function CertificationsScreen() {
                 <TextInput
                   style={[styles.formInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
                   value={formData.certificationNumber}
-                  onChangeText={(v) => setFormData({ ...formData, certificationNumber: v })}
+                  onChangeText={(v) => setFormData(prev => ({ ...prev, certificationNumber: v }))}
                   placeholder={t('certifications.certNumberPlaceholder')}
                   placeholderTextColor={colors.textSecondary}
                 />
@@ -1006,7 +1006,7 @@ export default function CertificationsScreen() {
                   <TextInput
                     style={[styles.formInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
                     value={formData.instructorName}
-                    onChangeText={(v) => setFormData({ ...formData, instructorName: v })}
+                    onChangeText={(v) => setFormData(prev => ({ ...prev, instructorName: v }))}
                     placeholder={t('certifications.namePlaceholder')}
                     placeholderTextColor={colors.textSecondary}
                   />
@@ -1016,7 +1016,7 @@ export default function CertificationsScreen() {
                   <TextInput
                     style={[styles.formInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
                     value={formData.instructorNumber}
-                    onChangeText={(v) => setFormData({ ...formData, instructorNumber: v })}
+                    onChangeText={(v) => setFormData(prev => ({ ...prev, instructorNumber: v }))}
                     placeholder={t('certifications.numberPlaceholder')}
                     placeholderTextColor={colors.textSecondary}
                   />
@@ -1028,7 +1028,7 @@ export default function CertificationsScreen() {
                 <TextInput
                   style={[styles.formInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
                   value={formData.diveCenter}
-                  onChangeText={(v) => setFormData({ ...formData, diveCenter: v })}
+                  onChangeText={(v) => setFormData(prev => ({ ...prev, diveCenter: v }))}
                   placeholder={t('certifications.whereYouTrained')}
                   placeholderTextColor={colors.textSecondary}
                 />
@@ -1039,7 +1039,7 @@ export default function CertificationsScreen() {
                 <TextInput
                   style={[styles.formInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
                   value={formData.location}
-                  onChangeText={(v) => setFormData({ ...formData, location: v })}
+                  onChangeText={(v) => setFormData(prev => ({ ...prev, location: v }))}
                   placeholder={t('certifications.locationPlaceholder')}
                   placeholderTextColor={colors.textSecondary}
                 />
@@ -1051,11 +1051,11 @@ export default function CertificationsScreen() {
                   latitude={formData.latitude || 0}
                   longitude={formData.longitude || 0}
                   onCoordinatesChange={(lat, lng) => {
-                    setFormData({
-                      ...formData,
+                    setFormData(prev => ({
+                      ...prev,
                       latitude: lat,
                       longitude: lng,
-                    });
+                    }));
                   }}
                   onPlaceSelect={(placeData) => {
                     if (placeData.formattedAddress) {
@@ -1123,7 +1123,7 @@ export default function CertificationsScreen() {
                 <TextInput
                   style={[styles.formInput, styles.formTextarea, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
                   value={formData.notes}
-                  onChangeText={(v) => setFormData({ ...formData, notes: v })}
+                  onChangeText={(v) => setFormData(prev => ({ ...prev, notes: v }))}
                   placeholder={t('certifications.additionalNotesPlaceholder')}
                   placeholderTextColor={colors.textSecondary}
                   multiline
