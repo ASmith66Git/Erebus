@@ -2529,7 +2529,7 @@ to link the task number back to this dev log entry automatically.
     try {
       const { Client } = require('@replit/object-storage');
       const objClient = new Client();
-      await objClient.uploadFromBuffer(`agent-drafts/devlog-draft-${id}.md`, Buffer.from(content, 'utf8'), { contentType: 'text/markdown' });
+      await objClient.uploadFromText(`agent-drafts/devlog-draft-${id}.md`, content);
       console.log(`[send-to-agent] Object Storage write ok for id=${id}`);
     } catch (storageErr) {
       console.error(`[send-to-agent] Object Storage write failed for id=${id}:`, storageErr.message);
