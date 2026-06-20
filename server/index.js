@@ -2527,6 +2527,15 @@ to link the task number back to this dev log entry automatically.
     console.log(`[send-to-agent] DB updated for id=${id}, draft stored`);
 
     try {
+      const { Client } = require('@replit/object-storage');
+      const objClient = new Client();
+      await objClient.uploadFromBuffer(`agent-drafts/devlog-draft-${id}.md`, Buffer.from(content, 'utf8'), { contentType: 'text/markdown' });
+      console.log(`[send-to-agent] Object Storage write ok for id=${id}`);
+    } catch (storageErr) {
+      console.error(`[send-to-agent] Object Storage write failed for id=${id}:`, storageErr.message);
+    }
+
+    try {
       const tasksDir = path.join(process.cwd(), '.local', 'tasks');
       if (!fs.existsSync(tasksDir)) fs.mkdirSync(tasksDir, { recursive: true });
       fs.writeFileSync(path.join(tasksDir, `devlog-draft-${id}.md`), content, 'utf8');
