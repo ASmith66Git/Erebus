@@ -2568,7 +2568,7 @@ app.post('/api/internal/agent-link', async (req, res) => {
   if (!id || !taskRef) return res.status(400).json({ error: 'id and taskRef required' });
   try {
     await pool.query(
-      `UPDATE dev_log SET task_ref = $1, agent_draft_pending = FALSE WHERE id = $2`,
+      `UPDATE dev_log SET task_ref = $1, agent_draft_pending = FALSE, status = 'in_progress' WHERE id = $2`,
       [taskRef, id]
     );
     res.json({ ok: true });
