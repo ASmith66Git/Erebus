@@ -133,6 +133,9 @@ export default function CompressorDetailScreen() {
   const [showServiceModal, setShowServiceModal] = useState(false);
   const [showUsageModal, setShowUsageModal] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState<string | null>(null);
+  const [showServiceInlinePicker, setShowServiceInlinePicker] = useState(false);
+  const [showNextDueInlinePicker, setShowNextDueInlinePicker] = useState(false);
+  const [showUsageInlinePicker, setShowUsageInlinePicker] = useState(false);
   const [serviceFilter, setServiceFilter] = useState<string>('all');
 
   const [formData, setFormData] = useState({
@@ -1103,7 +1106,7 @@ export default function CompressorDetailScreen() {
         <View style={[styles.modalContent, { backgroundColor: colors.background }]}>
           <View style={styles.modalHeader}>
             <Text style={[styles.modalTitle, { color: colors.text }]}>{serviceForm.service_type === 'independent_test' ? t('compressors.addTest') : t('compressors.addService')}</Text>
-            <Pressable onPress={() => setShowServiceModal(false)}><Ionicons name="close" size={24} color={colors.text} /></Pressable>
+            <Pressable onPress={() => { setShowServiceModal(false); setShowServiceInlinePicker(false); setShowNextDueInlinePicker(false); }}><Ionicons name="close" size={24} color={colors.text} /></Pressable>
           </View>
           <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 20 }}>
             {serviceForm.service_type !== 'independent_test' && (
@@ -1121,9 +1124,26 @@ export default function CompressorDetailScreen() {
 
             <View style={styles.formGroup}>
               <Text style={[styles.label, { color: colors.textSecondary }]}>{t('compressors.serviceDate')}</Text>
-              <Pressable onPress={() => setShowDatePicker('service')} style={[styles.input, { justifyContent: 'center', borderColor: colors.border, backgroundColor: colors.surface }]}>
+              <Pressable onPress={() => setShowServiceInlinePicker(v => !v)} style={[styles.input, { justifyContent: 'center', borderColor: colors.border, backgroundColor: colors.surface }]}>
                 <Text style={{ color: colors.text }}>{formatDate(serviceForm.service_date)}</Text>
               </Pressable>
+              {showServiceInlinePicker && (
+                <DateTimePicker
+                  mode="single"
+                  date={dayjs(serviceForm.service_date)}
+                  onChange={(params: { date: dayjs.Dayjs }) => {
+                    if (params.date) {
+                      setServiceForm(prev => ({ ...prev, service_date: dayjs(params.date).format('YYYY-MM-DD') }));
+                      setShowServiceInlinePicker(false);
+                    }
+                  }}
+                  selectedItemColor={colors.primary}
+                  calendarTextStyle={{ color: colors.text }}
+                  headerTextStyle={{ color: colors.text }}
+                  weekDaysTextStyle={{ color: colors.textSecondary }}
+                  headerButtonColor={colors.primary}
+                />
+              )}
             </View>
 
             <View style={styles.formGroup}>
@@ -1162,9 +1182,26 @@ export default function CompressorDetailScreen() {
                 </View>
                 <View style={styles.formGroup}>
                   <Text style={[styles.label, { color: colors.textSecondary }]}>{t('compressors.nextDueDate')}</Text>
-                  <Pressable onPress={() => setShowDatePicker('nextDue')} style={[styles.input, { justifyContent: 'center', borderColor: colors.border, backgroundColor: colors.surface }]}>
+                  <Pressable onPress={() => setShowNextDueInlinePicker(v => !v)} style={[styles.input, { justifyContent: 'center', borderColor: colors.border, backgroundColor: colors.surface }]}>
                     <Text style={{ color: serviceForm.next_due_date ? colors.text : colors.textSecondary }}>{serviceForm.next_due_date ? formatDate(serviceForm.next_due_date) : t('compressors.selectDate')}</Text>
                   </Pressable>
+                  {showNextDueInlinePicker && (
+                    <DateTimePicker
+                      mode="single"
+                      date={serviceForm.next_due_date ? dayjs(serviceForm.next_due_date) : dayjs()}
+                      onChange={(params: { date: dayjs.Dayjs }) => {
+                        if (params.date) {
+                          setServiceForm(prev => ({ ...prev, next_due_date: dayjs(params.date).format('YYYY-MM-DD') }));
+                          setShowNextDueInlinePicker(false);
+                        }
+                      }}
+                      selectedItemColor={colors.primary}
+                      calendarTextStyle={{ color: colors.text }}
+                      headerTextStyle={{ color: colors.text }}
+                      weekDaysTextStyle={{ color: colors.textSecondary }}
+                      headerButtonColor={colors.primary}
+                    />
+                  )}
                 </View>
               </>
             )}
@@ -1196,14 +1233,31 @@ export default function CompressorDetailScreen() {
         <View style={[styles.modalContent, { backgroundColor: colors.background }]}>
           <View style={styles.modalHeader}>
             <Text style={[styles.modalTitle, { color: colors.text }]}>{t('compressors.logUsage')}</Text>
-            <Pressable onPress={() => setShowUsageModal(false)}><Ionicons name="close" size={24} color={colors.text} /></Pressable>
+            <Pressable onPress={() => { setShowUsageModal(false); setShowUsageInlinePicker(false); }}><Ionicons name="close" size={24} color={colors.text} /></Pressable>
           </View>
           <ScrollView style={{ flex: 1 }}>
             <View style={styles.formGroup}>
               <Text style={[styles.label, { color: colors.textSecondary }]}>{t('compressors.usageDate')}</Text>
-              <Pressable onPress={() => setShowDatePicker('usage')} style={[styles.input, { justifyContent: 'center', borderColor: colors.border, backgroundColor: colors.surface }]}>
+              <Pressable onPress={() => setShowUsageInlinePicker(v => !v)} style={[styles.input, { justifyContent: 'center', borderColor: colors.border, backgroundColor: colors.surface }]}>
                 <Text style={{ color: colors.text }}>{formatDate(usageForm.usage_date)}</Text>
               </Pressable>
+              {showUsageInlinePicker && (
+                <DateTimePicker
+                  mode="single"
+                  date={dayjs(usageForm.usage_date)}
+                  onChange={(params: { date: dayjs.Dayjs }) => {
+                    if (params.date) {
+                      setUsageForm(prev => ({ ...prev, usage_date: dayjs(params.date).format('YYYY-MM-DD') }));
+                      setShowUsageInlinePicker(false);
+                    }
+                  }}
+                  selectedItemColor={colors.primary}
+                  calendarTextStyle={{ color: colors.text }}
+                  headerTextStyle={{ color: colors.text }}
+                  weekDaysTextStyle={{ color: colors.textSecondary }}
+                  headerButtonColor={colors.primary}
+                />
+              )}
             </View>
             <View style={styles.formGroup}>
               <Text style={[styles.label, { color: colors.textSecondary }]}>{t('compressors.hoursUsed')} *</Text>
@@ -1232,20 +1286,11 @@ export default function CompressorDetailScreen() {
         <View style={[styles.datePickerContainer, { backgroundColor: colors.background }]}>
           <DateTimePicker
             mode="single"
-            date={(() => {
-              if (showDatePicker === 'purchase') return formData.purchase_date ? dayjs(formData.purchase_date) : dayjs();
-              if (showDatePicker === 'service') return dayjs(serviceForm.service_date);
-              if (showDatePicker === 'nextDue') return serviceForm.next_due_date ? dayjs(serviceForm.next_due_date) : dayjs();
-              if (showDatePicker === 'usage') return dayjs(usageForm.usage_date);
-              return dayjs();
-            })()}
+            date={formData.purchase_date ? dayjs(formData.purchase_date) : dayjs()}
             onChange={(params: { date: dayjs.Dayjs }) => {
               if (params.date) {
                 const dateStr = dayjs(params.date).format('YYYY-MM-DD');
-                if (showDatePicker === 'purchase') setFormData({ ...formData, purchase_date: dateStr });
-                else if (showDatePicker === 'service') setServiceForm({ ...serviceForm, service_date: dateStr });
-                else if (showDatePicker === 'nextDue') setServiceForm({ ...serviceForm, next_due_date: dateStr });
-                else if (showDatePicker === 'usage') setUsageForm({ ...usageForm, usage_date: dateStr });
+                if (showDatePicker === 'purchase') setFormData(prev => ({ ...prev, purchase_date: dateStr }));
                 setShowDatePicker(null);
               }
             }}
