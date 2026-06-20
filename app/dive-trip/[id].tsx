@@ -33,7 +33,9 @@ type TabType = 'details' | 'dives' | 'photos';
 interface LinkedDiveLog {
   id: number;
   dive_date: string;
+  dive_datetime: string;
   site_name: string;
+  site_description: string | null;
   max_depth_meters: number;
   duration_minutes: number;
 }
@@ -842,7 +844,10 @@ export default function DiveTripScreen() {
           <View key={dive.id} style={[styles.diveCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <View style={styles.diveCardContent}>
               <Text style={[styles.diveSiteName, { color: colors.text }]}>{dive.site_name || t('diveTrips.unknownSite')}</Text>
-              <Text style={[styles.diveDate, { color: colors.textSecondary }]}>{formatDate(dive.dive_date)}</Text>
+              {dive.site_description ? (
+                <Text style={[styles.diveDate, { color: colors.textSecondary }]} numberOfLines={2}>{dive.site_description}</Text>
+              ) : null}
+              <Text style={[styles.diveDate, { color: colors.textSecondary }]}>{formatDate(dive.dive_datetime || dive.dive_date)}</Text>
               <View style={styles.diveStats}>
                 <Text style={[styles.diveStat, { color: colors.textSecondary }]}>{dive.max_depth_meters}m</Text>
                 <Text style={[styles.diveStat, { color: colors.textSecondary }]}>{dive.duration_minutes}min</Text>
