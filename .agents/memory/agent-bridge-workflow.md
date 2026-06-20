@@ -38,4 +38,4 @@ curl -s -X POST "https://erebusapp.nammu-tech.com/api/internal/agent-complete" \
   -d '{"id": <DEV_LOG_ID>}'
 ```
 
-**How to apply:** After every `mark_task_complete`, if the task was linked to a DL entry, run the agent-link curl command above against the PRODUCTION URL. Never use localhost for this.
+**How to apply:** During implementation of any task linked to a DL entry, run the agent-link curl command above BEFORE calling `mark_task_complete`. This must not be skipped — it is what updates the task_ref and status fields visible in the dev log UI. Missing this step leaves the DL entry with no task number and stale status.
