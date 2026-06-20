@@ -151,6 +151,10 @@ export default function ProfileScreen() {
   const loadManufacturers = async () => {
     try {
       const response = await fetch(`${getApiUrl()}/api/dive-computers`);
+      if (!response.ok) {
+        console.error('Error loading manufacturers:', response.status);
+        return;
+      }
       const data = await response.json();
       setManufacturers(data.manufacturers || []);
     } catch (error) {
@@ -564,6 +568,7 @@ export default function ProfileScreen() {
     setSelectedBrand(null);
     setSelectedModel(null);
     setShowAddComputer(true);
+    loadManufacturers();
   };
 
   const closeAddComputer = () => {
