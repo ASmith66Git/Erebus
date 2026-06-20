@@ -563,7 +563,19 @@ export default function DevLogScreen() {
 
   return (
     <ThemedBackground>
-      <PageHeader title={t('devLog.title')} />
+      <PageHeader
+        title={t('devLog.title')}
+        rightAction={
+          <Pressable
+            onPress={onRefresh}
+            disabled={refreshing}
+            style={{ padding: 8, opacity: refreshing ? 0.4 : 1 }}
+            hitSlop={8}
+          >
+            <Feather name="refresh-cw" size={18} color={colors.text} />
+          </Pressable>
+        }
+      />
 
       <View style={styles.searchContainer}>
         <View style={[styles.searchInputContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
