@@ -9,7 +9,11 @@ export default function PrivacyScreen() {
   const { colors } = useTheme();
 
   const handleBack = () => {
-    router.back();
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/(app)/(tabs)/profile' as any);
+    }
   };
 
   return (

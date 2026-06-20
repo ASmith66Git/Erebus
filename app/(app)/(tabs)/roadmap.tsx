@@ -11,6 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { authFetch } from '@/utils/authFetch';
+import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import PageHeader from '@/components/PageHeader';
 import ThemedBackground from '@/components/ThemedBackground';
@@ -90,7 +91,7 @@ export default function RoadmapScreen() {
   if (isLoading && features.length === 0) {
     return (
       <ThemedBackground style={styles.container}>
-        <PageHeader title={t('roadmap.title')} showBack />
+        <PageHeader title={t('roadmap.title')} showBack onBack={() => router.canGoBack() ? router.back() : router.replace('/(app)/(tabs)/profile' as any)} />
         <View style={styles.centered}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
@@ -100,7 +101,7 @@ export default function RoadmapScreen() {
 
   return (
     <ThemedBackground style={styles.container}>
-      <PageHeader title={t('roadmap.title')} showBack />
+      <PageHeader title={t('roadmap.title')} showBack onBack={() => router.canGoBack() ? router.back() : router.replace('/(app)/(tabs)/profile' as any)} />
 
       <ScrollView 
         style={styles.content}

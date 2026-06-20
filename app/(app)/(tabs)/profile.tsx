@@ -81,6 +81,7 @@ export default function ProfileScreen() {
   const [exporting, setExporting] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [supportUnreadCount, setSupportUnreadCount] = useState(0);
+  const [profileStats, setProfileStats] = useState({ totalDives: 0, totalMinutes: 0, certCount: 0 });
   const [editFormData, setEditFormData] = useState({
     firstName: '',
     lastName: '',
@@ -103,6 +104,29 @@ export default function ProfileScreen() {
     }
   }, [token]);
 
+  const fetchProfileStats = useCallback(async () => {
+    if (!token) return;
+    try {
+      const [statsRes, certsRes] = await Promise.all([
+        fetch(`${getApiUrl()}/api/dive-logs/stats`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${getApiUrl()}/api/certifications`, { headers: { Authorization: `Bearer ${token}` } }),
+      ]);
+      let totalDives = 0, totalMinutes = 0, certCount = 0;
+      if (statsRes.ok) {
+        const data = await statsRes.json();
+        totalDives = data.totalDives || 0;
+        totalMinutes = Math.floor((data.totalDurationSeconds || 0) / 60);
+      }
+      if (certsRes.ok) {
+        const data = await certsRes.json();
+        certCount = Array.isArray(data) ? data.length : (data.certifications?.length || 0);
+      }
+      setProfileStats({ totalDives, totalMinutes, certCount });
+    } catch (error) {
+      console.error('Failed to fetch profile stats:', error);
+    }
+  }, [token]);
+
   useEffect(() => {
     loadManufacturers();
   }, []);
@@ -112,6 +136,7 @@ export default function ProfileScreen() {
       loadUserDiveComputers();
       loadSearchableStatus();
       fetchSupportUnreadCount();
+      fetchProfileStats();
     }
   }, [token]);
 
@@ -196,9 +221,9 @@ export default function ProfileScreen() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await Promise.all([loadManufacturers(), loadUserDiveComputers()]);
+    await Promise.all([loadManufacturers(), loadUserDiveComputers(), fetchProfileStats()]);
     setRefreshing(false);
-  }, []);
+  }, [fetchProfileStats]);
 
   const showExportOptions = () => {
     if (Platform.OS === 'web') {
@@ -786,17 +811,21 @@ export default function ProfileScreen() {
 
       <View style={[styles.statsRow, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
         <View style={styles.statItem}>
-          <Text style={[styles.statValue, { color: colors.text }]}>0</Text>
+          <Text style={[styles.statValue, { color: colors.text }]}>{profileStats.totalDives}</Text>
           <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{t('profile.dives')}</Text>
         </View>
         <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
         <View style={styles.statItem}>
-          <Text style={[styles.statValue, { color: colors.text }]}>0h</Text>
+          <Text style={[styles.statValue, { color: colors.text }]}>
+            {profileStats.totalMinutes >= 60
+              ? `${Math.floor(profileStats.totalMinutes / 60)}h`
+              : `${profileStats.totalMinutes}m`}
+          </Text>
           <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{t('profile.bottomTime')}</Text>
         </View>
         <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
         <View style={styles.statItem}>
-          <Text style={[styles.statValue, { color: colors.text }]}>0</Text>
+          <Text style={[styles.statValue, { color: colors.text }]}>{profileStats.certCount}</Text>
           <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{t('profile.certificationsLabel')}</Text>
         </View>
       </View>
