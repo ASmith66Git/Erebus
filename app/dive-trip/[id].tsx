@@ -13,6 +13,7 @@ import {
   FlatList,
   Dimensions,
   Modal,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Feather, Ionicons } from '@expo/vector-icons';
@@ -483,7 +484,16 @@ export default function DiveTripScreen() {
   );
 
   const renderDetailsTab = () => (
-    <ScrollView style={styles.tabContent} contentContainerStyle={styles.tabContentContainer}>
+    <KeyboardAvoidingView
+      style={styles.tabContent}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 120 : 0}
+    >
+    <ScrollView
+      style={styles.tabContent}
+      contentContainerStyle={styles.tabContentContainer}
+      keyboardShouldPersistTaps="handled"
+    >
       {isEditing ? (
         <>
           <View style={styles.formGroup}>
@@ -787,6 +797,7 @@ export default function DiveTripScreen() {
         </>
       )}
     </ScrollView>
+    </KeyboardAvoidingView>
   );
 
   const renderDivesTab = () => (

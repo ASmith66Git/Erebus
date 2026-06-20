@@ -506,6 +506,8 @@ export default function EmbeddedMapPicker({
                   marginTop: 4,
                   borderWidth: 1,
                   borderColor: colors.border,
+                  zIndex: 1000,
+                  elevation: 5,
                 },
                 row: {
                   backgroundColor: colors.surface,
@@ -583,7 +585,7 @@ export default function EmbeddedMapPicker({
         }
         onError={(error) => console.error('EmbeddedMapPicker crashed:', error.message)}
       >
-        <View style={[styles.mapContainer, { borderColor: colors.border }]}>
+        <View style={[styles.mapContainer, { borderColor: colors.border, zIndex: 1, elevation: 1 }]}>
           <MapView
             ref={mapRef}
             style={styles.map}
@@ -632,9 +634,11 @@ const styles = StyleSheet.create({
   },
   searchRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginBottom: 8,
     gap: 8,
+    zIndex: 2,
+    elevation: 2,
   },
   searchInputContainer: {
     flex: 1,
