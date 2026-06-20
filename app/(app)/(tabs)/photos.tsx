@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   Pressable,
-  Image,
   ActivityIndicator,
   Modal,
   Platform,
@@ -20,6 +19,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { Video, ResizeMode } from 'expo-av';
 import { getApiUrl } from '@/utils/apiConfig';
 import { compressVideo, formatBytes, isCompressionAvailable, CompressionProgress } from '@/services/videoService';
+import { Image } from 'expo-image';
 import { useTranslation } from 'react-i18next';
 import PageHeader from '@/components/PageHeader';
 import ThemedBackground from '@/components/ThemedBackground';
@@ -522,7 +522,7 @@ export default function PhotosScreen() {
             <Image
               source={{ uri: getImageUrl(photo.thumbnailUrl || photo.imageUrl) }}
               style={styles.photoImage}
-              resizeMode="cover"
+              contentFit="cover"
             />
             {isVideo && (
               <View style={styles.videoIndicator}>
@@ -659,7 +659,7 @@ export default function PhotosScreen() {
                   <Image
                     source={{ uri: getImageUrl(photo.imageUrl) }}
                     style={[styles.viewerImage, { maxWidth: screenWidth, maxHeight: screenHeight - 200 }]}
-                    resizeMode="contain"
+                    contentFit="contain"
                   />
                 )}
               </View>
@@ -709,7 +709,7 @@ export default function PhotosScreen() {
                   <Image
                     source={{ uri: getImageUrl(photo.thumbnailUrl || photo.imageUrl) }}
                     style={styles.thumbnailImage}
-                    resizeMode="cover"
+                    contentFit="cover"
                   />
                 </Pressable>
               ))}
