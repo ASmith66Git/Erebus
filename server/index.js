@@ -2527,15 +2527,6 @@ to link the task number back to this dev log entry automatically.
     console.log(`[send-to-agent] DB updated for id=${id}, draft stored`);
 
     try {
-      const { Client } = require('@replit/object-storage');
-      const objClient = new Client();
-      await objClient.uploadFromText(`agent-drafts/devlog-draft-${id}.md`, content);
-      console.log(`[send-to-agent] Object Storage write ok for id=${id}`);
-    } catch (storageErr) {
-      console.error(`[send-to-agent] Object Storage write failed for id=${id}:`, storageErr.message);
-    }
-
-    try {
       const tasksDir = path.join(process.cwd(), '.local', 'tasks');
       if (!fs.existsSync(tasksDir)) fs.mkdirSync(tasksDir, { recursive: true });
       fs.writeFileSync(path.join(tasksDir, `devlog-draft-${id}.md`), content, 'utf8');
@@ -2565,6 +2556,21 @@ app.get('/api/admin/dev-log/pending-agent-drafts', authenticateToken, requireAdm
     res.json({ count: drafts.length, drafts: drafts.map(d => ({ id: d.id, title: d.task.split('\n')[0].substring(0, 80), lastSentAt: d.last_sent_at })) });
   } catch (error) {
     console.error('Pending agent drafts error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.get('/api/internal/agent-drafts', async (req, res) => {
+  const secret = process.env.AGENT_BRIDGE_SECRET;
+  const provided = (req.headers['x-agent-key'] || '');
+  if (!secret || provided !== secret) return res.status(401).json({ error: 'Unauthorized' });
+  try {
+    const result = await pool.query(
+      `SELECT id, agent_draft_content, last_sent_at FROM dev_log WHERE agent_draft_pending = TRUE ORDER BY last_sent_at ASC`
+    );
+    res.json({ drafts: result.rows.map(r => ({ id: r.id, content: r.agent_draft_content, lastSentAt: r.last_sent_at })) });
+  } catch (error) {
+    console.error('[agent-drafts] error:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });
