@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -278,23 +279,24 @@ export default function DiveLogDetailScreen() {
     fetchLog();
   }, [fetchLog]);
 
-  useEffect(() => {
-    const fetchPhotos = async () => {
-      if (!token || !id || isNew) return;
-      try {
-        const response = await fetch(`${getApiUrl()}/api/dive-logs/${id}/photos`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (response.ok) {
-          const data = await response.json();
-          setPhotos(data.photos || []);
-        }
-      } catch (error) {
-        console.error('Error fetching photos:', error);
+  const fetchPhotos = useCallback(async () => {
+    if (!token || !id || isNew) return;
+    try {
+      const response = await fetch(`${getApiUrl()}/api/dive-logs/${id}/photos`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setPhotos(data.photos || []);
       }
-    };
-    fetchPhotos();
+    } catch (error) {
+      console.error('Error fetching photos:', error);
+    }
   }, [token, id, isNew]);
+
+  useFocusEffect(useCallback(() => {
+    fetchPhotos();
+  }, [fetchPhotos]));
 
   useEffect(() => {
     const fetchGearProfile = async () => {
