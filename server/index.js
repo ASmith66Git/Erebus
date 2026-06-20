@@ -2578,6 +2578,24 @@ app.post('/api/internal/agent-link', async (req, res) => {
   }
 });
 
+app.post('/api/internal/agent-complete', async (req, res) => {
+  const secret = process.env.AGENT_BRIDGE_SECRET;
+  const provided = (req.headers['x-agent-key'] || '');
+  if (!secret || provided !== secret) return res.status(401).json({ error: 'Unauthorized' });
+  const { id } = req.body;
+  if (!id) return res.status(400).json({ error: 'id required' });
+  try {
+    await pool.query(
+      `UPDATE dev_log SET status = 'completed', agent_draft_pending = FALSE, updated_at = CURRENT_TIMESTAMP WHERE id = $1`,
+      [id]
+    );
+    res.json({ ok: true });
+  } catch (error) {
+    console.error('[agent-complete] error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 app.get('/api/internal/agent-drafts', async (req, res) => {
   const secret = process.env.AGENT_BRIDGE_SECRET;
   const provided = (req.headers['x-agent-key'] || '');

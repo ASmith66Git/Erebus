@@ -1,2 +1,3 @@
 - [iOS EAS credentials & builds on Replit](ios-eas-credentials.md) — EAS_NO_VCS=1 + .easignore to dodge git guard; mint cert+profile via ASC API; local credentials.json wiring.
 - [iOS build number locations](ios-build-number-locations.md) — Six files must all be updated; Info.plist CFBundleVersion is what EAS actually reads.
+- [Agent bridge workflow](agent-bridge-workflow.md) — Two-step pattern: agent-link (sets task_ref + in_progress) then agent-complete (sets completed) via localhost:3001 using AGENT_BRIDGE_SECRET.
