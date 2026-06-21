@@ -68,9 +68,8 @@ export default function ProfileScreen() {
   const [selectedModel, setSelectedModel] = useState<string | null>(null);
   const [userComputers, setUserComputers] = useState<UserDiveComputer[]>([]);
   const [loading, setLoading] = useState(false);
-  const [showBrandPicker, setShowBrandPicker] = useState(false);
-  const [showModelPicker, setShowModelPicker] = useState(false);
   const [showAddComputer, setShowAddComputer] = useState(false);
+  const [computerPickerView, setComputerPickerView] = useState<'main' | 'brand' | 'model'>('main');
   const [refreshing, setRefreshing] = useState(false);
   const [searchableProfile, setSearchableProfile] = useState(false);
   const [searchableLoading, setSearchableLoading] = useState(false);
@@ -556,22 +555,24 @@ export default function ProfileScreen() {
   const handleBrandSelect = (brand: Manufacturer) => {
     setSelectedBrand(brand.id);
     setSelectedModel(null);
-    setShowBrandPicker(false);
+    setComputerPickerView('main');
   };
 
   const handleModelSelect = (model: DiveComputerModel) => {
     setSelectedModel(model.id);
-    setShowModelPicker(false);
+    setComputerPickerView('main');
   };
 
   const openAddComputer = () => {
     setSelectedBrand(null);
     setSelectedModel(null);
+    setComputerPickerView('main');
     setShowAddComputer(true);
     loadManufacturers();
   };
 
   const closeAddComputer = () => {
+    setComputerPickerView('main');
     setShowAddComputer(false);
     setSelectedBrand(null);
     setSelectedModel(null);
@@ -1021,155 +1022,151 @@ export default function ProfileScreen() {
         visible={showAddComputer}
         animationType="slide"
         transparent={true}
-        onRequestClose={closeAddComputer}
+        onRequestClose={computerPickerView === 'main' ? closeAddComputer : () => setComputerPickerView('main')}
       >
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: colors.cardBackground }]}>
-            <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>{t('profile.addComputer')}</Text>
-              <Pressable onPress={closeAddComputer}>
-                <Ionicons name="close" size={24} color={colors.text} />
-              </Pressable>
-            </View>
-            <ScrollView style={styles.modalScroll} keyboardShouldPersistTaps="handled">
-              <Pressable style={[styles.menuRow]} onPress={() => setShowBrandPicker(true)}>
-                <View style={[styles.menuIcon, { backgroundColor: colors.primary + '20' }]}>
-                  <Ionicons name="hardware-chip-outline" size={20} color={colors.primary} />
+            {computerPickerView === 'main' && (
+              <>
+                <View style={styles.modalHeader}>
+                  <Text style={[styles.modalTitle, { color: colors.text }]}>{t('profile.addComputer')}</Text>
+                  <Pressable onPress={closeAddComputer}>
+                    <Ionicons name="close" size={24} color={colors.text} />
+                  </Pressable>
                 </View>
-                <View style={styles.menuContent}>
-                  <Text style={[styles.menuTitle, { color: colors.text }]}>{t('profile.brand')}</Text>
-                  <Text style={[styles.menuDescription, { color: colors.textSecondary }]}>
-                    {manufacturers.find(m => m.id === selectedBrand)?.name || t('profile.selectManufacturer')}
-                  </Text>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
-              </Pressable>
-
-              <Pressable 
-                style={[styles.menuRow, { opacity: selectedBrand ? 1 : 0.5 }]} 
-                onPress={() => selectedBrand && setShowModelPicker(true)}
-                disabled={!selectedBrand}
-              >
-                <View style={[styles.menuIcon, { backgroundColor: colors.primary + '20' }]}>
-                  <Ionicons name="watch-outline" size={20} color={colors.primary} />
-                </View>
-                <View style={styles.menuContent}>
-                  <Text style={[styles.menuTitle, { color: colors.text }]}>{t('profile.model')}</Text>
-                  <Text style={[styles.menuDescription, { color: colors.textSecondary }]}>
-                    {models.find(m => m.id === selectedModel)?.name || t('profile.selectModel')}
-                  </Text>
-                </View>
-                {loading ? (
-                  <ActivityIndicator size="small" color={colors.primary} />
-                ) : (
-                  <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
-                )}
-              </Pressable>
-            </ScrollView>
-            <View style={styles.modalFooter}>
-              <Pressable
-                style={[
-                  styles.saveButton,
-                  { backgroundColor: selectedBrand && selectedModel ? colors.primary : colors.primary + '40' },
-                ]}
-                onPress={() => {
-                  if (selectedBrand && selectedModel) {
-                    addDiveComputer(selectedBrand, selectedModel);
-                  }
-                }}
-                disabled={!selectedBrand || !selectedModel}
-              >
-                <Text style={[styles.saveButtonText, { opacity: selectedBrand && selectedModel ? 1 : 0.5 }]}>
-                  {t('profile.addComputer')}
-                </Text>
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      <Modal
-        visible={showBrandPicker}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setShowBrandPicker(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: colors.cardBackground }]}>
-            <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>{t('profile.selectBrand')}</Text>
-              <Pressable onPress={() => setShowBrandPicker(false)}>
-                <Ionicons name="close" size={24} color={colors.text} />
-              </Pressable>
-            </View>
-            <ScrollView style={styles.modalScroll}>
-              {manufacturers.map((manufacturer) => (
-                <Pressable
-                  key={manufacturer.id}
-                  style={[
-                    styles.pickerItem,
-                    { borderBottomColor: colors.border },
-                    selectedBrand === manufacturer.id && { backgroundColor: colors.primary + '20' }
-                  ]}
-                  onPress={() => handleBrandSelect(manufacturer)}
-                >
-                  <Text style={[styles.pickerItemText, { color: colors.text }]}>
-                    {manufacturer.name}
-                  </Text>
-                  {selectedBrand === manufacturer.id && (
-                    <Ionicons name="checkmark" size={20} color={colors.primary} />
-                  )}
-                </Pressable>
-              ))}
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
-
-      <Modal
-        visible={showModelPicker}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setShowModelPicker(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: colors.cardBackground }]}>
-            <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>{t('profile.selectModel')}</Text>
-              <Pressable onPress={() => setShowModelPicker(false)}>
-                <Ionicons name="close" size={24} color={colors.text} />
-              </Pressable>
-            </View>
-            <ScrollView style={styles.modalScroll}>
-              {models.map((model) => (
-                <Pressable
-                  key={model.id}
-                  style={[
-                    styles.pickerItem,
-                    { borderBottomColor: colors.border },
-                    selectedModel === model.id && { backgroundColor: colors.primary + '20' }
-                  ]}
-                  onPress={() => handleModelSelect(model)}
-                >
-                  <View style={styles.pickerItemContent}>
-                    <Text style={[styles.pickerItemText, { color: colors.text }]}>
-                      {model.name}
-                    </Text>
-                    <View style={styles.pickerItemBadges}>
-                      {model.has_ble && (
-                        <View style={[styles.bleBadge, { backgroundColor: '#10B98120' }]}>
-                          <Ionicons name="bluetooth" size={12} color="#10B981" />
-                          <Text style={styles.bleBadgeText}>BLE</Text>
-                        </View>
-                      )}
+                <ScrollView style={styles.modalScroll} keyboardShouldPersistTaps="handled">
+                  <Pressable style={[styles.menuRow]} onPress={() => setComputerPickerView('brand')}>
+                    <View style={[styles.menuIcon, { backgroundColor: colors.primary + '20' }]}>
+                      <Ionicons name="hardware-chip-outline" size={20} color={colors.primary} />
                     </View>
-                  </View>
-                  {selectedModel === model.id && (
-                    <Ionicons name="checkmark" size={20} color={colors.primary} />
-                  )}
-                </Pressable>
-              ))}
-            </ScrollView>
+                    <View style={styles.menuContent}>
+                      <Text style={[styles.menuTitle, { color: colors.text }]}>{t('profile.brand')}</Text>
+                      <Text style={[styles.menuDescription, { color: colors.textSecondary }]}>
+                        {manufacturers.find(m => m.id === selectedBrand)?.name || t('profile.selectManufacturer')}
+                      </Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+                  </Pressable>
+
+                  <Pressable
+                    style={[styles.menuRow, { opacity: selectedBrand ? 1 : 0.5 }]}
+                    onPress={() => selectedBrand && setComputerPickerView('model')}
+                    disabled={!selectedBrand}
+                  >
+                    <View style={[styles.menuIcon, { backgroundColor: colors.primary + '20' }]}>
+                      <Ionicons name="watch-outline" size={20} color={colors.primary} />
+                    </View>
+                    <View style={styles.menuContent}>
+                      <Text style={[styles.menuTitle, { color: colors.text }]}>{t('profile.model')}</Text>
+                      <Text style={[styles.menuDescription, { color: colors.textSecondary }]}>
+                        {models.find(m => m.id === selectedModel)?.name || t('profile.selectModel')}
+                      </Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+                  </Pressable>
+                </ScrollView>
+                <View style={styles.modalFooter}>
+                  <Pressable
+                    style={[
+                      styles.saveButton,
+                      { backgroundColor: selectedBrand && selectedModel ? colors.primary : colors.primary + '40' },
+                    ]}
+                    onPress={() => {
+                      if (selectedBrand && selectedModel) {
+                        addDiveComputer(selectedBrand, selectedModel);
+                      }
+                    }}
+                    disabled={!selectedBrand || !selectedModel || loading}
+                  >
+                    {loading ? (
+                      <ActivityIndicator size="small" color="#fff" />
+                    ) : (
+                      <Text style={[styles.saveButtonText, { opacity: selectedBrand && selectedModel ? 1 : 0.5 }]}>
+                        {t('profile.addComputer')}
+                      </Text>
+                    )}
+                  </Pressable>
+                </View>
+              </>
+            )}
+
+            {computerPickerView === 'brand' && (
+              <>
+                <View style={styles.modalHeader}>
+                  <Pressable onPress={() => setComputerPickerView('main')} hitSlop={8}>
+                    <Ionicons name="chevron-back" size={24} color={colors.text} />
+                  </Pressable>
+                  <Text style={[styles.modalTitle, { color: colors.text }]}>{t('profile.selectBrand')}</Text>
+                  <Pressable onPress={closeAddComputer}>
+                    <Ionicons name="close" size={24} color={colors.text} />
+                  </Pressable>
+                </View>
+                <ScrollView style={styles.modalScroll}>
+                  {manufacturers.map((manufacturer) => (
+                    <Pressable
+                      key={manufacturer.id}
+                      style={[
+                        styles.pickerItem,
+                        { borderBottomColor: colors.border },
+                        selectedBrand === manufacturer.id && { backgroundColor: colors.primary + '20' }
+                      ]}
+                      onPress={() => handleBrandSelect(manufacturer)}
+                    >
+                      <Text style={[styles.pickerItemText, { color: colors.text }]}>
+                        {manufacturer.name}
+                      </Text>
+                      {selectedBrand === manufacturer.id && (
+                        <Ionicons name="checkmark" size={20} color={colors.primary} />
+                      )}
+                    </Pressable>
+                  ))}
+                </ScrollView>
+              </>
+            )}
+
+            {computerPickerView === 'model' && (
+              <>
+                <View style={styles.modalHeader}>
+                  <Pressable onPress={() => setComputerPickerView('main')} hitSlop={8}>
+                    <Ionicons name="chevron-back" size={24} color={colors.text} />
+                  </Pressable>
+                  <Text style={[styles.modalTitle, { color: colors.text }]}>{t('profile.selectModel')}</Text>
+                  <Pressable onPress={closeAddComputer}>
+                    <Ionicons name="close" size={24} color={colors.text} />
+                  </Pressable>
+                </View>
+                <ScrollView style={styles.modalScroll}>
+                  {models.map((model) => (
+                    <Pressable
+                      key={model.id}
+                      style={[
+                        styles.pickerItem,
+                        { borderBottomColor: colors.border },
+                        selectedModel === model.id && { backgroundColor: colors.primary + '20' }
+                      ]}
+                      onPress={() => handleModelSelect(model)}
+                    >
+                      <View style={styles.pickerItemContent}>
+                        <Text style={[styles.pickerItemText, { color: colors.text }]}>
+                          {model.name}
+                        </Text>
+                        <View style={styles.pickerItemBadges}>
+                          {model.has_ble && (
+                            <View style={[styles.bleBadge, { backgroundColor: '#10B98120' }]}>
+                              <Ionicons name="bluetooth" size={12} color="#10B981" />
+                              <Text style={styles.bleBadgeText}>BLE</Text>
+                            </View>
+                          )}
+                        </View>
+                      </View>
+                      {selectedModel === model.id && (
+                        <Ionicons name="checkmark" size={20} color={colors.primary} />
+                      )}
+                    </Pressable>
+                  ))}
+                </ScrollView>
+              </>
+            )}
           </View>
         </View>
       </Modal>
