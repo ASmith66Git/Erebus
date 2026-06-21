@@ -792,7 +792,7 @@ export default function PhotosScreen() {
         showBack={!!(filterByDiveLogId || sourceLogId)}
         onBack={() => {
           if (sourceLogId) {
-            router.replace(`/(app)/dive-log/${sourceLogId}` as any);
+            router.replace(`/dive-log/${sourceLogId}` as any);
           } else {
             router.back();
           }
