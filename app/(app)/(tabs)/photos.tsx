@@ -384,6 +384,7 @@ export default function PhotosScreen() {
             fileSize: finalFileSize,
             mediaType: isVideo ? 'video' : 'image',
             duration: isVideo ? Math.round(asset.duration || 0) : null,
+            diveLogId: filterByDiveLogId || null,
           }),
         });
         
