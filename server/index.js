@@ -266,6 +266,10 @@ async function initDatabase() {
     await client.query(`
       ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMP;
     `).catch(() => {});
+
+    await client.query(`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS searchable_profile BOOLEAN DEFAULT FALSE;
+    `).catch(() => {});
     
     await client.query(`
       CREATE TABLE IF NOT EXISTS dive_sites (
@@ -8459,11 +8463,13 @@ app.get('/api/users/search', authenticateToken, async (req, res) => {
       return res.json([]);
     }
     const result = await pool.query(
-      `SELECT id, CONCAT(first_name, ' ', last_name) AS username, email
+      `SELECT id,
+              COALESCE(NULLIF(TRIM(CONCAT(COALESCE(first_name,''), ' ', COALESCE(last_name,''))), ''), email) AS username,
+              email
        FROM users 
        WHERE searchable_profile = TRUE 
          AND id != $1
-         AND (LOWER(first_name) LIKE LOWER($2) OR LOWER(last_name) LIKE LOWER($2) OR LOWER(email) LIKE LOWER($2))
+         AND (LOWER(COALESCE(first_name,'')) LIKE LOWER($2) OR LOWER(COALESCE(last_name,'')) LIKE LOWER($2) OR LOWER(email) LIKE LOWER($2))
        ORDER BY first_name ASC
        LIMIT 20`,
       [req.user.id, `%${query}%`]
