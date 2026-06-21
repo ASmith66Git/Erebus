@@ -54,7 +54,7 @@ The application is built using Expo React Native, targeting both iOS and Android
 
 ### Build Verification
 - Native `android/app/build.gradle` versionCode and versionName must be updated manually as they override app.config.js.
-- Current version: 2.0.84 (versionCode 103).
+- Current version: 2.0.85 (versionCode 104).
 
 ## External Dependencies
 - **PostgreSQL**: Primary database.
