@@ -64,7 +64,7 @@ export default function PhotosScreen() {
   const { t } = useTranslation();
   const { colors } = useTheme();
   const { token, isLoading: authLoading } = useAuth();
-  const { diveLogId } = useLocalSearchParams<{ diveLogId?: string }>();
+  const { diveLogId, sourceDiveLogId } = useLocalSearchParams<{ diveLogId?: string; sourceDiveLogId?: string }>();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const [containerWidth, setContainerWidth] = useState(0);
   const gridWidth = containerWidth > 0 ? containerWidth : Math.min(windowWidth, 500);
@@ -94,6 +94,7 @@ export default function PhotosScreen() {
   const thumbnailScrollPosition = useRef(0);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const filterByDiveLogId = diveLogId ? parseInt(diveLogId) : null;
+  const sourceLogId = sourceDiveLogId ? parseInt(sourceDiveLogId) : null;
 
   // Helper to scroll thumbnail bar to center a given index
   const scrollThumbnailToIndex = useCallback((index: number, animated: boolean = true) => {
@@ -787,9 +788,15 @@ export default function PhotosScreen() {
   return (
     <ThemedBackground>
       <PageHeader
-        title={filterByDiveLogId ? t('photos.divePhotos') : t('photos.title')}
-        showBack={!!filterByDiveLogId}
-        onBack={() => router.back()}
+        title={(filterByDiveLogId || sourceLogId) ? t('photos.divePhotos') : t('photos.title')}
+        showBack={!!(filterByDiveLogId || sourceLogId)}
+        onBack={() => {
+          if (sourceLogId) {
+            router.replace(`/(app)/dive-log/${sourceLogId}` as any);
+          } else {
+            router.back();
+          }
+        }}
       />
       
       {filterByDiveLogId && (
@@ -800,7 +807,7 @@ export default function PhotosScreen() {
               {t('photos.showingLinkedPhotos')}
             </Text>
           </View>
-          <Pressable onPress={() => router.replace('/(app)/(tabs)/photos')}>
+          <Pressable onPress={() => router.replace({ pathname: '/(app)/(tabs)/photos' as any, params: sourceLogId ? { sourceDiveLogId: String(sourceLogId) } : {} })}>
             <Text style={[styles.filterClearText, { color: colors.primary }]}>{t('photos.viewAll')}</Text>
           </Pressable>
         </View>
@@ -818,6 +825,8 @@ export default function PhotosScreen() {
                 onPress={() => {
                   if (filterByDiveLogId) {
                     linkSelectedPhotos(filterByDiveLogId, null);
+                  } else if (sourceLogId) {
+                    linkSelectedPhotos(sourceLogId, null);
                   } else {
                     fetchDiveLogs(); fetchDiveTrips(); setLinkTab('logs'); setShowLinkModal(true);
                   }

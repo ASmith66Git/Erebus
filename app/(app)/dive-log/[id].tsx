@@ -1607,7 +1607,7 @@ export default function DiveLogDetailScreen() {
     fetchGearProfile();
   }, [token, diveLog?.gearProfileId]);
 
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     const fetchPhotos = async () => {
       if (!token || !id) return;
       try {
@@ -1623,7 +1623,7 @@ export default function DiveLogDetailScreen() {
       }
     };
     fetchPhotos();
-  }, [token, id]);
+  }, [token, id]));
 
   const handleDelete = () => {
     const confirmDelete = async () => {
@@ -1802,10 +1802,10 @@ export default function DiveLogDetailScreen() {
             <View style={styles.sectionHeader}>
               <Text style={[styles.sectionTitle, { color: colors.text }]}>Linked Photos</Text>
               <View style={{ flexDirection: 'row', gap: 16, alignItems: 'center' }}>
-                <Pressable onPress={() => router.push({ pathname: '/(app)/(tabs)/photos' as any, params: { diveLogId: id } })}>
+                <Pressable onPress={() => router.push({ pathname: '/(app)/(tabs)/photos' as any, params: { diveLogId: id, sourceDiveLogId: id } })}>
                   <Text style={{ color: colors.primary, fontSize: 14 }}>Add Photo</Text>
                 </Pressable>
-                <Pressable onPress={() => router.push({ pathname: '/(app)/(tabs)/photos' as any, params: { diveLogId: id } })}>
+                <Pressable onPress={() => router.push({ pathname: '/(app)/(tabs)/photos' as any, params: { sourceDiveLogId: id } })}>
                   <Text style={{ color: colors.primary, fontSize: 14 }}>View All</Text>
                 </Pressable>
               </View>
@@ -1837,7 +1837,7 @@ export default function DiveLogDetailScreen() {
                 </Text>
                 <Pressable 
                   style={{ marginTop: 16, paddingHorizontal: 20, paddingVertical: 10, backgroundColor: colors.primary, borderRadius: 8 }}
-                  onPress={() => router.push({ pathname: '/(app)/(tabs)/photos' as any, params: { diveLogId: id } })}
+                  onPress={() => router.push({ pathname: '/(app)/(tabs)/photos' as any, params: { diveLogId: id, sourceDiveLogId: id } })}
                 >
                   <Text style={{ color: '#FFF', fontWeight: '600' }}>Add Photos</Text>
                 </Pressable>
