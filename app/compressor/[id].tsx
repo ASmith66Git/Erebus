@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -137,6 +137,7 @@ export default function CompressorDetailScreen() {
   const [showServiceInlinePicker, setShowServiceInlinePicker] = useState(false);
   const [showNextDueInlinePicker, setShowNextDueInlinePicker] = useState(false);
   const [showUsageInlinePicker, setShowUsageInlinePicker] = useState(false);
+  const overviewScrollRef = useRef<ScrollView>(null);
   const [serviceFilter, setServiceFilter] = useState<string>('all');
 
   const [formData, setFormData] = useState({
@@ -933,7 +934,7 @@ export default function CompressorDetailScreen() {
     const testStatus = getServiceStatusInfo('test');
 
     return (
-      <ScrollView style={styles.tabContent} contentContainerStyle={{ paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
+      <ScrollView ref={overviewScrollRef} style={styles.tabContent} contentContainerStyle={{ paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
         {isEditing ? (
           <View style={styles.formSection}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('compressors.details')}</Text>
@@ -957,7 +958,7 @@ export default function CompressorDetailScreen() {
             </View>
             <View style={styles.formGroup}>
               <Text style={[styles.label, { color: colors.textSecondary }]}>{t('compressors.purchaseDate')}</Text>
-              <Pressable onPress={() => setShowPurchaseDatePicker(v => !v)} style={[styles.input, { justifyContent: 'center', borderColor: colors.border, backgroundColor: colors.surface }]}>
+              <Pressable onPress={() => { const next = !showPurchaseDatePicker; setShowPurchaseDatePicker(next); if (next) { setTimeout(() => overviewScrollRef.current?.scrollToEnd({ animated: true }), 50); } }} style={[styles.input, { justifyContent: 'center', borderColor: colors.border, backgroundColor: colors.surface }]}>
                 <Text style={{ color: formData.purchase_date ? colors.text : colors.textSecondary }}>{formData.purchase_date ? formatDate(formData.purchase_date) : t('compressors.selectDate')}</Text>
               </Pressable>
               {showPurchaseDatePicker && (
@@ -1472,7 +1473,7 @@ const styles = StyleSheet.create({
   addButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, margin: 16, paddingVertical: 14, borderRadius: 10 },
   addButtonText: { color: '#FFF', fontSize: 15, fontWeight: '600' },
   modalOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalContent: { maxHeight: '85%', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20 },
+  modalContent: { height: '75%', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20 },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
   modalTitle: { fontSize: 18, fontWeight: '600' },
   datePickerContainer: { margin: 20, borderRadius: 16, padding: 16 },
