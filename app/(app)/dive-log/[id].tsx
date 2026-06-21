@@ -1801,9 +1801,14 @@ export default function DiveLogDetailScreen() {
           <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <View style={styles.sectionHeader}>
               <Text style={[styles.sectionTitle, { color: colors.text }]}>Linked Photos</Text>
-              <Pressable onPress={() => router.push(`/(app)/(tabs)/photos?diveLogId=${id}`)}>
-                <Text style={{ color: colors.primary, fontSize: 14 }}>View All</Text>
-              </Pressable>
+              <View style={{ flexDirection: 'row', gap: 16, alignItems: 'center' }}>
+                <Pressable onPress={() => router.push({ pathname: '/(app)/(tabs)/photos' as any, params: { diveLogId: id } })}>
+                  <Text style={{ color: colors.primary, fontSize: 14 }}>Add Photo</Text>
+                </Pressable>
+                <Pressable onPress={() => router.push({ pathname: '/(app)/(tabs)/photos' as any, params: { diveLogId: id } })}>
+                  <Text style={{ color: colors.primary, fontSize: 14 }}>View All</Text>
+                </Pressable>
+              </View>
             </View>
             
             {photos.length > 0 ? (
@@ -1832,7 +1837,7 @@ export default function DiveLogDetailScreen() {
                 </Text>
                 <Pressable 
                   style={{ marginTop: 16, paddingHorizontal: 20, paddingVertical: 10, backgroundColor: colors.primary, borderRadius: 8 }}
-                  onPress={() => router.push(`/(app)/(tabs)/photos`)}
+                  onPress={() => router.push({ pathname: '/(app)/(tabs)/photos' as any, params: { diveLogId: id } })}
                 >
                   <Text style={{ color: '#FFF', fontWeight: '600' }}>Add Photos</Text>
                 </Pressable>

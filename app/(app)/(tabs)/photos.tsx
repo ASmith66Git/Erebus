@@ -205,7 +205,11 @@ export default function PhotosScreen() {
       setShowLinkModal(false);
       setSelectionMode(false);
       setSelectedIds(new Set());
-      fetchPhotos();
+      if (filterByDiveLogId) {
+        router.back();
+      } else {
+        fetchPhotos();
+      }
     } catch (error) {
       console.error('Error linking photos:', error);
       if (Platform.OS === 'web') {
@@ -811,7 +815,13 @@ export default function PhotosScreen() {
             <Text style={[styles.toolbarTitle, { color: colors.text }]}>{t('photos.selectedCount2', { count: selectedIds.size })}</Text>
             <View style={{ flexDirection: 'row', gap: 16 }}>
               <Pressable 
-                onPress={() => { fetchDiveLogs(); fetchDiveTrips(); setLinkTab('logs'); setShowLinkModal(true); }}
+                onPress={() => {
+                  if (filterByDiveLogId) {
+                    linkSelectedPhotos(filterByDiveLogId, null);
+                  } else {
+                    fetchDiveLogs(); fetchDiveTrips(); setLinkTab('logs'); setShowLinkModal(true);
+                  }
+                }}
                 disabled={selectedIds.size === 0}
               >
                 <Ionicons name="link" size={24} color={selectedIds.size > 0 ? colors.primary : colors.textSecondary} />

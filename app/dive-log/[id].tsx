@@ -536,7 +536,7 @@ export default function DiveLogDetailScreen() {
           <View style={styles.photosSectionHeader}>
             <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 0 }]}>Photos</Text>
             <Pressable 
-              onPress={() => router.push(`/(app)/(tabs)/photos?diveLogId=${id}`)}
+              onPress={() => router.push({ pathname: '/(app)/(tabs)/photos' as any, params: { diveLogId: id } })}
               style={styles.addPhotoButton}
             >
               <Ionicons name="add-circle-outline" size={24} color={colors.primary} />
@@ -560,7 +560,7 @@ export default function DiveLogDetailScreen() {
           ) : (
             <Pressable 
               style={[styles.emptyPhotos, { borderColor: colors.border }]}
-              onPress={() => router.push(`/(app)/(tabs)/photos?diveLogId=${id}`)}
+              onPress={() => router.push({ pathname: '/(app)/(tabs)/photos' as any, params: { diveLogId: id } })}
             >
               <Ionicons name="images-outline" size={32} color={colors.textSecondary} />
               <Text style={[styles.emptyPhotosText, { color: colors.textSecondary }]}>
