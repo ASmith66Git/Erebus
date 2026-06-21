@@ -92,8 +92,8 @@ android {
         applicationId 'com.erebus.diveapp'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 104
-        versionName "2.0.85"
+        versionCode 105
+        versionName "1.2.85"
 
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
     }
