@@ -962,21 +962,23 @@ export default function CompressorDetailScreen() {
                 <Text style={{ color: formData.purchase_date ? colors.text : colors.textSecondary }}>{formData.purchase_date ? formatDate(formData.purchase_date) : t('compressors.selectDate')}</Text>
               </Pressable>
               {showPurchaseDatePicker && (
-                <DateTimePicker
-                  mode="single"
-                  date={formData.purchase_date ? dayjs(formData.purchase_date) : dayjs()}
-                  onChange={(params: { date: dayjs.Dayjs }) => {
-                    if (params.date) {
-                      setFormData(prev => ({ ...prev, purchase_date: dayjs(params.date).format('YYYY-MM-DD') }));
-                      setShowPurchaseDatePicker(false);
-                    }
-                  }}
-                  selectedItemColor={colors.primary}
-                  calendarTextStyle={{ color: colors.text }}
-                  headerTextStyle={{ color: colors.text }}
-                  weekDaysTextStyle={{ color: colors.textSecondary }}
-                  headerButtonColor={colors.primary}
-                />
+                <View style={{ backgroundColor: colors.surface, borderRadius: 8, borderWidth: 1, borderColor: colors.border, marginTop: 4 }}>
+                  <DateTimePicker
+                    mode="single"
+                    date={formData.purchase_date ? dayjs(formData.purchase_date) : dayjs()}
+                    onChange={(params: { date: dayjs.Dayjs }) => {
+                      if (params.date) {
+                        setFormData(prev => ({ ...prev, purchase_date: dayjs(params.date).format('YYYY-MM-DD') }));
+                        setShowPurchaseDatePicker(false);
+                      }
+                    }}
+                    selectedItemColor={colors.primary}
+                    calendarTextStyle={{ color: colors.text }}
+                    headerTextStyle={{ color: colors.text }}
+                    weekDaysTextStyle={{ color: colors.textSecondary }}
+                    headerButtonColor={colors.primary}
+                  />
+                </View>
               )}
             </View>
 
@@ -1201,21 +1203,23 @@ export default function CompressorDetailScreen() {
                 <Text style={{ color: colors.text }}>{formatDate(serviceForm.service_date)}</Text>
               </Pressable>
               {showServiceInlinePicker && (
-                <DateTimePicker
-                  mode="single"
-                  date={dayjs(serviceForm.service_date)}
-                  onChange={(params: { date: dayjs.Dayjs }) => {
-                    if (params.date) {
-                      setServiceForm(prev => ({ ...prev, service_date: dayjs(params.date).format('YYYY-MM-DD') }));
-                      setShowServiceInlinePicker(false);
-                    }
-                  }}
-                  selectedItemColor={colors.primary}
-                  calendarTextStyle={{ color: colors.text }}
-                  headerTextStyle={{ color: colors.text }}
-                  weekDaysTextStyle={{ color: colors.textSecondary }}
-                  headerButtonColor={colors.primary}
-                />
+                <View style={{ backgroundColor: colors.surface, borderRadius: 8, borderWidth: 1, borderColor: colors.border, marginTop: 4 }}>
+                  <DateTimePicker
+                    mode="single"
+                    date={dayjs(serviceForm.service_date)}
+                    onChange={(params: { date: dayjs.Dayjs }) => {
+                      if (params.date) {
+                        setServiceForm(prev => ({ ...prev, service_date: dayjs(params.date).format('YYYY-MM-DD') }));
+                        setShowServiceInlinePicker(false);
+                      }
+                    }}
+                    selectedItemColor={colors.primary}
+                    calendarTextStyle={{ color: colors.text }}
+                    headerTextStyle={{ color: colors.text }}
+                    weekDaysTextStyle={{ color: colors.textSecondary }}
+                    headerButtonColor={colors.primary}
+                  />
+                </View>
               )}
             </View>
 
@@ -1259,21 +1263,23 @@ export default function CompressorDetailScreen() {
                     <Text style={{ color: serviceForm.next_due_date ? colors.text : colors.textSecondary }}>{serviceForm.next_due_date ? formatDate(serviceForm.next_due_date) : t('compressors.selectDate')}</Text>
                   </Pressable>
                   {showNextDueInlinePicker && (
-                    <DateTimePicker
-                      mode="single"
-                      date={serviceForm.next_due_date ? dayjs(serviceForm.next_due_date) : dayjs()}
-                      onChange={(params: { date: dayjs.Dayjs }) => {
-                        if (params.date) {
-                          setServiceForm(prev => ({ ...prev, next_due_date: dayjs(params.date).format('YYYY-MM-DD') }));
-                          setShowNextDueInlinePicker(false);
-                        }
-                      }}
-                      selectedItemColor={colors.primary}
-                      calendarTextStyle={{ color: colors.text }}
-                      headerTextStyle={{ color: colors.text }}
-                      weekDaysTextStyle={{ color: colors.textSecondary }}
-                      headerButtonColor={colors.primary}
-                    />
+                    <View style={{ backgroundColor: colors.surface, borderRadius: 8, borderWidth: 1, borderColor: colors.border, marginTop: 4 }}>
+                      <DateTimePicker
+                        mode="single"
+                        date={serviceForm.next_due_date ? dayjs(serviceForm.next_due_date) : dayjs()}
+                        onChange={(params: { date: dayjs.Dayjs }) => {
+                          if (params.date) {
+                            setServiceForm(prev => ({ ...prev, next_due_date: dayjs(params.date).format('YYYY-MM-DD') }));
+                            setShowNextDueInlinePicker(false);
+                          }
+                        }}
+                        selectedItemColor={colors.primary}
+                        calendarTextStyle={{ color: colors.text }}
+                        headerTextStyle={{ color: colors.text }}
+                        weekDaysTextStyle={{ color: colors.textSecondary }}
+                        headerButtonColor={colors.primary}
+                      />
+                    </View>
                   )}
                 </View>
               </>
@@ -1315,21 +1321,23 @@ export default function CompressorDetailScreen() {
                 <Text style={{ color: colors.text }}>{formatDate(usageForm.usage_date)}</Text>
               </Pressable>
               {showUsageInlinePicker && (
-                <DateTimePicker
-                  mode="single"
-                  date={dayjs(usageForm.usage_date)}
-                  onChange={(params: { date: dayjs.Dayjs }) => {
-                    if (params.date) {
-                      setUsageForm(prev => ({ ...prev, usage_date: dayjs(params.date).format('YYYY-MM-DD') }));
-                      setShowUsageInlinePicker(false);
-                    }
-                  }}
-                  selectedItemColor={colors.primary}
-                  calendarTextStyle={{ color: colors.text }}
-                  headerTextStyle={{ color: colors.text }}
-                  weekDaysTextStyle={{ color: colors.textSecondary }}
-                  headerButtonColor={colors.primary}
-                />
+                <View style={{ backgroundColor: colors.surface, borderRadius: 8, borderWidth: 1, borderColor: colors.border, marginTop: 4 }}>
+                  <DateTimePicker
+                    mode="single"
+                    date={dayjs(usageForm.usage_date)}
+                    onChange={(params: { date: dayjs.Dayjs }) => {
+                      if (params.date) {
+                        setUsageForm(prev => ({ ...prev, usage_date: dayjs(params.date).format('YYYY-MM-DD') }));
+                        setShowUsageInlinePicker(false);
+                      }
+                    }}
+                    selectedItemColor={colors.primary}
+                    calendarTextStyle={{ color: colors.text }}
+                    headerTextStyle={{ color: colors.text }}
+                    weekDaysTextStyle={{ color: colors.textSecondary }}
+                    headerButtonColor={colors.primary}
+                  />
+                </View>
               )}
             </View>
             <View style={styles.formGroup}>
