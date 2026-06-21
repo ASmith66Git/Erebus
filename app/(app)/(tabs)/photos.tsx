@@ -782,7 +782,11 @@ export default function PhotosScreen() {
 
   return (
     <ThemedBackground>
-      <PageHeader title={filterByDiveLogId ? t('photos.divePhotos') : t('photos.title')} />
+      <PageHeader
+        title={filterByDiveLogId ? t('photos.divePhotos') : t('photos.title')}
+        showBack={!!filterByDiveLogId}
+        onBack={() => router.back()}
+      />
       
       {filterByDiveLogId && (
         <View style={[styles.filterBanner, { backgroundColor: colors.primary + '20', borderBottomColor: colors.border }]}>

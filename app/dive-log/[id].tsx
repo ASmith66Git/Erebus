@@ -560,7 +560,7 @@ export default function DiveLogDetailScreen() {
           ) : (
             <Pressable 
               style={[styles.emptyPhotos, { borderColor: colors.border }]}
-              onPress={() => router.push(`/(app)/(tabs)/photos`)}
+              onPress={() => router.push(`/(app)/(tabs)/photos?diveLogId=${id}`)}
             >
               <Ionicons name="images-outline" size={32} color={colors.textSecondary} />
               <Text style={[styles.emptyPhotosText, { color: colors.textSecondary }]}>
