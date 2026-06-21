@@ -2430,7 +2430,7 @@ app.put('/api/admin/dev-log/:id', authenticateToken, requireAdmin, async (req, r
       ? (Array.isArray(req.body.screenshots) ? req.body.screenshots : cur.screenshots)
       : cur.screenshots;
 
-    const clearPending = req.body.taskRef !== undefined && req.body.taskRef;
+    const clearPending = !!(req.body.taskRef !== undefined && req.body.taskRef);
     const result = await pool.query(
       `UPDATE dev_log SET 
         task = $1,
