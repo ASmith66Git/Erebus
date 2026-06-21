@@ -132,7 +132,7 @@ export default function CompressorDetailScreen() {
   const [usageLogs, setUsageLogs] = useState<UsageLog[]>([]);
   const [showServiceModal, setShowServiceModal] = useState(false);
   const [showUsageModal, setShowUsageModal] = useState(false);
-  const [showDatePicker, setShowDatePicker] = useState<string | null>(null);
+  const [showPurchaseDatePicker, setShowPurchaseDatePicker] = useState(false);
   const [showServiceInlinePicker, setShowServiceInlinePicker] = useState(false);
   const [showNextDueInlinePicker, setShowNextDueInlinePicker] = useState(false);
   const [showUsageInlinePicker, setShowUsageInlinePicker] = useState(false);
@@ -887,7 +887,7 @@ export default function CompressorDetailScreen() {
     const testStatus = getServiceStatusInfo('test');
 
     return (
-      <ScrollView style={styles.tabContent} contentContainerStyle={{ paddingBottom: 40 }}>
+      <ScrollView style={styles.tabContent} contentContainerStyle={{ paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
         {isEditing ? (
           <View style={styles.formSection}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('compressors.details')}</Text>
@@ -911,9 +911,26 @@ export default function CompressorDetailScreen() {
             </View>
             <View style={styles.formGroup}>
               <Text style={[styles.label, { color: colors.textSecondary }]}>{t('compressors.purchaseDate')}</Text>
-              <Pressable onPress={() => setShowDatePicker('purchase')} style={[styles.input, { justifyContent: 'center', borderColor: colors.border, backgroundColor: colors.surface }]}>
+              <Pressable onPress={() => setShowPurchaseDatePicker(v => !v)} style={[styles.input, { justifyContent: 'center', borderColor: colors.border, backgroundColor: colors.surface }]}>
                 <Text style={{ color: formData.purchase_date ? colors.text : colors.textSecondary }}>{formData.purchase_date ? formatDate(formData.purchase_date) : t('compressors.selectDate')}</Text>
               </Pressable>
+              {showPurchaseDatePicker && (
+                <DateTimePicker
+                  mode="single"
+                  date={formData.purchase_date ? dayjs(formData.purchase_date) : dayjs()}
+                  onChange={(params: { date: dayjs.Dayjs }) => {
+                    if (params.date) {
+                      setFormData(prev => ({ ...prev, purchase_date: dayjs(params.date).format('YYYY-MM-DD') }));
+                      setShowPurchaseDatePicker(false);
+                    }
+                  }}
+                  selectedItemColor={colors.primary}
+                  calendarTextStyle={{ color: colors.text }}
+                  headerTextStyle={{ color: colors.text }}
+                  weekDaysTextStyle={{ color: colors.textSecondary }}
+                  headerButtonColor={colors.primary}
+                />
+              )}
             </View>
 
             <Text style={[styles.sectionTitle, { color: colors.text, marginTop: 24 }]}>{t('compressors.serviceIntervals')}</Text>
@@ -1112,13 +1129,13 @@ export default function CompressorDetailScreen() {
             {serviceForm.service_type !== 'independent_test' && (
               <View style={styles.formGroup}>
                 <Text style={[styles.label, { color: colors.textSecondary }]}>{t('compressors.serviceType')}</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                   {SERVICE_TYPES.filter(st => st !== 'independent_test').map((st) => (
-                    <Pressable key={st} onPress={() => setServiceForm({ ...serviceForm, service_type: st })} style={[styles.filterChip, { backgroundColor: serviceForm.service_type === st ? colors.primary : colors.surface, borderColor: serviceForm.service_type === st ? colors.primary : colors.border }]}>
+                    <Pressable key={st} onPress={() => setServiceForm(prev => ({ ...prev, service_type: st }))} style={[styles.filterChip, { backgroundColor: serviceForm.service_type === st ? colors.primary : colors.surface, borderColor: serviceForm.service_type === st ? colors.primary : colors.border }]}>
                       <Text style={{ color: serviceForm.service_type === st ? '#FFF' : colors.text, fontSize: 12 }}>{t(`compressors.serviceTypes.${st}`)}</Text>
                     </Pressable>
                   ))}
-                </ScrollView>
+                </View>
               </View>
             )}
 
@@ -1154,13 +1171,13 @@ export default function CompressorDetailScreen() {
             {serviceForm.service_type === 'filter_change' && (
               <View style={styles.formGroup}>
                 <Text style={[styles.label, { color: colors.textSecondary }]}>{t('compressors.filterType')}</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                   {FILTER_TYPES.map((ft) => (
-                    <Pressable key={ft} onPress={() => setServiceForm({ ...serviceForm, filter_type: ft })} style={[styles.filterChip, { backgroundColor: serviceForm.filter_type === ft ? colors.primary : colors.surface, borderColor: serviceForm.filter_type === ft ? colors.primary : colors.border }]}>
+                    <Pressable key={ft} onPress={() => setServiceForm(prev => ({ ...prev, filter_type: ft }))} style={[styles.filterChip, { backgroundColor: serviceForm.filter_type === ft ? colors.primary : colors.surface, borderColor: serviceForm.filter_type === ft ? colors.primary : colors.border }]}>
                       <Text style={{ color: serviceForm.filter_type === ft ? '#FFF' : colors.text, fontSize: 12 }}>{t(`compressors.filterTypes.${ft}`)}</Text>
                     </Pressable>
                   ))}
-                </ScrollView>
+                </View>
               </View>
             )}
 
@@ -1280,33 +1297,6 @@ export default function CompressorDetailScreen() {
     </Modal>
   );
 
-  const renderDatePickerModal = () => (
-    <Modal visible={showDatePicker !== null} animationType="fade" transparent>
-      <View style={styles.modalOverlay}>
-        <View style={[styles.datePickerContainer, { backgroundColor: colors.background }]}>
-          <DateTimePicker
-            mode="single"
-            date={formData.purchase_date ? dayjs(formData.purchase_date) : dayjs()}
-            onChange={(params: { date: dayjs.Dayjs }) => {
-              if (params.date) {
-                const dateStr = dayjs(params.date).format('YYYY-MM-DD');
-                if (showDatePicker === 'purchase') setFormData(prev => ({ ...prev, purchase_date: dateStr }));
-                setShowDatePicker(null);
-              }
-            }}
-            selectedItemColor={colors.primary}
-            calendarTextStyle={{ color: colors.text }}
-            headerTextStyle={{ color: colors.text }}
-            weekDaysTextStyle={{ color: colors.textSecondary }}
-            headerButtonColor={colors.primary}
-          />
-          <Pressable onPress={() => setShowDatePicker(null)} style={[styles.cancelButton, { borderColor: colors.border }]}>
-            <Text style={{ color: colors.text }}>{t('common.cancel')}</Text>
-          </Pressable>
-        </View>
-      </View>
-    </Modal>
-  );
 
   if (loading) {
     return (
@@ -1375,7 +1365,6 @@ export default function CompressorDetailScreen() {
 
       {renderServiceModal()}
       {renderUsageModal()}
-      {renderDatePickerModal()}
     </ThemedBackground>
   );
 }
