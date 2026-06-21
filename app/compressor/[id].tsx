@@ -1108,7 +1108,7 @@ export default function CompressorDetailScreen() {
             <Text style={[styles.modalTitle, { color: colors.text }]}>{serviceForm.service_type === 'independent_test' ? t('compressors.addTest') : t('compressors.addService')}</Text>
             <Pressable onPress={() => { setShowServiceModal(false); setShowServiceInlinePicker(false); setShowNextDueInlinePicker(false); }}><Ionicons name="close" size={24} color={colors.text} /></Pressable>
           </View>
-          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 20 }}>
+          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 20 }} keyboardShouldPersistTaps="handled">
             {serviceForm.service_type !== 'independent_test' && (
               <View style={styles.formGroup}>
                 <Text style={[styles.label, { color: colors.textSecondary }]}>{t('compressors.serviceType')}</Text>
@@ -1235,7 +1235,7 @@ export default function CompressorDetailScreen() {
             <Text style={[styles.modalTitle, { color: colors.text }]}>{t('compressors.logUsage')}</Text>
             <Pressable onPress={() => { setShowUsageModal(false); setShowUsageInlinePicker(false); }}><Ionicons name="close" size={24} color={colors.text} /></Pressable>
           </View>
-          <ScrollView style={{ flex: 1 }}>
+          <ScrollView style={{ flex: 1 }} keyboardShouldPersistTaps="handled">
             <View style={styles.formGroup}>
               <Text style={[styles.label, { color: colors.textSecondary }]}>{t('compressors.usageDate')}</Text>
               <Pressable onPress={() => setShowUsageInlinePicker(v => !v)} style={[styles.input, { justifyContent: 'center', borderColor: colors.border, backgroundColor: colors.surface }]}>
@@ -1427,7 +1427,7 @@ const styles = StyleSheet.create({
   logDetail: { fontSize: 12, marginTop: 2 },
   addButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, margin: 16, paddingVertical: 14, borderRadius: 10 },
   addButtonText: { color: '#FFF', fontSize: 15, fontWeight: '600' },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  modalOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   modalContent: { maxHeight: '85%', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20 },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
   modalTitle: { fontSize: 18, fontWeight: '600' },
