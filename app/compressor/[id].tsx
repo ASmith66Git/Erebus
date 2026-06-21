@@ -132,6 +132,7 @@ export default function CompressorDetailScreen() {
   const [usageLogs, setUsageLogs] = useState<UsageLog[]>([]);
   const [showServiceModal, setShowServiceModal] = useState(false);
   const [showUsageModal, setShowUsageModal] = useState(false);
+  const [editingServiceLog, setEditingServiceLog] = useState<ServiceLog | null>(null);
   const [showPurchaseDatePicker, setShowPurchaseDatePicker] = useState(false);
   const [showServiceInlinePicker, setShowServiceInlinePicker] = useState(false);
   const [showNextDueInlinePicker, setShowNextDueInlinePicker] = useState(false);
@@ -584,6 +585,7 @@ export default function CompressorDetailScreen() {
   };
 
   const resetServiceForm = () => {
+    setEditingServiceLog(null);
     setServiceForm({
       service_type: 'oil_change',
       service_date: new Date().toISOString().split('T')[0],
@@ -596,6 +598,46 @@ export default function CompressorDetailScreen() {
       technician: '',
       notes: '',
     });
+  };
+
+  const openEditServiceLog = (log: ServiceLog) => {
+    setEditingServiceLog(log);
+    setServiceForm({
+      service_type: log.service_type,
+      service_date: log.service_date,
+      hours_at_service: log.hours_at_service != null ? String(log.hours_at_service) : '',
+      filter_type: log.filter_type || '',
+      test_result: log.test_result || '',
+      test_certificate_number: log.test_certificate_number || '',
+      next_due_date: log.next_due_date || '',
+      cost: log.cost != null ? String(log.cost) : '',
+      technician: log.technician || '',
+      notes: log.notes || '',
+    });
+    setShowServiceModal(true);
+  };
+
+  const handleDeleteServiceLog = (log: ServiceLog) => {
+    Alert.alert(
+      t('common.delete'),
+      t('compressors.confirmDeleteService'),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('common.delete'), style: 'destructive', onPress: async () => {
+            try {
+              await fetch(`${getApiUrl()}/api/compressors/${id}/services/${log.id}`, {
+                method: 'DELETE',
+                headers: { Authorization: `Bearer ${token}` },
+              });
+            } catch (_) {}
+            fetchServiceLogs();
+            fetchTestingLogs();
+            fetchCompressor();
+          },
+        },
+      ]
+    );
   };
 
   const handleAddService = async () => {
@@ -630,13 +672,17 @@ export default function CompressorDetailScreen() {
       return;
     }
     try {
-      const response = await fetch(`${getApiUrl()}/api/compressors/${id}/services`, {
-        method: 'POST',
+      const isEdit = editingServiceLog != null;
+      const url = isEdit
+        ? `${getApiUrl()}/api/compressors/${id}/services/${editingServiceLog!.id}`
+        : `${getApiUrl()}/api/compressors/${id}/services`;
+      const response = await fetch(url, {
+        method: isEdit ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify(payload),
       });
       if (response.ok) {
-        if (isNative) {
+        if (isNative && !isEdit) {
           const local = await resolveLocalCompressor();
           if (local) {
             const data = await response.json();
@@ -662,7 +708,7 @@ export default function CompressorDetailScreen() {
         fetchTestingLogs();
         fetchCompressor();
       } else {
-        if (isNative) {
+        if (isNative && !isEdit) {
           await saveServiceLogLocally(payload);
           setShowServiceModal(false);
           resetServiceForm();
@@ -673,7 +719,7 @@ export default function CompressorDetailScreen() {
         }
       }
     } catch (error) {
-      if (isNative) {
+      if (isNative && !editingServiceLog) {
         try {
           await saveServiceLogLocally(payload);
           setShowServiceModal(false);
@@ -1047,10 +1093,15 @@ export default function CompressorDetailScreen() {
           keyExtractor={(item) => item.id.toString()}
           contentContainerStyle={[styles.listContent, displayLogs.length === 0 && styles.emptyContainer]}
           renderItem={({ item }) => (
-            <View style={[styles.logCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Pressable style={[styles.logCard, { backgroundColor: colors.surface, borderColor: colors.border }]} onPress={() => openEditServiceLog(item)}>
               <View style={styles.logHeader}>
                 <Text style={[styles.logType, { color: colors.primary }]}>{t(`compressors.serviceTypes.${item.service_type}`)}</Text>
-                <Text style={[styles.logDate, { color: colors.textSecondary }]}>{formatDate(item.service_date)}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Text style={[styles.logDate, { color: colors.textSecondary }]}>{formatDate(item.service_date)}</Text>
+                  <Pressable onPress={() => handleDeleteServiceLog(item)} hitSlop={8}>
+                    <Ionicons name="trash-outline" size={16} color="#F44336" />
+                  </Pressable>
+                </View>
               </View>
               {item.hours_at_service != null && <Text style={[styles.logDetail, { color: colors.textSecondary }]}>{t('compressors.atHours')}: {item.hours_at_service}h</Text>}
               {item.filter_type && <Text style={[styles.logDetail, { color: colors.textSecondary }]}>{t('compressors.filterType')}: {t(`compressors.filterTypes.${item.filter_type}`)}</Text>}
@@ -1060,7 +1111,7 @@ export default function CompressorDetailScreen() {
               {item.technician && <Text style={[styles.logDetail, { color: colors.textSecondary }]}>{t('compressors.technician')}: {item.technician}</Text>}
               {item.cost != null && <Text style={[styles.logDetail, { color: colors.textSecondary }]}>{t('compressors.cost')}: ${item.cost}</Text>}
               {item.notes && <Text style={[styles.logDetail, { color: colors.textSecondary }]}>{item.notes}</Text>}
-            </View>
+            </Pressable>
           )}
           ListEmptyComponent={
             <View style={styles.emptyList}>
@@ -1122,8 +1173,12 @@ export default function CompressorDetailScreen() {
       <View style={styles.modalOverlay}>
         <View style={[styles.modalContent, { backgroundColor: colors.background }]}>
           <View style={styles.modalHeader}>
-            <Text style={[styles.modalTitle, { color: colors.text }]}>{serviceForm.service_type === 'independent_test' ? t('compressors.addTest') : t('compressors.addService')}</Text>
-            <Pressable onPress={() => { setShowServiceModal(false); setShowServiceInlinePicker(false); setShowNextDueInlinePicker(false); }}><Ionicons name="close" size={24} color={colors.text} /></Pressable>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>
+              {editingServiceLog
+                ? (serviceForm.service_type === 'independent_test' ? t('compressors.editTest') : t('compressors.editService'))
+                : (serviceForm.service_type === 'independent_test' ? t('compressors.addTest') : t('compressors.addService'))}
+            </Text>
+            <Pressable onPress={() => { setShowServiceModal(false); setShowServiceInlinePicker(false); setShowNextDueInlinePicker(false); resetServiceForm(); }}><Ionicons name="close" size={24} color={colors.text} /></Pressable>
           </View>
           <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 20 }} keyboardShouldPersistTaps="handled">
             {serviceForm.service_type !== 'independent_test' && (

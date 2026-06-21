@@ -9638,6 +9638,32 @@ app.post('/api/compressors/:id/services', authenticateToken, async (req, res) =>
   }
 });
 
+app.put('/api/compressors/:compressorId/services/:serviceId', authenticateToken, async (req, res) => {
+  try {
+    const { service_type, service_date, hours_at_service, filter_type, test_result, test_certificate_number, next_due_date, cost, technician, notes } = req.body;
+    if (!service_type || !service_date) {
+      return res.status(400).json({ error: 'Service type and date are required' });
+    }
+    const result = await pool.query(
+      `UPDATE compressor_service_logs
+       SET service_type=$1, service_date=$2, hours_at_service=$3, filter_type=$4, test_result=$5,
+           test_certificate_number=$6, next_due_date=$7, cost=$8, technician=$9, notes=$10
+       WHERE id=$11 AND compressor_id=$12 AND user_id=$13
+       RETURNING *`,
+      [service_type, service_date, hours_at_service || null, filter_type || null, test_result || null,
+       test_certificate_number || null, next_due_date || null, cost || null, technician || null, notes || null,
+       req.params.serviceId, req.params.compressorId, req.user.id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Service log not found' });
+    }
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Update service log error:', error);
+    res.status(500).json({ error: 'Failed to update service log' });
+  }
+});
+
 app.delete('/api/compressors/:compressorId/services/:serviceId', authenticateToken, async (req, res) => {
   try {
     const result = await pool.query(
