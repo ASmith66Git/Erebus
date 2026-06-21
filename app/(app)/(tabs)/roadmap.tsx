@@ -91,7 +91,7 @@ export default function RoadmapScreen() {
   if (isLoading && features.length === 0) {
     return (
       <ThemedBackground style={styles.container}>
-        <PageHeader title={t('roadmap.title')} showBack onBack={() => router.canGoBack() ? router.back() : router.replace('/(app)/(tabs)/profile' as any)} />
+        <PageHeader title={t('roadmap.title')} showBack onBack={() => router.canGoBack() ? router.back() : router.navigate('/(app)/(tabs)/profile' as any)} />
         <View style={styles.centered}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
@@ -101,7 +101,7 @@ export default function RoadmapScreen() {
 
   return (
     <ThemedBackground style={styles.container}>
-      <PageHeader title={t('roadmap.title')} showBack onBack={() => router.canGoBack() ? router.back() : router.replace('/(app)/(tabs)/profile' as any)} />
+      <PageHeader title={t('roadmap.title')} showBack onBack={() => router.canGoBack() ? router.back() : router.navigate('/(app)/(tabs)/profile' as any)} />
 
       <ScrollView 
         style={styles.content}

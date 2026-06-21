@@ -1558,7 +1558,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   modalOverlay: {
-    flex: 1,
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'flex-end',
   },

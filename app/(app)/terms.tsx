@@ -12,7 +12,7 @@ export default function TermsScreen() {
     if (router.canGoBack()) {
       router.back();
     } else {
-      router.replace('/(app)/(tabs)/profile' as any);
+      router.navigate('/(app)/(tabs)/profile' as any);
     }
   };
 
