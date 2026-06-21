@@ -755,7 +755,7 @@ export default function ProfileScreen() {
 
   const menuItems = [
     { icon: 'diamond-outline', title: t('profile.subscription'), description: t('profile.manageYourPlan'), route: '/(app)/(tabs)/subscription' },
-    { icon: 'rocket-outline', title: t('profile.roadmap'), description: t('profile.seeUpcomingFeatures'), route: '/(app)/(tabs)/roadmap' },
+    { icon: 'rocket-outline', title: t('profile.roadmap'), description: t('profile.seeUpcomingFeatures'), route: '/roadmap' },
     { icon: 'notifications-outline', title: t('profile.notifications'), description: t('profile.manageYourAlerts'), route: '/(app)/(tabs)/notifications' },
     { icon: 'shield-checkmark-outline', title: t('profile.privacy'), description: t('profile.controlYourData'), route: '/privacy' },
     { icon: 'download-outline', title: t('profile.exportData'), description: t('profile.downloadDiveData'), route: 'export' },

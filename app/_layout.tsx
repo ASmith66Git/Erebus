@@ -88,6 +88,9 @@ function RootLayoutNav() {
         <Stack.Screen name="welcome" options={{ headerShown: false }} />
         <Stack.Screen name="(app)" options={{ headerShown: false }} />
         <Stack.Screen name="reset-password" options={{ headerShown: false }} />
+        <Stack.Screen name="terms" options={{ headerShown: false }} />
+        <Stack.Screen name="privacy" options={{ headerShown: false }} />
+        <Stack.Screen name="roadmap" options={{ headerShown: false }} />
         <Stack.Screen name="dive-site/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="+not-found" />
       </Stack>
