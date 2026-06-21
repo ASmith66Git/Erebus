@@ -484,11 +484,6 @@ export default function DiveTripScreen() {
   );
 
   const renderDetailsTab = () => (
-    <KeyboardAvoidingView
-      style={styles.tabContent}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 120 : 0}
-    >
     <ScrollView
       style={styles.tabContent}
       contentContainerStyle={styles.tabContentContainer}
@@ -797,7 +792,6 @@ export default function DiveTripScreen() {
         </>
       )}
     </ScrollView>
-    </KeyboardAvoidingView>
   );
 
   const renderDivesTab = () => (
@@ -960,9 +954,14 @@ export default function DiveTripScreen() {
 
       {!isNew && renderTabBar()}
 
-      {activeTab === 'details' && renderDetailsTab()}
-      {activeTab === 'dives' && !isNew && renderDivesTab()}
-      {activeTab === 'photos' && !isNew && renderPhotosTab()}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        {activeTab === 'details' && renderDetailsTab()}
+        {activeTab === 'dives' && !isNew && renderDivesTab()}
+        {activeTab === 'photos' && !isNew && renderPhotosTab()}
+      </KeyboardAvoidingView>
 
       {/* Date Picker Modal */}
       <Modal
