@@ -1802,8 +1802,23 @@ export default function DiveLogDetailScreen() {
             <View style={styles.sectionHeader}>
               <Text style={[styles.sectionTitle, { color: colors.text }]}>Linked Photos</Text>
               <View style={{ flexDirection: 'row', gap: 16, alignItems: 'center' }}>
-                <Pressable onPress={() => router.push({ pathname: '/(app)/(tabs)/photos' as any, params: { diveLogId: id, sourceDiveLogId: id } })}>
-                  <Text style={{ color: colors.primary, fontSize: 14 }}>Add Photo</Text>
+                <Pressable onPress={() => {
+                  if (Platform.OS === 'web') {
+                    const choice = window.confirm('Add from device? OK = From Device, Cancel = From App Photos');
+                    if (choice) {
+                      router.push({ pathname: '/(app)/(tabs)/photos' as any, params: { diveLogId: id, sourceDiveLogId: id, autoOpenPicker: 'true' } });
+                    } else {
+                      router.push({ pathname: '/(app)/(tabs)/photos' as any, params: { sourceDiveLogId: id } });
+                    }
+                  } else {
+                    Alert.alert('Add Photo', 'Choose how to add photos to this dive:', [
+                      { text: 'From Device', onPress: () => router.push({ pathname: '/(app)/(tabs)/photos' as any, params: { diveLogId: id, sourceDiveLogId: id, autoOpenPicker: 'true' } }) },
+                      { text: 'From App Photos', onPress: () => router.push({ pathname: '/(app)/(tabs)/photos' as any, params: { sourceDiveLogId: id } }) },
+                      { text: 'Cancel', style: 'cancel' },
+                    ]);
+                  }
+                }}>
+                  <Feather name="plus-circle" size={20} color={colors.primary} />
                 </Pressable>
                 <Pressable onPress={() => router.push({ pathname: '/(app)/(tabs)/photos' as any, params: { sourceDiveLogId: id } })}>
                   <Text style={{ color: colors.primary, fontSize: 14 }}>View All</Text>
@@ -1837,7 +1852,22 @@ export default function DiveLogDetailScreen() {
                 </Text>
                 <Pressable 
                   style={{ marginTop: 16, paddingHorizontal: 20, paddingVertical: 10, backgroundColor: colors.primary, borderRadius: 8 }}
-                  onPress={() => router.push({ pathname: '/(app)/(tabs)/photos' as any, params: { diveLogId: id, sourceDiveLogId: id } })}
+                  onPress={() => {
+                    if (Platform.OS === 'web') {
+                      const choice = window.confirm('Add from device? OK = From Device, Cancel = From App Photos');
+                      if (choice) {
+                        router.push({ pathname: '/(app)/(tabs)/photos' as any, params: { diveLogId: id, sourceDiveLogId: id, autoOpenPicker: 'true' } });
+                      } else {
+                        router.push({ pathname: '/(app)/(tabs)/photos' as any, params: { sourceDiveLogId: id } });
+                      }
+                    } else {
+                      Alert.alert('Add Photo', 'Choose how to add photos to this dive:', [
+                        { text: 'From Device', onPress: () => router.push({ pathname: '/(app)/(tabs)/photos' as any, params: { diveLogId: id, sourceDiveLogId: id, autoOpenPicker: 'true' } }) },
+                        { text: 'From App Photos', onPress: () => router.push({ pathname: '/(app)/(tabs)/photos' as any, params: { sourceDiveLogId: id } }) },
+                        { text: 'Cancel', style: 'cancel' },
+                      ]);
+                    }
+                  }}
                 >
                   <Text style={{ color: '#FFF', fontWeight: '600' }}>Add Photos</Text>
                 </Pressable>

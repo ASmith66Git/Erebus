@@ -64,7 +64,7 @@ export default function PhotosScreen() {
   const { t } = useTranslation();
   const { colors } = useTheme();
   const { token, isLoading: authLoading } = useAuth();
-  const { diveLogId, sourceDiveLogId } = useLocalSearchParams<{ diveLogId?: string; sourceDiveLogId?: string }>();
+  const { diveLogId, sourceDiveLogId, autoOpenPicker } = useLocalSearchParams<{ diveLogId?: string; sourceDiveLogId?: string; autoOpenPicker?: string }>();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const [containerWidth, setContainerWidth] = useState(0);
   const gridWidth = containerWidth > 0 ? containerWidth : Math.min(windowWidth, 500);
@@ -155,6 +155,14 @@ export default function PhotosScreen() {
     }
   }, [filter, token, authLoading, filterByDiveLogId]);
 
+  const autoPickerFiredRef = useRef(false);
+  useEffect(() => {
+    if (autoOpenPicker === 'true' && !authLoading && token && !autoPickerFiredRef.current) {
+      autoPickerFiredRef.current = true;
+      pickMedia(false);
+    }
+  }, [autoOpenPicker, authLoading, token]);
+
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     fetchPhotos();
@@ -191,6 +199,7 @@ export default function PhotosScreen() {
 
   const linkSelectedPhotos = async (diveLogId: number | null, tripId: number | null = null) => {
     setLinking(true);
+    const effectiveDiveLogId = diveLogId ?? (sourceLogId && !filterByDiveLogId ? sourceLogId : null);
     try {
       const selectedPhotoIds = Array.from(selectedIds);
       for (const photoId of selectedPhotoIds) {
@@ -200,13 +209,13 @@ export default function PhotosScreen() {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ diveLogId, tripId }),
+          body: JSON.stringify({ diveLogId: effectiveDiveLogId, tripId }),
         });
       }
       setShowLinkModal(false);
       setSelectionMode(false);
       setSelectedIds(new Set());
-      if (filterByDiveLogId) {
+      if (filterByDiveLogId || sourceLogId) {
         router.back();
       } else {
         fetchPhotos();
@@ -400,7 +409,11 @@ export default function PhotosScreen() {
         console.log('Step 6: Media saved successfully!');
       }
       
-      fetchPhotos();
+      if (filterByDiveLogId) {
+        router.back();
+      } else {
+        fetchPhotos();
+      }
     } catch (error: any) {
       console.error('Upload error:', error?.message || error?.toString() || 'Unknown error');
       console.error('Upload error details:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
@@ -810,6 +823,17 @@ export default function PhotosScreen() {
           <Pressable onPress={() => router.replace({ pathname: '/(app)/(tabs)/photos' as any, params: sourceLogId ? { sourceDiveLogId: String(sourceLogId) } : {} })}>
             <Text style={[styles.filterClearText, { color: colors.primary }]}>{t('photos.viewAll')}</Text>
           </Pressable>
+        </View>
+      )}
+
+      {!filterByDiveLogId && sourceLogId && (
+        <View style={[styles.filterBanner, { backgroundColor: colors.primary + '20', borderBottomColor: colors.border }]}>
+          <View style={styles.filterBannerContent}>
+            <Ionicons name="link" size={16} color={colors.primary} />
+            <Text style={[styles.filterBannerText, { color: colors.text }]}>
+              Select photos to link to this dive
+            </Text>
+          </View>
         </View>
       )}
       
