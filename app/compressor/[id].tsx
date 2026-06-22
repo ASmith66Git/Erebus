@@ -972,11 +972,19 @@ export default function CompressorDetailScreen() {
                         setShowPurchaseDatePicker(false);
                       }
                     }}
-                    selectedItemColor={colors.primary}
-                    calendarTextStyle={{ color: colors.text }}
-                    headerTextStyle={{ color: colors.text }}
-                    weekDaysTextStyle={{ color: colors.textSecondary }}
-                    headerButtonColor={colors.primary}
+                    styles={{
+                      day_label: { color: colors.text },
+                      weekday_label: { color: colors.textSecondary },
+                      month_selector_label: { color: colors.text },
+                      year_selector_label: { color: colors.text },
+                      button_prev_image: { tintColor: colors.primary },
+                      button_next_image: { tintColor: colors.primary },
+                      selected: { backgroundColor: colors.primary },
+                      selected_label: { color: '#FFFFFF' },
+                      today: { borderColor: colors.primary, borderWidth: 1 },
+                      today_label: { color: colors.primary },
+                      outside_label: { color: colors.textSecondary },
+                    }}
                   />
                 </View>
               )}
@@ -1213,11 +1221,19 @@ export default function CompressorDetailScreen() {
                         setShowServiceInlinePicker(false);
                       }
                     }}
-                    selectedItemColor={colors.primary}
-                    calendarTextStyle={{ color: colors.text }}
-                    headerTextStyle={{ color: colors.text }}
-                    weekDaysTextStyle={{ color: colors.textSecondary }}
-                    headerButtonColor={colors.primary}
+                    styles={{
+                      day_label: { color: colors.text },
+                      weekday_label: { color: colors.textSecondary },
+                      month_selector_label: { color: colors.text },
+                      year_selector_label: { color: colors.text },
+                      button_prev_image: { tintColor: colors.primary },
+                      button_next_image: { tintColor: colors.primary },
+                      selected: { backgroundColor: colors.primary },
+                      selected_label: { color: '#FFFFFF' },
+                      today: { borderColor: colors.primary, borderWidth: 1 },
+                      today_label: { color: colors.primary },
+                      outside_label: { color: colors.textSecondary },
+                    }}
                   />
                 </View>
               )}
@@ -1273,11 +1289,19 @@ export default function CompressorDetailScreen() {
                             setShowNextDueInlinePicker(false);
                           }
                         }}
-                        selectedItemColor={colors.primary}
-                        calendarTextStyle={{ color: colors.text }}
-                        headerTextStyle={{ color: colors.text }}
-                        weekDaysTextStyle={{ color: colors.textSecondary }}
-                        headerButtonColor={colors.primary}
+                        styles={{
+                          day_label: { color: colors.text },
+                          weekday_label: { color: colors.textSecondary },
+                          month_selector_label: { color: colors.text },
+                          year_selector_label: { color: colors.text },
+                          button_prev_image: { tintColor: colors.primary },
+                          button_next_image: { tintColor: colors.primary },
+                          selected: { backgroundColor: colors.primary },
+                          selected_label: { color: '#FFFFFF' },
+                          today: { borderColor: colors.primary, borderWidth: 1 },
+                          today_label: { color: colors.primary },
+                          outside_label: { color: colors.textSecondary },
+                        }}
                       />
                     </View>
                   )}
@@ -1331,11 +1355,19 @@ export default function CompressorDetailScreen() {
                         setShowUsageInlinePicker(false);
                       }
                     }}
-                    selectedItemColor={colors.primary}
-                    calendarTextStyle={{ color: colors.text }}
-                    headerTextStyle={{ color: colors.text }}
-                    weekDaysTextStyle={{ color: colors.textSecondary }}
-                    headerButtonColor={colors.primary}
+                    styles={{
+                      day_label: { color: colors.text },
+                      weekday_label: { color: colors.textSecondary },
+                      month_selector_label: { color: colors.text },
+                      year_selector_label: { color: colors.text },
+                      button_prev_image: { tintColor: colors.primary },
+                      button_next_image: { tintColor: colors.primary },
+                      selected: { backgroundColor: colors.primary },
+                      selected_label: { color: '#FFFFFF' },
+                      today: { borderColor: colors.primary, borderWidth: 1 },
+                      today_label: { color: colors.primary },
+                      outside_label: { color: colors.textSecondary },
+                    }}
                   />
                 </View>
               )}
