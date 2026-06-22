@@ -216,7 +216,8 @@ export default function PhotosScreen() {
       setSelectionMode(false);
       setSelectedIds(new Set());
       if (filterByDiveLogId || sourceLogId) {
-        router.back();
+        const targetId = sourceLogId || filterByDiveLogId;
+        router.navigate(`/dive-log/${targetId}?photosUpdated=1` as any);
       } else {
         fetchPhotos();
       }
@@ -410,7 +411,7 @@ export default function PhotosScreen() {
       }
       
       if (filterByDiveLogId) {
-        router.back();
+        router.navigate(`/dive-log/${filterByDiveLogId}?photosUpdated=1` as any);
       } else {
         fetchPhotos();
       }
@@ -805,7 +806,7 @@ export default function PhotosScreen() {
         showBack={!!(filterByDiveLogId || sourceLogId)}
         onBack={() => {
           if (sourceLogId) {
-            router.replace(`/dive-log/${sourceLogId}` as any);
+            router.navigate(`/dive-log/${sourceLogId}` as any);
           } else {
             router.back();
           }

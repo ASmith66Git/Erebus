@@ -1530,7 +1530,7 @@ function TeamTab({ diveLog, colors, token, onRefresh }: { diveLog: DiveLog; colo
 }
 
 export default function DiveLogDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, photosUpdated } = useLocalSearchParams<{ id: string; photosUpdated?: string }>();
   const router = useRouter();
   const { colors } = useTheme();
   const { token } = useAuth();
@@ -1577,8 +1577,15 @@ export default function DiveLogDetailScreen() {
     }
   }, [id, token]);
 
+  const photosUpdatedRef = useRef<string | undefined>(undefined);
+  photosUpdatedRef.current = photosUpdated;
+
   useFocusEffect(
     useCallback(() => {
+      if (photosUpdatedRef.current === '1') {
+        router.setParams({ photosUpdated: undefined });
+        return;
+      }
       fetchDiveLog();
     }, [fetchDiveLog])
   );
