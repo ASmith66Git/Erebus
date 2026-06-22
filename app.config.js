@@ -13,7 +13,7 @@ module.exports = {
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.leviathan-sys.erebus",
-      buildNumber: "109",
+      buildNumber: "110",
       infoPlist: {
         NSBluetoothAlwaysUsageDescription: "Erebus needs Bluetooth access to connect to your dive computer and download dive logs.",
         NSBluetoothPeripheralUsageDescription: "Erebus needs Bluetooth access to connect to your dive computer.",
@@ -28,7 +28,7 @@ module.exports = {
       }
     },
     android: {
-      versionCode: 109,
+      versionCode: 110,
       adaptiveIcon: {
         foregroundImage: "./assets/images/adaptive-icon.png",
         backgroundColor: "#000000"
