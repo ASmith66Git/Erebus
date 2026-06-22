@@ -103,7 +103,7 @@ export default function DatePickerField({
               </Pressable>
             </View>
 
-            <View style={styles.pickerContainer}>
+            <View style={[styles.pickerContainer, { backgroundColor: colors.surface }]}>
               <DateTimePicker
                 mode="single"
                 date={selectedDate}
