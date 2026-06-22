@@ -73,11 +73,12 @@ const getImageUrl = (url: string) => {
 };
 
 export default function PhotoDetailScreen() {
-  const { id, mode, tripId, photoIndex } = useLocalSearchParams<{ 
+  const { id, mode, tripId, photoIndex, sourceDiveLogId } = useLocalSearchParams<{ 
     id: string; 
     mode?: string; 
     tripId?: string;
     photoIndex?: string;
+    sourceDiveLogId?: string;
   }>();
   const { colors } = useTheme();
   const { token } = useAuth();
@@ -223,8 +224,12 @@ export default function PhotoDetailScreen() {
       });
       
       if (response.ok) {
-        setIsEditing(false);
-        fetchPhoto();
+        if (sourceDiveLogId) {
+          router.navigate(`/dive-log/${sourceDiveLogId}?photosUpdated=1` as any);
+        } else {
+          setIsEditing(false);
+          fetchPhoto();
+        }
       } else {
         Alert.alert(t('common.error'), t('photos.failedToSaveChanges'));
       }

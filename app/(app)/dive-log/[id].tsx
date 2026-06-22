@@ -1890,7 +1890,7 @@ export default function DiveLogDetailScreen() {
                 <Feather name="x" size={28} color="#FFF" />
               </Pressable>
               <Text style={{ color: '#FFF', fontSize: 16 }}>{photoViewerIndex + 1} / {photos.length}</Text>
-              <Pressable onPress={() => router.push(`/photo/${photos[photoViewerIndex]?.id}`)} style={{ padding: 8 }}>
+              <Pressable onPress={() => router.push(`/photo/${photos[photoViewerIndex]?.id}?sourceDiveLogId=${id}` as any)} style={{ padding: 8 }}>
                 <Feather name="info" size={24} color="#FFF" />
               </Pressable>
             </View>

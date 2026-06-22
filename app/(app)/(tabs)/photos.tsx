@@ -619,7 +619,11 @@ export default function PhotosScreen() {
                   const photoId = selectedPhoto.id;
                   setShowViewer(false);
                   setTimeout(() => {
-                    router.push(`/photo/${photoId}`);
+                    const originDiveLogId = filterByDiveLogId ?? sourceLogId;
+                    const photoUrl = originDiveLogId
+                      ? `/photo/${photoId}?sourceDiveLogId=${originDiveLogId}`
+                      : `/photo/${photoId}`;
+                    router.push(photoUrl as any);
                   }, 150);
                 }} 
                 style={styles.viewerButton}
