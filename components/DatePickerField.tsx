@@ -110,16 +110,14 @@ export default function DatePickerField({
                 onChange={handleDateChange}
                 minDate={minDate}
                 maxDate={maxDate}
-                styles={{
-                  day_label: { color: colors.text },
-                  button_prev_image: { tintColor: colors.primary },
-                  button_next_image: { tintColor: colors.primary },
-                  selected: { backgroundColor: colors.primary, borderRadius: 8 },
-                  selected_label: { color: '#FFFFFF', fontWeight: '600' },
-                  today: { borderColor: colors.primary, borderWidth: 1, borderRadius: 8 },
-                  today_label: { color: colors.primary },
-                  weekday_label: { color: colors.textSecondary },
-                } as any}
+                calendarTextStyle={{ color: colors.text }}
+                headerTextStyle={{ color: colors.text }}
+                weekDaysTextStyle={{ color: colors.textSecondary }}
+                headerButtonColor={colors.primary}
+                selectedItemColor={colors.primary}
+                selectedTextStyle={{ color: '#FFFFFF', fontWeight: '600' }}
+                todayContainerStyle={{ borderColor: colors.primary, borderWidth: 1, borderRadius: 8 }}
+                todayTextStyle={{ color: colors.primary }}
               />
             </View>
 
