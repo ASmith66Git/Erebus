@@ -1643,7 +1643,7 @@ export default function DiveLogDetailScreen() {
         });
         
         if (response.ok) {
-          router.back();
+          router.navigate('/(app)/(tabs)/dive-logs' as any);
         } else {
           const errorMessage = 'Failed to delete dive log';
           if (Platform.OS === 'web') {
@@ -1758,7 +1758,7 @@ export default function DiveLogDetailScreen() {
     return (
       <ThemedBackground>
         <View style={[styles.header, { borderBottomColor: colors.border }]}>
-          <Pressable style={styles.backButton} onPress={() => router.back()}>
+          <Pressable style={styles.backButton} onPress={() => router.navigate('/(app)/(tabs)/dive-logs' as any)}>
             <Feather name="arrow-left" size={24} color={colors.text} />
           </Pressable>
           <Text style={[styles.headerTitle, { color: colors.text }]}>{t('diveLogs.diveDetails')}</Text>
@@ -1978,7 +1978,7 @@ export default function DiveLogDetailScreen() {
   return (
     <ThemedBackground>
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <Pressable style={styles.backButton} onPress={() => router.back()}>
+        <Pressable style={styles.backButton} onPress={() => router.navigate('/(app)/(tabs)/dive-logs' as any)}>
           <Feather name="arrow-left" size={24} color={colors.text} />
         </Pressable>
         <Text style={[styles.headerTitle, { color: colors.text }]}>{t('diveLogs.diveDetails')}</Text>
