@@ -148,6 +148,8 @@ export default function CertificationsScreen() {
   const [viewingImage, setViewingImage] = useState<CertificationImage | null>(null);
   const [deletingImageId, setDeletingImageId] = useState<number | null>(null);
   const [pendingCardImages, setPendingCardImages] = useState<{ front: string | null; back: string | null }>({ front: null, back: null });
+  const [addCardSide, setAddCardSide] = useState<'front' | 'back'>('front');
+  const [detailCardSide, setDetailCardSide] = useState<'front' | 'back'>('front');
 
   const fetchData = useCallback(async () => {
     if (!token) {
@@ -247,6 +249,7 @@ export default function CertificationsScreen() {
     setAgencyCourses([]);
     setEditingCertification(null);
     setPendingCardImages({ front: null, back: null });
+    setAddCardSide('front');
   };
 
   const handleSaveCertification = async () => {
@@ -744,6 +747,9 @@ export default function CertificationsScreen() {
       style={[styles.certCard, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}
       onPress={() => {
         setSelectedCertification(cert);
+        const hasFront = cert.images?.some((img: CertificationImage) => img.image_side === 'front');
+        const hasBack = cert.images?.some((img: CertificationImage) => img.image_side === 'back');
+        setDetailCardSide(!hasFront && hasBack ? 'back' : 'front');
         setShowDetailModal(true);
       }}
     >
@@ -1079,41 +1085,65 @@ export default function CertificationsScreen() {
               {!editingCertification && (
                 <View style={styles.formGroup}>
                   <Text style={[styles.formLabel, { color: colors.text }]}>{t('certifications.certificationCard')}</Text>
-                  <View style={styles.cardScanButtons}>
-                    <Pressable
-                      style={[styles.scanBtn, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}
-                      onPress={() => handleScanCardForAdd('front')}
-                    >
-                      {pendingCardImages.front ? (
-                        <Image source={{ uri: pendingCardImages.front }} style={styles.scanBtnPreview} resizeMode="cover" />
+                  {!pendingCardImages.front && !pendingCardImages.back ? (
+                    <View style={styles.cardScanButtons}>
+                      <Pressable
+                        style={[styles.scanBtn, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}
+                        onPress={() => handleScanCardForAdd('front')}
+                      >
+                        <Feather name="camera" size={24} color={colors.primary} />
+                        <Text style={[styles.scanBtnText, { color: colors.text }]}>{t('certifications.scanFront')}</Text>
+                      </Pressable>
+                      <Pressable
+                        style={[styles.scanBtn, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}
+                        onPress={() => handleScanCardForAdd('back')}
+                      >
+                        <Feather name="camera" size={24} color={colors.primary} />
+                        <Text style={[styles.scanBtnText, { color: colors.text }]}>{t('certifications.scanBack')}</Text>
+                      </Pressable>
+                    </View>
+                  ) : (
+                    <View>
+                      <View style={[styles.cardTabRow, { borderColor: colors.border }]}>
+                        <Pressable
+                          style={[styles.cardTab, addCardSide === 'front' && [styles.cardTabActive, { borderColor: colors.primary }], { borderColor: colors.border }]}
+                          onPress={() => setAddCardSide('front')}
+                        >
+                          <Text style={[styles.cardTabText, { color: addCardSide === 'front' ? colors.primary : colors.textSecondary }]}>
+                            {t('certifications.cardFront')}
+                          </Text>
+                        </Pressable>
+                        <Pressable
+                          style={[styles.cardTab, addCardSide === 'back' && [styles.cardTabActive, { borderColor: colors.primary }], { borderColor: colors.border }]}
+                          onPress={() => setAddCardSide('back')}
+                        >
+                          <Text style={[styles.cardTabText, { color: addCardSide === 'back' ? colors.primary : colors.textSecondary }]}>
+                            {t('certifications.cardBack')}
+                          </Text>
+                        </Pressable>
+                      </View>
+                      {pendingCardImages[addCardSide] ? (
+                        <View style={styles.cardImageContainer}>
+                          <Image source={{ uri: pendingCardImages[addCardSide]! }} style={styles.cardImageFull} resizeMode="cover" />
+                          <Pressable
+                            style={styles.cardImageClearBtn}
+                            onPress={() => setPendingCardImages(prev => ({ ...prev, [addCardSide]: null }))}
+                          >
+                            <Feather name="x" size={16} color="#FFF" />
+                          </Pressable>
+                        </View>
                       ) : (
-                        <>
+                        <Pressable
+                          style={[styles.scanBtn, { backgroundColor: colors.cardBackground, borderColor: colors.border, marginTop: 8 }]}
+                          onPress={() => handleScanCardForAdd(addCardSide)}
+                        >
                           <Feather name="camera" size={24} color={colors.primary} />
-                          <Text style={[styles.scanBtnText, { color: colors.text }]}>{t('certifications.scanFront')}</Text>
-                        </>
+                          <Text style={[styles.scanBtnText, { color: colors.text }]}>
+                            {addCardSide === 'front' ? t('certifications.scanFront') : t('certifications.scanBack')}
+                          </Text>
+                        </Pressable>
                       )}
-                    </Pressable>
-                    <Pressable
-                      style={[styles.scanBtn, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}
-                      onPress={() => handleScanCardForAdd('back')}
-                    >
-                      {pendingCardImages.back ? (
-                        <Image source={{ uri: pendingCardImages.back }} style={styles.scanBtnPreview} resizeMode="cover" />
-                      ) : (
-                        <>
-                          <Feather name="camera" size={24} color={colors.primary} />
-                          <Text style={[styles.scanBtnText, { color: colors.text }]}>{t('certifications.scanBack')}</Text>
-                        </>
-                      )}
-                    </Pressable>
-                  </View>
-                  {(pendingCardImages.front || pendingCardImages.back) && (
-                    <Pressable
-                      style={{ marginTop: 8 }}
-                      onPress={() => setPendingCardImages({ front: null, back: null })}
-                    >
-                      <Text style={{ color: colors.primary, fontSize: 14 }}>{t('certifications.clearScannedImages')}</Text>
-                    </Pressable>
+                    </View>
                   )}
                 </View>
               )}
@@ -1354,85 +1384,116 @@ export default function CertificationsScreen() {
                 )}
                 
                 <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('certifications.certificationCard')}</Text>
-                <View style={styles.cardScanButtons}>
-                  <Pressable
-                    style={[styles.scanBtn, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}
-                    onPress={() => handleScanCard('front')}
-                    disabled={uploadingImage}
-                  >
-                    {uploadingImage ? (
-                      <ActivityIndicator size="small" color={colors.primary} />
-                    ) : (
-                      <>
-                        <Feather name="camera" size={24} color={colors.primary} />
-                        <Text style={[styles.scanBtnText, { color: colors.text }]}>{t('certifications.scanFront')}</Text>
-                      </>
-                    )}
-                  </Pressable>
-                  <Pressable
-                    style={[styles.scanBtn, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}
-                    onPress={() => handleScanCard('back')}
-                    disabled={uploadingImage}
-                  >
-                    {uploadingImage ? (
-                      <ActivityIndicator size="small" color={colors.primary} />
-                    ) : (
-                      <>
-                        <Feather name="camera" size={24} color={colors.primary} />
-                        <Text style={[styles.scanBtnText, { color: colors.text }]}>{t('certifications.scanBack')}</Text>
-                      </>
-                    )}
-                  </Pressable>
-                </View>
-                
-                {selectedCertification.images && selectedCertification.images.length > 0 && (
-                  <View style={styles.scannedImages}>
-                    {selectedCertification.images.map((img) => {
-                      const imageUrl = img.image_url.startsWith('http') 
-                        ? img.image_url 
-                        : `${getApiUrl()}${img.image_url}`;
-                      const isDeleting = deletingImageId === img.id;
-                      return (
-                        <View key={img.id} style={styles.scannedImageContainer}>
-                          <View style={styles.scannedImageHeader}>
-                            <Text style={[styles.scannedImageLabel, { color: colors.textSecondary }]}>
-                              {img.image_side === 'front' ? t('certifications.frontOfCard') : t('certifications.backOfCard')}
-                            </Text>
-                            <View style={styles.scannedImageActions}>
+                {(!selectedCertification.images || selectedCertification.images.length === 0) ? (
+                  <View style={styles.cardScanButtons}>
+                    <Pressable
+                      style={[styles.scanBtn, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}
+                      onPress={() => handleScanCard('front')}
+                      disabled={uploadingImage}
+                    >
+                      {uploadingImage ? (
+                        <ActivityIndicator size="small" color={colors.primary} />
+                      ) : (
+                        <>
+                          <Feather name="camera" size={24} color={colors.primary} />
+                          <Text style={[styles.scanBtnText, { color: colors.text }]}>{t('certifications.scanFront')}</Text>
+                        </>
+                      )}
+                    </Pressable>
+                    <Pressable
+                      style={[styles.scanBtn, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}
+                      onPress={() => handleScanCard('back')}
+                      disabled={uploadingImage}
+                    >
+                      {uploadingImage ? (
+                        <ActivityIndicator size="small" color={colors.primary} />
+                      ) : (
+                        <>
+                          <Feather name="camera" size={24} color={colors.primary} />
+                          <Text style={[styles.scanBtnText, { color: colors.text }]}>{t('certifications.scanBack')}</Text>
+                        </>
+                      )}
+                    </Pressable>
+                  </View>
+                ) : (
+                  <View>
+                    <View style={[styles.cardTabRow, { borderColor: colors.border }]}>
+                      <Pressable
+                        style={[styles.cardTab, detailCardSide === 'front' && [styles.cardTabActive, { borderColor: colors.primary }], { borderColor: colors.border }]}
+                        onPress={() => setDetailCardSide('front')}
+                      >
+                        <Text style={[styles.cardTabText, { color: detailCardSide === 'front' ? colors.primary : colors.textSecondary }]}>
+                          {t('certifications.cardFront')}
+                        </Text>
+                      </Pressable>
+                      <Pressable
+                        style={[styles.cardTab, detailCardSide === 'back' && [styles.cardTabActive, { borderColor: colors.primary }], { borderColor: colors.border }]}
+                        onPress={() => setDetailCardSide('back')}
+                      >
+                        <Text style={[styles.cardTabText, { color: detailCardSide === 'back' ? colors.primary : colors.textSecondary }]}>
+                          {t('certifications.cardBack')}
+                        </Text>
+                      </Pressable>
+                    </View>
+                    {(() => {
+                      const currentImg = selectedCertification.images?.find(img => img.image_side === detailCardSide);
+                      if (currentImg) {
+                        const imageUrl = currentImg.image_url.startsWith('http')
+                          ? currentImg.image_url
+                          : `${getApiUrl()}${currentImg.image_url}`;
+                        const isDeleting = deletingImageId === currentImg.id;
+                        return (
+                          <View style={styles.cardImageContainer}>
+                            <Pressable onPress={() => openImageViewer(currentImg)}>
+                              <Image source={{ uri: imageUrl }} style={styles.cardImageFull} resizeMode="cover" />
+                              <View style={[styles.tapToViewOverlay, { backgroundColor: 'rgba(0,0,0,0.3)' }]}>
+                                <Feather name="maximize-2" size={20} color="#FFF" />
+                                <Text style={styles.tapToViewText}>{t('certifications.tapToView')}</Text>
+                              </View>
+                            </Pressable>
+                            <View style={styles.cardImageOverlayActions}>
                               <Pressable
-                                style={[styles.imageActionBtn, { backgroundColor: colors.cardBackground }]}
-                                onPress={() => handleReplaceImage(img)}
+                                style={[styles.imageActionBtn, { backgroundColor: 'rgba(0,0,0,0.6)' }]}
+                                onPress={() => handleReplaceImage(currentImg)}
                                 disabled={isDeleting}
                               >
-                                <Feather name="refresh-cw" size={16} color={colors.primary} />
+                                <Feather name="refresh-cw" size={16} color="#FFF" />
                               </Pressable>
                               <Pressable
-                                style={[styles.imageActionBtn, { backgroundColor: colors.cardBackground }]}
-                                onPress={() => handleDeleteImage(img.id)}
+                                style={[styles.imageActionBtn, { backgroundColor: 'rgba(0,0,0,0.6)' }]}
+                                onPress={() => handleDeleteImage(currentImg.id)}
                                 disabled={isDeleting}
                               >
                                 {isDeleting ? (
-                                  <ActivityIndicator size="small" color={colors.danger} />
+                                  <ActivityIndicator size="small" color="#FFF" />
                                 ) : (
-                                  <Feather name="trash-2" size={16} color={colors.danger} />
+                                  <Feather name="trash-2" size={16} color="#FF4444" />
                                 )}
                               </Pressable>
                             </View>
                           </View>
-                          <Pressable onPress={() => openImageViewer(img)}>
-                            <Image
-                              source={{ uri: imageUrl }}
-                              style={styles.scannedImage}
-                              resizeMode="cover"
-                            />
-                            <View style={[styles.tapToViewOverlay, { backgroundColor: 'rgba(0,0,0,0.3)' }]}>
-                              <Feather name="maximize-2" size={20} color="#FFF" />
-                              <Text style={styles.tapToViewText}>{t('certifications.tapToView')}</Text>
-                            </View>
+                        );
+                      } else {
+                        return (
+                          <Pressable
+                            style={[styles.scanBtn, { backgroundColor: colors.cardBackground, borderColor: colors.border, marginTop: 8 }]}
+                            onPress={() => handleScanCard(detailCardSide)}
+                            disabled={uploadingImage}
+                          >
+                            {uploadingImage ? (
+                              <ActivityIndicator size="small" color={colors.primary} />
+                            ) : (
+                              <>
+                                <Feather name="camera" size={24} color={colors.primary} />
+                                <Text style={[styles.scanBtnText, { color: colors.text }]}>
+                                  {detailCardSide === 'front' ? t('certifications.scanFront') : t('certifications.scanBack')}
+                                </Text>
+                              </>
+                            )}
                           </Pressable>
-                        </View>
-                      );
-                    })}
+                        );
+                      }
+                    })()}
                   </View>
                 )}
                 
@@ -1769,19 +1830,18 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 16, fontWeight: '600', marginTop: 24, marginBottom: 12 },
   cardScanButtons: { flexDirection: 'row', gap: 12 },
   scanBtn: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 24, borderRadius: 12, borderWidth: 1, gap: 8, overflow: 'hidden' },
-  scanBtnPreview: { width: '100%', height: 80, borderRadius: 8 },
   scanBtnText: { fontSize: 14, fontWeight: '500' },
-  scannedImages: { flexDirection: 'row', gap: 12, marginTop: 16 },
-  scannedImageContainer: { flex: 1 },
-  scannedImageHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
-  scannedImageLabel: { fontSize: 12 },
-  scannedImageActions: { flexDirection: 'row', gap: 8 },
   imageActionBtn: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
-  scannedImage: { width: '100%', height: 120, borderRadius: 8 },
-  tapToViewOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, borderBottomLeftRadius: 8, borderBottomRightRadius: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 6 },
+  tapToViewOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, borderBottomLeftRadius: 12, borderBottomRightRadius: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 6 },
   tapToViewText: { color: '#FFF', fontSize: 12, fontWeight: '500' },
-  scannedImagePlaceholder: { height: 100, borderRadius: 8, borderWidth: 1, alignItems: 'center', justifyContent: 'center', gap: 4 },
-  scannedImageText: { fontSize: 12 },
+  cardTabRow: { flexDirection: 'row', gap: 8, marginBottom: 8 },
+  cardTab: { flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 8, borderWidth: 1 },
+  cardTabActive: { borderWidth: 2 },
+  cardTabText: { fontSize: 14, fontWeight: '500' },
+  cardImageContainer: { position: 'relative', borderRadius: 12, overflow: 'hidden', marginTop: 4 },
+  cardImageFull: { width: '100%', height: 200, borderRadius: 12 },
+  cardImageOverlayActions: { position: 'absolute', top: 8, right: 8, flexDirection: 'row', gap: 8 },
+  cardImageClearBtn: { position: 'absolute', top: 8, right: 8, width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center' },
   notesText: { fontSize: 14, lineHeight: 20 },
   imageViewerOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.95)', justifyContent: 'space-between' },
   imageViewerHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingTop: 50, paddingBottom: 16 },

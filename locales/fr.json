@@ -1357,6 +1357,8 @@
     "loadingCourses": "Chargement des formations...",
     "courses": "Formations",
     "clearScannedImages": "Supprimer les images scannées",
+    "cardFront": "Recto",
+    "cardBack": "Verso",
     "tapToView": "Appuyer pour voir",
     "replace": "Remplacer",
     "backToAgencies": "Retour aux organismes",

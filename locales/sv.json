@@ -1357,6 +1357,8 @@
     "loadingCourses": "Laddar kurser...",
     "courses": "Kurser",
     "clearScannedImages": "Rensa skannade bilder",
+    "cardFront": "Framsida",
+    "cardBack": "Baksida",
     "tapToView": "Tryck för att visa",
     "replace": "Ersätt",
     "backToAgencies": "Tillbaka till organisationer",

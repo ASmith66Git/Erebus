@@ -1357,6 +1357,8 @@
     "loadingCourses": "Loading courses...",
     "courses": "Courses",
     "clearScannedImages": "Clear scanned images",
+    "cardFront": "Front",
+    "cardBack": "Back",
     "tapToView": "Tap to view",
     "replace": "Replace",
     "backToAgencies": "Back to agencies",

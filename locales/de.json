@@ -1357,6 +1357,8 @@
     "loadingCourses": "Kurse werden geladen...",
     "courses": "Kurse",
     "clearScannedImages": "Gescannte Bilder löschen",
+    "cardFront": "Vorderseite",
+    "cardBack": "Rückseite",
     "tapToView": "Tippen zum Anzeigen",
     "replace": "Ersetzen",
     "backToAgencies": "Zurück zu Verbänden",

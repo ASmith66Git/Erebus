@@ -1357,6 +1357,8 @@
     "loadingCourses": "Caricamento corsi...",
     "courses": "Corsi",
     "clearScannedImages": "Cancella immagini scansionate",
+    "cardFront": "Fronte",
+    "cardBack": "Retro",
     "tapToView": "Tocca per visualizzare",
     "replace": "Sostituisci",
     "backToAgencies": "Torna alle agenzie",
