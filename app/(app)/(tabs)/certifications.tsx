@@ -548,12 +548,20 @@ export default function CertificationsScreen() {
     }
     
     // Fallback to expo-image-picker (works on web and when scanner not available)
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      aspect: [16, 10],
-      quality: 0.8,
-    });
+    // On web use the library picker so users can choose a photo they've already taken/edited
+    const result = Platform.OS === 'web'
+      ? await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ['images'],
+          allowsEditing: true,
+          aspect: [16, 10],
+          quality: 0.8,
+        })
+      : await ImagePicker.launchCameraAsync({
+          mediaTypes: ['images'],
+          allowsEditing: true,
+          aspect: [16, 10],
+          quality: 0.8,
+        });
     
     if (!result.canceled && result.assets[0]) {
       await uploadScannedImage(result.assets[0].uri, side);
@@ -583,12 +591,20 @@ export default function CertificationsScreen() {
     }
     
     // Fallback to expo-image-picker
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      aspect: [16, 10],
-      quality: 0.8,
-    });
+    // On web use the library picker so users can choose a photo they've already taken/edited
+    const result = Platform.OS === 'web'
+      ? await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ['images'],
+          allowsEditing: true,
+          aspect: [16, 10],
+          quality: 0.8,
+        })
+      : await ImagePicker.launchCameraAsync({
+          mediaTypes: ['images'],
+          allowsEditing: true,
+          aspect: [16, 10],
+          quality: 0.8,
+        });
     
     if (!result.canceled && result.assets[0]) {
       setPendingCardImages(prev => ({ ...prev, [side]: result.assets[0].uri }));
@@ -1124,7 +1140,7 @@ export default function CertificationsScreen() {
                       </View>
                       {pendingCardImages[addCardSide] ? (
                         <View style={styles.cardImageContainer}>
-                          <Image source={{ uri: pendingCardImages[addCardSide]! }} style={styles.cardImageFull} resizeMode="cover" />
+                          <Image source={{ uri: pendingCardImages[addCardSide]! }} style={styles.cardImageFull} resizeMode="contain" />
                           <Pressable
                             style={styles.cardImageClearBtn}
                             onPress={() => setPendingCardImages(prev => ({ ...prev, [addCardSide]: null }))}
@@ -1445,7 +1461,7 @@ export default function CertificationsScreen() {
                         return (
                           <View style={styles.cardImageContainer}>
                             <Pressable onPress={() => openImageViewer(currentImg)}>
-                              <Image source={{ uri: imageUrl }} style={styles.cardImageFull} resizeMode="cover" />
+                              <Image source={{ uri: imageUrl }} style={styles.cardImageFull} resizeMode="contain" />
                               <View style={[styles.tapToViewOverlay, { backgroundColor: 'rgba(0,0,0,0.3)' }]}>
                                 <Feather name="maximize-2" size={20} color="#FFF" />
                                 <Text style={styles.tapToViewText}>{t('certifications.tapToView')}</Text>
@@ -1838,8 +1854,8 @@ const styles = StyleSheet.create({
   cardTab: { flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 8, borderWidth: 1 },
   cardTabActive: { borderWidth: 2 },
   cardTabText: { fontSize: 14, fontWeight: '500' },
-  cardImageContainer: { position: 'relative', borderRadius: 12, overflow: 'hidden', marginTop: 4 },
-  cardImageFull: { width: '100%', height: 200, borderRadius: 12 },
+  cardImageContainer: { position: 'relative', borderRadius: 12, overflow: 'hidden', marginTop: 4, backgroundColor: '#111' },
+  cardImageFull: { width: '100%', height: 240, borderRadius: 12 },
   cardImageOverlayActions: { position: 'absolute', top: 8, right: 8, flexDirection: 'row', gap: 8 },
   cardImageClearBtn: { position: 'absolute', top: 8, right: 8, width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center' },
   notesText: { fontSize: 14, lineHeight: 20 },
