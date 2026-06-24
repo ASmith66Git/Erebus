@@ -1117,29 +1117,28 @@ export default function DivePlanningScreen() {
     const maxBarWidth = chartW - labelWidth;
     
     // Horizontal bars: excess loading above surface equilibrium, as a fraction
-    // of the available window to the depth-adjusted M-value.
+    // of the surface M-value window (M₀ − baseline).
     //
-    // Formula: (ppInert − ppInert_surface) / (M_at_Pamb − ppInert_surface) × 100
+    // Formula: (ppInert − 0.741) / (M₀ − 0.741) × 100  [capped 0–100%]
     //
-    //   0%   = tissue at surface equilibrium (fresh start, or no extra loading)
-    //   100% = tissue exactly at depth-adjusted M-value limit
+    //   0%   = tissue at surface N₂ equilibrium (fresh start)
+    //   100% = tissue at or above its surface M-value limit (requires deco)
     //
-    // Properties:
-    //  • Starts at 0% before the dive; bars only move when tissues actually load
-    //  • No dip on descent: if ppInert hasn't changed, bars stay at 0%
-    //  • Never exceeds 100% in a valid plan (planner enforces ppInert ≤ GF×M)
-    //  • Peaks at ~GFHigh% for the leading compartment at each deco stop
+    // Using M₀ (surface M-value, Pamb=1 bar) as a FIXED denominator means
+    // the bars only move when ppInert actually changes — they never jump
+    // upward just because ambient pressure drops on ascent/surfacing.
+    //  • Monotonically rises during descent/bottom as tissues absorb gas
+    //  • Holds or falls during off-gassing on ascent
+    //  • Hits 100% when tissue exceeds its surface limit (needs a stop)
     const SURFACE_INERT_BASELINE = 0.741; // (1.0 - 0.0627) × 0.79 bar — surface N₂ equilibrium
-    const scrubberDepth = scrubberValues?.depth ?? 0;
-    const Pamb = depthToPressure(scrubberDepth, appliedSettings.waterType || 'salt');
     const gfHigh = appliedSettings.gfHigh ?? 85;
 
     const bars = tissues.map((tissue, i) => {
-      const mValue = calculateMValueAtPressure(tissue, i, Pamb);
+      // M₀: surface M-value (fixed reference, Pamb = 1.0 bar)
+      const M0 = calculateMValueAtPressure(tissue, i, 1.0);
       const current = tissue.ppInert;
 
-      // Window from surface baseline to M-value limit at current depth
-      const denominator = mValue - SURFACE_INERT_BASELINE;
+      const denominator = M0 - SURFACE_INERT_BASELINE;
       const percent = denominator > 0.001
         ? Math.max(0, Math.min((current - SURFACE_INERT_BASELINE) / denominator * 100, 100))
         : 0;
@@ -1233,7 +1232,7 @@ export default function DivePlanningScreen() {
           {bars}
         </Svg>
         <Text style={[styles.chartSubtitle, { color: colors.textSecondary }]}>
-          0% = surface equilibrium · 100% = M-value limit · orange ≥ GF high
+          0% = surface equilibrium · 100% = surface M-value limit · orange ≥ GF high
         </Text>
       </View>
     );
