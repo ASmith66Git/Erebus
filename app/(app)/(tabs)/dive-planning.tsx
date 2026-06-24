@@ -1104,14 +1104,9 @@ export default function DivePlanningScreen() {
     // Get tissue loading at current scrubber position
     const scrubberValues = getValuesAtTime(chartScrubberTime);
     const tissues = scrubberValues?.tissues || currentResult.tissueHistory[currentResult.tissueHistory.length - 1];
-    const currentDepth = scrubberValues?.depth || 0;
     
-    // Get baseline tissues (surface before dive starts - equilibrium at ~0.74 bar)
-    const baselineTissues = currentResult.tissueHistory[0];
-    const baselinePpInert = 0.74; // Surface equilibrium N2 partial pressure
-    
-    // Find first stop depth for GF interpolation
-    const firstStopDepth = findFirstStop(tissues, appliedSettings.gfLow, appliedSettings.decoStopInterval || 3, appliedSettings.waterType || 'salt');
+    // Baseline: surface equilibrium N2 partial pressure (~0.74 bar)
+    const baselinePpInert = 0.74;
     
     const padding = { top: 24, right: 20, bottom: 12, left: 50 };
     const chartW = Math.max(chartWidth - padding.left - padding.right, 100);
@@ -1123,25 +1118,18 @@ export default function DivePlanningScreen() {
     const labelWidth = 36;
     const maxBarWidth = chartW - labelWidth;
     
-    // Horizontal bars showing tissue saturation relative to GF ceiling
-    // 0% = surface equilibrium, 100% = at GF-limited M-value ceiling
+    // Horizontal bars: 0% = surface equilibrium, 100% = surface M-value (M₀)
+    // M₀ is fixed per compartment (independent of ambient pressure), so bars only
+    // move when tissue ppInert actually changes — no depth-driven jumps on ascent.
     const bars = tissues.map((tissue, i) => {
-      // Get ambient pressure at current depth
-      const Pamb = depthToPressure(currentDepth, appliedSettings.waterType || 'salt');
+      // Surface M-value (M₀): the maximum ppInert tolerated at the surface.
+      // Using Pamb = 1.0 (surface pressure) gives a fixed reference per compartment.
+      const m0 = calculateMValueAtPressure(tissue, i, 1.0);
       
-      // Calculate M-value at current ambient pressure
-      const mValue = calculateMValueAtPressure(tissue, i, Pamb);
-      
-      // Get current GF based on depth position between first stop and surface
-      const gf = calculateGFAtDepth(currentDepth, firstStopDepth, appliedSettings.gfLow, appliedSettings.gfHigh, appliedSettings.waterType || 'salt');
-      
-      // Calculate GF-limited ceiling: Plimit = Pamb + (M - Pamb) * (gf/100)
-      const Plimit = Pamb + (mValue - Pamb) * (gf / 100);
-      
-      // Percentage: 0% = surface equilibrium, 100% = at GF ceiling
+      // Percentage: 0% = surface equilibrium, 100% = M₀
       const current = tissue.ppInert;
       const numerator = current - baselinePpInert;
-      const denominator = Plimit - baselinePpInert;
+      const denominator = m0 - baselinePpInert;
       const percent = denominator > 0 ? (numerator / denominator) * 100 : 0;
       
       // Clamp to reasonable display range (0-120%)
@@ -1236,7 +1224,7 @@ export default function DivePlanningScreen() {
           {bars}
         </Svg>
         <Text style={[styles.chartSubtitle, { color: colors.textSecondary }]}>
-          0% = surface baseline, 100% = max loading during dive
+          0% = surface equilibrium, 100% = surface M-value (M₀)
         </Text>
       </View>
     );

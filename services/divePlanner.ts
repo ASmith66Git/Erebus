@@ -895,10 +895,12 @@ export function calculateDivePlan(input: DivePlanInput): DivePlanResult {
     warnings.push(`Bottom time (${bottomTime} min) is less than or equal to descent time (${descentTime.toFixed(1)} min)`);
   }
   
-  tissues = calculateTissueLoadingConstantDepth(tissues, depth, actualBottomTime, bottomGas, settings.waterType, settings.circuit, settings.ccrSetpoint);
-  tissueHistory.push(tissues.map(t => ({ ...t })));
-  runTime += actualBottomTime;
-  tissueHistoryTimes.push(runTime);
+  for (let min = 0; min < actualBottomTime; min++) {
+    tissues = calculateTissueLoadingConstantDepth(tissues, depth, 1, bottomGas, settings.waterType, settings.circuit, settings.ccrSetpoint);
+    runTime += 1;
+    tissueHistory.push(tissues.map(t => ({ ...t })));
+    tissueHistoryTimes.push(runTime);
+  }
   
   const bottomSegment: DiveSegment = {
     type: 'bottom',
