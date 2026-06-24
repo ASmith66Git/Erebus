@@ -708,7 +708,7 @@ export default function CertificationsScreen() {
     
     const side = imageToReplace.image_side as 'front' | 'back';
     
-    // First delete the old image
+    // Delete the old image (best-effort — if it fails we still proceed with the new scan)
     setDeletingImageId(imageToReplace.id);
     try {
       const deleteResponse = await fetch(
@@ -718,21 +718,23 @@ export default function CertificationsScreen() {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-      
       if (!deleteResponse.ok) {
-        throw new Error('Failed to delete old image');
+        console.warn('Could not delete old image (will still upload replacement):', deleteResponse.status);
       }
-      
-      setDeletingImageId(null);
-      setShowImageViewer(false);
-      setViewingImage(null);
-      
-      // Now scan a new image
+    } catch (error) {
+      console.warn('Error deleting old image (will still upload replacement):', error);
+    }
+
+    setDeletingImageId(null);
+    setShowImageViewer(false);
+    setViewingImage(null);
+
+    // Now scan a new image
+    try {
       await handleScanCard(side);
     } catch (error) {
-      console.error('Error replacing image:', error);
+      console.error('Error scanning replacement image:', error);
       Alert.alert(t('common.error'), t('certifications.failedToReplaceImage'));
-      setDeletingImageId(null);
     }
   };
 
