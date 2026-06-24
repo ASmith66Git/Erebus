@@ -1116,24 +1116,33 @@ export default function DivePlanningScreen() {
     const labelWidth = 36;
     const maxBarWidth = chartW - labelWidth;
     
-    // Horizontal bars: ppInert as a fraction of the depth-adjusted M-value.
-    // Formula: ppInert / M_at_Pamb × 100
-    //   0%   = unloaded tissue
-    //   100% = exactly at the Bühlmann M-value limit for current depth
-    // The planner schedules deco so ppInert ≤ GFHigh × M_at_Pamb, so bars
-    // never reach 100% in a valid plan. Visible and meaningful throughout
-    // the dive: rises during descent/bottom, peaks at deco stops ≈ GFHigh%.
+    // Horizontal bars: excess loading above surface equilibrium, as a fraction
+    // of the available window to the depth-adjusted M-value.
+    //
+    // Formula: (ppInert − ppInert_surface) / (M_at_Pamb − ppInert_surface) × 100
+    //
+    //   0%   = tissue at surface equilibrium (fresh start, or no extra loading)
+    //   100% = tissue exactly at depth-adjusted M-value limit
+    //
+    // Properties:
+    //  • Starts at 0% before the dive; bars only move when tissues actually load
+    //  • No dip on descent: if ppInert hasn't changed, bars stay at 0%
+    //  • Never exceeds 100% in a valid plan (planner enforces ppInert ≤ GF×M)
+    //  • Peaks at ~GFHigh% for the leading compartment at each deco stop
+    const SURFACE_INERT_BASELINE = 0.741; // (1.0 - 0.0627) × 0.79 bar — surface N₂ equilibrium
     const scrubberDepth = scrubberValues?.depth ?? 0;
     const Pamb = depthToPressure(scrubberDepth, appliedSettings.waterType || 'salt');
     const gfHigh = appliedSettings.gfHigh ?? 85;
 
     const bars = tissues.map((tissue, i) => {
-      // Depth-adjusted M-value: maximum ppInert tolerated at current ambient pressure
       const mValue = calculateMValueAtPressure(tissue, i, Pamb);
-
-      // Fraction of M-value limit currently used — always in [0, 1] for a valid plan
       const current = tissue.ppInert;
-      const percent = mValue > 0.001 ? Math.min((current / mValue) * 100, 100) : 0;
+
+      // Window from surface baseline to M-value limit at current depth
+      const denominator = mValue - SURFACE_INERT_BASELINE;
+      const percent = denominator > 0.001
+        ? Math.max(0, Math.min((current - SURFACE_INERT_BASELINE) / denominator * 100, 100))
+        : 0;
 
       // Width capped at 100%
       const displayPercent = Math.min(percent, 100);
@@ -1224,7 +1233,7 @@ export default function DivePlanningScreen() {
           {bars}
         </Svg>
         <Text style={[styles.chartSubtitle, { color: colors.textSecondary }]}>
-          % of depth-adjusted M-value limit · orange = approaching GF high
+          0% = surface equilibrium · 100% = M-value limit · orange ≥ GF high
         </Text>
       </View>
     );
