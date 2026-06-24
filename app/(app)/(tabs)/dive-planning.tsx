@@ -380,8 +380,26 @@ export default function DivePlanningScreen() {
     setGases(gases.filter(g => g.id !== id));
   };
 
+  const deriveGasName = (o2: number, he: number): string => {
+    if (he === 0) {
+      if (o2 === 21) return 'Air';
+      if (o2 === 100) return 'O2';
+      return `EAN${o2}`;
+    }
+    return `Tx${o2}/${he}`;
+  };
+
   const updateGas = (id: string, field: keyof GasEntry, value: any) => {
-    setGases(prev => prev.map(g => g.id === id ? { ...g, [field]: value } : g));
+    setGases(prev => prev.map(g => {
+      if (g.id !== id) return g;
+      const updated = { ...g, [field]: value };
+      if (field === 'o2Percent' || field === 'hePercent') {
+        const o2 = field === 'o2Percent' ? value : g.o2Percent;
+        const he = field === 'hePercent' ? value : g.hePercent;
+        updated.name = deriveGasName(o2, he);
+      }
+      return updated;
+    }));
   };
 
   const tissueColors = [
