@@ -1116,10 +1116,13 @@ export default function DivePlanningScreen() {
     const labelWidth = 36;
     const maxBarWidth = chartW - labelWidth;
     
-    // Horizontal bars: 0% = no supersaturation, 100% = ambient-pressure M-value (Plimit)
-    // Using GF99 formula: (ppInert - Pamb) / (mValue_at_Pamb - Pamb) * 100
-    // This means 100% = exactly at the Bühlmann M-value for current depth.
-    // A valid dive plan never exceeds 100%; bars stay within bounds throughout.
+    // Horizontal bars: ppInert as a fraction of the depth-adjusted M-value.
+    // Formula: ppInert / M_at_Pamb × 100
+    //   0%   = unloaded tissue
+    //   100% = exactly at the Bühlmann M-value limit for current depth
+    // The planner schedules deco so ppInert ≤ GFHigh × M_at_Pamb, so bars
+    // never reach 100% in a valid plan. Visible and meaningful throughout
+    // the dive: rises during descent/bottom, peaks at deco stops ≈ GFHigh%.
     const scrubberDepth = scrubberValues?.depth ?? 0;
     const Pamb = depthToPressure(scrubberDepth, appliedSettings.waterType || 'salt');
     const gfHigh = appliedSettings.gfHigh ?? 85;
@@ -1127,11 +1130,10 @@ export default function DivePlanningScreen() {
     const bars = tissues.map((tissue, i) => {
       // Depth-adjusted M-value: maximum ppInert tolerated at current ambient pressure
       const mValue = calculateMValueAtPressure(tissue, i, Pamb);
-      const denominator = mValue - Pamb;
 
-      // GF99: 0% = tissue at/below ambient (descending or surface), 100% = at M-value
+      // Fraction of M-value limit currently used — always in [0, 1] for a valid plan
       const current = tissue.ppInert;
-      const percent = (denominator > 0.001) ? Math.max(0, (current - Pamb) / denominator * 100) : 0;
+      const percent = mValue > 0.001 ? Math.min((current / mValue) * 100, 100) : 0;
 
       // Width capped at 100%
       const displayPercent = Math.min(percent, 100);
@@ -1222,7 +1224,7 @@ export default function DivePlanningScreen() {
           {bars}
         </Svg>
         <Text style={[styles.chartSubtitle, { color: colors.textSecondary }]}>
-          0% = no supersaturation · 100% = M-value at current depth
+          % of depth-adjusted M-value limit · orange = approaching GF high
         </Text>
       </View>
     );
