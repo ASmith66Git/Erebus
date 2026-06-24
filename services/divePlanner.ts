@@ -1246,6 +1246,6 @@ export const DEFAULT_SETTINGS: DivePlanSettings = {
   ibcdHeEnabled: true,
   ibcdHeThreshold: 0.5,
   ccrDiluentCheck: true,
-  // Conservatism adjustment - percentage added to deco stop times (0-50%)
-  conservatismFactor: 0,
+  // Conservatism adjustment - locked at 15% (not user-configurable)
+  conservatismFactor: 15,
 };

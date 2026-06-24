@@ -1941,10 +1941,6 @@ export default function DivePlanningScreen() {
           ))}
         </View>
         
-        {renderSlider(t('divePlanning.conservatism'), ps.conservatismFactor ?? 0, 0, 50, 5, (v) => setPs({ conservatismFactor: v }), '%')}
-        <Text style={[styles.settingHint, { color: colors.textSecondary }]}>
-          {t('divePlanning.conservatismHint')}
-        </Text>
       </View>
 
       {/* Units & Environment */}
