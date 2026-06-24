@@ -597,12 +597,20 @@ export default function DivePlanningScreen() {
       segmentType = segment.type;
     }
     
-    // Get tissue loading at this time (approximate from history)
-    const historyIndex = Math.min(
-      Math.floor((time / currentResult.totalRunTime) * (currentResult.tissueHistory.length - 1)),
-      currentResult.tissueHistory.length - 1
-    );
-    const tissues = currentResult.tissueHistory[Math.max(0, historyIndex)] || [];
+    // Get tissue loading at this time — binary search the timestamp array for the
+    // most recent snapshot at or before the scrubber position.
+    const historyTimes = currentResult.tissueHistoryTimes;
+    let historyIndex = 0;
+    if (historyTimes && historyTimes.length > 1) {
+      let lo = 0, hi = historyTimes.length - 1;
+      while (lo < hi) {
+        const mid = Math.ceil((lo + hi) / 2);
+        if (historyTimes[mid] <= time) lo = mid;
+        else hi = mid - 1;
+      }
+      historyIndex = lo;
+    }
+    const tissues = currentResult.tissueHistory[historyIndex] || [];
     
     // Calculate approximate CNS/OTU at this point (linear interpolation)
     const progress = currentResult.totalRunTime > 0 ? time / currentResult.totalRunTime : 0;

@@ -139,6 +139,7 @@ export interface DivePlanResult {
   segments: DiveSegment[];
   decoStops: DecoStop[];
   tissueHistory: TissueState[][];
+  tissueHistoryTimes: number[];
   totalRunTime: number;
   totalDecoTime: number;
   maxDepth: number;
@@ -630,9 +631,11 @@ export function calculateDecoSchedule(
   gases: GasMix[],
   settings: DivePlanSettings,
   originalFirstStopDepth?: number // Pass the original first stop for correct GF interpolation
-): { stops: DecoStop[]; finalTissues: TissueState[]; tissueHistory: TissueState[][] } {
+): { stops: DecoStop[]; finalTissues: TissueState[]; tissueHistory: TissueState[][]; decoHistoryTimes: number[] } {
   const stops: DecoStop[] = [];
   const tissueHistory: TissueState[][] = [tissues.map(t => ({ ...t }))];
+  const decoHistoryTimes: number[] = [0];
+  let decoRunTime = 0;
   let currentTissues = tissues.map(t => ({ ...t }));
   let depth = currentDepth;
   
@@ -698,6 +701,8 @@ export function calculateDecoSchedule(
     if (mustStay) {
       currentTissues = calculateTissueLoadingConstantDepth(currentTissues, depth, 1, gas, settings.waterType, settings.circuit, settings.ccrSetpoint);
       tissueHistory.push(currentTissues.map(t => ({ ...t })));
+      decoRunTime += 1;
+      decoHistoryTimes.push(decoRunTime);
       
       const existingStop = stops.find(s => s.depth === depth);
       if (existingStop) {
@@ -713,11 +718,13 @@ export function calculateDecoSchedule(
       const ascentTime = (depth - nextShallowestStop) / settings.ascentRate;
       currentTissues = calculateTissueLoadingSchreiner(currentTissues, depth, nextShallowestStop, ascentTime, gas, settings.waterType, settings.circuit, settings.ccrSetpoint);
       tissueHistory.push(currentTissues.map(t => ({ ...t })));
+      decoRunTime += ascentTime;
+      decoHistoryTimes.push(decoRunTime);
       depth = nextShallowestStop;
     }
   }
   
-  return { stops, finalTissues: currentTissues, tissueHistory };
+  return { stops, finalTissues: currentTissues, tissueHistory, decoHistoryTimes };
 }
 
 // Helper to calculate CNS/OTU for a segment
@@ -847,6 +854,7 @@ export function calculateDivePlan(input: DivePlanInput): DivePlanResult {
   }
   
   const tissueHistory: TissueState[][] = [tissues.map(t => ({ ...t }))];
+  const tissueHistoryTimes: number[] = [0];
   const bottomGas = gases.find(g => g.switchDepth === null) || gases[0];
   
   const ambientPressureAtDepth = depthToPressure(depth, settings.waterType);
@@ -865,6 +873,7 @@ export function calculateDivePlan(input: DivePlanInput): DivePlanResult {
   tissues = calculateTissueLoadingSchreiner(tissues, 0, depth, descentTime, bottomGas, settings.waterType, settings.circuit, settings.ccrSetpoint);
   tissueHistory.push(tissues.map(t => ({ ...t })));
   runTime += descentTime;
+  tissueHistoryTimes.push(runTime);
   
   const descentSegment: DiveSegment = {
     type: 'descent',
@@ -889,6 +898,7 @@ export function calculateDivePlan(input: DivePlanInput): DivePlanResult {
   tissues = calculateTissueLoadingConstantDepth(tissues, depth, actualBottomTime, bottomGas, settings.waterType, settings.circuit, settings.ccrSetpoint);
   tissueHistory.push(tissues.map(t => ({ ...t })));
   runTime += actualBottomTime;
+  tissueHistoryTimes.push(runTime);
   
   const bottomSegment: DiveSegment = {
     type: 'bottom',
@@ -912,6 +922,7 @@ export function calculateDivePlan(input: DivePlanInput): DivePlanResult {
     tissues = calculateTissueLoadingSchreiner(tissues, depth, firstStopDepth, ascentToFirstStop, bottomGas, settings.waterType, settings.circuit, settings.ccrSetpoint);
     tissueHistory.push(tissues.map(t => ({ ...t })));
     runTime += ascentToFirstStop;
+    tissueHistoryTimes.push(runTime);
     
     const ascentToFirstSegment: DiveSegment = {
       type: 'ascent',
@@ -926,7 +937,7 @@ export function calculateDivePlan(input: DivePlanInput): DivePlanResult {
     totalCNS += ascentToFirstTox.cns;
     totalOTU += ascentToFirstTox.otu;
     
-    const { stops, finalTissues, tissueHistory: decoHistory } = calculateDecoSchedule(
+    const { stops, finalTissues, tissueHistory: decoHistory, decoHistoryTimes } = calculateDecoSchedule(
       tissues,
       firstStopDepth,
       gases,
@@ -944,7 +955,8 @@ export function calculateDivePlan(input: DivePlanInput): DivePlanResult {
       }
     }
     
-    tissueHistory.push(...decoHistory);
+    tissueHistory.push(...decoHistory.slice(1));
+    tissueHistoryTimes.push(...decoHistoryTimes.slice(1).map(t => runTime + t));
     
     let currentDepth = firstStopDepth;
     for (const stop of stops) {
@@ -987,6 +999,7 @@ export function calculateDivePlan(input: DivePlanInput): DivePlanResult {
       const lastGas = stops[stops.length - 1]?.gasMix || bottomGas;
       tissues = calculateTissueLoadingSchreiner(finalTissues, currentDepth, 0, finalAscentTime, lastGas, settings.waterType, settings.circuit, settings.ccrSetpoint);
       tissueHistory.push(tissues.map(t => ({ ...t })));
+      tissueHistoryTimes.push(runTime);
       
       const finalAscentSeg: DiveSegment = {
         type: 'ascent',
@@ -1031,6 +1044,7 @@ export function calculateDivePlan(input: DivePlanInput): DivePlanResult {
       segments,
       decoStops: stops,
       tissueHistory,
+      tissueHistoryTimes,
       totalRunTime: Math.ceil(runTime),
       totalDecoTime: stops.reduce((sum, s) => sum + s.duration, 0),
       maxDepth: depth,
@@ -1045,6 +1059,7 @@ export function calculateDivePlan(input: DivePlanInput): DivePlanResult {
     runTime += directAscentTime;
     tissues = calculateTissueLoadingSchreiner(tissues, depth, 0, directAscentTime, bottomGas, settings.waterType, settings.circuit, settings.ccrSetpoint);
     tissueHistory.push(tissues.map(t => ({ ...t })));
+    tissueHistoryTimes.push(runTime);
     
     const directAscentSeg: DiveSegment = {
       type: 'ascent',
@@ -1083,6 +1098,7 @@ export function calculateDivePlan(input: DivePlanInput): DivePlanResult {
       segments,
       decoStops: [],
       tissueHistory,
+      tissueHistoryTimes,
       totalRunTime: Math.ceil(runTime),
       totalDecoTime: 0,
       maxDepth: depth,
