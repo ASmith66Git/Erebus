@@ -59,6 +59,8 @@
     <string>Allow Erebus to access your microphone to record audio with your dive videos.</string>
     <key>NSPhotoLibraryUsageDescription</key>
     <string>Allow Erebus to access your photo library to upload and manage dive photos and videos.</string>
+    <key>NSPhotoLibraryAddUsageDescription</key>
+    <string>Allow Erebus to save photos and videos to your photo library.</string>
     <key>NSUserActivityTypes</key>
     <array>
       <string>$(PRODUCT_BUNDLE_IDENTIFIER).expo.index_route</string>

@@ -20,6 +20,7 @@ module.exports = {
         NSCameraUsageDescription: "Allow Erebus to use your camera to take photos, record videos, and scan certification cards.",
         NSMicrophoneUsageDescription: "Allow Erebus to access your microphone to record audio with your dive videos.",
         NSPhotoLibraryUsageDescription: "Allow Erebus to access your photo library to upload and manage dive photos and videos.",
+        NSPhotoLibraryAddUsageDescription: "Allow Erebus to save photos and videos to your photo library.",
         NSLocationWhenInUseUsageDescription: "Allow Erebus to access your location to record dive site positions, find nearby dive spots, and provide weather forecasts for dive planning.",
         ITSAppUsesNonExemptEncryption: false
       },
