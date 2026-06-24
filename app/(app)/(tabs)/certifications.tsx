@@ -12,7 +12,7 @@ import {
   Alert,
   Platform,
   Image,
-  Dimensions,
+  useWindowDimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { DrawerActions, useNavigation } from '@react-navigation/native';
@@ -26,8 +26,6 @@ import DatePickerField from '@/components/DatePickerField';
 import PageHeader from '@/components/PageHeader';
 import ThemedBackground from '@/components/ThemedBackground';
 import { useTranslation } from 'react-i18next';
-
-const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
 let DocumentScanner: any = null;
 if (Platform.OS !== 'web') {
@@ -109,6 +107,7 @@ export default function CertificationsScreen() {
   const router = useRouter();
   const navigation = useNavigation();
   const { t } = useTranslation();
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   
   const [activeTab, setActiveTab] = useState<TabType>('completed');
   const [certifications, setCertifications] = useState<Certification[]>([]);
@@ -1727,7 +1726,7 @@ export default function CertificationsScreen() {
                     ? viewingImage.image_url 
                     : `${getApiUrl()}${viewingImage.image_url}` 
                 }}
-                style={styles.fullScreenImage}
+                style={{ width: windowWidth, height: windowHeight - 160 }}
                 resizeMode="contain"
               />
             </View>
@@ -1864,7 +1863,6 @@ const styles = StyleSheet.create({
   imageViewerTitle: { color: '#FFF', fontSize: 18, fontWeight: '600' },
   imageViewerCloseBtn: { padding: 8 },
   imageViewerContent: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  fullScreenImage: { width: screenWidth - 32, height: screenHeight * 0.6 },
   imageViewerActions: { flexDirection: 'row', gap: 16, paddingHorizontal: 16, paddingBottom: 50, justifyContent: 'center' },
   imageViewerActionBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 24, paddingVertical: 14, borderRadius: 12 },
   imageViewerActionText: { color: '#FFF', fontSize: 16, fontWeight: '600' },
