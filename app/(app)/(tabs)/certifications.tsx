@@ -1291,7 +1291,16 @@ export default function CertificationsScreen() {
       </Modal>
 
       {/* Certification Detail Modal */}
-      <Modal visible={showDetailModal} animationType="slide" transparent>
+      <Modal
+        visible={showDetailModal}
+        animationType="slide"
+        transparent
+        onRequestClose={() => {
+          setShowImageViewer(false);
+          setViewingImage(null);
+          setShowDetailModal(false);
+        }}
+      >
         <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
           <View style={[styles.modalContent, { backgroundColor: colors.surface, height: '85%' }]}>
             <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
@@ -1320,6 +1329,8 @@ export default function CertificationsScreen() {
                       longitude: selectedCertification.longitude,
                       notes: selectedCertification.notes || '',
                     });
+                    setShowImageViewer(false);
+                    setViewingImage(null);
                     setShowDetailModal(false);
                     setShowAddModal(true);
                   }
@@ -1329,7 +1340,11 @@ export default function CertificationsScreen() {
                 <Pressable onPress={() => selectedCertification && handleDeleteCertification(selectedCertification.id)}>
                   <Feather name="trash-2" size={22} color={colors.danger} />
                 </Pressable>
-                <Pressable onPress={() => setShowDetailModal(false)}>
+                <Pressable onPress={() => {
+                  setShowImageViewer(false);
+                  setViewingImage(null);
+                  setShowDetailModal(false);
+                }}>
                   <Feather name="x" size={24} color={colors.text} />
                 </Pressable>
               </View>
@@ -1519,6 +1534,54 @@ export default function CertificationsScreen() {
               </ScrollView>
             )}
           </View>
+
+          {/* Image viewer overlay — rendered inside the same Modal to avoid
+              stacked-transparent-Modal touch-blocking on iOS */}
+          {showImageViewer && viewingImage && (
+            <View style={[StyleSheet.absoluteFillObject, styles.imageViewerOverlay]}>
+              <View style={styles.imageViewerHeader}>
+                <Text style={styles.imageViewerTitle}>
+                  {viewingImage.image_side === 'front' ? t('certifications.frontOfCard') : t('certifications.backOfCard')}
+                </Text>
+                <Pressable
+                  style={styles.imageViewerCloseBtn}
+                  onPress={() => {
+                    setShowImageViewer(false);
+                    setViewingImage(null);
+                  }}
+                >
+                  <Feather name="x" size={28} color="#FFF" />
+                </Pressable>
+              </View>
+              <View style={styles.imageViewerContent}>
+                <Image
+                  source={{
+                    uri: viewingImage.image_url.startsWith('http')
+                      ? viewingImage.image_url
+                      : `${getApiUrl()}${viewingImage.image_url}`
+                  }}
+                  style={{ width: windowWidth, height: windowHeight - 160 }}
+                  resizeMode="contain"
+                />
+              </View>
+              <View style={styles.imageViewerActions}>
+                <Pressable
+                  style={[styles.imageViewerActionBtn, { backgroundColor: colors.primary }]}
+                  onPress={() => viewingImage && handleReplaceImage(viewingImage)}
+                >
+                  <Feather name="refresh-cw" size={20} color="#FFF" />
+                  <Text style={styles.imageViewerActionText}>{t('certifications.replace')}</Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.imageViewerActionBtn, { backgroundColor: colors.danger }]}
+                  onPress={() => viewingImage && handleDeleteImage(viewingImage.id)}
+                >
+                  <Feather name="trash-2" size={20} color="#FFF" />
+                  <Text style={styles.imageViewerActionText}>{t('common.delete')}</Text>
+                </Pressable>
+              </View>
+            </View>
+          )}
         </View>
       </Modal>
 
@@ -1698,56 +1761,6 @@ export default function CertificationsScreen() {
         </View>
       </Modal>
 
-      {/* Full-Screen Image Viewer Modal */}
-      <Modal visible={showImageViewer} animationType="fade" transparent>
-        <View style={styles.imageViewerOverlay}>
-          <View style={styles.imageViewerHeader}>
-            <Text style={styles.imageViewerTitle}>
-              {viewingImage?.image_side === 'front' ? t('certifications.frontOfCard') : t('certifications.backOfCard')}
-            </Text>
-            <Pressable
-              style={styles.imageViewerCloseBtn}
-              onPress={() => {
-                setShowImageViewer(false);
-                setViewingImage(null);
-              }}
-            >
-              <Feather name="x" size={28} color="#FFF" />
-            </Pressable>
-          </View>
-          
-          {viewingImage && (
-            <View style={styles.imageViewerContent}>
-              <Image
-                source={{ 
-                  uri: viewingImage.image_url.startsWith('http') 
-                    ? viewingImage.image_url 
-                    : `${getApiUrl()}${viewingImage.image_url}` 
-                }}
-                style={{ width: windowWidth, height: windowHeight - 160 }}
-                resizeMode="contain"
-              />
-            </View>
-          )}
-          
-          <View style={styles.imageViewerActions}>
-            <Pressable
-              style={[styles.imageViewerActionBtn, { backgroundColor: colors.primary }]}
-              onPress={() => viewingImage && handleReplaceImage(viewingImage)}
-            >
-              <Feather name="refresh-cw" size={20} color="#FFF" />
-              <Text style={styles.imageViewerActionText}>{t('certifications.replace')}</Text>
-            </Pressable>
-            <Pressable
-              style={[styles.imageViewerActionBtn, { backgroundColor: colors.danger }]}
-              onPress={() => viewingImage && handleDeleteImage(viewingImage.id)}
-            >
-              <Feather name="trash-2" size={20} color="#FFF" />
-              <Text style={styles.imageViewerActionText}>{t('common.delete')}</Text>
-            </Pressable>
-          </View>
-        </View>
-      </Modal>
     </ThemedBackground>
   );
 }
