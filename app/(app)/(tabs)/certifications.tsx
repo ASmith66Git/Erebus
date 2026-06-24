@@ -1461,10 +1461,6 @@ export default function CertificationsScreen() {
                           <View style={styles.cardImageContainer}>
                             <Pressable onPress={() => openImageViewer(currentImg)}>
                               <Image source={{ uri: imageUrl }} style={styles.cardImageFull} resizeMode="contain" />
-                              <View style={[styles.tapToViewOverlay, { backgroundColor: 'rgba(0,0,0,0.3)' }]}>
-                                <Feather name="maximize-2" size={20} color="#FFF" />
-                                <Text style={styles.tapToViewText}>{t('certifications.tapToView')}</Text>
-                              </View>
                             </Pressable>
                             <View style={styles.cardImageOverlayActions}>
                               <Pressable
@@ -1847,8 +1843,6 @@ const styles = StyleSheet.create({
   scanBtn: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 24, borderRadius: 12, borderWidth: 1, gap: 8, overflow: 'hidden' },
   scanBtnText: { fontSize: 14, fontWeight: '500' },
   imageActionBtn: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
-  tapToViewOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, borderBottomLeftRadius: 12, borderBottomRightRadius: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 6 },
-  tapToViewText: { color: '#FFF', fontSize: 12, fontWeight: '500' },
   cardTabRow: { flexDirection: 'row', gap: 8, marginBottom: 8 },
   cardTab: { flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 8, borderWidth: 1 },
   cardTabActive: { borderWidth: 2 },
