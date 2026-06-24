@@ -1105,8 +1105,6 @@ export default function DivePlanningScreen() {
     const scrubberValues = getValuesAtTime(chartScrubberTime);
     const tissues = scrubberValues?.tissues || currentResult.tissueHistory[currentResult.tissueHistory.length - 1];
     
-    // Baseline: surface equilibrium N2 partial pressure (~0.74 bar)
-    const baselinePpInert = 0.74;
     
     const padding = { top: 24, right: 20, bottom: 12, left: 50 };
     const chartW = Math.max(chartWidth - padding.left - padding.right, 100);
@@ -1118,33 +1116,33 @@ export default function DivePlanningScreen() {
     const labelWidth = 36;
     const maxBarWidth = chartW - labelWidth;
     
-    // Horizontal bars: 0% = surface equilibrium, 100% = surface M-value (M₀)
-    // M₀ is fixed per compartment (independent of ambient pressure), so bars only
-    // move when tissue ppInert actually changes — no depth-driven jumps on ascent.
+    // Horizontal bars: 0% = no supersaturation, 100% = ambient-pressure M-value (Plimit)
+    // Using GF99 formula: (ppInert - Pamb) / (mValue_at_Pamb - Pamb) * 100
+    // This means 100% = exactly at the Bühlmann M-value for current depth.
+    // A valid dive plan never exceeds 100%; bars stay within bounds throughout.
+    const scrubberDepth = scrubberValues?.depth ?? 0;
+    const Pamb = depthToPressure(scrubberDepth, appliedSettings.waterType || 'salt');
+    const gfHigh = appliedSettings.gfHigh ?? 85;
+
     const bars = tissues.map((tissue, i) => {
-      // Surface M-value (M₀): the maximum ppInert tolerated at the surface.
-      // Using Pamb = 1.0 (surface pressure) gives a fixed reference per compartment.
-      const m0 = calculateMValueAtPressure(tissue, i, 1.0);
-      
-      // Percentage: 0% = surface equilibrium, 100% = M₀
+      // Depth-adjusted M-value: maximum ppInert tolerated at current ambient pressure
+      const mValue = calculateMValueAtPressure(tissue, i, Pamb);
+      const denominator = mValue - Pamb;
+
+      // GF99: 0% = tissue at/below ambient (descending or surface), 100% = at M-value
       const current = tissue.ppInert;
-      const numerator = current - baselinePpInert;
-      const denominator = m0 - baselinePpInert;
-      const percent = denominator > 0 ? (numerator / denominator) * 100 : 0;
-      
-      // Clamp to reasonable display range (0-120%)
-      const clampedPercent = Math.max(0, Math.min(percent, 120));
-      
-      // Width capped at 100% of maxBarWidth
-      const displayPercent = Math.min(clampedPercent, 100);
+      const percent = (denominator > 0.001) ? Math.max(0, (current - Pamb) / denominator * 100) : 0;
+
+      // Width capped at 100%
+      const displayPercent = Math.min(percent, 100);
       const width = Math.max((displayPercent / 100) * maxBarWidth, 2);
       const y = padding.top + i * (barHeight + barGap);
       const x = padding.left;
-      
-      // Color: normal color, warning if >80%, danger if >100%
+
+      // Color: normal, warning if approaching GFHigh, danger if at/above 100%
       let barColor = tissueColors[i] || '#FF5722';
-      if (percent > 100) barColor = colors.error;
-      else if (percent > 80) barColor = '#FF9800'; // warning orange
+      if (percent >= 100) barColor = colors.error;
+      else if (percent > gfHigh) barColor = '#FF9800'; // warning orange
 
       return (
         <G key={i}>
@@ -1224,7 +1222,7 @@ export default function DivePlanningScreen() {
           {bars}
         </Svg>
         <Text style={[styles.chartSubtitle, { color: colors.textSecondary }]}>
-          0% = surface equilibrium, 100% = surface M-value (M₀)
+          0% = no supersaturation · 100% = M-value at current depth
         </Text>
       </View>
     );
