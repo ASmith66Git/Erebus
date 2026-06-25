@@ -2032,7 +2032,9 @@
     "featureTitlePlaceholder": "Feature title",
     "featureDescriptionPlaceholder": "Feature description",
     "enterTitle": "Please enter a title",
-    "tbd": "TBD"
+    "tbd": "TBD",
+    "featureAdded": "Feature added successfully",
+    "featureUpdated": "Feature updated successfully"
   },
   "debugLog": {
     "title": "Debug Log",

@@ -2032,7 +2032,9 @@
     "featureTitlePlaceholder": "Funktionstitel",
     "featureDescriptionPlaceholder": "Funktionsbeschreibung",
     "enterTitle": "Bitte geben Sie einen Titel ein",
-    "tbd": "Noch offen"
+    "tbd": "Noch offen",
+    "featureAdded": "Funktion erfolgreich hinzugefügt",
+    "featureUpdated": "Funktion erfolgreich aktualisiert"
   },
   "debugLog": {
     "title": "Debug-Protokoll",

@@ -155,6 +155,7 @@ export default function RoadmapAdminScreen() {
       if (response.ok) {
         setModalVisible(false);
         fetchFeatures();
+        Alert.alert(t('common.success'), editingFeature ? t('roadmapAdmin.featureUpdated') : t('roadmapAdmin.featureAdded'));
       } else {
         Alert.alert(t('common.error'), t('roadmapAdmin.failedToSave'));
       }

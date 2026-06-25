@@ -2032,7 +2032,9 @@
     "featureTitlePlaceholder": "Titolo funzionalità",
     "featureDescriptionPlaceholder": "Descrizione funzionalità",
     "enterTitle": "Per favore, inserisci un titolo",
-    "tbd": "Da definire"
+    "tbd": "Da definire",
+    "featureAdded": "Funzionalità aggiunta con successo",
+    "featureUpdated": "Funzionalità aggiornata con successo"
   },
   "debugLog": {
     "title": "Log di debug",

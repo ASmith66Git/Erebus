@@ -2032,7 +2032,9 @@
     "featureTitlePlaceholder": "Título de la función",
     "featureDescriptionPlaceholder": "Descripción de la función",
     "enterTitle": "Por favor, introduce un título",
-    "tbd": "Por determinar"
+    "tbd": "Por determinar",
+    "featureAdded": "Función añadida correctamente",
+    "featureUpdated": "Función actualizada correctamente"
   },
   "debugLog": {
     "title": "Registro de depuración",

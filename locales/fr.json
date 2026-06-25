@@ -2032,7 +2032,9 @@
     "featureTitlePlaceholder": "Titre de la fonctionnalité",
     "featureDescriptionPlaceholder": "Description de la fonctionnalité",
     "enterTitle": "Veuillez entrer un titre",
-    "tbd": "À déterminer"
+    "tbd": "À déterminer",
+    "featureAdded": "Fonctionnalité ajoutée avec succès",
+    "featureUpdated": "Fonctionnalité mise à jour avec succès"
   },
   "debugLog": {
     "title": "Journal de débogage",

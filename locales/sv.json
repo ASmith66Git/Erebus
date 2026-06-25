@@ -2032,7 +2032,9 @@
     "featureTitlePlaceholder": "Funktionstitel",
     "featureDescriptionPlaceholder": "Funktionsbeskrivning",
     "enterTitle": "Vänligen ange en titel",
-    "tbd": "Ej bestämt"
+    "tbd": "Ej bestämt",
+    "featureAdded": "Funktion har lagts till",
+    "featureUpdated": "Funktion har uppdaterats"
   },
   "debugLog": {
     "title": "Felsökningslogg",
