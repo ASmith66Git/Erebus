@@ -1810,7 +1810,13 @@
     "searchUsers": "Search users by name or email...",
     "noUsersFound": "No users found",
     "messageToUserPlaceholder": "Type your message to the user...",
-    "sendMessage": "Send Message"
+    "sendMessage": "Send Message",
+    "newMessages": "New Messages",
+    "archive": "Archive",
+    "noNewMessages": "No new messages",
+    "noNewMessagesDesc": "All conversations are resolved or closed",
+    "noArchivedMessages": "No archived conversations",
+    "noArchivedMessagesDesc": "Resolved and closed conversations will appear here"
   },
   "notifications": {
     "title": "Notifications",

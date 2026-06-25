@@ -50,13 +50,14 @@ interface Message {
   email: string;
 }
 
-const STATUS_OPTIONS = [
-  { value: 'all', labelKey: 'supportAdmin.allTickets' },
-  { value: 'open', labelKey: 'supportAdmin.openTickets' },
-  { value: 'in_progress', labelKey: 'supportAdmin.inProgressTickets' },
-  { value: 'resolved', labelKey: 'supportAdmin.resolvedTickets' },
-  { value: 'closed', labelKey: 'supportAdmin.closedTickets' },
-];
+interface UserGroup {
+  userId: number;
+  name: string;
+  email: string;
+  conversations: Conversation[];
+  latestActivity: string;
+  totalUnread: number;
+}
 
 const STATUS_ACTIONS = [
   { value: 'open', labelKey: 'supportAdmin.openTickets' },
@@ -88,24 +89,47 @@ interface UserOption {
   isBlocked?: boolean;
 }
 
+function groupByUser(conversations: Conversation[]): UserGroup[] {
+  const map = new Map<number, UserGroup>();
+  for (const conv of conversations) {
+    if (!map.has(conv.user_id)) {
+      map.set(conv.user_id, {
+        userId: conv.user_id,
+        name: `${conv.first_name} ${conv.last_name}`,
+        email: conv.email,
+        conversations: [],
+        latestActivity: conv.last_message_at || conv.updated_at,
+        totalUnread: 0,
+      });
+    }
+    const group = map.get(conv.user_id)!;
+    group.conversations.push(conv);
+    group.totalUnread += conv.unread_count || 0;
+    const convTime = conv.last_message_at || conv.updated_at;
+    if (convTime > group.latestActivity) group.latestActivity = convTime;
+  }
+  return Array.from(map.values()).sort((a, b) =>
+    b.latestActivity.localeCompare(a.latestActivity)
+  );
+}
+
 export default function SupportAdminScreen() {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const { token, user } = useAuth();
   const { t } = useTranslation();
-  
+
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [activeTab, setActiveTab] = useState<'new' | 'archive'>('new');
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [newMessage, setNewMessage] = useState('');
   const [sending, setSending] = useState(false);
   const [showStatusModal, setShowStatusModal] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
-  
+
   const [showNewTicket, setShowNewTicket] = useState(false);
   const [newSubject, setNewSubject] = useState('');
   const [newTicketMessage, setNewTicketMessage] = useState('');
@@ -115,47 +139,23 @@ export default function SupportAdminScreen() {
   const [users, setUsers] = useState<UserOption[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   const [userSearch, setUserSearch] = useState('');
-  
+
   const messagesListRef = useRef<FlatList>(null);
 
-  const fetchConversations = useCallback(async (isBackgroundRefresh = false) => {
+  const fetchConversations = useCallback(async () => {
     try {
-      const params = statusFilter !== 'all' ? `?status=${statusFilter}` : '';
-      const response = await fetch(`${getApiUrl()}/api/admin/support/conversations${params}`, {
+      const response = await fetch(`${getApiUrl()}/api/admin/support/conversations`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (response.ok) {
         const data = await response.json();
-        if (isBackgroundRefresh) {
-          setConversations(prev => {
-            if (JSON.stringify(prev) !== JSON.stringify(data)) {
-              return data;
-            }
-            return prev;
-          });
-        } else {
-          setConversations(data);
-        }
+        setConversations(data);
       }
     } catch (error) {
       console.error('Failed to fetch conversations:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
-    }
-  }, [token, statusFilter]);
-
-  const fetchUnreadCount = useCallback(async () => {
-    try {
-      const response = await fetch(`${getApiUrl()}/api/admin/support/unread-count`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setUnreadCount(data.count);
-      }
-    } catch (error) {
-      console.error('Failed to fetch unread count:', error);
     }
   }, [token]);
 
@@ -175,13 +175,13 @@ export default function SupportAdminScreen() {
 
   const handleCreateTicket = async () => {
     if (!newSubject.trim() || !newTicketMessage.trim() || !selectedUserId) return;
-    
+
     setCreating(true);
     try {
       const categoryLabelKey = CATEGORY_OPTIONS.find(c => c.value === newCategory)?.labelKey || 'support.categoryGeneral';
       const categoryLabel = t(categoryLabelKey);
       const fullSubject = `[${categoryLabel}] ${newSubject.trim()}`;
-      
+
       const response = await fetch(`${getApiUrl()}/api/admin/support/conversations`, {
         method: 'POST',
         headers: {
@@ -195,7 +195,7 @@ export default function SupportAdminScreen() {
           priority: newPriority,
         }),
       });
-      
+
       if (response.ok) {
         const conversation = await response.json();
         setShowNewTicket(false);
@@ -225,7 +225,6 @@ export default function SupportAdminScreen() {
         const data = await response.json();
         setMessages(data.messages);
         setSelectedConversation(data.conversation);
-        fetchUnreadCount();
         fetchConversations();
       }
     } catch (error) {
@@ -233,20 +232,15 @@ export default function SupportAdminScreen() {
     } finally {
       setMessagesLoading(false);
     }
-  }, [token, fetchUnreadCount, fetchConversations]);
+  }, [token, fetchConversations]);
 
   useEffect(() => {
-    fetchConversations(false);
-    fetchUnreadCount();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, statusFilter]); // Only re-fetch when token or filter changes
-
-  // Disabled automatic polling to prevent UI flashing
-  // Admins can pull-to-refresh or send a message to see updates
+    fetchConversations();
+  }, [token]);
 
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !selectedConversation) return;
-    
+
     setSending(true);
     try {
       const response = await fetch(`${getApiUrl()}/api/admin/support/conversations/${selectedConversation.id}/messages`, {
@@ -257,14 +251,14 @@ export default function SupportAdminScreen() {
         },
         body: JSON.stringify({ message: newMessage.trim() }),
       });
-      
+
       if (response.ok) {
         const msg = await response.json();
-        setMessages(prev => [...prev, { 
-          ...msg, 
-          first_name: user?.firstName || 'Admin', 
-          last_name: user?.lastName || '', 
-          email: user?.email || '' 
+        setMessages(prev => [...prev, {
+          ...msg,
+          first_name: user?.firstName || 'Admin',
+          last_name: user?.lastName || '',
+          email: user?.email || ''
         }]);
         setNewMessage('');
         fetchConversations();
@@ -278,7 +272,7 @@ export default function SupportAdminScreen() {
 
   const handleUpdateStatus = async (status: string) => {
     if (!selectedConversation) return;
-    
+
     try {
       const response = await fetch(`${getApiUrl()}/api/admin/support/conversations/${selectedConversation.id}`, {
         method: 'PUT',
@@ -288,7 +282,7 @@ export default function SupportAdminScreen() {
         },
         body: JSON.stringify({ status }),
       });
-      
+
       if (response.ok) {
         const updated = await response.json();
         setSelectedConversation({ ...selectedConversation, status: updated.status });
@@ -307,7 +301,7 @@ export default function SupportAdminScreen() {
     const diffMins = Math.floor(diffMs / 60000);
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
-    
+
     if (diffMins < 1) return t('common.justNow');
     if (diffMins < 60) return t('common.minutesAgo', { count: diffMins });
     if (diffHours < 24) return t('common.hoursAgo', { count: diffHours });
@@ -345,23 +339,25 @@ export default function SupportAdminScreen() {
     }
   };
 
-  const renderConversation = ({ item }: { item: Conversation }) => (
+  const newConversations = conversations.filter(c => c.status === 'open' || c.status === 'in_progress');
+  const archiveConversations = conversations.filter(c => c.status === 'resolved' || c.status === 'closed');
+  const totalUnread = newConversations.reduce((sum, c) => sum + (c.unread_count || 0), 0);
+
+  const activeConversations = activeTab === 'new' ? newConversations : archiveConversations;
+  const userGroups = groupByUser(activeConversations);
+
+  const renderConversationCard = (item: Conversation) => (
     <Pressable
+      key={item.id}
       style={[
         styles.conversationCard,
-        { backgroundColor: colors.surface, borderColor: colors.border },
+        { backgroundColor: colors.background, borderColor: colors.border },
         item.unread_count > 0 && { borderLeftWidth: 3, borderLeftColor: colors.primary }
       ]}
       onPress={() => fetchMessages(item.id)}
     >
       <View style={styles.conversationHeader}>
-        <View style={styles.userInfo}>
-          <Text style={[styles.userName, { color: colors.text }]}>
-            {item.first_name} {item.last_name}
-          </Text>
-          <Text style={[styles.userEmail, { color: colors.textSecondary }]}>{item.email}</Text>
-        </View>
-        <View style={styles.badges}>
+        <View style={styles.badgeRow}>
           <View style={[styles.priorityBadge, { backgroundColor: getPriorityColor(item.priority) + '20' }]}>
             <Text style={[styles.badgeText, { color: getPriorityColor(item.priority) }]}>
               {item.priority}
@@ -373,29 +369,53 @@ export default function SupportAdminScreen() {
             </Text>
           </View>
         </View>
-      </View>
-      
-      <Text style={[styles.conversationSubject, { color: colors.text }]} numberOfLines={1}>
-        {item.subject}
-      </Text>
-      
-      {item.last_message && (
-        <Text style={[styles.lastMessage, { color: colors.textSecondary }]} numberOfLines={2}>
-          {item.last_message}
-        </Text>
-      )}
-      
-      <View style={styles.conversationFooter}>
-        <Text style={[styles.timeText, { color: colors.textSecondary }]}>
-          {item.last_message_at ? formatDate(item.last_message_at) : formatDate(item.created_at)}
-        </Text>
         {item.unread_count > 0 && (
           <View style={[styles.unreadBadge, { backgroundColor: colors.primary }]}>
             <Text style={styles.unreadText}>{item.unread_count}</Text>
           </View>
         )}
       </View>
+
+      <Text style={[styles.conversationSubject, { color: colors.text }]} numberOfLines={1}>
+        {item.subject}
+      </Text>
+
+      {item.last_message && (
+        <Text style={[styles.lastMessage, { color: colors.textSecondary }]} numberOfLines={2}>
+          {item.last_message}
+        </Text>
+      )}
+
+      <Text style={[styles.timeText, { color: colors.textSecondary }]}>
+        {item.last_message_at ? formatDate(item.last_message_at) : formatDate(item.created_at)}
+      </Text>
     </Pressable>
+  );
+
+  const renderUserGroup = ({ item }: { item: UserGroup }) => (
+    <View style={styles.userGroupSection}>
+      <View style={[styles.userGroupHeader, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <View style={styles.userGroupLeft}>
+          <View style={[styles.userAvatar, { backgroundColor: colors.primary + '20' }]}>
+            <Text style={[styles.userAvatarText, { color: colors.primary }]}>
+              {item.name.charAt(0).toUpperCase()}
+            </Text>
+          </View>
+          <View>
+            <Text style={[styles.userGroupName, { color: colors.text }]}>{item.name}</Text>
+            <Text style={[styles.userGroupEmail, { color: colors.textSecondary }]}>{item.email}</Text>
+          </View>
+        </View>
+        {item.totalUnread > 0 && (
+          <View style={[styles.groupUnreadBadge, { backgroundColor: colors.primary }]}>
+            <Text style={styles.groupUnreadText}>{item.totalUnread}</Text>
+          </View>
+        )}
+      </View>
+      <View style={styles.conversationsUnderUser}>
+        {item.conversations.map(conv => renderConversationCard(conv))}
+      </View>
+    </View>
   );
 
   const renderMessage = ({ item }: { item: Message }) => (
@@ -432,9 +452,9 @@ export default function SupportAdminScreen() {
     return (
       <ThemedBackground>
         <PageHeader title={t('supportAdmin.supportMessages')} />
-        <View style={styles.unauthorizedContainer}>
+        <View style={styles.centeredContainer}>
           <Ionicons name="lock-closed-outline" size={64} color={colors.textSecondary} />
-          <Text style={[styles.unauthorizedText, { color: colors.text }]}>{t('supportAdmin.adminAccessRequired')}</Text>
+          <Text style={[styles.centeredText, { color: colors.text }]}>{t('supportAdmin.adminAccessRequired')}</Text>
         </View>
       </ThemedBackground>
     );
@@ -443,7 +463,7 @@ export default function SupportAdminScreen() {
   if (selectedConversation) {
     return (
       <ThemedBackground>
-        <PageHeader 
+        <PageHeader
           title={t('supportAdmin.conversation')}
           rightAction={
             <View style={styles.headerActions}>
@@ -460,7 +480,7 @@ export default function SupportAdminScreen() {
             </View>
           }
         />
-        <KeyboardAvoidingView 
+        <KeyboardAvoidingView
           style={styles.container}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           keyboardVerticalOffset={100}
@@ -471,7 +491,7 @@ export default function SupportAdminScreen() {
               {t('supportAdmin.from', { name: `${selectedConversation.first_name} ${selectedConversation.last_name}`, email: selectedConversation.email })}
             </Text>
           </View>
-          
+
           {messagesLoading ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color={colors.primary} />
@@ -486,7 +506,7 @@ export default function SupportAdminScreen() {
               onContentSizeChange={() => messagesListRef.current?.scrollToEnd()}
             />
           )}
-          
+
           <View style={[styles.inputContainer, { backgroundColor: colors.surface, borderTopColor: colors.border, paddingBottom: 12 + insets.bottom }]}>
             <TextInput
               style={[styles.messageInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
@@ -510,7 +530,7 @@ export default function SupportAdminScreen() {
             </Pressable>
           </View>
         </KeyboardAvoidingView>
-        
+
         <Modal visible={showStatusModal} transparent animationType="fade" onRequestClose={() => setShowStatusModal(false)}>
           <Pressable style={styles.modalOverlay} onPress={() => setShowStatusModal(false)}>
             <View style={[styles.statusModalContent, { backgroundColor: colors.surface }]}>
@@ -540,75 +560,60 @@ export default function SupportAdminScreen() {
 
   return (
     <ThemedBackground>
-      <PageHeader 
-        title={t('supportAdmin.supportMessages')}
-        rightAction={
-          unreadCount > 0 ? (
-            <View style={[styles.headerBadge, { backgroundColor: colors.primary }]}>
-              <Text style={styles.headerBadgeText}>{unreadCount}</Text>
-            </View>
-          ) : null
-        }
-      />
+      <PageHeader title={t('supportAdmin.supportMessages')} />
       <View style={styles.container}>
-        <View style={[styles.filterContainer, { borderBottomColor: colors.border }]}>
-          <FlatList
-            horizontal
-            data={STATUS_OPTIONS}
-            keyExtractor={item => item.value}
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.filterList}
-            renderItem={({ item }) => (
-              <Pressable
-                style={[
-                  styles.filterChip,
-                  { borderColor: colors.border },
-                  statusFilter === item.value && { backgroundColor: colors.primary, borderColor: colors.primary }
-                ]}
-                onPress={() => {
-                  if (item.value !== statusFilter) {
-                    setStatusFilter(item.value);
-                    setLoading(true);
-                  }
-                }}
-              >
-                <Text style={[
-                  styles.filterChipText,
-                  { color: statusFilter === item.value ? '#FFFFFF' : colors.text }
-                ]}>
-                  {t(item.labelKey)}
-                </Text>
-              </Pressable>
+        <View style={[styles.tabBar, { borderBottomColor: colors.border, backgroundColor: colors.surface }]}>
+          <Pressable
+            style={[styles.tab, activeTab === 'new' && { borderBottomColor: colors.primary, borderBottomWidth: 2 }]}
+            onPress={() => setActiveTab('new')}
+          >
+            <Text style={[styles.tabText, { color: activeTab === 'new' ? colors.primary : colors.textSecondary }]}>
+              {t('supportAdmin.newMessages')}
+            </Text>
+            {totalUnread > 0 && (
+              <View style={[styles.tabBadge, { backgroundColor: colors.primary }]}>
+                <Text style={styles.tabBadgeText}>{totalUnread}</Text>
+              </View>
             )}
-          />
+          </Pressable>
+          <Pressable
+            style={[styles.tab, activeTab === 'archive' && { borderBottomColor: colors.primary, borderBottomWidth: 2 }]}
+            onPress={() => setActiveTab('archive')}
+          >
+            <Text style={[styles.tabText, { color: activeTab === 'archive' ? colors.primary : colors.textSecondary }]}>
+              {t('supportAdmin.archive')}
+            </Text>
+          </Pressable>
         </View>
-        
+
         {loading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={colors.primary} />
           </View>
-        ) : conversations.length === 0 ? (
-          <View style={styles.emptyContainer}>
+        ) : userGroups.length === 0 ? (
+          <View style={styles.centeredContainer}>
             <Ionicons name="mail-open-outline" size={64} color={colors.textSecondary} />
-            <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('supportAdmin.noMessages')}</Text>
+            <Text style={[styles.emptyTitle, { color: colors.text }]}>
+              {activeTab === 'new' ? t('supportAdmin.noNewMessages') : t('supportAdmin.noArchivedMessages')}
+            </Text>
             <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-              {statusFilter !== 'all' ? t('supportAdmin.noStatusConversations', { status: statusFilter.replace('_', ' ') }) : t('supportAdmin.noSupportMessagesYet')}
+              {activeTab === 'new' ? t('supportAdmin.noNewMessagesDesc') : t('supportAdmin.noArchivedMessagesDesc')}
             </Text>
           </View>
         ) : (
           <FlatList
-            data={conversations}
-            keyExtractor={item => item.id.toString()}
-            renderItem={renderConversation}
+            data={userGroups}
+            keyExtractor={item => item.userId.toString()}
+            renderItem={renderUserGroup}
             contentContainerStyle={styles.listContent}
             refreshing={refreshing}
             onRefresh={() => {
               setRefreshing(true);
-              fetchConversations(false);
+              fetchConversations();
             }}
           />
         )}
-        
+
         <Pressable
           style={[styles.fab, { backgroundColor: colors.primary }]}
           onPress={() => {
@@ -619,7 +624,7 @@ export default function SupportAdminScreen() {
           <Ionicons name="add" size={28} color="#FFFFFF" />
         </Pressable>
       </View>
-      
+
       <Modal visible={showNewTicket} transparent animationType="fade" onRequestClose={() => setShowNewTicket(false)}>
         <Pressable style={styles.modalOverlay} onPress={() => setShowNewTicket(false)}>
           <Pressable style={[styles.newTicketModalContent, { backgroundColor: colors.surface }]} onPress={e => e.stopPropagation()}>
@@ -629,7 +634,7 @@ export default function SupportAdminScreen() {
                 <Ionicons name="close" size={24} color={colors.text} />
               </Pressable>
             </View>
-            
+
             <ScrollView style={styles.newTicketModalBody}>
               <Text style={[styles.inputLabel, { color: colors.text }]}>{t('supportAdmin.selectUser')}</Text>
               <TextInput
@@ -642,7 +647,7 @@ export default function SupportAdminScreen() {
               {userSearch.length > 0 && (
                 <View style={[styles.userDropdown, { backgroundColor: colors.background, borderColor: colors.border }]}>
                   {users
-                    .filter(u => 
+                    .filter(u =>
                       `${u.firstName} ${u.lastName} ${u.email}`.toLowerCase().includes(userSearch.toLowerCase())
                     )
                     .slice(0, 5)
@@ -668,7 +673,7 @@ export default function SupportAdminScreen() {
                       </Pressable>
                     ))
                   }
-                  {users.filter(u => 
+                  {users.filter(u =>
                     `${u.firstName} ${u.lastName} ${u.email}`.toLowerCase().includes(userSearch.toLowerCase())
                   ).length === 0 && (
                     <Text style={[styles.noUsersText, { color: colors.textSecondary }]}>{t('supportAdmin.noUsersFound')}</Text>
@@ -685,7 +690,7 @@ export default function SupportAdminScreen() {
                   </Pressable>
                 </View>
               )}
-              
+
               <Text style={[styles.inputLabel, { color: colors.text }]}>{t('support.category')}</Text>
               <View style={styles.categoryContainer}>
                 {CATEGORY_OPTIONS.map(opt => (
@@ -698,10 +703,10 @@ export default function SupportAdminScreen() {
                     ]}
                     onPress={() => setNewCategory(opt.value)}
                   >
-                    <Ionicons 
-                      name={opt.icon} 
-                      size={18} 
-                      color={newCategory === opt.value ? '#FFFFFF' : colors.textSecondary} 
+                    <Ionicons
+                      name={opt.icon}
+                      size={18}
+                      color={newCategory === opt.value ? '#FFFFFF' : colors.textSecondary}
                     />
                     <Text style={[
                       styles.categoryText,
@@ -712,7 +717,7 @@ export default function SupportAdminScreen() {
                   </Pressable>
                 ))}
               </View>
-              
+
               <Text style={[styles.inputLabel, { color: colors.text }]}>{t('support.subject')}</Text>
               <TextInput
                 style={[styles.textInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
@@ -722,7 +727,7 @@ export default function SupportAdminScreen() {
                 onChangeText={setNewSubject}
                 maxLength={255}
               />
-              
+
               <Text style={[styles.inputLabel, { color: colors.text }]}>{t('support.priority')}</Text>
               <View style={styles.priorityContainer}>
                 {PRIORITY_OPTIONS.map(opt => (
@@ -744,7 +749,7 @@ export default function SupportAdminScreen() {
                   </Pressable>
                 ))}
               </View>
-              
+
               <Text style={[styles.inputLabel, { color: colors.text }]}>{t('support.message')}</Text>
               <TextInput
                 style={[styles.textInput, styles.textArea, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
@@ -758,7 +763,7 @@ export default function SupportAdminScreen() {
                 textAlignVertical="top"
               />
             </ScrollView>
-            
+
             <Pressable
               style={[styles.submitButton, { backgroundColor: colors.primary, opacity: creating || !newSubject.trim() || !newTicketMessage.trim() || !selectedUserId ? 0.5 : 1 }]}
               onPress={handleCreateTicket}
@@ -786,78 +791,127 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  unauthorizedContainer: {
+  centeredContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 32,
   },
-  unauthorizedText: {
+  centeredText: {
     fontSize: 18,
     fontWeight: '600',
     marginTop: 16,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 32,
   },
   emptyTitle: {
     fontSize: 20,
     fontWeight: '600',
     marginTop: 16,
     marginBottom: 8,
+    textAlign: 'center',
   },
   emptyText: {
     fontSize: 14,
     textAlign: 'center',
   },
-  filterContainer: {
+  tabBar: {
+    flexDirection: 'row',
     borderBottomWidth: 1,
-    paddingVertical: 12,
   },
-  filterList: {
-    paddingHorizontal: 16,
-    gap: 8,
+  tab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    gap: 6,
   },
-  filterChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    marginRight: 8,
+  tabText: {
+    fontSize: 15,
+    fontWeight: '600',
   },
-  filterChipText: {
-    fontSize: 13,
-    fontWeight: '500',
+  tabBadge: {
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+  },
+  tabBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '700',
   },
   listContent: {
     padding: 16,
+    paddingBottom: 100,
+  },
+  userGroupSection: {
+    marginBottom: 20,
+  },
+  userGroupHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    marginBottom: 8,
+  },
+  userGroupLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+  },
+  userAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  userAvatarText: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  userGroupName: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  userGroupEmail: {
+    fontSize: 12,
+    marginTop: 1,
+  },
+  groupUnreadBadge: {
+    minWidth: 22,
+    height: 22,
+    borderRadius: 11,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+  },
+  groupUnreadText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  conversationsUnderUser: {
+    paddingLeft: 12,
   },
   conversationCard: {
-    padding: 16,
-    borderRadius: 12,
+    padding: 14,
+    borderRadius: 10,
     borderWidth: 1,
-    marginBottom: 12,
+    marginBottom: 8,
   },
   conversationHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 8,
+    alignItems: 'center',
+    marginBottom: 6,
   },
-  userInfo: {
-    flex: 1,
-  },
-  userName: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  userEmail: {
-    fontSize: 12,
-  },
-  badges: {
+  badgeRow: {
     flexDirection: 'row',
     gap: 6,
   },
@@ -877,21 +931,17 @@ const styles = StyleSheet.create({
     textTransform: 'capitalize',
   },
   conversationSubject: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '600',
     marginBottom: 4,
   },
   lastMessage: {
     fontSize: 13,
-    marginBottom: 8,
-  },
-  conversationFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    marginBottom: 6,
+    lineHeight: 18,
   },
   timeText: {
-    fontSize: 12,
+    fontSize: 11,
   },
   unreadBadge: {
     minWidth: 20,
@@ -903,20 +953,7 @@ const styles = StyleSheet.create({
   },
   unreadText: {
     color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  headerBadge: {
-    minWidth: 24,
-    height: 24,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-  },
-  headerBadgeText: {
-    color: '#FFFFFF',
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
   },
   conversationInfo: {
@@ -949,11 +986,6 @@ const styles = StyleSheet.create({
   adminMessage: {
     alignSelf: 'flex-end',
     borderBottomRightRadius: 4,
-  },
-  messageHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 4,
   },
   senderName: {
     fontSize: 12,

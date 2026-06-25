@@ -1810,7 +1810,13 @@
     "searchUsers": "Cerca utenti per nome o email...",
     "noUsersFound": "Nessun utente trovato",
     "messageToUserPlaceholder": "Scrivi il tuo messaggio all'utente...",
-    "sendMessage": "Invia messaggio"
+    "sendMessage": "Invia messaggio",
+    "newMessages": "Nuovi messaggi",
+    "archive": "Archivio",
+    "noNewMessages": "Nessun nuovo messaggio",
+    "noNewMessagesDesc": "Tutte le conversazioni sono risolte o chiuse",
+    "noArchivedMessages": "Nessuna conversazione archiviata",
+    "noArchivedMessagesDesc": "Le conversazioni risolte e chiuse appariranno qui"
   },
   "notifications": {
     "title": "Notifiche",

@@ -1810,7 +1810,13 @@
     "searchUsers": "Sök användare efter namn eller e-post...",
     "noUsersFound": "Inga användare hittades",
     "messageToUserPlaceholder": "Skriv ditt meddelande till användaren...",
-    "sendMessage": "Skicka meddelande"
+    "sendMessage": "Skicka meddelande",
+    "newMessages": "Nya meddelanden",
+    "archive": "Arkiv",
+    "noNewMessages": "Inga nya meddelanden",
+    "noNewMessagesDesc": "Alla konversationer är lösta eller stängda",
+    "noArchivedMessages": "Inga arkiverade konversationer",
+    "noArchivedMessagesDesc": "Lösta och stängda konversationer visas här"
   },
   "notifications": {
     "title": "Aviseringar",

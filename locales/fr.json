@@ -1810,7 +1810,13 @@
     "searchUsers": "Rechercher par nom ou e-mail...",
     "noUsersFound": "Aucun utilisateur trouvé",
     "messageToUserPlaceholder": "Tapez votre message à l'utilisateur...",
-    "sendMessage": "Envoyer le message"
+    "sendMessage": "Envoyer le message",
+    "newMessages": "Nouveaux messages",
+    "archive": "Archive",
+    "noNewMessages": "Aucun nouveau message",
+    "noNewMessagesDesc": "Toutes les conversations sont résolues ou fermées",
+    "noArchivedMessages": "Aucune conversation archivée",
+    "noArchivedMessagesDesc": "Les conversations résolues et fermées apparaîtront ici"
   },
   "notifications": {
     "title": "Notifications",
