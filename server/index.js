@@ -1307,48 +1307,6 @@ async function initDatabase() {
       ALTER TABLE dive_photos ADD COLUMN IF NOT EXISTS blurhash VARCHAR(100);
     `).catch(() => {});
 
-    // One-time fix: ensure onboard user owns all dive sites referenced by their logs.
-    // Background: the onboard user's logs were set up pointing at admin-owned sites.
-    // This creates proper copies under the onboard user and updates the log references.
-    try {
-      const onboardRow = await client.query(`SELECT id FROM users WHERE email = 'anthony@clara-eu.co' LIMIT 1`);
-      if (onboardRow.rows.length > 0) {
-        const onboardId = onboardRow.rows[0].id;
-        const crossRefs = await client.query(`
-          SELECT DISTINCT ds.id as site_id, ds.*
-          FROM dive_logs dl
-          JOIN dive_sites ds ON ds.id = dl.dive_site_id
-          WHERE dl.user_id = $1
-            AND dl.deleted_at IS NULL
-            AND ds.user_id != $1
-            AND ds.deleted_at IS NULL
-        `, [onboardId]);
-        for (const site of crossRefs.rows) {
-          const newSite = await client.query(`
-            INSERT INTO dive_sites (user_id, name, description, site_type, latitude, longitude, country, region,
-              water_type, depth_max, visibility_min, visibility_max, difficulty, current_strength, access_notes,
-              facilities, hazards, best_season, wikipedia_url, external_info, is_wreck, wreck_info, wreck_name, wreck_url, created_at)
-            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24, NOW())
-            RETURNING id
-          `, [onboardId, site.name, site.description, site.site_type, site.latitude, site.longitude,
-              site.country, site.region, site.water_type, site.depth_max, site.visibility_min, site.visibility_max,
-              site.difficulty, site.current_strength, site.access_notes, site.facilities, site.hazards,
-              site.best_season, site.wikipedia_url, site.external_info, site.is_wreck, site.wreck_info,
-              site.wreck_name, site.wreck_url]);
-          await client.query(`
-            UPDATE dive_logs SET dive_site_id = $1
-            WHERE user_id = $2 AND dive_site_id = $3 AND deleted_at IS NULL
-          `, [newSite.rows[0].id, onboardId, site.site_id]);
-          console.log(`Onboard data fix: cloned site "${site.name}" (${site.site_id} → ${newSite.rows[0].id}) for onboard user`);
-        }
-        if (crossRefs.rows.length === 0) {
-          console.log('Onboard data fix: all dive site references already clean');
-        }
-      }
-    } catch (fixErr) {
-      console.error('Onboard data fix error (non-fatal):', fixErr.message);
-    }
-
     console.log('Database initialized successfully');
   } catch (error) {
     console.error('Database initialization error:', error);
@@ -1519,15 +1477,11 @@ async function cloneOnboardDataToUser(targetUserId) {
   const stats = { diveSites: 0, diveLogs: 0, gearProfiles: 0, diveBuddies: 0, equipment: 0, certifications: 0 };
 
   try {
-    // Clone dive sites (track ID mapping for dive logs)
-    // Include sites referenced by the onboard user's logs even if owned by another user
-    const diveSites = await pool.query(`
-      SELECT * FROM dive_sites
-      WHERE deleted_at IS NULL AND (
-        user_id = $1
-        OR id IN (SELECT dive_site_id FROM dive_logs WHERE user_id = $1 AND dive_site_id IS NOT NULL AND deleted_at IS NULL)
-      )
-    `, [onboardUserId]);
+    // Clone dive sites
+    const diveSites = await pool.query(
+      'SELECT * FROM dive_sites WHERE user_id = $1 AND deleted_at IS NULL',
+      [onboardUserId]
+    );
     const siteIdMap = {};
     for (const site of diveSites.rows) {
       const result = await pool.query(`
