@@ -1473,25 +1473,29 @@ async function cloneOnboardDataToUser(targetUserId) {
     return { success: false, message: 'Onboard user not found' };
   }
   const onboardUserId = onboardResult.rows[0].id;
-  
+
   const stats = { diveSites: 0, diveLogs: 0, gearProfiles: 0, diveBuddies: 0, equipment: 0, certifications: 0 };
-  
+
   try {
-    // Clone dive sites (need to track ID mapping for dive logs)
+    // Clone dive sites (track ID mapping for dive logs)
     const diveSites = await pool.query('SELECT * FROM dive_sites WHERE user_id = $1 AND deleted_at IS NULL', [onboardUserId]);
     const siteIdMap = {};
     for (const site of diveSites.rows) {
       const result = await pool.query(`
-        INSERT INTO dive_sites (user_id, name, location, country, latitude, longitude, type, max_depth, difficulty, description, access, current, visibility, water_type, amenities, created_at)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, NOW())
+        INSERT INTO dive_sites (user_id, name, description, site_type, latitude, longitude, country, region,
+          water_type, depth_max, visibility_min, visibility_max, difficulty, current_strength, access_notes,
+          facilities, hazards, best_season, wikipedia_url, external_info, is_wreck, wreck_info, wreck_name, wreck_url, created_at)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24, NOW())
         RETURNING id
-      `, [targetUserId, site.name, site.location, site.country, site.latitude, site.longitude, site.type, site.max_depth, site.difficulty, site.description, site.access, site.current, site.visibility, site.water_type, site.amenities]);
+      `, [targetUserId, site.name, site.description, site.site_type, site.latitude, site.longitude, site.country, site.region,
+          site.water_type, site.depth_max, site.visibility_min, site.visibility_max, site.difficulty, site.current_strength, site.access_notes,
+          site.facilities, site.hazards, site.best_season, site.wikipedia_url, site.external_info, site.is_wreck, site.wreck_info, site.wreck_name, site.wreck_url]);
       siteIdMap[site.id] = result.rows[0].id;
       stats.diveSites++;
     }
-    
-    // Clone dive buddies (need to track ID mapping for dive log buddies)
-    const buddies = await pool.query('SELECT * FROM dive_buddies WHERE user_id = $1', [onboardUserId]);
+
+    // Clone dive buddies (track ID mapping for dive log buddy links)
+    const buddies = await pool.query('SELECT * FROM dive_buddies WHERE user_id = $1 AND (deleted_at IS NULL OR deleted_at IS NOT NULL)', [onboardUserId]);
     const buddyIdMap = {};
     for (const buddy of buddies.rows) {
       const result = await pool.query(`
@@ -1502,89 +1506,115 @@ async function cloneOnboardDataToUser(targetUserId) {
       buddyIdMap[buddy.id] = result.rows[0].id;
       stats.diveBuddies++;
     }
-    
+
     // Clone gear profiles
     const gearProfiles = await pool.query('SELECT * FROM gear_profiles WHERE user_id = $1', [onboardUserId]);
     const gearIdMap = {};
     for (const gear of gearProfiles.rows) {
       const result = await pool.query(`
-        INSERT INTO gear_profiles (user_id, name, bcd_type, bcd_brand, bcd_model, exposure_suit_type, exposure_thickness, weighting_system, total_weight_kg, notes, created_at)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
+        INSERT INTO gear_profiles (user_id, name, config_type, suit_type, suit_thickness, undersuit, suit_nickname,
+          gloves_type, gloves_thickness, gloves_nickname, boots_type, boots_thickness, boots_nickname,
+          hood_type, hood_thickness, hood_nickname, bcd_type, bcd_nickname, fins_type, fins_nickname,
+          mask_nickname, notes, is_template, planned_depth, planned_bottom_time, status, created_at)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26, NOW())
         RETURNING id
-      `, [targetUserId, gear.name, gear.bcd_type, gear.bcd_brand, gear.bcd_model, gear.exposure_suit_type, gear.exposure_thickness, gear.weighting_system, gear.total_weight_kg, gear.notes]);
+      `, [targetUserId, gear.name, gear.config_type, gear.suit_type, gear.suit_thickness, gear.undersuit, gear.suit_nickname,
+          gear.gloves_type, gear.gloves_thickness, gear.gloves_nickname, gear.boots_type, gear.boots_thickness, gear.boots_nickname,
+          gear.hood_type, gear.hood_thickness, gear.hood_nickname, gear.bcd_type, gear.bcd_nickname, gear.fins_type, gear.fins_nickname,
+          gear.mask_nickname, gear.notes, gear.is_template, gear.planned_depth, gear.planned_bottom_time, gear.status]);
       gearIdMap[gear.id] = result.rows[0].id;
       stats.gearProfiles++;
-      
+
       // Clone gear cylinders
       const cylinders = await pool.query('SELECT * FROM gear_cylinders WHERE gear_profile_id = $1', [gear.id]);
       for (const cyl of cylinders.rows) {
         await pool.query(`
-          INSERT INTO gear_cylinders (gear_profile_id, slot, tank_type, tank_size_liters, working_pressure_bar, gas_name, o2_percent, he_percent)
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-        `, [result.rows[0].id, cyl.slot, cyl.tank_type, cyl.tank_size_liters, cyl.working_pressure_bar, cyl.gas_name, cyl.o2_percent, cyl.he_percent]);
+          INSERT INTO gear_cylinders (gear_profile_id, cylinder_size, cylinder_material, cylinder_role, gas_mix,
+            o2_percent, he_percent, start_pressure, working_pressure, nickname, sort_order)
+          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+        `, [result.rows[0].id, cyl.cylinder_size, cyl.cylinder_material, cyl.cylinder_role, cyl.gas_mix,
+            cyl.o2_percent, cyl.he_percent, cyl.start_pressure, cyl.working_pressure, cyl.nickname, cyl.sort_order]);
       }
-      
+
       // Clone gear weights
       const weights = await pool.query('SELECT * FROM gear_weights WHERE gear_profile_id = $1', [gear.id]);
       for (const w of weights.rows) {
         await pool.query(`
-          INSERT INTO gear_weights (gear_profile_id, weight_type, weight_kg, position)
-          VALUES ($1, $2, $3, $4)
-        `, [result.rows[0].id, w.weight_type, w.weight_kg, w.position]);
+          INSERT INTO gear_weights (gear_profile_id, placement, weight_kg, sort_order)
+          VALUES ($1,$2,$3,$4)
+        `, [result.rows[0].id, w.placement, w.weight_kg, w.sort_order]);
       }
     }
-    
+
     // Clone equipment inventory
     const equipment = await pool.query('SELECT * FROM equipment_inventory WHERE user_id = $1', [onboardUserId]);
     for (const eq of equipment.rows) {
       await pool.query(`
         INSERT INTO equipment_inventory (user_id, equipment_type, name, brand, model, serial_number, quantity, purchase_date, last_service_date, notes, created_at)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10, NOW())
       `, [targetUserId, eq.equipment_type, eq.name, eq.brand, eq.model, eq.serial_number, eq.quantity, eq.purchase_date, eq.last_service_date, eq.notes]);
       stats.equipment++;
     }
-    
+
     // Clone dive logs (with mapped site IDs and gear profile IDs)
     const diveLogs = await pool.query('SELECT * FROM dive_logs WHERE user_id = $1 AND deleted_at IS NULL ORDER BY dive_datetime', [onboardUserId]);
     const logIdMap = {};
     for (const log of diveLogs.rows) {
       const newSiteId = log.dive_site_id ? siteIdMap[log.dive_site_id] : null;
       const newGearId = log.gear_profile_id ? gearIdMap[log.gear_profile_id] : null;
-      
+
       const result = await pool.query(`
-        INSERT INTO dive_logs (user_id, dive_site_id, gear_profile_id, dive_datetime, duration_seconds, max_depth_meters, avg_depth_meters, 
-          min_temperature_celsius, max_temperature_celsius, dive_number, surface_interval_seconds, dive_mode, surface_conditions, 
-          weather_conditions, notes, rating, samples, gas_mixes, gas_pressures, buddy, created_at)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, NOW())
+        INSERT INTO dive_logs (user_id, dive_site_id, gear_profile_id, dive_datetime, duration_seconds, max_depth_meters, avg_depth_meters,
+          min_temperature_celsius, max_temperature_celsius, dive_number, surface_interval_seconds, dive_mode, surface_conditions,
+          weather_conditions, notes, rating, samples, gas_mixes, gas_pressures, buddy,
+          workload, thermal_comfort, equipment_issues, skills_practiced, skills_notes,
+          decompression_symptoms, problem_notes, created_at)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27, NOW())
         RETURNING id
       `, [targetUserId, newSiteId, newGearId, log.dive_datetime, log.duration_seconds, log.max_depth_meters, log.avg_depth_meters,
           log.min_temperature_celsius, log.max_temperature_celsius, log.dive_number, log.surface_interval_seconds, log.dive_mode,
-          log.surface_conditions, log.weather_conditions, log.notes, log.rating, log.samples, log.gas_mixes, log.gas_pressures, log.buddy]);
+          log.surface_conditions, log.weather_conditions, log.notes, log.rating, log.samples, log.gas_mixes, log.gas_pressures, log.buddy,
+          log.workload, log.thermal_comfort, log.equipment_issues, log.skills_practiced, log.skills_notes,
+          log.decompression_symptoms, log.problem_notes]);
       logIdMap[log.id] = result.rows[0].id;
       stats.diveLogs++;
-      
+
       // Clone dive log gases
       const gases = await pool.query('SELECT * FROM dive_log_gases WHERE dive_log_id = $1', [log.id]);
       for (const gas of gases.rows) {
         await pool.query(`
-          INSERT INTO dive_log_gases (dive_log_id, gas_slot, name, o2_percent, he_percent, n2_percent, is_diluent, is_bailout, 
-            tank_size_liters, work_pressure_bar, start_pressure_bar, end_pressure_bar)
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+          INSERT INTO dive_log_gases (dive_log_id, gas_slot, name, o2_percent, he_percent, n2_percent, is_diluent, is_bailout,
+            tank_size_liters, work_pressure_bar, start_pressure_bar, end_pressure_bar, transmitter_serial)
+          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
         `, [result.rows[0].id, gas.gas_slot, gas.name, gas.o2_percent, gas.he_percent, gas.n2_percent, gas.is_diluent, gas.is_bailout,
-            gas.tank_size_liters, gas.work_pressure_bar, gas.start_pressure_bar, gas.end_pressure_bar]);
+            gas.tank_size_liters, gas.work_pressure_bar, gas.start_pressure_bar, gas.end_pressure_bar, gas.transmitter_serial]);
+      }
+
+      // Clone dive log buddy links
+      const logBuddies = await pool.query('SELECT * FROM dive_log_buddies WHERE dive_log_id = $1', [log.id]);
+      for (const lb of logBuddies.rows) {
+        const newBuddyId = lb.buddy_id ? buddyIdMap[lb.buddy_id] : null;
+        if (newBuddyId) {
+          await pool.query(`
+            INSERT INTO dive_log_buddies (dive_log_id, buddy_id, created_at)
+            VALUES ($1, $2, NOW())
+          `, [result.rows[0].id, newBuddyId]);
+        }
       }
     }
-    
-    // Clone certifications (courses are shared, just link to user)
+
+    // Clone certifications
     const certs = await pool.query('SELECT * FROM user_certifications WHERE user_id = $1', [onboardUserId]);
     for (const cert of certs.rows) {
       await pool.query(`
-        INSERT INTO user_certifications (user_id, course_id, certification_date, certification_number, instructor_name, dive_shop, notes, created_at)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
-      `, [targetUserId, cert.course_id, cert.certification_date, cert.certification_number, cert.instructor_name, cert.dive_shop, cert.notes]);
+        INSERT INTO user_certifications (user_id, course_id, certification_date, certification_number, instructor_name,
+          instructor_number, dive_center, location, notes, is_verified, latitude, longitude, created_at)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12, NOW())
+      `, [targetUserId, cert.course_id, cert.certification_date, cert.certification_number, cert.instructor_name,
+          cert.instructor_number, cert.dive_center, cert.location, cert.notes, cert.is_verified, cert.latitude, cert.longitude]);
       stats.certifications++;
     }
-    
+
     console.log(`Cloned onboard data to user ${targetUserId}:`, stats);
     return { success: true, stats };
   } catch (error) {
