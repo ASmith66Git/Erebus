@@ -1474,6 +1474,16 @@ async function cloneOnboardDataToUser(targetUserId) {
   }
   const onboardUserId = onboardResult.rows[0].id;
 
+  // Guard: if the target user already has any cloned data, abort to prevent duplicates
+  const alreadyCloned = await pool.query(
+    'SELECT COUNT(*) as count FROM dive_sites WHERE user_id = $1',
+    [targetUserId]
+  );
+  if (parseInt(alreadyCloned.rows[0].count) > 0) {
+    console.log(`User ${targetUserId} already has dive sites — skipping clone to prevent duplicates`);
+    return { success: false, message: 'Data already exists for this user' };
+  }
+
   const stats = { diveSites: 0, diveLogs: 0, gearProfiles: 0, diveBuddies: 0, equipment: 0, certifications: 0 };
 
   try {
@@ -1565,6 +1575,10 @@ async function cloneOnboardDataToUser(targetUserId) {
     for (const log of diveLogs.rows) {
       const newSiteId = siteIdMap[log.dive_site_id] ?? null;
       const newGearId = gearIdMap[log.gear_profile_id] ?? null;
+      // Explicitly stringify jsonb fields — pg can mis-serialise them on re-insert
+      const samples = log.samples == null ? null : JSON.stringify(log.samples);
+      const gasMixes = log.gas_mixes == null ? null : JSON.stringify(log.gas_mixes);
+      const gasPressures = log.gas_pressures == null ? null : JSON.stringify(log.gas_pressures);
 
       const result = await pool.query(`
         INSERT INTO dive_logs (user_id, dive_site_id, gear_profile_id, dive_datetime, duration_seconds, max_depth_meters, avg_depth_meters,
@@ -1576,7 +1590,7 @@ async function cloneOnboardDataToUser(targetUserId) {
         RETURNING id
       `, [targetUserId, newSiteId, newGearId, log.dive_datetime, log.duration_seconds, log.max_depth_meters, log.avg_depth_meters,
           log.min_temperature_celsius, log.max_temperature_celsius, log.dive_number, log.surface_interval_seconds, log.dive_mode,
-          log.surface_conditions, log.weather_conditions, log.notes, log.rating, log.samples, log.gas_mixes, log.gas_pressures, log.buddy,
+          log.surface_conditions, log.weather_conditions, log.notes, log.rating, samples, gasMixes, gasPressures, log.buddy,
           log.workload, log.thermal_comfort, log.equipment_issues, log.skills_practiced, log.skills_notes,
           log.decompression_symptoms, log.problem_notes]);
       logIdMap[log.id] = result.rows[0].id;
