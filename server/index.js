@@ -1618,6 +1618,52 @@ async function cloneOnboardDataToUser(targetUserId) {
       stats.certifications++;
     }
 
+    // Clone cylinders (map gear_profile_id to new profile)
+    const cylinders = await pool.query('SELECT * FROM cylinders WHERE user_id = $1 AND deleted_at IS NULL', [onboardUserId]);
+    for (const cyl of cylinders.rows) {
+      const newGearId = cyl.gear_profile_id ? (gearIdMap[cyl.gear_profile_id] ?? null) : null;
+      await pool.query(`
+        INSERT INTO cylinders (user_id, nickname, cylinder_type, size_liters, serial_number, working_pressure,
+          manufacture_date, ownership_status, testing_standard, custom_visual_interval_months,
+          custom_hydro_interval_months, is_enriched_gas, oxygen_clean_interval_months,
+          last_visual_date, last_hydro_date, last_oxygen_clean_date,
+          reminder_enabled, reminder_days_before, gear_profile_id, created_at)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19, NOW())
+      `, [targetUserId, cyl.nickname, cyl.cylinder_type, cyl.size_liters, cyl.serial_number, cyl.working_pressure,
+          cyl.manufacture_date, cyl.ownership_status, cyl.testing_standard, cyl.custom_visual_interval_months,
+          cyl.custom_hydro_interval_months, cyl.is_enriched_gas, cyl.oxygen_clean_interval_months,
+          cyl.last_visual_date, cyl.last_hydro_date, cyl.last_oxygen_clean_date,
+          cyl.reminder_enabled, cyl.reminder_days_before, newGearId]);
+      stats.cylinders = (stats.cylinders || 0) + 1;
+    }
+
+    // Clone compressors
+    const compressors = await pool.query('SELECT * FROM compressors WHERE user_id = $1 AND deleted_at IS NULL', [onboardUserId]);
+    for (const comp of compressors.rows) {
+      await pool.query(`
+        INSERT INTO compressors (user_id, name, make, model, serial_number, purchase_date, total_hours,
+          oil_change_interval_hours, filter_change_interval_hours, independent_test_interval_months,
+          notes, status, created_at)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12, NOW())
+      `, [targetUserId, comp.name, comp.make, comp.model, comp.serial_number, comp.purchase_date, comp.total_hours,
+          comp.oil_change_interval_hours, comp.filter_change_interval_hours, comp.independent_test_interval_months,
+          comp.notes, comp.status]);
+      stats.compressors = (stats.compressors || 0) + 1;
+    }
+
+    // Clone dive trips (cover image not copied — object storage files are user-specific)
+    const trips = await pool.query('SELECT * FROM dive_trips WHERE user_id = $1 AND deleted_at IS NULL', [onboardUserId]);
+    for (const trip of trips.rows) {
+      await pool.query(`
+        INSERT INTO dive_trips (user_id, name, trip_type, start_date, end_date, operator_name, vessel_name,
+          dive_center_name, location, country, latitude, longitude, accommodation, total_dives, notes, created_at)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15, NOW())
+      `, [targetUserId, trip.name, trip.trip_type, trip.start_date, trip.end_date, trip.operator_name, trip.vessel_name,
+          trip.dive_center_name, trip.location, trip.country, trip.latitude, trip.longitude,
+          trip.accommodation, trip.total_dives, trip.notes]);
+      stats.trips = (stats.trips || 0) + 1;
+    }
+
     console.log(`Cloned onboard data to user ${targetUserId}:`, stats);
     return { success: true, stats };
   } catch (error) {
