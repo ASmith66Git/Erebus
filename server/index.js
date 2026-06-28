@@ -1619,7 +1619,7 @@ async function cloneOnboardDataToUser(targetUserId) {
     }
 
     // Clone cylinders (map gear_profile_id to new profile)
-    const cylinders = await pool.query('SELECT * FROM cylinders WHERE user_id = $1 AND deleted_at IS NULL', [onboardUserId]);
+    const cylinders = await pool.query('SELECT * FROM cylinders WHERE user_id = $1', [onboardUserId]);
     for (const cyl of cylinders.rows) {
       const newGearId = cyl.gear_profile_id ? (gearIdMap[cyl.gear_profile_id] ?? null) : null;
       await pool.query(`
