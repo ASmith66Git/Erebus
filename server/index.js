@@ -1478,7 +1478,14 @@ async function cloneOnboardDataToUser(targetUserId) {
 
   try {
     // Clone dive sites (track ID mapping for dive logs)
-    const diveSites = await pool.query('SELECT * FROM dive_sites WHERE user_id = $1 AND deleted_at IS NULL', [onboardUserId]);
+    // Include sites referenced by the onboard user's logs even if owned by another user
+    const diveSites = await pool.query(`
+      SELECT * FROM dive_sites
+      WHERE deleted_at IS NULL AND (
+        user_id = $1
+        OR id IN (SELECT dive_site_id FROM dive_logs WHERE user_id = $1 AND dive_site_id IS NOT NULL AND deleted_at IS NULL)
+      )
+    `, [onboardUserId]);
     const siteIdMap = {};
     for (const site of diveSites.rows) {
       const result = await pool.query(`
@@ -1560,8 +1567,8 @@ async function cloneOnboardDataToUser(targetUserId) {
     const diveLogs = await pool.query('SELECT * FROM dive_logs WHERE user_id = $1 AND deleted_at IS NULL ORDER BY dive_datetime', [onboardUserId]);
     const logIdMap = {};
     for (const log of diveLogs.rows) {
-      const newSiteId = log.dive_site_id ? siteIdMap[log.dive_site_id] : null;
-      const newGearId = log.gear_profile_id ? gearIdMap[log.gear_profile_id] : null;
+      const newSiteId = siteIdMap[log.dive_site_id] ?? null;
+      const newGearId = gearIdMap[log.gear_profile_id] ?? null;
 
       const result = await pool.query(`
         INSERT INTO dive_logs (user_id, dive_site_id, gear_profile_id, dive_datetime, duration_seconds, max_depth_meters, avg_depth_meters,
