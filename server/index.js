@@ -1622,14 +1622,26 @@ async function cloneOnboardDataToUser(targetUserId) {
 
     // Clone certifications
     const certs = await pool.query('SELECT * FROM user_certifications WHERE user_id = $1', [onboardUserId]);
+    const certIdMap = {};
     for (const cert of certs.rows) {
-      await pool.query(`
+      const certResult = await pool.query(`
         INSERT INTO user_certifications (user_id, course_id, certification_date, certification_number, instructor_name,
           instructor_number, dive_center, location, notes, is_verified, latitude, longitude, created_at)
         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12, NOW())
+        RETURNING id
       `, [targetUserId, cert.course_id, cert.certification_date, cert.certification_number, cert.instructor_name,
           cert.instructor_number, cert.dive_center, cert.location, cert.notes, cert.is_verified, cert.latitude, cert.longitude]);
+      certIdMap[cert.id] = certResult.rows[0].id;
       stats.certifications++;
+
+      // Clone certification images (image files stay in object storage — just copy metadata rows)
+      const certImages = await pool.query('SELECT * FROM certification_images WHERE certification_id = $1', [cert.id]);
+      for (const img of certImages.rows) {
+        await pool.query(`
+          INSERT INTO certification_images (certification_id, image_url, image_side, created_at)
+          VALUES ($1, $2, $3, NOW())
+        `, [certResult.rows[0].id, img.image_url, img.image_side]);
+      }
     }
 
     // Clone cylinders (map gear_profile_id to new profile)
@@ -1665,17 +1677,52 @@ async function cloneOnboardDataToUser(targetUserId) {
       stats.compressors = (stats.compressors || 0) + 1;
     }
 
-    // Clone dive trips (cover image not copied — object storage files are user-specific)
+    // Clone dive trips
     const trips = await pool.query('SELECT * FROM dive_trips WHERE user_id = $1 AND deleted_at IS NULL', [onboardUserId]);
+    const tripIdMap = {};
     for (const trip of trips.rows) {
-      await pool.query(`
+      const tripResult = await pool.query(`
         INSERT INTO dive_trips (user_id, name, trip_type, start_date, end_date, operator_name, vessel_name,
           dive_center_name, location, country, latitude, longitude, accommodation, total_dives, notes, created_at)
         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15, NOW())
+        RETURNING id
       `, [targetUserId, trip.name, trip.trip_type, trip.start_date, trip.end_date, trip.operator_name, trip.vessel_name,
           trip.dive_center_name, trip.location, trip.country, trip.latitude, trip.longitude,
           trip.accommodation, trip.total_dives, trip.notes]);
+      tripIdMap[trip.id] = tripResult.rows[0].id;
       stats.trips = (stats.trips || 0) + 1;
+    }
+
+    // Clone dive_trip_logs (junction table linking trips to logs)
+    const tripLogs = await pool.query(
+      'SELECT tl.* FROM dive_trip_logs tl JOIN dive_trips dt ON tl.trip_id = dt.id WHERE dt.user_id = $1',
+      [onboardUserId]
+    );
+    for (const tl of tripLogs.rows) {
+      const newTripId = tripIdMap[tl.trip_id];
+      const newLogId = logIdMap[tl.dive_log_id];
+      if (newTripId && newLogId) {
+        await pool.query(`
+          INSERT INTO dive_trip_logs (trip_id, dive_log_id, created_at)
+          VALUES ($1, $2, NOW())
+        `, [newTripId, newLogId]);
+      }
+    }
+
+    // Clone dive_photos (image files stay in object storage — just copy metadata rows with remapped FKs)
+    const photos = await pool.query('SELECT * FROM dive_photos WHERE user_id = $1 AND deleted_at IS NULL', [onboardUserId]);
+    for (const photo of photos.rows) {
+      const newLogId = photo.dive_log_id ? (logIdMap[photo.dive_log_id] ?? null) : null;
+      const newTripId = photo.trip_id ? (tripIdMap[photo.trip_id] ?? null) : null;
+      await pool.query(`
+        INSERT INTO dive_photos (user_id, dive_log_id, trip_id, image_url, thumbnail_url, caption,
+          taken_at, location_lat, location_lng, width, height, file_size, is_favorite, media_type,
+          duration, blurhash, created_at)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16, NOW())
+      `, [targetUserId, newLogId, newTripId, photo.image_url, photo.thumbnail_url, photo.caption,
+          photo.taken_at, photo.location_lat, photo.location_lng, photo.width, photo.height,
+          photo.file_size, photo.is_favorite, photo.media_type, photo.duration, photo.blurhash]);
+      stats.photos = (stats.photos || 0) + 1;
     }
 
     console.log(`Cloned onboard data to user ${targetUserId}:`, stats);
