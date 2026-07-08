@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Drawer } from 'expo-router/drawer';
-import { View, Text, StyleSheet, SafeAreaView, Alert, Image } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, Alert, Image, Platform } from 'react-native';
 import { DrawerContentScrollView, DrawerItem } from '@react-navigation/drawer';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,6 +8,8 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import * as Notifications from 'expo-notifications';
+import { notificationService } from '@/services/notificationService';
 
 function CustomDrawerContent(props: any) {
   const { colors } = useTheme();
@@ -141,6 +143,28 @@ function CustomDrawerContent(props: any) {
 
 export default function AppLayout() {
   const { colors } = useTheme();
+  const { token } = useAuth();
+
+  // Silently re-register push token on every app launch if permission already granted.
+  // This ensures fresh tokens from new builds always reach the server without
+  // requiring the user to manually visit the Notifications settings screen.
+  useEffect(() => {
+    if (!token || Platform.OS === 'web') return;
+
+    (async () => {
+      try {
+        const { status } = await Notifications.getPermissionsAsync();
+        if (status === 'granted') {
+          const result = await notificationService.initialize();
+          if (result.token) {
+            await notificationService.registerTokenWithServer(token);
+          }
+        }
+      } catch (e) {
+        // Silent — never block app launch for push registration failures
+      }
+    })();
+  }, [token]);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
