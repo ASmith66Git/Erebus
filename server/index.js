@@ -155,48 +155,67 @@ async function sendPushNotification(userId, title, body, data = {}) {
       'SELECT token FROM push_tokens WHERE user_id = $1 AND is_active = true',
       [userId]
     );
-    
+
     if (tokenResult.rows.length === 0) {
-      console.log(`No active push tokens for user ${userId}`);
+      console.log(`[Push] user=${userId} — no active tokens registered`);
       return { success: false, reason: 'no_tokens' };
     }
-    
+
+    console.log(`[Push] user=${userId} title="${title}" — attempting ${tokenResult.rows.length} token(s)`);
+
     const messages = [];
+    const tokenList = [];
     for (const row of tokenResult.rows) {
       if (!Expo.isExpoPushToken(row.token)) {
-        console.log(`Invalid Expo push token: ${row.token}`);
+        console.log(`[Push] user=${userId} — skipping invalid token format: ${row.token}`);
         continue;
       }
-      
-      messages.push({
-        to: row.token,
-        sound: 'default',
-        title,
-        body,
-        data,
-      });
+      messages.push({ to: row.token, sound: 'default', title, body, data });
+      tokenList.push(row.token);
     }
-    
+
     if (messages.length === 0) {
+      console.log(`[Push] user=${userId} — no valid Expo-format tokens found`);
       return { success: false, reason: 'no_valid_tokens' };
     }
-    
+
     const chunks = expo.chunkPushNotifications(messages);
     const tickets = [];
-    
+
     for (const chunk of chunks) {
       try {
         const ticketChunk = await expo.sendPushNotificationsAsync(chunk);
         tickets.push(...ticketChunk);
       } catch (error) {
-        console.error('Error sending push notification chunk:', error);
+        console.error(`[Push] user=${userId} — chunk send error:`, error.message);
       }
     }
-    
-    console.log(`Sent ${tickets.length} push notifications to user ${userId}`);
-    return { success: true, tickets };
+
+    // Log each ticket result and deactivate tokens Expo reports as invalid
+    let successCount = 0;
+    for (let i = 0; i < tickets.length; i++) {
+      const ticket = tickets[i];
+      const token = tokenList[i] || 'unknown';
+      if (ticket.status === 'ok') {
+        successCount++;
+        console.log(`[Push] user=${userId} — OK  token=...${token.slice(-10)}`);
+      } else {
+        const errCode = ticket.details?.error || 'unknown';
+        console.warn(`[Push] user=${userId} — ERR token=...${token.slice(-10)} error=${errCode} msg="${ticket.message}"`);
+        if (errCode === 'DeviceNotRegistered') {
+          await pool.query(
+            'UPDATE push_tokens SET is_active = false WHERE token = $1',
+            [token]
+          );
+          console.log(`[Push] user=${userId} — deactivated expired token ...${token.slice(-10)}`);
+        }
+      }
+    }
+
+    console.log(`[Push] user=${userId} — ${successCount}/${tickets.length} delivered successfully`);
+    return { success: successCount > 0, tickets };
   } catch (error) {
-    console.error('Error in sendPushNotification:', error);
+    console.error(`[Push] user=${userId} — unexpected error:`, error.message);
     return { success: false, reason: 'error', error: error.message };
   }
 }
