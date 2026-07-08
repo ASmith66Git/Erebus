@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
+import { useFocusEffect } from 'expo-router';
 import {
   View,
   Text,
@@ -234,9 +235,9 @@ export default function SupportAdminScreen() {
     }
   }, [token, fetchConversations]);
 
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     fetchConversations();
-  }, [token]);
+  }, [fetchConversations]));
 
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !selectedConversation) return;
