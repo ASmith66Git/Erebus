@@ -193,12 +193,18 @@ async function sendPushNotification(userId, title, body, data = {}) {
 
     // Log each ticket result and deactivate tokens Expo reports as invalid
     let successCount = 0;
+    const receiptIds = [];
+    const receiptTokenMap = {};
     for (let i = 0; i < tickets.length; i++) {
       const ticket = tickets[i];
       const token = tokenList[i] || 'unknown';
       if (ticket.status === 'ok') {
         successCount++;
         console.log(`[Push] user=${userId} — OK  token=...${token.slice(-10)}`);
+        if (ticket.id) {
+          receiptIds.push(ticket.id);
+          receiptTokenMap[ticket.id] = token;
+        }
       } else {
         const errCode = ticket.details?.error || 'unknown';
         console.warn(`[Push] user=${userId} — ERR token=...${token.slice(-10)} error=${errCode} msg="${ticket.message}"`);
@@ -213,6 +219,37 @@ async function sendPushNotification(userId, title, body, data = {}) {
     }
 
     console.log(`[Push] user=${userId} — ${successCount}/${tickets.length} delivered successfully`);
+
+    // Check APNs/FCM receipts after 30s to confirm actual delivery
+    if (receiptIds.length > 0) {
+      setTimeout(async () => {
+        try {
+          const receiptChunks = expo.chunkPushNotificationReceiptIds(receiptIds);
+          for (const chunk of receiptChunks) {
+            const receipts = await expo.getPushNotificationReceiptsAsync(chunk);
+            for (const [receiptId, receipt] of Object.entries(receipts)) {
+              const tok = receiptTokenMap[receiptId] || 'unknown';
+              if (receipt.status === 'ok') {
+                console.log(`[Push:receipt] user=${userId} — DELIVERED token=...${tok.slice(-10)}`);
+              } else {
+                const errCode = receipt.details?.error || 'unknown';
+                console.warn(`[Push:receipt] user=${userId} — FAILED token=...${tok.slice(-10)} error=${errCode} msg="${receipt.message}"`);
+                if (errCode === 'DeviceNotRegistered') {
+                  await pool.query(
+                    'UPDATE push_tokens SET is_active = false WHERE token = $1',
+                    [tok]
+                  );
+                  console.log(`[Push:receipt] user=${userId} — deactivated stale token ...${tok.slice(-10)}`);
+                }
+              }
+            }
+          }
+        } catch (err) {
+          console.error(`[Push:receipt] user=${userId} — receipt check error:`, err.message);
+        }
+      }, 30000);
+    }
+
     return { success: successCount > 0, tickets };
   } catch (error) {
     console.error(`[Push] user=${userId} — unexpected error:`, error.message);
