@@ -18,3 +18,9 @@ id = "iXXQjQ6b6FwPnhqUP8dTd"
 uri = "file://docs/libdivecomputer-shearwater-mapping.pdf"
 type = "pdf"
 title = "Shearwater (Perdix) → Erebus Data Mapping (PDF)"
+
+[[outputs]]
+id = "M3nE3US2tOkb_Z1HOBtIN"
+uri = "file://erebus-project.zip"
+type = "unspecified"
+title = "Erebus Project (full source)"
