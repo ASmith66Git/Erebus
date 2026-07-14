@@ -318,6 +318,10 @@ async function initDatabase() {
       ALTER TABLE users ADD COLUMN IF NOT EXISTS trial_ends_at TIMESTAMP;
     `).catch(() => {});
 
+    await client.query(`
+      UPDATE users SET trial_ends_at = created_at + INTERVAL '14 days' WHERE trial_ends_at IS NULL;
+    `).catch(() => {});
+
 
     await client.query(`
       ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMP;
@@ -1470,7 +1474,7 @@ app.post('/api/auth/signup', async (req, res) => {
     const now = new Date();
     
     const result = await pool.query(
-      'INSERT INTO users (email, password, first_name, last_name, age, sex, privacy_accepted_at, terms_accepted_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, email, first_name, last_name, role, age, sex, trial_ends_at',
+      'INSERT INTO users (email, password, first_name, last_name, age, sex, privacy_accepted_at, terms_accepted_at, trial_ends_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW() + INTERVAL \'14 days\') RETURNING id, email, first_name, last_name, role, age, sex, trial_ends_at',
       [email.toLowerCase(), hashedPassword, firstName || null, lastName || null, age || null, sex || null, now, now]
     );
     
