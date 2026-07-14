@@ -2314,6 +2314,46 @@ app.delete('/api/admin/users/:id', authenticateToken, requireAdmin, async (req, 
   }
 });
 
+// Admin: full wipe + delete a user account for testing (forces fresh signup + new RevenueCat customer)
+app.post('/api/admin/users/:id/test-reset', authenticateToken, requireAdmin, async (req, res) => {
+  const targetId = parseInt(req.params.id);
+
+  if (targetId === req.user.id) {
+    return res.status(400).json({ error: 'Cannot reset your own account' });
+  }
+
+  const targetCheck = await pool.query('SELECT id, email, role FROM users WHERE id = $1', [targetId]);
+  if (targetCheck.rows.length === 0) return res.status(404).json({ error: 'User not found' });
+  if (targetCheck.rows[0].role === 'admin') {
+    return res.status(400).json({ error: 'Cannot reset an admin account' });
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    // Cascade-delete in dependency order — mirrors the self-delete logic.
+    // We skip object-storage cleanup: cloned photos share URLs with the onboard user.
+    await client.query('DELETE FROM dive_logs WHERE user_id = $1', [targetId]);
+    await client.query('DELETE FROM dive_buddies WHERE user_id = $1', [targetId]);
+    await client.query('DELETE FROM support_conversations WHERE user_id = $1', [targetId]);
+    await client.query('DELETE FROM dive_sites WHERE user_id = $1', [targetId]);
+    // Remaining tables (gear, certs, cylinders, compressors, trips, photos, push_tokens…)
+    // have ON DELETE CASCADE on users(id) and are removed by the next statement.
+    await client.query('DELETE FROM users WHERE id = $1', [targetId]);
+
+    await client.query('COMMIT');
+    console.log(`[TestReset] Admin ${req.user.id} wiped user ${targetId} (${targetCheck.rows[0].email}) for re-signup`);
+    res.json({ message: 'User account wiped. They can now sign up fresh and will be treated as a new RevenueCat customer.' });
+  } catch (error) {
+    await client.query('ROLLBACK').catch(() => {});
+    console.error('Test-reset error:', error);
+    res.status(500).json({ error: 'Server error during test reset' });
+  } finally {
+    client.release();
+  }
+});
+
 // Self-delete: authenticated user deletes their own account
 app.delete('/api/user/account', authenticateToken, async (req, res) => {
   const userId = req.user.id;
