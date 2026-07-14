@@ -635,22 +635,6 @@ export default function AdminScreen() {
                     </Pressable>
 
                     <Pressable
-                      style={[styles.actionRow, { borderColor: '#AF52DE' + '40' }]}
-                      onPress={() => resetForTesting(selectedUser.user.id, selectedUser.user.email)}
-                      disabled={actionLoading === 'testreset'}
-                    >
-                      <View style={[styles.actionIconWrapper, { backgroundColor: '#AF52DE' + '20' }]}>
-                        {actionLoading === 'testreset' ? (
-                          <ActivityIndicator size="small" color="#AF52DE" />
-                        ) : (
-                          <Ionicons name="refresh-circle" size={20} color="#AF52DE" />
-                        )}
-                      </View>
-                      <Text style={[styles.actionLabel, { color: '#AF52DE' }]}>Reset for Testing</Text>
-                      <Ionicons name="chevron-forward" size={20} color="#AF52DE" />
-                    </Pressable>
-
-                    <Pressable
                       style={[styles.actionRow, styles.deleteAction, { borderColor: colors.error + '40' }]}
                       onPress={() => deleteUser(selectedUser.user.id)}
                     >
@@ -662,6 +646,24 @@ export default function AdminScreen() {
                     </Pressable>
                   </View>
                 )}
+
+                <View style={[styles.actionsSection, { marginTop: 0 }]}>
+                  <Pressable
+                    style={[styles.actionRow, { borderColor: '#AF52DE' + '40' }]}
+                    onPress={() => resetForTesting(selectedUser.user.id, selectedUser.user.email)}
+                    disabled={actionLoading === 'testreset'}
+                  >
+                    <View style={[styles.actionIconWrapper, { backgroundColor: '#AF52DE' + '20' }]}>
+                      {actionLoading === 'testreset' ? (
+                        <ActivityIndicator size="small" color="#AF52DE" />
+                      ) : (
+                        <Ionicons name="refresh-circle" size={20} color="#AF52DE" />
+                      )}
+                    </View>
+                    <Text style={[styles.actionLabel, { color: '#AF52DE' }]}>Reset for Testing</Text>
+                    <Ionicons name="chevron-forward" size={20} color="#AF52DE" />
+                  </Pressable>
+                </View>
 
                 <View style={{ height: 40 }} />
               </ScrollView>
