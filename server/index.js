@@ -3562,9 +3562,9 @@ app.get('/api/dive-sites', authenticateToken, async (req, res) => {
   const { search, type, difficulty, water_type, country, limit = 50, offset = 0 } = req.query;
   
   try {
-    let query = 'SELECT * FROM dive_sites WHERE is_archived = FALSE';
-    const params = [];
-    let paramCount = 0;
+    let query = 'SELECT * FROM dive_sites WHERE user_id = $1 AND deleted_at IS NULL AND is_archived = FALSE';
+    const params = [req.user.id];
+    let paramCount = 1;
     
     if (search) {
       paramCount++;
@@ -3606,8 +3606,8 @@ app.get('/api/dive-sites', authenticateToken, async (req, res) => {
     
     const result = await pool.query(query, params);
     
-    const countQuery = 'SELECT COUNT(*) FROM dive_sites WHERE is_archived = FALSE';
-    const countResult = await pool.query(countQuery);
+    const countQuery = 'SELECT COUNT(*) FROM dive_sites WHERE user_id = $1 AND deleted_at IS NULL AND is_archived = FALSE';
+    const countResult = await pool.query(countQuery, [req.user.id]);
     
     const siteIds = result.rows.map(s => s.id);
     let primaryImages = {};
@@ -3669,7 +3669,7 @@ app.get('/api/dive-sites/:id', authenticateToken, async (req, res) => {
   const { id } = req.params;
   
   try {
-    const result = await pool.query('SELECT * FROM dive_sites WHERE id = $1 AND is_archived = FALSE', [id]);
+    const result = await pool.query('SELECT * FROM dive_sites WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL AND is_archived = FALSE', [id, req.user.id]);
     
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Dive site not found' });
@@ -3791,7 +3791,7 @@ app.put('/api/dive-sites/:id', authenticateToken, async (req, res) => {
   } = req.body;
   
   try {
-    const existingCheck = await pool.query('SELECT id FROM dive_sites WHERE id = $1 AND is_archived = FALSE', [id]);
+    const existingCheck = await pool.query('SELECT id FROM dive_sites WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL AND is_archived = FALSE', [id, req.user.id]);
     if (existingCheck.rows.length === 0) {
       return res.status(404).json({ error: 'Dive site not found' });
     }
@@ -3876,15 +3876,15 @@ app.delete('/api/dive-sites/:id', authenticateToken, async (req, res) => {
   
   try {
     const result = await pool.query(
-      'UPDATE dive_sites SET is_archived = TRUE, updated_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING id',
-      [id]
+      'UPDATE dive_sites SET deleted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = $1 AND user_id = $2 RETURNING id',
+      [id, req.user.id]
     );
     
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Dive site not found' });
     }
     
-    res.json({ message: 'Dive site archived successfully' });
+    res.json({ message: 'Dive site deleted successfully' });
   } catch (error) {
     console.error('Delete dive site error:', error);
     res.status(500).json({ error: 'Server error' });
