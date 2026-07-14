@@ -103,12 +103,12 @@ outputType = "console"
 name = "EAS Publish Preview iOS"
 author = "agent"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "[ -f \".trigger-eas-preview-ios\" ] && rm \".trigger-eas-preview-ios\" && npx eas build --platform ios --profile preview || echo \"⛔ EAS Publish Preview iOS: auto-start blocked. Trigger file not present.\""
-
 [workflows.workflow.metadata]
 outputType = "console"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "[ -f \".trigger-eas-preview-ios\" ] && rm \".trigger-eas-preview-ios\" && EAS_NO_VCS=1 npx eas build --platform ios --profile preview --non-interactive || echo \"⛔ EAS Publish Preview iOS: auto-start blocked. Trigger file not present.\""
 
 [[workflows.workflow]]
 name = "EAS Publish Preview Android"
