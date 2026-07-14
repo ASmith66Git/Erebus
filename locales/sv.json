@@ -2168,8 +2168,9 @@
   "trial": {
     "daysRemaining": "{{count}} dag kvar av din gratis provperiod",
     "daysRemaining_other": "{{count}} dagar kvar av din gratis provperiod",
-    "paywallTitle": "Starta din kostnadsfria provperiod",
-    "paywallSubtitle": "Njut av 14 dagar gratis — ingen kostnad förrän din provperiod avslutas.",
+    "paywallTitle": "Lås upp premiumåtkomst",
+    "paywallSubtitle": "14 dagars provperiod, sedan {{price}}/{{period}}",
+    "paywallSubtitleFallback": "14 dagars gratis provperiod ingår",
     "statusActive": "Aktiv",
     "statusInactive": "Inaktiv",
     "statusTrial": "Provperiod — {{count}} dag kvar",

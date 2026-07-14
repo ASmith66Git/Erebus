@@ -2168,8 +2168,9 @@
   "trial": {
     "daysRemaining": "{{count}} day remaining in your free trial",
     "daysRemaining_other": "{{count}} days remaining in your free trial",
-    "paywallTitle": "Start Your Free Trial",
-    "paywallSubtitle": "Enjoy 14 days free — no charge until your trial ends.",
+    "paywallTitle": "Unlock Premium Access",
+    "paywallSubtitle": "14-day free trial, then {{price}}/{{period}}",
+    "paywallSubtitleFallback": "14-day free trial included",
     "statusActive": "Active",
     "statusInactive": "Inactive",
     "statusTrial": "Trial — {{count}} day left",

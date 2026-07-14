@@ -184,8 +184,13 @@ export default function PaywallScreen() {
             <Ionicons name="diamond" size={48} color={colors.primary} />
           </View>
           <Text style={[styles.title, { color: colors.text }]}>{t('trial.paywallTitle')}</Text>
-          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-            {t('trial.paywallSubtitle')}
+          <Text style={[styles.subtitle, { color: colors.textSecondary, fontSize: 14 }]}>
+            {selectedPackage?.product?.priceString
+              ? t('trial.paywallSubtitle', {
+                  price: selectedPackage.product.priceString,
+                  period: (selectedPackage.packageType === 'ANNUAL' || selectedPackage.identifier === '$rc_annual') ? 'year' : 'month',
+                })
+              : t('trial.paywallSubtitleFallback')}
           </Text>
         </View>
 
@@ -271,12 +276,14 @@ export default function PaywallScreen() {
                 const trialLabel = intro
                   ? `${intro.periodNumberOfUnits}-${intro.periodUnit.toLowerCase()}`
                   : '14-day';
-                return `You are signing up for a ${trialLabel} free trial starting today. You will not be charged during the trial. After the trial, you will be billed ${selectedPackage.product.priceString}/${period} unless you cancel before the trial ends.`;
+                const productTitle = selectedPackage.product.title || 'Erebus Premium';
+                const store = Platform.OS === 'ios' ? 'Apple ID' : 'Google Play';
+                return `A subscription to '${productTitle}' at ${selectedPackage.product.priceString}/${period} will be charged to your ${store} account at the end of the ${trialLabel} free trial, unless cancelled before the trial ends.`;
               })()
-            : 'You are signing up for a 14-day free trial starting today. You will not be charged during the trial period.'
+            : `A subscription will be charged to your ${Platform.OS === 'ios' ? 'Apple ID' : 'Google Play'} account at the end of the 14-day free trial, unless cancelled before the trial ends.`
           }{'\n\n'}{Platform.OS === 'ios'
-            ? 'Payment will be charged to your Apple ID account at confirmation of purchase. Subscription automatically renews unless cancelled at least 24 hours before the end of the current period. Manage or cancel your subscription in Apple ID account settings at any time.'
-            : 'Payment will be charged to your Google Play account at confirmation of purchase. Subscription automatically renews unless cancelled at least 24 hours before the end of the current period. Manage or cancel your subscription in Google Play at any time.'
+            ? 'Subscription automatically renews unless cancelled at least 24 hours before the end of the current period. Manage or cancel your subscription in your Apple ID account settings at any time.'
+            : 'Subscription automatically renews unless cancelled at least 24 hours before the end of the current period. Manage or cancel your subscription in Google Play at any time.'
           }
         </Text>
 
@@ -303,14 +310,14 @@ export default function PaywallScreen() {
             <ActivityIndicator color="#FFF" />
           ) : (
             <Text style={styles.subscribeButtonText}>
-              {selectedPackage?.product?.introPrice
-                ? `Start ${selectedPackage.product.introPrice.periodNumberOfUnits}-${selectedPackage.product.introPrice.periodUnit.toLowerCase().replace('day','Day').replace('week','Week').replace('month','Month')} Free Trial`
+              {selectedPackage?.product?.priceString
+                ? `Subscribe — ${selectedPackage.product.priceString}`
                 : 'Subscribe Now'}
             </Text>
           )}
         </Pressable>
         <Text style={[styles.cancelAnytime, { color: colors.textSecondary }]}>
-          Cancel anytime — no charge until your free trial ends
+          Cancel anytime
         </Text>
 
         <Pressable
@@ -480,7 +487,8 @@ const styles = StyleSheet.create({
     fontWeight: '400',
   },
   monthlyEquiv: {
-    fontSize: 13,
+    fontSize: 11,
+    fontStyle: 'italic',
     marginTop: 2,
   },
   trialBanner: {

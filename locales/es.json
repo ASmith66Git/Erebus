@@ -2168,8 +2168,9 @@
   "trial": {
     "daysRemaining": "{{count}} día restante en tu prueba gratuita",
     "daysRemaining_other": "{{count}} días restantes en tu prueba gratuita",
-    "paywallTitle": "Comienza tu prueba gratuita",
-    "paywallSubtitle": "Disfruta 14 días gratis — sin cargo hasta que termine tu prueba.",
+    "paywallTitle": "Desbloquea el acceso Premium",
+    "paywallSubtitle": "14 días de prueba gratuita, luego {{price}}/{{period}}",
+    "paywallSubtitleFallback": "Prueba gratuita de 14 días incluida",
     "statusActive": "Activo",
     "statusInactive": "Inactivo",
     "statusTrial": "Prueba — {{count}} día restante",

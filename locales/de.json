@@ -2168,8 +2168,9 @@
   "trial": {
     "daysRemaining": "{{count}} Tag verbleibend in Ihrer kostenlosen Testphase",
     "daysRemaining_other": "{{count}} Tage verbleibend in Ihrer kostenlosen Testphase",
-    "paywallTitle": "Starten Sie Ihre kostenlose Testphase",
-    "paywallSubtitle": "Genießen Sie 14 Tage kostenlos — keine Abbuchung bis zum Ende Ihrer Testphase.",
+    "paywallTitle": "Premium-Zugang freischalten",
+    "paywallSubtitle": "14-tägige Testphase, dann {{price}}/{{period}}",
+    "paywallSubtitleFallback": "14-tägige kostenlose Testphase inklusive",
     "statusActive": "Aktiv",
     "statusInactive": "Inaktiv",
     "statusTrial": "Testphase — {{count}} Tag übrig",

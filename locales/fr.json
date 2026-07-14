@@ -2168,8 +2168,9 @@
   "trial": {
     "daysRemaining": "{{count}} jour restant dans votre essai gratuit",
     "daysRemaining_other": "{{count}} jours restants dans votre essai gratuit",
-    "paywallTitle": "Commencez votre essai gratuit",
-    "paywallSubtitle": "Profitez de 14 jours gratuits — aucun frais avant la fin de votre essai.",
+    "paywallTitle": "Débloquez l'accès Premium",
+    "paywallSubtitle": "14 jours d'essai gratuit, puis {{price}}/{{period}}",
+    "paywallSubtitleFallback": "Essai gratuit de 14 jours inclus",
     "statusActive": "Actif",
     "statusInactive": "Inactif",
     "statusTrial": "Essai — {{count}} jour restant",
