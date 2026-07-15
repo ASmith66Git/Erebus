@@ -3,7 +3,7 @@ module.exports = {
     name: "Erebus",
     slug: "erebus-dive-app",
     owner: "leviathan-systems-ltd",
-    version: "2.0.89",
+    version: "2.0.90",
     runtimeVersion: "1.1.74",
     orientation: "default",
     icon: "./assets/images/icon.png",
@@ -13,7 +13,7 @@ module.exports = {
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.leviathan-sys.erebus",
-      buildNumber: "119",
+      buildNumber: "120",
       infoPlist: {
         NSBluetoothAlwaysUsageDescription: "Erebus needs Bluetooth access to connect to your dive computer and download dive logs.",
         NSBluetoothPeripheralUsageDescription: "Erebus needs Bluetooth access to connect to your dive computer.",
@@ -29,7 +29,7 @@ module.exports = {
       }
     },
     android: {
-      versionCode: 119,
+      versionCode: 120,
       adaptiveIcon: {
         foregroundImage: "./assets/images/adaptive-icon.png",
         backgroundColor: "#000000"
