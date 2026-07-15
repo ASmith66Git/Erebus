@@ -142,7 +142,30 @@ function CustomDrawerContent(props: any) {
 
 export default function AppLayout() {
   const { colors } = useTheme();
-  const { token } = useAuth();
+  const { token, isAdmin } = useAuth();
+  const router = useRouter();
+  const lastNotificationResponse = Notifications.useLastNotificationResponse();
+
+  // Navigate when user taps a push notification
+  useEffect(() => {
+    if (!lastNotificationResponse) return;
+    const data = lastNotificationResponse.notification.request.content.data as any;
+    if (!data?.type) return;
+
+    switch (data.type) {
+      case 'support_new_ticket':
+      case 'support_user_message':
+        if (isAdmin) {
+          router.push('/(app)/(tabs)/support-admin' as any);
+        } else {
+          router.push('/(app)/(tabs)/profile' as any);
+        }
+        break;
+      case 'cylinder_reminder':
+        router.push('/(app)/(tabs)/cylinders' as any);
+        break;
+    }
+  }, [lastNotificationResponse]);
 
   // Silently re-register push token on every app launch if permission already granted.
   // This ensures fresh tokens from new builds always reach the server without
