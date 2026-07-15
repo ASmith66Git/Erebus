@@ -769,7 +769,10 @@ export default function ProfileScreen() {
           if (Platform.OS !== 'web') {
             try {
               await Purchases.invalidateCustomerInfoCache();
-              await Purchases.logIn(`app_user_${user?.id}`);
+              const alreadyAnonymous = await Purchases.isAnonymous();
+              if (!alreadyAnonymous) {
+                await Purchases.logOut();
+              }
             } catch (rcErr) {
               console.warn('RC client reset error (non-fatal):', rcErr);
             }
