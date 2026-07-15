@@ -34,7 +34,7 @@ try {
 
 function RootLayoutNav() {
   const { colorScheme, isDark } = useTheme();
-  const { isAuthenticated, isLoading, isAdmin, isTrialActive, user } = useAuth();
+  const { isAuthenticated, isLoading, isAdmin, user } = useAuth();
   const { isSubscribed, isLoading: isSubLoading, hasError: hasSubError } = useSubscription();
   const segments = useSegments();
   const router = useRouter();
@@ -54,7 +54,7 @@ function RootLayoutNav() {
     }
   }, [isAuthenticated, user?.id]);
 
-  const hasAccess = isAdmin || isTrialActive || isSubscribed;
+  const hasAccess = isAdmin || isSubscribed;
 
   useEffect(() => {
     if (isLoading) return;
@@ -69,11 +69,11 @@ function RootLayoutNav() {
       router.replace('/splash');
     } else if (isAuthenticated && !isSubLoading && !hasAccess && !inPaywall) {
       router.replace('/paywall');
-    } else if (isAuthenticated && hasAccess && (inAuthGroup || inSplash || (inPaywall && !isAdmin))) {
+    } else if (isAuthenticated && hasAccess && !inPaywall) {
       if (welcomeSeen === null) return;
       if (!welcomeSeen && !inWelcome) {
         router.replace('/welcome');
-      } else if (welcomeSeen) {
+      } else if (welcomeSeen && (inAuthGroup || inSplash)) {
         router.replace('/(app)/(tabs)');
       }
     }

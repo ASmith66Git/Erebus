@@ -21,7 +21,6 @@ import ServicesGrid from '@/components/ServicesGrid';
 export default function SubscriptionScreen() {
   const { t } = useTranslation();
   const { colors } = useTheme();
-  const { isTrialActive, trialDaysRemaining } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { customerInfo, isSubscribed } = useSubscription();
@@ -119,16 +118,6 @@ export default function SubscriptionScreen() {
         <View style={[styles.statusBadge, { backgroundColor: '#4CAF5020' }]}>
           <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
           <Text style={[styles.statusText, { color: '#4CAF50' }]}>{t('trial.statusActive')}</Text>
-        </View>
-      );
-    }
-    if (isTrialActive) {
-      return (
-        <View style={[styles.statusBadge, { backgroundColor: colors.primary + '20' }]}>
-          <Ionicons name="time-outline" size={20} color={colors.primary} />
-          <Text style={[styles.statusText, { color: colors.primary }]}>
-            {t('trial.statusTrial', { count: trialDaysRemaining })}
-          </Text>
         </View>
       );
     }
@@ -263,7 +252,7 @@ export default function SubscriptionScreen() {
 
           <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
-          {isNativePlatform && (isTrialActive || isSubscribed) && (
+          {isNativePlatform && isSubscribed && (
             <Pressable
               style={[styles.manageButton, { backgroundColor: colors.primary }]}
               onPress={openSubscriptionSettings}

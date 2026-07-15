@@ -40,8 +40,6 @@ interface AuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   isAdmin: boolean;
-  isTrialActive: boolean;
-  trialDaysRemaining: number;
   isOfflineSession: boolean;
   biometricCapability: BiometricCapability | null;
   isBiometricEnabled: boolean;
@@ -422,19 +420,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [token]);
 
-  const trialEndsAt = user?.trialEndsAt ? new Date(user.trialEndsAt) : null;
-  const now = new Date();
-  const trialDaysRemaining = trialEndsAt ? Math.max(0, Math.ceil((trialEndsAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))) : 0;
-  const isTrialActive = trialDaysRemaining > 0;
-
   const value: AuthContextType = {
     user,
     token,
     isLoading,
     isAuthenticated: !!user,
     isAdmin: user?.role?.toLowerCase() === 'admin',
-    isTrialActive,
-    trialDaysRemaining,
     isOfflineSession,
     biometricCapability,
     isBiometricEnabled,
