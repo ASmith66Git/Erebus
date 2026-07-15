@@ -263,7 +263,7 @@ export default function SubscriptionScreen() {
 
           <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
-          {isSubscribed && isNativePlatform && (
+          {isNativePlatform && (isTrialActive || isSubscribed) && (
             <Pressable
               style={[styles.manageButton, { backgroundColor: colors.primary }]}
               onPress={openSubscriptionSettings}
