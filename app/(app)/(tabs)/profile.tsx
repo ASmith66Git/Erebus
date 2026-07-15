@@ -768,12 +768,13 @@ export default function ProfileScreen() {
           if (Platform.OS !== 'web') {
             try {
               await Purchases.invalidateCustomerInfoCache();
-              await Purchases.logOut();
+              await Purchases.logIn(`app_user_${user?.id}`);
             } catch (rcErr) {
               console.warn('RC client reset error (non-fatal):', rcErr);
             }
           }
           await refreshUser();
+          router.replace('/paywall');
         } else {
           const data = await response.json();
           Alert.alert('Error', data.error || 'Failed to reset RevenueCat');
