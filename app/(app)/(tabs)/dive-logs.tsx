@@ -106,7 +106,7 @@ function DiveLogCard({ log, onPress, colors }: { log: DiveLog; onPress: () => vo
     csv: 'file-text',
     manual: 'edit-3',
   };
-  const sourceIcon = sourceIcons[log.importSource] || 'file';
+  const sourceIcon = (log.importSource && sourceIcons[log.importSource]) || 'file';
   const thumbnailUrl = getImageUrl(log.diveSiteImageUrl);
 
   return (
@@ -172,7 +172,7 @@ function DiveLogCard({ log, onPress, colors }: { log: DiveLog; onPress: () => vo
         <View style={styles.sourceRow}>
           <Feather name={sourceIcon as any} size={10} color={colors.textSecondary} />
           <Text style={[styles.sourceText, { color: colors.textSecondary }]}>
-            {log.importSource === 'manual' ? t('diveLogs.manualEntrySource') : t('diveLogs.importedSource', { format: log.importSource.toUpperCase() })}
+            {(!log.importSource || log.importSource === 'manual') ? t('diveLogs.manualEntrySource') : t('diveLogs.importedSource', { format: log.importSource.toUpperCase() })}
           </Text>
           {log.photoCount > 0 && (
             <View style={styles.photoIndicator}>

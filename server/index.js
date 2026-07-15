@@ -1373,6 +1373,43 @@ async function initDatabase() {
       ALTER TABLE dive_photos ADD COLUMN IF NOT EXISTS blurhash VARCHAR(100);
     `).catch(() => {});
 
+    // One-time: seed dive_site_images for onboard user's sites using their first dive log photo per site
+    await client.query(`
+      INSERT INTO dive_site_images (dive_site_id, image_url, is_primary, is_stock, caption, created_at)
+      SELECT DISTINCT ON (dl.dive_site_id)
+        dl.dive_site_id,
+        dp.image_url,
+        TRUE,
+        FALSE,
+        NULL,
+        NOW()
+      FROM dive_photos dp
+      JOIN dive_logs dl ON dp.dive_log_id = dl.id
+      JOIN users u ON u.id = dl.user_id
+      WHERE u.email = 'anthony@clara-eu.co'
+        AND dl.dive_site_id IS NOT NULL
+        AND dp.deleted_at IS NULL
+        AND dp.media_type = 'image'
+        AND NOT EXISTS (
+          SELECT 1 FROM dive_site_images dsi
+          WHERE dsi.dive_site_id = dl.dive_site_id AND dsi.deleted_at IS NULL
+        )
+      ORDER BY dl.dive_site_id, dp.id ASC
+    `).catch(e => console.log('Onboard site images migration skipped:', e.message));
+
+    // One-time: fix NULL import_source on cloned users' dive logs (all onboard logs are uddf)
+    await client.query(`
+      UPDATE dive_logs
+      SET import_source = 'uddf'
+      WHERE import_source IS NULL
+        AND deleted_at IS NULL
+        AND user_id IN (
+          SELECT u.id FROM users u
+          WHERE u.email != 'anthony@clara-eu.co'
+            AND EXISTS (SELECT 1 FROM dive_sites WHERE user_id = u.id)
+        )
+    `).catch(e => console.log('Import source fix migration skipped:', e.message));
+
     console.log('Database initialized successfully');
   } catch (error) {
     console.error('Database initialization error:', error);
@@ -1563,14 +1600,23 @@ async function cloneOnboardDataToUser(targetUserId) {
       const result = await pool.query(`
         INSERT INTO dive_sites (user_id, name, description, site_type, latitude, longitude, country, region,
           water_type, depth_max, visibility_min, visibility_max, difficulty, current_strength, access_notes,
-          facilities, hazards, best_season, wikipedia_url, external_info, is_wreck, wreck_info, wreck_name, wreck_url, created_at)
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24, NOW())
+          facilities, hazards, best_season, wikipedia_url, external_info, is_wreck, wreck_info, wreck_name, wreck_url, image_url, created_at)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25, NOW())
         RETURNING id
       `, [targetUserId, site.name, site.description, site.site_type, site.latitude, site.longitude, site.country, site.region,
           site.water_type, site.depth_max, site.visibility_min, site.visibility_max, site.difficulty, site.current_strength, site.access_notes,
-          site.facilities, site.hazards, site.best_season, site.wikipedia_url, site.external_info, site.is_wreck, site.wreck_info, site.wreck_name, site.wreck_url]);
+          site.facilities, site.hazards, site.best_season, site.wikipedia_url, site.external_info, site.is_wreck, site.wreck_info, site.wreck_name, site.wreck_url, site.image_url]);
       siteIdMap[site.id] = result.rows[0].id;
       stats.diveSites++;
+
+      // Clone dive_site_images (thumbnails) — remap dive_site_id to new site
+      const siteImages = await pool.query('SELECT * FROM dive_site_images WHERE dive_site_id = $1 AND deleted_at IS NULL', [site.id]);
+      for (const img of siteImages.rows) {
+        await pool.query(`
+          INSERT INTO dive_site_images (dive_site_id, image_url, is_primary, is_stock, caption, attribution, created_at)
+          VALUES ($1,$2,$3,$4,$5,$6, NOW())
+        `, [result.rows[0].id, img.image_url, img.is_primary, img.is_stock, img.caption, img.attribution]);
+      }
     }
 
     // Clone dive buddies (track ID mapping for dive log buddy links)
@@ -1651,14 +1697,16 @@ async function cloneOnboardDataToUser(targetUserId) {
           min_temperature_celsius, max_temperature_celsius, dive_number, surface_interval_seconds, dive_mode, surface_conditions,
           weather_conditions, notes, rating, samples, gas_mixes, gas_pressures, buddy,
           workload, thermal_comfort, equipment_issues, skills_practiced, skills_notes,
-          decompression_symptoms, problem_notes, created_at)
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27, NOW())
+          decompression_symptoms, problem_notes, import_source, import_filename,
+          device_manufacturer, device_model, device_serial, created_at)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32, NOW())
         RETURNING id
       `, [targetUserId, newSiteId, newGearId, log.dive_datetime, log.duration_seconds, log.max_depth_meters, log.avg_depth_meters,
           log.min_temperature_celsius, log.max_temperature_celsius, log.dive_number, log.surface_interval_seconds, log.dive_mode,
           log.surface_conditions, log.weather_conditions, log.notes, log.rating, samples, gasMixes, gasPressures, log.buddy,
           log.workload, log.thermal_comfort, log.equipment_issues, log.skills_practiced, log.skills_notes,
-          log.decompression_symptoms, log.problem_notes]);
+          log.decompression_symptoms, log.problem_notes, log.import_source, log.import_filename,
+          log.device_manufacturer, log.device_model, log.device_serial]);
       logIdMap[log.id] = result.rows[0].id;
       stats.diveLogs++;
 
