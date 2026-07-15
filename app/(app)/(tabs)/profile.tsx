@@ -7,6 +7,7 @@ import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import * as XLSX from 'xlsx';
 import Constants from 'expo-constants';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -773,8 +774,11 @@ export default function ProfileScreen() {
               console.warn('RC client reset error (non-fatal):', rcErr);
             }
           }
+          if (user?.id) {
+            await AsyncStorage.removeItem(`welcome_seen_${user.id}`);
+          }
           await refreshUser();
-          router.replace('/paywall');
+          router.push('/paywall');
         } else {
           const data = await response.json();
           Alert.alert('Error', data.error || 'Failed to reset RevenueCat');
