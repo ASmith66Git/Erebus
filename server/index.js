@@ -2328,14 +2328,10 @@ app.delete('/api/admin/users/:id', authenticateToken, requireAdmin, async (req, 
 app.post('/api/admin/users/:id/test-reset', authenticateToken, requireAdmin, async (req, res) => {
   const targetId = parseInt(req.params.id);
 
-  if (targetId === req.user.id) {
-    return res.status(400).json({ error: 'Cannot reset your own account' });
-  }
-
   const targetCheck = await pool.query('SELECT id, email, role FROM users WHERE id = $1', [targetId]);
   if (targetCheck.rows.length === 0) return res.status(404).json({ error: 'User not found' });
-  if (targetCheck.rows[0].role === 'admin') {
-    return res.status(400).json({ error: 'Cannot reset an admin account' });
+  if (targetCheck.rows[0].role === 'admin' && targetId !== req.user.id) {
+    return res.status(400).json({ error: 'Cannot reset another admin account' });
   }
 
   const client = await pool.connect();
