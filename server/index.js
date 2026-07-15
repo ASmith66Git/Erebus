@@ -1397,6 +1397,27 @@ async function initDatabase() {
       ORDER BY dl.dive_site_id, dp.id ASC
     `).catch(e => console.log('Onboard site images migration skipped:', e.message));
 
+    // One-time: fix missing cover_image_key on cloned users' trips
+    await client.query(`
+      UPDATE dive_trips dt
+      SET cover_image_key = src.cover_image_key
+      FROM (
+        SELECT name, cover_image_key
+        FROM dive_trips
+        WHERE user_id = (SELECT id FROM users WHERE email = 'anthony@clara-eu.co' LIMIT 1)
+          AND deleted_at IS NULL
+          AND cover_image_key IS NOT NULL
+      ) src
+      WHERE dt.name = src.name
+        AND dt.cover_image_key IS NULL
+        AND dt.deleted_at IS NULL
+        AND dt.user_id IN (
+          SELECT u.id FROM users u
+          WHERE u.email != 'anthony@clara-eu.co'
+            AND EXISTS (SELECT 1 FROM dive_sites WHERE user_id = u.id)
+        )
+    `).catch(e => console.log('Trip cover image fix migration skipped:', e.message));
+
     // One-time: fix NULL import_source on cloned users' dive logs (all onboard logs are uddf)
     await client.query(`
       UPDATE dive_logs
@@ -1797,12 +1818,12 @@ async function cloneOnboardDataToUser(targetUserId) {
     for (const trip of trips.rows) {
       const tripResult = await pool.query(`
         INSERT INTO dive_trips (user_id, name, trip_type, start_date, end_date, operator_name, vessel_name,
-          dive_center_name, location, country, latitude, longitude, accommodation, total_dives, notes, created_at)
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15, NOW())
+          dive_center_name, location, country, latitude, longitude, accommodation, total_dives, notes, cover_image_key, created_at)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16, NOW())
         RETURNING id
       `, [targetUserId, trip.name, trip.trip_type, trip.start_date, trip.end_date, trip.operator_name, trip.vessel_name,
           trip.dive_center_name, trip.location, trip.country, trip.latitude, trip.longitude,
-          trip.accommodation, trip.total_dives, trip.notes]);
+          trip.accommodation, trip.total_dives, trip.notes, trip.cover_image_key]);
       tripIdMap[trip.id] = tripResult.rows[0].id;
       stats.trips = (stats.trips || 0) + 1;
     }
