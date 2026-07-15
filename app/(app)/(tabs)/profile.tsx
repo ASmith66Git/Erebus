@@ -12,6 +12,7 @@ import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSubscription } from '@/lib/revenuecat';
 import { getApiUrl } from '@/utils/apiConfig';
 import biometricService from '@/services/biometricService';
 import PageHeader from '@/components/PageHeader';
@@ -63,6 +64,7 @@ export default function ProfileScreen() {
   const { colors } = useTheme();
   const { t } = useTranslation();
   const { user, isAdmin, token, biometricCapability, isBiometricEnabled, setBiometricEnabled, refreshUser, logout } = useAuth();
+  const { refetch: refetchSubscription } = useSubscription();
   
   const [manufacturers, setManufacturers] = useState<Manufacturer[]>([]);
   const [models, setModels] = useState<DiveComputerModel[]>([]);
@@ -773,6 +775,7 @@ export default function ProfileScreen() {
               if (!alreadyAnonymous) {
                 await Purchases.logOut();
               }
+              await refetchSubscription();
             } catch (rcErr) {
               console.warn('RC client reset error (non-fatal):', rcErr);
             }
