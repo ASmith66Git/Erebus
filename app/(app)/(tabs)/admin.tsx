@@ -264,41 +264,6 @@ export default function AdminScreen() {
     );
   }
 
-  async function resetForTesting(userId: number, email: string) {
-    if (userId === user?.id) {
-      showAlert('Error', 'Cannot reset your own account');
-      return;
-    }
-
-    showConfirm(
-      '⚠️ Reset for Testing',
-      `This will permanently delete ${email}'s account and all their data so they can sign up fresh as a new user.\n\nRevenueCat will treat them as a brand new customer on next signup.\n\nThis cannot be undone.`,
-      async () => {
-        setActionLoading('testreset');
-        try {
-          const response = await authFetch(`/api/admin/users/${userId}/test-reset`, token, {
-            method: 'POST',
-          });
-
-          if (response.ok) {
-            setUsers(users.filter(u => u.id !== userId));
-            setModalVisible(false);
-            setSelectedUser(null);
-            showAlert('Done', `${email} has been wiped. They can now sign up fresh.`);
-          } else {
-            const data = await response.json();
-            showAlert('Error', data.error || 'Failed to reset user');
-          }
-        } catch (err) {
-          showAlert('Error', 'Network error');
-        } finally {
-          setActionLoading(null);
-        }
-      },
-      true
-    );
-  }
-
   async function deleteUser(userId: number) {
     if (userId === user?.id) {
       showAlert(t('common.error'), t('admin.cannotDeleteSelf'));
@@ -646,24 +611,6 @@ export default function AdminScreen() {
                     </Pressable>
                   </View>
                 )}
-
-                <View style={[styles.actionsSection, { marginTop: 0 }]}>
-                  <Pressable
-                    style={[styles.actionRow, { borderColor: '#AF52DE' + '40' }]}
-                    onPress={() => resetForTesting(selectedUser.user.id, selectedUser.user.email)}
-                    disabled={actionLoading === 'testreset'}
-                  >
-                    <View style={[styles.actionIconWrapper, { backgroundColor: '#AF52DE' + '20' }]}>
-                      {actionLoading === 'testreset' ? (
-                        <ActivityIndicator size="small" color="#AF52DE" />
-                      ) : (
-                        <Ionicons name="refresh-circle" size={20} color="#AF52DE" />
-                      )}
-                    </View>
-                    <Text style={[styles.actionLabel, { color: '#AF52DE' }]}>Reset for Testing</Text>
-                    <Ionicons name="chevron-forward" size={20} color="#AF52DE" />
-                  </Pressable>
-                </View>
 
                 <View style={{ height: 40 }} />
               </ScrollView>

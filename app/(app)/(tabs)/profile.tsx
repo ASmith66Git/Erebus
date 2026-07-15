@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Switch, Modal, ActivityIndicator, Platform, RefreshControl, TextInput, Alert, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import Purchases from 'react-native-purchases';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
@@ -79,6 +80,7 @@ export default function ProfileScreen() {
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
+  const [resettingRC, setResettingRC] = useState(false);
   const [supportUnreadCount, setSupportUnreadCount] = useState(0);
   const [profileStats, setProfileStats] = useState({ totalDives: 0, totalMinutes: 0, certCount: 0 });
   const [editFormData, setEditFormData] = useState({
@@ -754,6 +756,46 @@ export default function ProfileScreen() {
     }
   };
 
+  const handleResetRevenueCat = () => {
+    const doReset = async () => {
+      setResettingRC(true);
+      try {
+        const response = await fetch(`${getApiUrl()}/api/user/reset-revenuecat-test`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
+        if (response.ok) {
+          if (Platform.OS !== 'web') {
+            try {
+              await Purchases.invalidateCustomerInfoCache();
+              await Purchases.logOut();
+            } catch (rcErr) {
+              console.warn('RC client reset error (non-fatal):', rcErr);
+            }
+          }
+          await refreshUser();
+        } else {
+          const data = await response.json();
+          Alert.alert('Error', data.error || 'Failed to reset RevenueCat');
+        }
+      } catch (error) {
+        console.error('RC reset error:', error);
+        Alert.alert('Error', 'Network error during RevenueCat reset');
+      } finally {
+        setResettingRC(false);
+      }
+    };
+
+    Alert.alert(
+      '⚠️ Reset RevenueCat',
+      'This will delete your RevenueCat subscriber record and expire your trial so you can test the paywall fresh. Continue?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Reset', style: 'destructive', onPress: doReset },
+      ]
+    );
+  };
+
   const menuItems = [
     { icon: 'diamond-outline', title: t('profile.subscription'), description: t('profile.manageYourPlan'), route: '/(app)/(tabs)/subscription' },
     { icon: 'rocket-outline', title: t('profile.roadmap'), description: t('profile.seeUpcomingFeatures'), route: '/roadmap' },
@@ -994,6 +1036,29 @@ export default function ProfileScreen() {
           </Pressable>
         ))}
       </View>
+
+      {isAdmin && (
+        <View style={[styles.section, { backgroundColor: colors.cardBackground, borderColor: '#AF52DE' + '60', borderWidth: 1 }]}>
+          <Text style={[styles.sectionTitle, { color: '#AF52DE' }]}>Dev Tools</Text>
+          <Text style={[styles.menuDescription, { color: colors.textSecondary, marginBottom: 12 }]}>
+            Resets your RevenueCat subscriber record and expires your trial so you land on the paywall fresh.
+          </Text>
+          <Pressable
+            style={[styles.deleteAccountButton, { borderColor: '#AF52DE', opacity: resettingRC ? 0.6 : 1 }]}
+            onPress={handleResetRevenueCat}
+            disabled={resettingRC}
+          >
+            {resettingRC ? (
+              <ActivityIndicator color="#AF52DE" size="small" />
+            ) : (
+              <>
+                <Ionicons name="refresh-circle-outline" size={18} color="#AF52DE" />
+                <Text style={[styles.deleteAccountButtonText, { color: '#AF52DE' }]}>Reset RevenueCat for Testing</Text>
+              </>
+            )}
+          </Pressable>
+        </View>
+      )}
 
       <View style={[styles.section, styles.dangerSection, { backgroundColor: colors.cardBackground, borderColor: '#D22F00' }]}>
         <Text style={[styles.sectionTitle, { color: '#D22F00' }]}>{t('profile.deleteAccount')}</Text>

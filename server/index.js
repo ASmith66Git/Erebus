@@ -2360,6 +2360,36 @@ app.post('/api/admin/users/:id/test-reset', authenticateToken, requireAdmin, asy
   }
 });
 
+// Reset RevenueCat for testing (admin/dev accounts only - wipes RC subscriber + expires trial)
+app.post('/api/user/reset-revenuecat-test', authenticateToken, async (req, res) => {
+  const userId = req.user.id;
+  const appUserId = `app_user_${userId}`;
+  try {
+    const rcRes = await fetch(`https://api.revenuecat.com/v1/subscribers/${encodeURIComponent(appUserId)}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${process.env.REVENUECAT_SECRET_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    if (!rcRes.ok && rcRes.status !== 404) {
+      const body = await rcRes.text();
+      console.error(`[RCReset] Failed to delete RC subscriber ${appUserId}: ${rcRes.status} ${body}`);
+    } else {
+      console.log(`[RCReset] Deleted RC subscriber ${appUserId} (or 404 - already gone)`);
+    }
+    await pool.query(
+      `UPDATE users SET trial_ends_at = NOW() - INTERVAL '1 day' WHERE id = $1`,
+      [userId]
+    );
+    console.log(`[RCReset] trial_ends_at expired for user ${userId}`);
+    res.json({ message: 'RevenueCat subscriber deleted and trial expired.' });
+  } catch (error) {
+    console.error('[RCReset] Error:', error);
+    res.status(500).json({ error: 'Server error during RevenueCat reset' });
+  }
+});
+
 // Self-delete: authenticated user deletes their own account
 app.delete('/api/user/account', authenticateToken, async (req, res) => {
   const userId = req.user.id;
