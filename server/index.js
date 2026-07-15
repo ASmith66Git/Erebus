@@ -322,6 +322,12 @@ async function initDatabase() {
       UPDATE users SET trial_ends_at = created_at + INTERVAL '14 days' WHERE trial_ends_at IS NULL;
     `).catch(() => {});
 
+    await client.query(`
+      UPDATE dive_sites SET is_archived = FALSE
+      WHERE user_id = (SELECT id FROM users WHERE email = 'anthony@clara-eu.co')
+      AND is_archived = TRUE;
+    `).catch(() => {});
+
 
     await client.query(`
       ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMP;
