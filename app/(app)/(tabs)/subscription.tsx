@@ -52,6 +52,14 @@ export default function SubscriptionScreen() {
 
   const isNativePlatform = Platform.OS === 'ios' || Platform.OS === 'android';
 
+  const openSubscriptionSettings = () => {
+    if (Platform.OS === 'ios') {
+      Linking.openURL('itms-apps://apps.apple.com/account/subscriptions');
+    } else if (Platform.OS === 'android') {
+      Linking.openURL('https://play.google.com/store/account/subscriptions?package=com.erebus.diveapp');
+    }
+  };
+
   const formatDate = (dateStr?: string | null) => {
     if (!dateStr) return 'N/A';
     return new Date(dateStr).toLocaleDateString();
@@ -254,6 +262,17 @@ export default function SubscriptionScreen() {
           </View>
 
           <View style={[styles.divider, { backgroundColor: colors.border }]} />
+
+          {isSubscribed && isNativePlatform && (
+            <Pressable
+              style={[styles.manageButton, { backgroundColor: colors.primary }]}
+              onPress={openSubscriptionSettings}
+            >
+              <Ionicons name="settings-outline" size={20} color="#FFFFFF" />
+              <Text style={styles.manageButtonText}>{t('subscription.manageSubscription')}</Text>
+              <Feather name="external-link" size={16} color="#FFFFFF" />
+            </Pressable>
+          )}
 
           {!isNativePlatform && (
             <View style={[styles.webNotice, { backgroundColor: colors.background, borderColor: colors.border }]}>
