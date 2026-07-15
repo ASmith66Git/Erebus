@@ -60,7 +60,7 @@ export default function SubscriptionScreen() {
       return;
     }
     if (Platform.OS === 'ios') {
-      Linking.openURL('https://apps.apple.com/account/subscriptions');
+      Linking.openURL('itms-apps://apps.apple.com/account/subscriptions');
     } else if (Platform.OS === 'android') {
       Linking.openURL(`https://play.google.com/store/account/subscriptions?package=${PACKAGE_NAME}`);
     }
