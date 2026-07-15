@@ -18,8 +18,6 @@ import { useSubscription, REVENUECAT_ENTITLEMENT_IDENTIFIER } from '@/lib/revenu
 import ThemedBackground from '@/components/ThemedBackground';
 import ServicesGrid from '@/components/ServicesGrid';
 
-const PACKAGE_NAME = 'com.erebus.diveapp';
-
 export default function SubscriptionScreen() {
   const { t } = useTranslation();
   const { colors } = useTheme();
@@ -38,8 +36,6 @@ export default function SubscriptionScreen() {
   const unsubscribeDetectedAt = entitlement?.unsubscribeDetectedAt;
   const originalPurchaseDate = entitlement?.originalPurchaseDate;
   const latestPurchaseDate = entitlement?.latestPurchaseDate;
-  const managementURL = customerInfo?.managementURL;
-
   const hasBillingIssue = !!billingIssueDetectedAt;
   const isGracePeriod = hasBillingIssue && !!activeEntitlement;
   const isBillingIssueExpired = hasBillingIssue && !activeEntitlement;
@@ -52,18 +48,6 @@ export default function SubscriptionScreen() {
     const expiry = new Date(activeEntitlement.expirationDate);
     const diffMs = expiry.getTime() - now.getTime();
     return Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
-  };
-
-  const openSubscriptionSettings = () => {
-    if (managementURL) {
-      Linking.openURL(managementURL);
-      return;
-    }
-    if (Platform.OS === 'ios') {
-      Linking.openURL('itms-apps://apps.apple.com/account/subscriptions');
-    } else if (Platform.OS === 'android') {
-      Linking.openURL(`https://play.google.com/store/account/subscriptions?package=${PACKAGE_NAME}`);
-    }
   };
 
   const isNativePlatform = Platform.OS === 'ios' || Platform.OS === 'android';
@@ -271,27 +255,6 @@ export default function SubscriptionScreen() {
 
           <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
-          {isNativePlatform && (
-            <Pressable
-              style={[styles.manageButton, { backgroundColor: colors.primary }]}
-              onPress={openSubscriptionSettings}
-            >
-              {!managementURL && (
-                <Ionicons
-                  name={Platform.OS === 'ios' ? 'logo-apple' : 'logo-google-playstore'}
-                  size={20}
-                  color="#FFFFFF"
-                />
-              )}
-              <Text style={styles.manageButtonText}>
-                {managementURL
-                  ? t('subscription.manageSubscription')
-                  : t('subscription.manageInStore', { store: Platform.OS === 'ios' ? t('subscription.appStore') : t('subscription.googlePlay') })}
-              </Text>
-              <Feather name="external-link" size={16} color="#FFFFFF" />
-            </Pressable>
-          )}
-
           {!isNativePlatform && (
             <View style={[styles.webNotice, { backgroundColor: colors.background, borderColor: colors.border }]}>
               <Ionicons name="information-circle-outline" size={24} color={colors.primary} />
@@ -309,7 +272,7 @@ export default function SubscriptionScreen() {
           </Text>
           <Pressable
             style={[styles.helpButton, { borderColor: colors.primary }]}
-            onPress={() => Linking.openURL('mailto:support@erebus.app')}
+            onPress={() => router.push('/(app)/(tabs)/help-support' as any)}
           >
             <Ionicons name="mail-outline" size={18} color={colors.primary} />
             <Text style={[styles.helpButtonText, { color: colors.primary }]}>{t('subscription.contactSupport')}</Text>
