@@ -70,10 +70,11 @@ function RootLayoutNav() {
     } else if (isAuthenticated && !isSubLoading && !hasAccess && !inPaywall) {
       router.replace('/paywall');
     } else if (isAuthenticated && hasAccess) {
+      const atGateScreen = inAuthGroup || inSplash || (inPaywall && !isAdmin);
       if (welcomeSeen === null) return;
-      if (!welcomeSeen && !inWelcome) {
+      if (!welcomeSeen && !inWelcome && atGateScreen) {
         router.replace('/welcome');
-      } else if (welcomeSeen && (inAuthGroup || inSplash || (inPaywall && !isAdmin))) {
+      } else if (welcomeSeen && atGateScreen) {
         router.replace('/(app)/(tabs)');
       }
     }
