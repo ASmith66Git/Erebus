@@ -69,11 +69,11 @@ function RootLayoutNav() {
       router.replace('/splash');
     } else if (isAuthenticated && !isSubLoading && !hasAccess && !inPaywall) {
       router.replace('/paywall');
-    } else if (isAuthenticated && hasAccess && !inPaywall) {
+    } else if (isAuthenticated && hasAccess) {
       if (welcomeSeen === null) return;
       if (!welcomeSeen && !inWelcome) {
         router.replace('/welcome');
-      } else if (welcomeSeen && (inAuthGroup || inSplash)) {
+      } else if (welcomeSeen && (inAuthGroup || inSplash || (inPaywall && !isAdmin))) {
         router.replace('/(app)/(tabs)');
       }
     }
