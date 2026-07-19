@@ -24,3 +24,9 @@ id = "M3nE3US2tOkb_Z1HOBtIN"
 uri = "file://erebus-project.zip"
 type = "unspecified"
 title = "Erebus Project (full source)"
+
+[[outputs]]
+id = "uy_tXP4mXkohhEj_d99tp"
+uri = "file://env-local.zip"
+type = "unspecified"
+title = ".env.local (zipped)"
