@@ -3037,6 +3037,12 @@ app.delete('/api/admin/dev-log/:id', authenticateToken, requireAdmin, async (req
 });
 
 // Admin Statistics
+app.post('/api/admin/test-notification', authenticateToken, requireAdmin, async (req, res) => {
+  const { title = '🔔 Test Notification', body = 'Admin push notification is working.' } = req.body;
+  await notifyAdmins(title, body, { type: 'test' });
+  res.json({ ok: true });
+});
+
 app.get('/api/admin/stats', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const [
