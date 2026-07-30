@@ -3255,6 +3255,10 @@ app.get('/api/dive-messages/random', authenticateToken, async (req, res) => {
   }
 });
 
+app.get('/', (req, res) => {
+  res.json({ status: 'ok', service: 'Erebus API' });
+});
+
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', service: 'Erebus API' });
 });
