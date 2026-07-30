@@ -257,6 +257,22 @@ async function sendPushNotification(userId, title, body, data = {}) {
   }
 }
 
+async function notifyAdmins(title, body, data = {}) {
+  try {
+    const result = await pool.query(
+      "SELECT id FROM users WHERE role = 'admin'"
+    );
+    if (result.rows.length === 0) {
+      console.log('[Push:admin] No admin users found to notify');
+      return;
+    }
+    console.log(`[Push:admin] Notifying ${result.rows.length} admin(s): ${title}`);
+    await Promise.all(result.rows.map(({ id }) => sendPushNotification(id, title, body, data)));
+  } catch (err) {
+    console.error('[Push:admin] Failed to notify admins:', err.message);
+  }
+}
+
 app.use(cors());
 app.use(express.json());
 
@@ -10187,6 +10203,22 @@ if (process.env.NODE_ENV === 'production' || process.env.PORT) {
   });
 }
 
+process.on('uncaughtException', async (err) => {
+  console.error('[Server] Uncaught exception:', err.message);
+  try {
+    await notifyAdmins('🔴 Erebus Server Error', `Uncaught exception: ${err.message}`);
+  } catch (_) {}
+  process.exit(1);
+});
+
+process.on('unhandledRejection', async (reason) => {
+  const msg = reason instanceof Error ? reason.message : String(reason);
+  console.error('[Server] Unhandled rejection:', msg);
+  try {
+    await notifyAdmins('🔴 Erebus Server Error', `Unhandled rejection: ${msg}`);
+  } catch (_) {}
+});
+
 initDatabase()
   .then(() => {
     console.log('Database initialized successfully');
@@ -10196,7 +10228,9 @@ initDatabase()
     console.log('Server will start without database - API calls will fail until DB is available');
   })
   .finally(() => {
-    app.listen(PORT, '0.0.0.0', () => {
+    app.listen(PORT, '0.0.0.0', async () => {
       console.log(`Erebus API server running on port ${PORT}`);
+      const started = new Date().toLocaleString('en-GB', { timeZone: 'UTC', hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' });
+      await notifyAdmins('🟢 Erebus Server Online', `Server started at ${started} UTC on port ${PORT}`);
     });
   });
