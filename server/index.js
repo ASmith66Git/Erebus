@@ -28,7 +28,7 @@ const upload = multer({
 
 const app = express();
 const isProduction = process.env.NODE_ENV === 'production' || process.env.REPL_DEPLOYMENT === '1';
-const PORT = isProduction ? 5000 : (process.env.PORT || 3001);
+const PORT = process.env.PORT || (isProduction ? 5000 : 3001);
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
