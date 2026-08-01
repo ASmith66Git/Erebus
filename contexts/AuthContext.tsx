@@ -386,6 +386,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setToken(data.token);
         setUser(data.user);
         setIsOfflineSession(false);
+        // Meta Ads attribution — fire CompleteRegistration on new account
+        try {
+          const { MetaAnalytics } = require('@/services/metaAnalytics');
+          MetaAnalytics.logCompleteRegistration();
+        } catch { /* ignore */ }
         return { success: true };
       } else {
         return { success: false, error: data.error || 'Signup failed' };

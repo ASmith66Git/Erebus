@@ -119,9 +119,23 @@ function useSubscriptionContext() {
   const purchaseMutation = useMutation({
     mutationFn: async (packageToPurchase: PurchasesPackage) => {
       const { customerInfo } = await Purchases.purchasePackage(packageToPurchase);
-      return customerInfo;
+      return { customerInfo, packageToPurchase };
     },
-    onSuccess: () => customerInfoQuery.refetch(),
+    onSuccess: ({ packageToPurchase }) => {
+      customerInfoQuery.refetch();
+      // Meta Ads attribution — fire Subscribe or StartTrial
+      try {
+        const { MetaAnalytics } = require('@/services/metaAnalytics');
+        const price = packageToPurchase.product.price;
+        const currency = packageToPurchase.product.currencyCode;
+        const hasIntroOffer = !!packageToPurchase.product.introPrice;
+        if (hasIntroOffer) {
+          MetaAnalytics.logStartTrial(price, currency);
+        } else {
+          MetaAnalytics.logSubscribe(price, currency);
+        }
+      } catch { /* ignore */ }
+    },
   });
 
   const restoreMutation = useMutation({

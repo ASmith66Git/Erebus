@@ -96,6 +96,18 @@ module.exports = {
         {
           cameraPermission: "Allow Erebus to use your camera to take photos, record videos, and scan certification cards."
         }
+      ],
+      [
+        "react-native-fbsdk-next",
+        {
+          appID: process.env.FACEBOOK_APP_ID || "PLACEHOLDER_APP_ID",
+          clientToken: process.env.FACEBOOK_CLIENT_TOKEN || "PLACEHOLDER_CLIENT_TOKEN",
+          displayName: "Erebus",
+          scheme: `fb${process.env.FACEBOOK_APP_ID || "PLACEHOLDER_APP_ID"}`,
+          advertiserIDCollectionEnabled: true,
+          autoLogAppEventsEnabled: true,
+          isAutoInitEnabled: true
+        }
       ]
     ],
     experiments: {
