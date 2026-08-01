@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Drawer } from 'expo-router/drawer';
 import { View, Text, StyleSheet, SafeAreaView, Alert, Image, Platform } from 'react-native';
 import { DrawerContentScrollView, DrawerItem } from '@react-navigation/drawer';
@@ -144,7 +144,16 @@ export default function AppLayout() {
   const { colors } = useTheme();
   const { token, isAdmin } = useAuth();
   const router = useRouter();
-  const lastNotificationResponse = Notifications.useLastNotificationResponse();
+  const [lastNotificationResponse, setLastNotificationResponse] = useState<any>(null);
+
+  // Subscribe to notification responses on native only (hook not available on web)
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    const subscription = Notifications.addNotificationResponseReceivedListener(response => {
+      setLastNotificationResponse(response);
+    });
+    return () => subscription.remove();
+  }, []);
 
   // Navigate when user taps a push notification
   useEffect(() => {
