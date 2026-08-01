@@ -56,11 +56,24 @@ The application is built using Expo React Native, targeting both iOS and Android
 - Native `android/app/build.gradle` versionCode and versionName must be updated manually as they override app.config.js.
 - Current version: 2.0.85 (versionCode 106).
 
+## Required Environment Variables (production / Render)
+| Variable | Purpose |
+|---|---|
+| `AWS_BUCKET` | S3 bucket name for all file storage |
+| `AWS_REGION` | AWS region (e.g. `us-east-1`) |
+| `AWS_ACCESS_KEY_ID` | IAM access key with S3 read/write on the bucket |
+| `AWS_SECRET_ACCESS_KEY` | IAM secret key |
+| `RESEND_API_KEY` | Resend API key for transactional email |
+| `RESEND_FROM_EMAIL` | From address (defaults to `noreply@erebus.nammu-tech.com`) |
+| `DATABASE_URL` | PostgreSQL connection string |
+| `JWT_SECRET` | JWT signing secret |
+
 ## External Dependencies
 - **PostgreSQL**: Primary database.
 - **Express.js**: Backend API server.
 - **Expo React Native**: Mobile application framework.
-- **Replit Object Storage**: For image and video storage.
+- **AWS S3 (SDK v3)**: File storage for images and videos (`@aws-sdk/client-s3`, `@aws-sdk/s3-request-presigner`).
+- **Resend**: Transactional email (welcome emails, password reset). Initialised from `RESEND_API_KEY` env var directly.
 - **Wikipedia API**: For wreck site information.
 - **Open-Meteo API**: For weather forecasts.
 - **expo-sqlite**: For local SQLite database.

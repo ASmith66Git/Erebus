@@ -8,6 +8,8 @@ const multer = require('multer');
 const { Pool } = require('pg');
 const { Resend } = require('resend');
 const { Expo } = require('expo-server-sdk');
+const { S3Client, GetObjectCommand, PutObjectCommand, DeleteObjectCommand, HeadObjectCommand } = require('@aws-sdk/client-s3');
+const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 const diveLogParser = require('./services/diveLogParser');
 const diveLogParserV2 = require('./services/diveLogParserV2');
 const DiveLogPersistenceService = require('./services/diveLogPersistence');
@@ -36,46 +38,18 @@ const diveLogPersistence = new DiveLogPersistenceService(pool);
 
 const JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(64).toString('hex');
 
-let resendConnectionSettings = null;
-
-async function getResendCredentials() {
-  const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
-  const xReplitToken = process.env.REPL_IDENTITY 
-    ? 'repl ' + process.env.REPL_IDENTITY 
-    : process.env.WEB_REPL_RENEWAL 
-    ? 'depl ' + process.env.WEB_REPL_RENEWAL 
-    : null;
-
-  if (!xReplitToken) {
-    throw new Error('X_REPLIT_TOKEN not found for repl/depl');
+// Resend — initialised directly from env var (no Replit connector dependency).
+// Lazy so the server starts even without RESEND_API_KEY (emails just fail gracefully).
+let _resendClient = null;
+function getResendClient() {
+  if (!_resendClient) {
+    const key = process.env.RESEND_API_KEY;
+    if (!key) throw new Error('RESEND_API_KEY env var is not set');
+    _resendClient = new Resend(key);
   }
-
-  resendConnectionSettings = await fetch(
-    'https://' + hostname + '/api/v2/connection?include_secrets=true&connector_names=resend',
-    {
-      headers: {
-        'Accept': 'application/json',
-        'X_REPLIT_TOKEN': xReplitToken
-      }
-    }
-  ).then(res => res.json()).then(data => data.items?.[0]);
-
-  if (!resendConnectionSettings || (!resendConnectionSettings.settings.api_key)) {
-    throw new Error('Resend not connected');
-  }
-  return {
-    apiKey: resendConnectionSettings.settings.api_key, 
-    fromEmail: resendConnectionSettings.settings.from_email
-  };
+  return _resendClient;
 }
-
-async function getUncachableResendClient() {
-  const { apiKey, fromEmail } = await getResendCredentials();
-  return {
-    client: new Resend(apiKey),
-    fromEmail: fromEmail
-  };
-}
+const RESEND_FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'noreply@erebus.nammu-tech.com';
 
 function generateWelcomeEmailHtml(firstName) {
   const displayName = firstName || 'Diver';
@@ -135,14 +109,13 @@ function generateWelcomeEmailHtml(firstName) {
 
 async function sendWelcomeEmail(email, firstName) {
   try {
-    const { client, fromEmail } = await getUncachableResendClient();
-    const result = await client.emails.send({
-      from: fromEmail,
+    const result = await getResendClient().emails.send({
+      from: RESEND_FROM_EMAIL,
       to: email,
       subject: 'Welcome to Erebus - Your Dive Journey Begins!',
       html: generateWelcomeEmailHtml(firstName),
     });
-    return { success: true, result, fromEmail };
+    return { success: true, result, fromEmail: RESEND_FROM_EMAIL };
   } catch (error) {
     console.error('Failed to send welcome email:', error);
     return { success: false, error: error.message };
@@ -1456,23 +1429,13 @@ async function initDatabase() {
 }
 
 async function downloadImageBuffer(imageUrl) {
-  // Relative /objects/... paths: download directly from GCS (no external HTTP fetch)
+  // Relative /objects/... paths: download directly from S3
   if (imageUrl && imageUrl.startsWith('/objects/')) {
-    const entityId = imageUrl.slice('/objects/'.length);
-    let entityDir = process.env.PRIVATE_OBJECT_DIR || '';
-    if (entityDir && !entityDir.endsWith('/')) entityDir = `${entityDir}/`;
-    const objectEntityPath = `${entityDir}${entityId}`;
-    const { bucketName, objectName } = parseObjectPath(objectEntityPath);
-    const [buffer] = await objectStorageClient.bucket(bucketName).file(objectName).download();
-    return buffer;
-  }
-
-  // Absolute GCS signed URLs: extract bucket/object and download via SDK (no SSRF risk)
-  if (imageUrl && imageUrl.startsWith('https://storage.googleapis.com/')) {
-    const url = new URL(imageUrl);
-    const { bucketName, objectName } = parseObjectPath(url.pathname);
-    const [buffer] = await objectStorageClient.bucket(bucketName).file(objectName).download();
-    return buffer;
+    const s3Key = objectPathToS3Key(imageUrl);
+    const resp = await s3Client.send(new GetObjectCommand({ Bucket: AWS_BUCKET, Key: s3Key }));
+    const chunks = [];
+    for await (const chunk of resp.Body) chunks.push(chunk);
+    return Buffer.concat(chunks);
   }
 
   // All other URL forms are rejected — do not fetch arbitrary user-supplied URLs
@@ -1987,11 +1950,10 @@ app.post('/api/auth/forgot-password', async (req, res) => {
     const resetLink = `${baseUrl}/reset-password?token=${resetToken}`;
     
     try {
-      const { client, fromEmail } = await getUncachableResendClient();
-      console.log(`Sending password reset email from: ${fromEmail || 'noreply@resend.dev'} to: ${user.email}`);
+      console.log(`Sending password reset email from: ${RESEND_FROM_EMAIL} to: ${user.email}`);
       
-      const emailResult = await client.emails.send({
-        from: fromEmail || 'noreply@resend.dev',
+      const emailResult = await getResendClient().emails.send({
+        from: RESEND_FROM_EMAIL,
         to: user.email,
         subject: 'Erebus - Password Reset Request',
         html: `
@@ -2081,37 +2043,8 @@ app.get('/api/auth/me', authenticateToken, async (req, res) => {
     let profileImageUrl = null;
     if (user.profile_image) {
       try {
-        const REPLIT_SIDECAR = 'http://127.0.0.1:1106';
-        let storedPath = user.profile_image;
-        
-        // Handle /objects/... path format by converting to full storage path
-        if (storedPath.startsWith('/objects/')) {
-          const entityId = storedPath.slice('/objects/'.length);
-          let entityDir = process.env.PRIVATE_OBJECT_DIR || '';
-          if (!entityDir.endsWith('/')) entityDir = `${entityDir}/`;
-          storedPath = `${entityDir}${entityId}`;
-        }
-        
-        if (!storedPath.startsWith('/')) storedPath = `/${storedPath}`;
-        const pathParts = storedPath.split('/');
-        if (pathParts.length >= 3) {
-          const bucketName = pathParts[1];
-          const objectName = pathParts.slice(2).join('/');
-          const signResponse = await fetch(`${REPLIT_SIDECAR}/object-storage/signed-object-url`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              bucket_name: bucketName,
-              object_name: objectName,
-              method: 'GET',
-              expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
-            }),
-          });
-          if (signResponse.ok) {
-            const { signed_url } = await signResponse.json();
-            profileImageUrl = signed_url;
-          }
-        }
+        const s3Key = objectPathToS3Key(user.profile_image);
+        profileImageUrl = await signObjectURL({ s3Key, method: 'GET', ttlSec: 3600 });
       } catch (err) {
         console.error('Error signing profile image in /api/auth/me:', err);
       }
@@ -2350,11 +2283,10 @@ app.post('/api/admin/users/:id/reset-password', authenticateToken, requireAdmin,
     const resetLink = `${baseUrl}/reset-password?token=${resetToken}`;
     
     try {
-      const { client, fromEmail } = await getUncachableResendClient();
-      console.log(`Admin sending password reset from: ${fromEmail || 'noreply@resend.dev'} to: ${user.email}`);
+      console.log(`Admin sending password reset from: ${RESEND_FROM_EMAIL} to: ${user.email}`);
       
-      const emailResult = await client.emails.send({
-        from: fromEmail || 'noreply@resend.dev',
+      const emailResult = await getResendClient().emails.send({
+        from: RESEND_FROM_EMAIL,
         to: user.email,
         subject: 'Erebus - Password Reset Request',
         html: `
@@ -2552,9 +2484,12 @@ app.delete('/api/user/account', authenticateToken, async (req, res) => {
     // record is already gone) but a storage-client initialisation failure will
     // propagate to the outer catch and return a 500.
     if (keys.length > 0) {
-      const { Client } = require('@replit/object-storage');
-      const objectStorage = new Client();
-      const results = await Promise.allSettled(keys.map(key => objectStorage.delete(key)));
+      const results = await Promise.allSettled(
+        keys.map(key => {
+          const s3Key = objectPathToS3Key(key);
+          return s3Client.send(new DeleteObjectCommand({ Bucket: AWS_BUCKET, Key: s3Key }));
+        })
+      );
       const failed = results.filter(r => r.status === 'rejected');
       if (failed.length > 0) {
         console.warn(`Account deletion: ${failed.length}/${keys.length} storage objects could not be removed (orphaned). DB record is deleted.`);
@@ -3492,18 +3427,8 @@ app.get('/api/user/profile', authenticateToken, async (req, res) => {
     let profileImageUrl = null;
     if (user.profile_image) {
       try {
-        let storedPath = user.profile_image;
-        
-        // Handle /objects/... path format by converting to full storage path
-        if (storedPath.startsWith('/objects/')) {
-          const entityId = storedPath.slice('/objects/'.length);
-          let entityDir = process.env.PRIVATE_OBJECT_DIR || '';
-          if (!entityDir.endsWith('/')) entityDir = `${entityDir}/`;
-          storedPath = `${entityDir}${entityId}`;
-        }
-        
-        const { bucketName, objectName } = parseObjectPath(storedPath);
-        profileImageUrl = await signObjectURL({ bucketName, objectName, method: 'GET', ttlSec: 3600 });
+        const s3Key = objectPathToS3Key(user.profile_image);
+        profileImageUrl = await signObjectURL({ s3Key, method: 'GET', ttlSec: 3600 });
       } catch (err) {
         console.error('Error signing profile image URL:', err);
       }
@@ -4234,90 +4159,61 @@ app.get('/api/difficulties', authenticateToken, (req, res) => {
   ]);
 });
 
-const { Storage } = require('@google-cloud/storage');
-
-const REPLIT_SIDECAR_ENDPOINT = 'http://127.0.0.1:1106';
-
-const objectStorageClient = new Storage({
+// ── AWS S3 storage client ──────────────────────────────────────────────────
+const AWS_BUCKET = process.env.AWS_BUCKET;
+const s3Client = new S3Client({
+  region: process.env.AWS_REGION || 'us-east-1',
   credentials: {
-    audience: 'replit',
-    subject_token_type: 'access_token',
-    token_url: `${REPLIT_SIDECAR_ENDPOINT}/token`,
-    type: 'external_account',
-    credential_source: {
-      url: `${REPLIT_SIDECAR_ENDPOINT}/credential`,
-      format: {
-        type: 'json',
-        subject_token_field_name: 'access_token',
-      },
-    },
-    universe_domain: 'googleapis.com',
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
   },
-  projectId: '',
 });
 
-function parseObjectPath(path) {
-  if (!path.startsWith('/')) {
-    path = `/${path}`;
+/**
+ * Convert a DB-stored path like /objects/<key> to an S3 object key.
+ * Paths that don't start with /objects/ are returned as-is.
+ */
+function objectPathToS3Key(objectPath) {
+  if (!objectPath) return objectPath;
+  if (objectPath.startsWith('/objects/')) {
+    return objectPath.slice('/objects/'.length);
   }
-  const pathParts = path.split('/');
-  if (pathParts.length < 3) {
-    throw new Error('Invalid path: must contain at least a bucket name');
-  }
-  return {
-    bucketName: pathParts[1],
-    objectName: pathParts.slice(2).join('/'),
-  };
+  return objectPath;
 }
 
-async function signObjectURL({ bucketName, objectName, method, ttlSec }) {
-  const request = {
-    bucket_name: bucketName,
-    object_name: objectName,
-    method,
-    expires_at: new Date(Date.now() + ttlSec * 1000).toISOString(),
-  };
-  const response = await fetch(
-    `${REPLIT_SIDECAR_ENDPOINT}/object-storage/signed-object-url`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(request),
-    }
-  );
-  if (!response.ok) {
-    throw new Error(`Failed to sign object URL: ${response.status}`);
+/**
+ * Generate a presigned GET or PUT URL for an S3 object.
+ * @param {{ s3Key: string, method: 'GET'|'PUT', ttlSec: number, contentType?: string }} opts
+ *
+ * For PUT requests, pass `contentType` so the signature covers the Content-Type header.
+ * The client MUST send that exact Content-Type header when performing the upload.
+ */
+async function signObjectURL({ s3Key, method, ttlSec, contentType }) {
+  let command;
+  if (method === 'PUT') {
+    const params = { Bucket: AWS_BUCKET, Key: s3Key };
+    if (contentType) params.ContentType = contentType;
+    command = new PutObjectCommand(params);
+  } else {
+    command = new GetObjectCommand({ Bucket: AWS_BUCKET, Key: s3Key });
   }
-  const { signed_url: signedURL } = await response.json();
-  return signedURL;
+  return getSignedUrl(s3Client, command, { expiresIn: ttlSec });
 }
 
-async function getUploadURL() {
-  const privateObjectDir = process.env.PRIVATE_OBJECT_DIR || '';
-  if (!privateObjectDir) {
-    throw new Error('PRIVATE_OBJECT_DIR not set');
+/**
+ * Generate a presigned PUT URL for a new upload.
+ * @param {string} [contentType] MIME type the client will send; included in SigV4 signature.
+ * Returns { uploadURL, objectPath } where objectPath is the /objects/... path
+ * that should be stored in the database.
+ */
+async function getUploadURL(contentType) {
+  if (!AWS_BUCKET) {
+    throw new Error('AWS_BUCKET not set');
   }
   const objectId = crypto.randomUUID();
-  const fullPath = `${privateObjectDir}/uploads/${objectId}`;
-  const { bucketName, objectName } = parseObjectPath(fullPath);
-  return signObjectURL({ bucketName, objectName, method: 'PUT', ttlSec: 900 });
-}
-
-function normalizeObjectPath(rawPath) {
-  if (!rawPath.startsWith('https://storage.googleapis.com/')) {
-    return rawPath;
-  }
-  const url = new URL(rawPath);
-  const rawObjectPath = url.pathname;
-  let objectEntityDir = process.env.PRIVATE_OBJECT_DIR || '';
-  if (!objectEntityDir.endsWith('/')) {
-    objectEntityDir = `${objectEntityDir}/`;
-  }
-  if (!rawObjectPath.startsWith(objectEntityDir)) {
-    return rawObjectPath;
-  }
-  const entityId = rawObjectPath.slice(objectEntityDir.length);
-  return `/objects/${entityId}`;
+  const s3Key = `uploads/${objectId}`;
+  const uploadURL = await signObjectURL({ s3Key, method: 'PUT', ttlSec: 900, contentType });
+  return { uploadURL, objectPath: `/objects/${s3Key}`, contentType };
 }
 
 app.post('/api/uploads/request-url', authenticateToken, async (req, res) => {
@@ -4326,11 +4222,13 @@ app.post('/api/uploads/request-url', authenticateToken, async (req, res) => {
     if (!name) {
       return res.status(400).json({ error: 'Missing required field: name' });
     }
-    const uploadURL = await getUploadURL();
-    const objectPath = normalizeObjectPath(uploadURL);
+    // Pass contentType so it's included in the SigV4 signature.
+    // The client MUST send this exact Content-Type header when PUTting to uploadURL.
+    const { uploadURL, objectPath } = await getUploadURL(contentType);
     res.json({
       uploadURL,
       objectPath,
+      contentType: contentType || null,
       metadata: { name, size, contentType },
     });
   } catch (error) {
@@ -4356,38 +4254,32 @@ app.get('/api/objects/url', authenticateToken, async (req, res) => {
 
 app.get(/^\/objects\/(.+)$/, async (req, res) => {
   try {
-    const objectPath = req.path;
-    const parts = objectPath.slice(1).split('/');
-    if (parts.length < 2) {
-      return res.status(404).json({ error: 'Object not found' });
+    const s3Key = objectPathToS3Key(req.path);
+    // HeadObject to check existence and get metadata
+    let headData;
+    try {
+      headData = await s3Client.send(new HeadObjectCommand({ Bucket: AWS_BUCKET, Key: s3Key }));
+    } catch (err) {
+      if (err.name === 'NotFound' || err.$metadata?.httpStatusCode === 404) {
+        return res.status(404).json({ error: 'Object not found' });
+      }
+      throw err;
     }
-    const entityId = parts.slice(1).join('/');
-    let entityDir = process.env.PRIVATE_OBJECT_DIR || '';
-    if (!entityDir.endsWith('/')) {
-      entityDir = `${entityDir}/`;
-    }
-    const objectEntityPath = `${entityDir}${entityId}`;
-    const { bucketName, objectName } = parseObjectPath(objectEntityPath);
-    const bucket = objectStorageClient.bucket(bucketName);
-    const file = bucket.file(objectName);
-    const [exists] = await file.exists();
-    if (!exists) {
-      return res.status(404).json({ error: 'Object not found' });
-    }
-    const [metadata] = await file.getMetadata();
     res.set({
-      'Content-Type': metadata.contentType || 'application/octet-stream',
-      'Content-Length': metadata.size,
+      'Content-Type': headData.ContentType || 'application/octet-stream',
+      'Content-Length': headData.ContentLength,
       'Cache-Control': 'public, max-age=3600',
     });
-    const stream = file.createReadStream();
-    stream.on('error', (err) => {
+    const getResp = await s3Client.send(new GetObjectCommand({ Bucket: AWS_BUCKET, Key: s3Key }));
+    const { Readable } = require('stream');
+    const readable = Readable.from(getResp.Body);
+    readable.on('error', (err) => {
       console.error('Stream error:', err);
       if (!res.headersSent) {
         res.status(500).json({ error: 'Error streaming file' });
       }
     });
-    stream.pipe(res);
+    readable.pipe(res);
   } catch (error) {
     console.error('Error serving object:', error);
     res.status(500).json({ error: 'Failed to serve object' });
@@ -4575,9 +4467,13 @@ app.post('/api/dive-sites/:id/images/import-url', authenticateToken, async (req,
       const filename = `dive-site-${id}-${Date.now()}.${ext}`;
       const objectPath = `/objects/dive-sites/${filename}`;
       
-      const { Client } = await import('@replit/object-storage');
-      const storageClient = new Client();
-      await storageClient.uploadFromBuffer(objectPath, buffer, { contentType: `image/${detectedType}` });
+      const s3Key = objectPathToS3Key(objectPath);
+      await s3Client.send(new PutObjectCommand({
+        Bucket: AWS_BUCKET,
+        Key: s3Key,
+        Body: buffer,
+        ContentType: `image/${detectedType}`,
+      }));
       
       const client2 = await pool.connect();
       try {
@@ -4631,9 +4527,13 @@ app.post('/api/dive-sites/:id/images/import-url', authenticateToken, async (req,
     const filename = `dive-site-${id}-${Date.now()}.${ext}`;
     const objectPath = `/objects/dive-sites/${filename}`;
     
-    const { Client } = await import('@replit/object-storage');
-    const client = new Client();
-    await client.uploadFromBuffer(objectPath, imageBuffer, { contentType });
+    const s3Key = objectPathToS3Key(objectPath);
+    await s3Client.send(new PutObjectCommand({
+      Bucket: AWS_BUCKET,
+      Key: s3Key,
+      Body: imageBuffer,
+      ContentType: contentType,
+    }));
     
     const client2 = await pool.connect();
     try {
@@ -8223,15 +8123,14 @@ app.delete('/api/certifications/:certId/images/:imageId', authenticateToken, asy
       [imageId, certId]
     );
     
-    // Delete from Object Storage if it's not an external URL
+    // Delete from S3 if it's not an external URL
     if (imageUrl && !imageUrl.startsWith('http')) {
       try {
-        const { Client } = require('@replit/object-storage');
-        const objectStorage = new Client();
-        await objectStorage.delete(imageUrl);
-        console.log('Deleted from Object Storage:', imageUrl);
+        const s3Key = objectPathToS3Key(imageUrl);
+        await s3Client.send(new DeleteObjectCommand({ Bucket: AWS_BUCKET, Key: s3Key }));
+        console.log('Deleted from S3:', s3Key);
       } catch (storageError) {
-        console.error('Failed to delete from Object Storage:', storageError);
+        console.error('Failed to delete from S3:', storageError);
         // Continue anyway - the DB record is deleted
       }
     }
@@ -9321,21 +9220,19 @@ app.get('/api/export/dive-data-with-media', authenticateToken, async (req, res) 
         const parts = urlPath.split('/').filter(Boolean);
         if (parts.length < 2) continue;
         
-        const entityId = parts.slice(1).join('/');
-        let entityDir = process.env.PRIVATE_OBJECT_DIR || '';
-        if (!entityDir.endsWith('/')) {
-          entityDir = `${entityDir}/`;
-        }
-        const objectEntityPath = `${entityDir}${entityId}`;
-        const { bucketName, objectName } = parseObjectPath(objectEntityPath);
-        const bucket = objectStorageClient.bucket(bucketName);
-        const file = bucket.file(objectName);
+        const s3Key = objectPathToS3Key(urlPath);
         
-        const [exists] = await file.exists();
-        if (!exists) {
-          console.warn(`File not found in storage: ${objectName}`);
-          errorCount++;
-          continue;
+        // Check existence via HeadObject
+        let headData;
+        try {
+          headData = await s3Client.send(new HeadObjectCommand({ Bucket: AWS_BUCKET, Key: s3Key }));
+        } catch (err) {
+          if (err.name === 'NotFound' || err.$metadata?.httpStatusCode === 404) {
+            console.warn(`File not found in S3: ${s3Key}`);
+            errorCount++;
+            continue;
+          }
+          throw err;
         }
         
         // Determine folder and filename
@@ -9345,25 +9242,19 @@ app.get('/api/export/dive-data-with-media', authenticateToken, async (req, res) 
         const archiveFilename = `${folder}/${photo.id}${ext}`;
         
         // Stream file directly into archive
-        const stream = file.createReadStream();
-        archive.append(stream, { name: archiveFilename });
+        const { Readable: ArchiveReadable } = require('stream');
+        const getResp = await s3Client.send(new GetObjectCommand({ Bucket: AWS_BUCKET, Key: s3Key }));
+        archive.append(ArchiveReadable.from(getResp.Body), { name: archiveFilename });
         successCount++;
         
         // Also add thumbnail if available
         if (photo.thumbnail_url) {
           try {
-            const thumbParts = photo.thumbnail_url.split('/').filter(Boolean);
-            if (thumbParts.length >= 2) {
-              const thumbEntityId = thumbParts.slice(1).join('/');
-              const thumbObjectPath = `${entityDir}${thumbEntityId}`;
-              const { bucketName: thumbBucket, objectName: thumbObject } = parseObjectPath(thumbObjectPath);
-              const thumbFile = objectStorageClient.bucket(thumbBucket).file(thumbObject);
-              const [thumbExists] = await thumbFile.exists();
-              if (thumbExists) {
-                const thumbExt = getExtensionFromUrl(photo.thumbnail_url);
-                archive.append(thumbFile.createReadStream(), { name: `media/thumbnails/${photo.id}_thumb${thumbExt}` });
-              }
-            }
+            const thumbKey = objectPathToS3Key(photo.thumbnail_url);
+            await s3Client.send(new HeadObjectCommand({ Bucket: AWS_BUCKET, Key: thumbKey }));
+            const thumbResp = await s3Client.send(new GetObjectCommand({ Bucket: AWS_BUCKET, Key: thumbKey }));
+            const thumbExt = getExtensionFromUrl(photo.thumbnail_url);
+            archive.append(ArchiveReadable.from(thumbResp.Body), { name: `media/thumbnails/${photo.id}_thumb${thumbExt}` });
           } catch (thumbErr) {
             console.warn(`Failed to add thumbnail for photo ${photo.id}:`, thumbErr.message);
           }
