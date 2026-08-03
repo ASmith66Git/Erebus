@@ -15,7 +15,7 @@ import { SyncProvider } from '@/contexts/SyncContext';
 import { SettingsProvider } from '@/contexts/SettingsContext';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { errorLogger } from '@/services/errorLogger';
-import { SubscriptionProvider, useSubscription, initializeRevenueCat } from '@/lib/revenuecat';
+import { SubscriptionProvider, useSubscription } from '@/lib/revenuecat';
 import '@/services/i18n';
 
 if (Platform.OS === 'web' && typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
@@ -25,17 +25,6 @@ if (Platform.OS === 'web' && typeof navigator !== 'undefined' && 'serviceWorker'
 }
 
 const queryClient = new QueryClient();
-
-try {
-  initializeRevenueCat();
-} catch {
-  // Handled by SubscriptionProvider's reactive state
-}
-
-// Meta Ads SDK — initialize once at app launch (native only, no-op on web)
-import('@/services/metaAnalytics').then(({ MetaAnalytics }) => {
-  MetaAnalytics.initialize();
-}).catch(() => { /* ignore */ });
 
 function RootLayoutNav() {
   const { colorScheme, isDark } = useTheme();
