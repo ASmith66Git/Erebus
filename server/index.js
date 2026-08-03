@@ -10075,7 +10075,7 @@ app.get('/terms', (req, res) => {
   `));
 });
 
-if (process.env.NODE_ENV === 'production' || process.env.PORT) {
+if ((process.env.NODE_ENV === 'production' || process.env.PORT) && fs.existsSync(distPath)) {
   app.use(express.static(distPath));
   
   app.use((req, res, next) => {
