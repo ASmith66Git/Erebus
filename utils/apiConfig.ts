@@ -2,7 +2,7 @@ import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 
 // Production URL for native apps (iOS/Android)
-const PRODUCTION_API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://expo-erebus--anthony606.replit.app';
+const PRODUCTION_API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://erebus.nammu-tech.com';
 
 export function getApiUrl(): string {
   // Web: Always use current origin (works in both dev and production)
