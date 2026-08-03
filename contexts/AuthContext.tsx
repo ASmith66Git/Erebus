@@ -277,11 +277,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { success: false, error: data.error || 'Login failed' };
       }
     } catch (error: any) {
-      console.error('Login error:', error, 'API URL:', getApiUrl());
+      const url = getApiUrl();
+      console.error('Login error:', error, 'API URL:', url);
       if (error.name === 'AbortError') {
-        return { success: false, error: 'Connection timed out. Please check your internet connection.' };
+        return { success: false, error: `Connection timed out reaching ${url}` };
       }
-      return { success: false, error: `Unable to connect to server. Please check your internet connection and try again.` };
+      return { success: false, error: `Cannot connect to ${url} — ${error?.message || error}` };
     }
   }
   
