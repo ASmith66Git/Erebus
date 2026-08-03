@@ -16,7 +16,7 @@ const DiveLogPersistenceService = require('./services/diveLogPersistence');
 const diveComputerCatalog = require('./data/diveComputerCatalog');
 const archiver = require('archiver');
 const fs = require('fs');
-const sharp = require('sharp');
+const Jimp = require('jimp');
 const { encode: encodeBlurhash } = require('blurhash');
 
 const expo = new Expo();
@@ -1446,13 +1446,11 @@ async function generateBlurhashFromUrl(imageUrl) {
   try {
     const buffer = await downloadImageBuffer(imageUrl);
     if (!buffer) return null;
-    const { data, info } = await sharp(buffer)
-      .resize(32, 32, { fit: 'cover' })
-      .ensureAlpha()
-      .raw()
-      .toBuffer({ resolveWithObject: true });
+    const image = await Jimp.read(buffer);
+    image.cover(32, 32);
+    const { data, width, height } = image.bitmap;
     const pixels = new Uint8ClampedArray(data);
-    return encodeBlurhash(pixels, info.width, info.height, 4, 3);
+    return encodeBlurhash(pixels, width, height, 4, 3);
   } catch (err) {
     console.error('Blurhash generation failed:', err.message);
     return null;
