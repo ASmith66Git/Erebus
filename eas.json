@@ -23,7 +23,7 @@
         "buildType": "apk"
       },
       "cache": {
-        "key": "force-rebuild-v8"
+        "key": "force-rebuild-v9"
       },
       "env": {
         "SHARP_IGNORE_GLOBAL_LIBVIPS": "1",

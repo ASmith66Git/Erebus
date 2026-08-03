@@ -16,7 +16,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
-import { Video, ResizeMode } from 'expo-av';
+import { VideoView, useVideoPlayer } from 'expo-video';
 import { getApiUrl } from '@/utils/apiConfig';
 import { compressVideo, formatBytes, isCompressionAvailable, CompressionProgress } from '@/services/videoService';
 import { Image } from 'expo-image';
@@ -59,6 +59,29 @@ interface DiveTrip {
 
 const NUM_COLUMNS = 3;
 const GAP = 2;
+
+function VideoItem({ uri, style, shouldPlay }: { uri: string; style: any; shouldPlay: boolean }) {
+  const player = useVideoPlayer(uri, (p) => {
+    p.loop = false;
+  });
+
+  React.useEffect(() => {
+    if (shouldPlay) {
+      player.play();
+    } else {
+      player.pause();
+    }
+  }, [shouldPlay, player]);
+
+  return (
+    <VideoView
+      player={player}
+      style={style}
+      contentFit="contain"
+      nativeControls
+    />
+  );
+}
 
 export default function PhotosScreen() {
   const { t } = useTranslation();
@@ -675,13 +698,10 @@ export default function PhotosScreen() {
             {photos.map((photo) => (
               <View key={photo.id} style={[styles.viewerPage, { width: screenWidth, height: screenHeight }]}>
                 {photo.mediaType === 'video' ? (
-                  <Video
-                    source={{ uri: getImageUrl(photo.imageUrl) }}
+                  <VideoItem
+                    uri={getImageUrl(photo.imageUrl)}
                     style={[styles.viewerImage, { maxWidth: screenWidth, maxHeight: screenHeight - 200 }]}
-                    resizeMode={ResizeMode.CONTAIN}
-                    useNativeControls
                     shouldPlay={photos[viewerIndex]?.id === photo.id}
-                    isLooping={false}
                   />
                 ) : (
                   <Image

@@ -66,6 +66,7 @@ module.exports = {
       "expo-secure-store",
       "expo-sharing",
       "expo-sqlite",
+      "expo-video",
       "expo-web-browser",
       [
         "expo-splash-screen",
