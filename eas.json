@@ -23,9 +23,10 @@
         "buildType": "apk"
       },
       "cache": {
-        "key": "force-rebuild-v6"
+        "key": "force-rebuild-v7"
       },
       "env": {
+        "SHARP_IGNORE_GLOBAL_LIBVIPS": "1",
         "EXPO_PUBLIC_API_URL": "https://expo-erebus--anthony606.replit.app",
         "EXPO_PUBLIC_REVENUECAT_IOS_API_KEY": "appl_fefLlLgUXEoGoEuvOLZDMabRenk",
         "EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY": "goog_OPCPYAKwmwJvSQdpYqlgyoobrUy",
