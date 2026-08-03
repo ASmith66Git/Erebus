@@ -40,3 +40,6 @@ app-example
 asc-api-key.p8
 ios/certs/
 credentials.json
+
+# Replit dotslash cache (causes permission errors during EAS tarball upload)
+.cache/dotslash/
