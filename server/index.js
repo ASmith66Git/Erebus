@@ -16,7 +16,6 @@ const DiveLogPersistenceService = require('./services/diveLogPersistence');
 const diveComputerCatalog = require('./data/diveComputerCatalog');
 const archiver = require('archiver');
 const fs = require('fs');
-const Jimp = require('jimp');
 const { encode: encodeBlurhash } = require('blurhash');
 
 const expo = new Expo();
@@ -1446,6 +1445,7 @@ async function generateBlurhashFromUrl(imageUrl) {
   try {
     const buffer = await downloadImageBuffer(imageUrl);
     if (!buffer) return null;
+    const Jimp = require('jimp');
     const image = await Jimp.read(buffer);
     image.cover(32, 32);
     const { data, width, height } = image.bitmap;
