@@ -246,7 +246,7 @@ async function notifyAdmins(title, body, data = {}) {
 }
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 
 // Serve email assets (icons, images for email templates)
 app.use('/email-assets', express.static(path.join(__dirname, '../public/email-assets')));
@@ -3232,6 +3232,23 @@ app.get('/api/diag-7f3k', async (req, res) => {
     }));
     res.json(counts);
   } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// TEMPORARY MIGRATION CLEANUP — remove after migration complete
+app.delete('/api/migrate-cleanup/:userId', async (req, res) => {
+  if (req.headers['x-migrate-key'] !== 'erebus-migrate-2026') return res.status(403).end();
+  const uid = parseInt(req.params.userId);
+  if (isNaN(uid)) return res.status(400).json({ error: 'invalid userId' });
+  try {
+    const tables = ['dive_photos','dive_logs','cylinders','gear_profiles','dive_sites',
+      'dive_trips','equipment_inventory','user_certifications','dive_buddies'];
+    const counts = {};
+    for (const t of tables) {
+      const r = await pool.query(`DELETE FROM ${t} WHERE user_id=$1`, [uid]);
+      counts[t] = r.rowCount;
+    }
+    res.json({ deleted: counts });
+  } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
 // TEMPORARY MIGRATION IMPORT — remove after migration complete
