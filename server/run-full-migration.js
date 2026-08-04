@@ -1,18 +1,45 @@
 /**
  * Full migration script — runs on Render via /api/admin/run-full-migration
- * Reads onboard-migration-data.json and other-users-data.json from the same directory.
+ * Reads onboard-migration-data.json, other-users-data.json and training-data.json.
  *
+ * Phase 0: Seed training agencies + courses (reference data).
  * Phase 1: Seed the onboarding user (anthony@clara-eu.co) with all their data from Replit prod.
  * Phase 2: Create remaining users on Render (preserving password hashes) and clone onboard data to each.
  */
 
 const path = require('path');
-const onboardData = require(path.join(__dirname, 'onboard-migration-data.json'));
-const otherUsers  = require(path.join(__dirname, 'other-users-data.json'));
+const onboardData    = require(path.join(__dirname, 'onboard-migration-data.json'));
+const otherUsers     = require(path.join(__dirname, 'other-users-data.json'));
+const trainingData   = require(path.join(__dirname, 'training-data.json'));
 
 async function runFullMigration(pool) {
   const log = [];
   const say = (msg) => { console.log('[migration]', msg); log.push(msg); };
+
+  // ── Phase 0: training agencies + courses (reference data) ──────────────────
+  say('Phase 0: seeding training agencies and courses');
+  const n = (v) => (v === '' || v === 'null' || v === null || v === undefined) ? null : v;
+  const nb = (v) => v === 'true' ? true : v === 'false' ? false : (v === null || v === '' || v === undefined) ? null : v;
+
+  for (const ag of trainingData.agencies) {
+    await pool.query(`
+      INSERT INTO training_agencies (id,name,abbreviation,website,logo_url,country,is_active,created_at)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+      ON CONFLICT (id) DO NOTHING`,
+      [n(ag.id),n(ag.name),n(ag.abbreviation),n(ag.website),n(ag.logo_url),n(ag.country),nb(ag.is_active),n(ag.created_at)]
+    );
+  }
+  say(`  agencies: ${trainingData.agencies.length}`);
+
+  for (const c of trainingData.courses) {
+    await pool.query(`
+      INSERT INTO training_courses (id,agency_id,name,level,category,description,prerequisites,min_age,min_dives,sort_order,is_active,created_at)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+      ON CONFLICT (id) DO NOTHING`,
+      [n(c.id),n(c.agency_id),n(c.name),n(c.level),n(c.category),n(c.description),n(c.prerequisites),n(c.min_age),n(c.min_dives),n(c.sort_order),nb(c.is_active),n(c.created_at)]
+    );
+  }
+  say(`  courses: ${trainingData.courses.length}`);
 
   // ── Phase 1: seed onboarding user ──────────────────────────────────────────
   say('Phase 1: seeding onboarding user data');
