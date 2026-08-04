@@ -48,7 +48,7 @@ function getResendClient() {
   }
   return _resendClient;
 }
-const RESEND_FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'noreply@erebus.nammu-tech.com';
+const RESEND_FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'noreply@nammu-tech.com';
 
 function generateWelcomeEmailHtml(firstName) {
   const displayName = firstName || 'Diver';
