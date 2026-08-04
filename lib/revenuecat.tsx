@@ -89,7 +89,12 @@ function useSubscriptionContext() {
           const appUserId = `app_user_${user.id}`;
           await Purchases.logIn(appUserId);
         } else {
-          await Purchases.logOut();
+          // Only log out if RC has an identified user — calling logOut on an
+          // anonymous session throws "LogOut was called but the current user is anonymous"
+          const isAnon = await Purchases.isAnonymous();
+          if (!isAnon) {
+            await Purchases.logOut();
+          }
         }
       } catch (err) {
         console.warn("RevenueCat identity sync error:", err instanceof Error ? err.message : err);
