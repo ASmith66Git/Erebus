@@ -3218,6 +3218,23 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', service: 'Erebus API' });
 });
 
+// TEMPORARY DIAGNOSTIC — remove after investigation
+app.get('/api/diag-7f3k', async (req, res) => {
+  if (req.headers['x-diag-key'] !== 'erebus-diag-2026') return res.status(403).end();
+  try {
+    const users = await pool.query('SELECT id, email, role FROM users ORDER BY id');
+    const counts = await Promise.all(users.rows.map(async u => {
+      const [dl, ds, dc] = await Promise.all([
+        pool.query('SELECT COUNT(*) FROM dive_logs WHERE user_id=$1', [u.id]),
+        pool.query('SELECT COUNT(*) FROM dive_sites WHERE user_id=$1', [u.id]),
+        pool.query('SELECT COUNT(*) FROM dive_log_imports WHERE user_id=$1', [u.id]),
+      ]);
+      return { id: u.id, email: u.email, role: u.role, diveLogs: +dl.rows[0].count, diveSites: +ds.rows[0].count, imports: +dc.rows[0].count };
+    }));
+    res.json(counts);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 app.get('/api/dive-computers', (req, res) => {
   res.json({
     manufacturers: diveComputerCatalog.getAllManufacturersForSelect()
