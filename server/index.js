@@ -3234,6 +3234,16 @@ app.get('/api/diag-7f3k', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// TEMPORARY MIGRATION USER FIX — remove after migration complete
+app.post('/api/migrate-fix-role', async (req, res) => {
+  if (req.headers['x-migrate-key'] !== 'erebus-migrate-2026') return res.status(403).end();
+  const { userId, role } = req.body;
+  try {
+    await pool.query('UPDATE users SET role=$1 WHERE id=$2', [role, userId]);
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 // TEMPORARY MIGRATION CLEANUP — remove after migration complete
 app.delete('/api/migrate-cleanup/:userId', async (req, res) => {
   if (req.headers['x-migrate-key'] !== 'erebus-migrate-2026') return res.status(403).end();
