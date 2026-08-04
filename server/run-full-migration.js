@@ -319,4 +319,4 @@ async function seedOnboardUser(pool, targetUserId, data, say, courseIdMap = {}) 
   say && say(`  Seeded user ${targetUserId} — sites:${data.diveSites.length} logs:${data.diveLogs.length} photos:${data.photos.length}`);
 }
 
-module.exports = { runFullMigration };
+module.exports = { runFullMigration, seedOnboardUser };
