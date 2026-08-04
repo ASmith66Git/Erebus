@@ -3224,12 +3224,11 @@ app.get('/api/diag-7f3k', async (req, res) => {
   try {
     const users = await pool.query('SELECT id, email, role FROM users ORDER BY id');
     const counts = await Promise.all(users.rows.map(async u => {
-      const [dl, ds, dc] = await Promise.all([
+      const [dl, ds] = await Promise.all([
         pool.query('SELECT COUNT(*) FROM dive_logs WHERE user_id=$1', [u.id]),
         pool.query('SELECT COUNT(*) FROM dive_sites WHERE user_id=$1', [u.id]),
-        pool.query('SELECT COUNT(*) FROM dive_log_imports WHERE user_id=$1', [u.id]),
       ]);
-      return { id: u.id, email: u.email, role: u.role, diveLogs: +dl.rows[0].count, diveSites: +ds.rows[0].count, imports: +dc.rows[0].count };
+      return { id: u.id, email: u.email, role: u.role, diveLogs: +dl.rows[0].count, diveSites: +ds.rows[0].count };
     }));
     res.json(counts);
   } catch (e) { res.status(500).json({ error: e.message }); }
