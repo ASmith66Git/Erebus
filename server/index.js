@@ -1919,6 +1919,167 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
+// Serve the web-based password reset page (linked from reset emails)
+app.get('/reset-password', (req, res) => {
+  const { token } = req.query;
+  res.setHeader('Content-Type', 'text/html');
+  res.send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reset Password — Erebus</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      background: linear-gradient(135deg, #1a0a00 0%, #2d1200 40%, #1a0a00 100%);
+      display: flex; align-items: center; justify-content: center;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      padding: 24px;
+    }
+    .card {
+      background: rgba(0,0,0,0.75);
+      border-radius: 16px;
+      padding: 40px 32px;
+      width: 100%; max-width: 400px;
+      border: 1px solid rgba(210,47,0,0.2);
+    }
+    .logo {
+      text-align: center; margin-bottom: 28px;
+    }
+    .logo-text {
+      font-size: 28px; font-weight: 800; letter-spacing: 8px;
+      color: #fff; text-transform: uppercase;
+    }
+    .logo-sub { color: #D22F00; font-size: 11px; letter-spacing: 4px; margin-top: 4px; }
+    h1 { color: #fff; font-size: 22px; font-weight: 700; text-align: center; margin-bottom: 8px; }
+    .subtitle { color: #aaa; font-size: 14px; text-align: center; margin-bottom: 28px; }
+    .field { margin-bottom: 16px; position: relative; }
+    input[type=password], input[type=text] {
+      width: 100%; height: 50px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 8px;
+      color: #fff; font-size: 15px;
+      padding: 0 44px 0 16px;
+      outline: none; transition: border-color .2s;
+    }
+    input:focus { border-color: #D22F00; }
+    .eye {
+      position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+      background: none; border: none; cursor: pointer; color: #888; font-size: 18px;
+      padding: 4px; line-height: 1;
+    }
+    button[type=submit] {
+      width: 100%; height: 50px; margin-top: 8px;
+      background: #D22F00; color: #fff; border: none;
+      border-radius: 8px; font-size: 16px; font-weight: 600;
+      cursor: pointer; transition: background .2s;
+    }
+    button[type=submit]:hover { background: #b52800; }
+    button[type=submit]:disabled { opacity: 0.6; cursor: not-allowed; }
+    .msg {
+      display: none; padding: 12px 14px; border-radius: 8px;
+      font-size: 14px; margin-bottom: 16px; line-height: 1.4;
+    }
+    .msg.error { background: rgba(211,47,0,0.15); color: #ff6b4a; border: 1px solid rgba(211,47,0,0.3); }
+    .msg.success { background: rgba(76,175,80,0.15); color: #81c784; border: 1px solid rgba(76,175,80,0.3); }
+    .rules { color: #777; font-size: 12px; margin-top: 10px; line-height: 1.6; }
+    .rules li { margin-left: 16px; }
+    .back { display: block; text-align: center; margin-top: 20px; color: #D22F00; font-size: 14px; text-decoration: none; }
+    .back:hover { text-decoration: underline; }
+    .spinner { display: none; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">
+      <div class="logo-text">EREBUS</div>
+      <div class="logo-sub">DIVE LOG</div>
+    </div>
+
+    ${!token ? `
+      <div class="msg error" style="display:block">
+        This reset link is invalid or has expired. Please request a new one from the app.
+      </div>
+    ` : `
+      <h1>Reset Password</h1>
+      <p class="subtitle">Enter your new password below.</p>
+      <div id="msg" class="msg"></div>
+      <form id="form">
+        <div class="field">
+          <input type="password" id="pw" placeholder="New password" autocomplete="new-password" required>
+          <button type="button" class="eye" onclick="toggle('pw','eye1')" id="eye1">&#128065;</button>
+        </div>
+        <div class="field">
+          <input type="password" id="cpw" placeholder="Confirm new password" autocomplete="new-password" required>
+          <button type="button" class="eye" onclick="toggle('cpw','eye2')" id="eye2">&#128065;</button>
+        </div>
+        <ul class="rules">
+          <li>At least 8 characters</li>
+          <li>One uppercase letter</li>
+          <li>One number</li>
+          <li>One special character (!@#$%^&* etc.)</li>
+        </ul>
+        <button type="submit" id="btn">Reset Password</button>
+      </form>
+      <div id="success" style="display:none; text-align:center; padding:12px 0">
+        <div style="font-size:48px; margin-bottom:12px">✅</div>
+        <h1 style="margin-bottom:8px">Password Reset!</h1>
+        <p style="color:#aaa; font-size:14px">Your password has been updated. You can now log in to the Erebus app.</p>
+      </div>
+    `}
+    <a href="#" class="back" onclick="history.back(); return false">← Back</a>
+  </div>
+
+  <script>
+    function toggle(inputId, btnId) {
+      var inp = document.getElementById(inputId);
+      inp.type = inp.type === 'password' ? 'text' : 'password';
+    }
+    function show(msg, type) {
+      var el = document.getElementById('msg');
+      el.textContent = msg; el.className = 'msg ' + type; el.style.display = 'block';
+    }
+    var form = document.getElementById('form');
+    if (form) {
+      form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        var pw = document.getElementById('pw').value;
+        var cpw = document.getElementById('cpw').value;
+        var btn = document.getElementById('btn');
+        if (pw !== cpw) { show('Passwords do not match.', 'error'); return; }
+        if (pw.length < 8) { show('Password must be at least 8 characters.', 'error'); return; }
+        if (!/[A-Z]/.test(pw)) { show('Password must contain an uppercase letter.', 'error'); return; }
+        if (!/[0-9]/.test(pw)) { show('Password must contain a number.', 'error'); return; }
+        if (!/[^A-Za-z0-9]/.test(pw)) { show('Password must contain a special character.', 'error'); return; }
+        btn.disabled = true; btn.textContent = 'Resetting…';
+        try {
+          var res = await fetch('/api/auth/reset-password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: '${token}', newPassword: pw })
+          });
+          var data = await res.json();
+          if (res.ok) {
+            form.style.display = 'none';
+            document.getElementById('success').style.display = 'block';
+          } else {
+            show(data.error || 'Failed to reset password. The link may have expired.', 'error');
+            btn.disabled = false; btn.textContent = 'Reset Password';
+          }
+        } catch(err) {
+          show('Network error. Please try again.', 'error');
+          btn.disabled = false; btn.textContent = 'Reset Password';
+        }
+      });
+    }
+  </script>
+</body>
+</html>`);
+});
+
 app.post('/api/auth/forgot-password', async (req, res) => {
   const { email } = req.body;
   
