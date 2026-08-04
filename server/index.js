@@ -10262,6 +10262,21 @@ if ((process.env.NODE_ENV === 'production' || process.env.PORT) && fs.existsSync
   });
 }
 
+// ── Full migration endpoint ──────────────────────────────────────────────────
+app.post('/api/admin/run-full-migration', async (req, res) => {
+  if (req.headers['x-migrate-key'] !== 'erebus-migrate-2026') {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+  try {
+    const { runFullMigration } = require('./run-full-migration.js');
+    const log = await runFullMigration(pool);
+    res.json({ ok: true, log });
+  } catch (err) {
+    console.error('[migration] error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 process.on('uncaughtException', async (err) => {
   console.error('[Server] Uncaught exception:', err.message);
   try {
