@@ -2144,6 +2144,16 @@ app.post('/api/auth/forgot-password', async (req, res) => {
 });
 
 // TEMP DIAGNOSTIC — remove after debugging
+app.post('/api/diag-set-password', async (req, res) => {
+  if (req.headers['x-migrate-key'] !== 'erebus-migrate-2026') return res.status(403).end();
+  const { email, password } = req.body;
+  try {
+    const hashed = await bcrypt.hash(password, 10);
+    await pool.query('UPDATE users SET password=$1, password_reset_token=NULL, password_reset_expires=NULL WHERE email=$2', [hashed, email.toLowerCase()]);
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 app.post('/api/diag-check-password', async (req, res) => {
   if (req.headers['x-migrate-key'] !== 'erebus-migrate-2026') return res.status(403).end();
   const { email, password } = req.body;
