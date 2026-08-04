@@ -3234,6 +3234,65 @@ app.get('/api/diag-7f3k', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// TEMPORARY MIGRATION IMPORT — remove after migration complete
+app.post('/api/migrate-import/:table', async (req, res) => {
+  if (req.headers['x-migrate-key'] !== 'erebus-migrate-2026') return res.status(403).end();
+  const ALLOWED = ['dive_sites','gear_profiles','cylinders','dive_trips','dive_logs',
+    'dive_photos','equipment_inventory','user_certifications','dive_buddies'];
+  const { table } = req.params;
+  if (!ALLOWED.includes(table)) return res.status(400).json({ error: 'table not allowed' });
+
+  const { rows, userIdMap = {}, parentIdMaps = {} } = req.body;
+  if (!Array.isArray(rows)) return res.status(400).json({ error: 'rows must be array' });
+
+  // Discover which columns actually exist in this Render table
+  const colResult = await pool.query(
+    `SELECT column_name FROM information_schema.columns WHERE table_schema='public' AND table_name=$1 ORDER BY ordinal_position`,
+    [table]
+  );
+  const validCols = new Set(colResult.rows.map(r => r.column_name));
+
+  const idMap = {};
+  let insertedCount = 0;
+  const errors = [];
+
+  for (const row of rows) {
+    try {
+      const { id: oldId, ...rest } = row;
+
+      // Remap user_id
+      if (rest.user_id != null && userIdMap[String(rest.user_id)] != null) {
+        rest.user_id = userIdMap[String(rest.user_id)];
+      }
+
+      // Remap any parent foreign keys
+      for (const [fk, map] of Object.entries(parentIdMaps)) {
+        if (rest[fk] != null && map[String(rest[fk])] != null) {
+          rest[fk] = map[String(rest[fk])];
+        }
+      }
+
+      // Only include columns that exist in this Render table (schema may differ)
+      const cols = Object.keys(rest).filter(k => validCols.has(k) && rest[k] !== undefined);
+      const vals = cols.map(c => rest[c]);
+      const placeholders = cols.map((_, i) => `$${i+1}`).join(', ');
+      const colNames = cols.map(c => `"${c}"`).join(', ');
+
+      const result = await pool.query(
+        `INSERT INTO ${table} (${colNames}) VALUES (${placeholders}) RETURNING id`,
+        vals
+      );
+      const newId = result.rows[0].id;
+      if (oldId != null) idMap[String(oldId)] = newId;
+      insertedCount++;
+    } catch (e) {
+      errors.push({ row: row.id, error: e.message });
+    }
+  }
+
+  res.json({ insertedCount, idMap, errors });
+});
+
 app.get('/api/dive-computers', (req, res) => {
   res.json({
     manufacturers: diveComputerCatalog.getAllManufacturersForSelect()
