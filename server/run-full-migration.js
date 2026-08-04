@@ -16,30 +16,24 @@ async function runFullMigration(pool) {
   const log = [];
   const say = (msg) => { console.log('[migration]', msg); log.push(msg); };
 
-  // ── Phase 0: training agencies + courses (reference data) ──────────────────
-  say('Phase 0: seeding training agencies and courses');
+  // ── Phase 0: build course name→id map from Render's existing data ──────────
+  // Render's initDatabase already seeds agencies + courses with its own IDs.
+  // We just need a map: Replit-prod course name → Render course id.
+  say('Phase 0: building course name→Render-id map');
   const n = (v) => (v === '' || v === 'null' || v === null || v === undefined) ? null : v;
   const nb = (v) => v === 'true' ? true : v === 'false' ? false : (v === null || v === '' || v === undefined) ? null : v;
 
-  for (const ag of trainingData.agencies) {
-    await pool.query(`
-      INSERT INTO training_agencies (id,name,full_name,website,logo_url,description,founded_year,headquarters,is_active,created_at)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
-      ON CONFLICT (name) DO NOTHING`,
-      [n(ag.id),n(ag.name),n(ag.full_name),n(ag.website),n(ag.logo_url),n(ag.description),n(ag.founded_year),n(ag.headquarters),nb(ag.is_active),n(ag.created_at)]
-    );
-  }
-  say(`  agencies: ${trainingData.agencies.length} (skipped existing)`);
+  const renderCourseRows = await pool.query('SELECT id, name FROM training_courses');
+  const renderCourseMap = {}; // name → render id
+  for (const row of renderCourseRows.rows) renderCourseMap[row.name] = row.id;
 
+  // Build a map of Replit-prod course id → Render course id (via name lookup)
+  const replitCourseIdToRenderId = {};
   for (const c of trainingData.courses) {
-    await pool.query(`
-      INSERT INTO training_courses (id,agency_id,name,level,category,description,prerequisites,min_age,min_dives,sort_order,is_active,created_at)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
-      ON CONFLICT (id) DO NOTHING`,
-      [n(c.id),n(c.agency_id),n(c.name),n(c.level),n(c.category),n(c.description),n(c.prerequisites),n(c.min_age),n(c.min_dives),n(c.sort_order),nb(c.is_active),n(c.created_at)]
-    );
+    const renderId = renderCourseMap[c.name];
+    if (renderId) replitCourseIdToRenderId[c.id] = renderId;
   }
-  say(`  courses: ${trainingData.courses.length}`);
+  say(`  mapped ${Object.keys(replitCourseIdToRenderId).length} / ${trainingData.courses.length} courses by name`);
 
   // ── Phase 1: seed onboarding user ──────────────────────────────────────────
   say('Phase 1: seeding onboarding user data');
@@ -60,7 +54,7 @@ async function runFullMigration(pool) {
   if (parseInt(alreadySeeded.rows[0].n) > 0) {
     say('Onboarding user already has dive sites — skipping Phase 1');
   } else {
-    await seedOnboardUser(pool, onboardUserId, onboardData, say);
+    await seedOnboardUser(pool, onboardUserId, onboardData, say, replitCourseIdToRenderId);
   }
 
   // ── Phase 2: create other users + clone ────────────────────────────────────
@@ -91,7 +85,7 @@ async function runFullMigration(pool) {
     if (parseInt(hasData.rows[0].n) > 0) {
       say(`User ${u.email} already has data — skipping clone`);
     } else {
-      await seedOnboardUser(pool, renderUserId, onboardData, say);
+      await seedOnboardUser(pool, renderUserId, onboardData, say, replitCourseIdToRenderId);
       say(`Cloned onboard data to ${u.email}`);
     }
   }
@@ -100,7 +94,7 @@ async function runFullMigration(pool) {
   return log;
 }
 
-async function seedOnboardUser(pool, targetUserId, data, say) {
+async function seedOnboardUser(pool, targetUserId, data, say, courseIdMap = {}) {
   const n = (v) => (v === '' || v === 'null' || v === null || v === undefined) ? null : v;
   const nb = (v) => v === 'true' ? true : v === 'false' ? false : (v === null || v === '' || v === undefined) ? null : v;
 
@@ -198,11 +192,12 @@ async function seedOnboardUser(pool, targetUserId, data, say) {
   // ── user_certifications ─────────────────────────────────────────────────────
   const certIdMap = {};
   for (const c of data.certs) {
+    const renderCourseId = c.course_id ? (courseIdMap[c.course_id] ?? null) : null;
     const r = await pool.query(`
       INSERT INTO user_certifications (user_id,course_id,certification_date,certification_number,instructor_name,
         instructor_number,dive_center,location,notes,is_verified,latitude,longitude,created_at)
       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,NOW()) RETURNING id`,
-      [targetUserId,n(c.course_id),n(c.certification_date),n(c.certification_number),n(c.instructor_name),
+      [targetUserId,renderCourseId,n(c.certification_date),n(c.certification_number),n(c.instructor_name),
        n(c.instructor_number),n(c.dive_center),n(c.location),n(c.notes),nb(c.is_verified),n(c.latitude),n(c.longitude)]
     );
     certIdMap[c.id] = r.rows[0].id;
