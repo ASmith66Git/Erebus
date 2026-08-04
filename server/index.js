@@ -2105,7 +2105,7 @@ app.post('/api/auth/forgot-password', async (req, res) => {
     );
     
     // Send password reset email via Resend
-    // Always use the API server's own host — the /reset-password page is served here
+    // Use the API server's own host — the /reset-password page is served here
     const baseUrl = `https://${req.headers.host}`;
     const resetLink = `${baseUrl}/reset-password?token=${resetToken}`;
     
