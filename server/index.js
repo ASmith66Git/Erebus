@@ -4281,7 +4281,8 @@ app.get(/^\/objects\/(.+)$/, async (req, res) => {
     readable.pipe(res);
   } catch (error) {
     console.error('Error serving object:', error);
-    res.status(500).json({ error: 'Failed to serve object' });
+    // Temporary: expose error detail for diagnosis — remove after S3 is confirmed working
+    res.status(500).json({ error: 'Failed to serve object', detail: error.name, message: error.message?.slice(0,200), key: objectPathToS3Key(req.path), bucket: AWS_BUCKET, region: process.env.AWS_REGION });
   }
 });
 
