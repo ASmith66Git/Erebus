@@ -4281,7 +4281,7 @@ app.get(/^\/objects\/(.+)$/, async (req, res) => {
     readable.pipe(res);
   } catch (error) {
     console.error('Error serving object:', error);
-    res.status(500).json({ error: 'Failed to serve object' });
+    res.status(500).json({ error: 'Failed to serve object', detail: error.name, msg: error.message?.slice(0,300), key: objectPathToS3Key(req.path), bucket: AWS_BUCKET, region: process.env.AWS_REGION, hasKey: !!process.env.AWS_ACCESS_KEY_ID, hasSecret: !!process.env.AWS_SECRET_ACCESS_KEY });
   }
 });
 
