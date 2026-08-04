@@ -2017,7 +2017,7 @@ app.get('/reset-password', (req, res) => {
           <button type="button" class="eye" onclick="toggle('cpw','eye2')" id="eye2">&#128065;</button>
         </div>
         <ul class="rules">
-          <li>At least 8 characters</li>
+          <li>At least 12 characters</li>
           <li>One uppercase letter</li>
           <li>One number</li>
           <li>One special character (!@#$%^&* etc.)</li>
@@ -2050,7 +2050,7 @@ app.get('/reset-password', (req, res) => {
         var cpw = document.getElementById('cpw').value;
         var btn = document.getElementById('btn');
         if (pw !== cpw) { show('Passwords do not match.', 'error'); return; }
-        if (pw.length < 8) { show('Password must be at least 8 characters.', 'error'); return; }
+        if (pw.length < 12) { show('Password must be at least 12 characters.', 'error'); return; }
         if (!/[A-Z]/.test(pw)) { show('Password must contain an uppercase letter.', 'error'); return; }
         if (!/[0-9]/.test(pw)) { show('Password must contain a number.', 'error'); return; }
         if (!/[^A-Za-z0-9]/.test(pw)) { show('Password must contain a special character.', 'error'); return; }
