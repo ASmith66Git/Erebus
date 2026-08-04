@@ -3291,7 +3291,12 @@ app.post('/api/migrate-import/:table', async (req, res) => {
 
       // Only include columns that exist in this Render table (schema may differ)
       const cols = Object.keys(rest).filter(k => validCols.has(k) && rest[k] !== undefined);
-      const vals = cols.map(c => rest[c]);
+      // Stringify objects/arrays so pg sends them as JSON strings for JSONB columns
+      const vals = cols.map(c => {
+        const v = rest[c];
+        if (v !== null && typeof v === 'object') return JSON.stringify(v);
+        return v;
+      });
       const placeholders = cols.map((_, i) => `$${i+1}`).join(', ');
       const colNames = cols.map(c => `"${c}"`).join(', ');
 
