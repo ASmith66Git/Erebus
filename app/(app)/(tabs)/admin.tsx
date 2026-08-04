@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Alert, Platform, RefreshControl, Modal, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Alert, Platform, RefreshControl, Modal, Dimensions, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -358,6 +358,18 @@ export default function AdminScreen() {
         </View>
       </View>
 
+      <Pressable
+        style={[styles.serverLogsButton, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}
+        onPress={() => Linking.openURL('https://dashboard.render.com/')}
+      >
+        <Ionicons name="server-outline" size={20} color={colors.primary} />
+        <View style={styles.serverLogsText}>
+          <Text style={[styles.serverLogsTitle, { color: colors.text }]}>Server Logs</Text>
+          <Text style={[styles.serverLogsSubtitle, { color: colors.textSecondary }]}>Open Render dashboard</Text>
+        </View>
+        <Ionicons name="open-outline" size={18} color={colors.textSecondary} />
+      </Pressable>
+
       <View style={styles.sectionHeader}>
         <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('admin.userManagement')}</Text>
         <Pressable onPress={fetchUsers}>
@@ -671,6 +683,26 @@ const styles = StyleSheet.create({
   statDivider: {
     width: 1,
     marginVertical: 4,
+  },
+  serverLogsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 24,
+  },
+  serverLogsText: {
+    flex: 1,
+  },
+  serverLogsTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  serverLogsSubtitle: {
+    fontSize: 12,
+    marginTop: 1,
   },
   sectionHeader: {
     flexDirection: 'row',
