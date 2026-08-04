@@ -28,7 +28,7 @@
       },
       "env": {
         "SHARP_IGNORE_GLOBAL_LIBVIPS": "1",
-        "EXPO_PUBLIC_API_URL": "https://erebus.nammu-tech.com",
+        "EXPO_PUBLIC_API_URL": "https://erebusapp.nammu-tech.com",
         "EXPO_PUBLIC_REVENUECAT_IOS_API_KEY": "appl_fefLlLgUXEoGoEuvOLZDMabRenk",
         "EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY": "goog_OPCPYAKwmwJvSQdpYqlgyoobrUy",
         "EXPO_PUBLIC_REVENUECAT_TEST_API_KEY": "test_mKtTuejTqKLKfDoMVBaMdoDMtbI"
@@ -39,7 +39,7 @@
         "credentialsSource": "local"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://erebus.nammu-tech.com",
+        "EXPO_PUBLIC_API_URL": "https://erebusapp.nammu-tech.com",
         "EXPO_PUBLIC_REVENUECAT_IOS_API_KEY": "appl_fefLlLgUXEoGoEuvOLZDMabRenk",
         "EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY": "goog_OPCPYAKwmwJvSQdpYqlgyoobrUy",
         "EXPO_PUBLIC_REVENUECAT_TEST_API_KEY": "test_mKtTuejTqKLKfDoMVBaMdoDMtbI"
