@@ -2105,7 +2105,8 @@ app.post('/api/auth/forgot-password', async (req, res) => {
     );
     
     // Send password reset email via Resend
-    const baseUrl = process.env.APP_URL || req.headers.origin || `https://${req.headers.host}`;
+    // Always use the API server's own host — the /reset-password page is served here
+    const baseUrl = `https://${req.headers.host}`;
     const resetLink = `${baseUrl}/reset-password?token=${resetToken}`;
     
     try {
@@ -2438,7 +2439,7 @@ app.post('/api/admin/users/:id/reset-password', authenticateToken, requireAdmin,
       [resetToken, resetExpires, id]
     );
     
-    const baseUrl = process.env.APP_URL || req.headers.origin || `https://${req.headers.host}`;
+    const baseUrl = `https://${req.headers.host}`;
     const resetLink = `${baseUrl}/reset-password?token=${resetToken}`;
     
     try {
