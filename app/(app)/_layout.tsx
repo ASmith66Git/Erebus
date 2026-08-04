@@ -59,6 +59,7 @@ function CustomDrawerContent(props: any) {
     { icon: 'rocket-outline', label: t('nav.roadmap'), action: () => handleNavigation('/(app)/(tabs)/roadmap-admin') },
     { icon: 'code-slash-outline', label: t('nav.devLog'), action: () => handleNavigation('/(app)/(tabs)/dev-log') },
     { icon: 'bug-outline', label: t('nav.debugLogs'), action: () => handleNavigation('/(app)/(tabs)/debug-log') },
+    { icon: 'server-outline', label: 'Database', action: () => handleNavigation('/(app)/(tabs)/admin-db') },
   ];
 
   return (

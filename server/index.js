@@ -3226,6 +3226,123 @@ app.get('/api/admin/dive-messages', authenticateToken, requireAdmin, async (req,
   }
 });
 
+// ── Admin DB browser ─────────────────────────────────────────────────────────
+
+async function dbValidateTable(tableName) {
+  const r = await pool.query(
+    `SELECT table_name FROM information_schema.tables
+     WHERE table_schema='public' AND table_type='BASE TABLE' AND table_name=$1`,
+    [tableName]
+  );
+  return r.rows.length > 0;
+}
+
+async function dbGetColumns(tableName) {
+  const r = await pool.query(
+    `SELECT column_name, data_type, is_nullable
+     FROM information_schema.columns
+     WHERE table_schema='public' AND table_name=$1
+     ORDER BY ordinal_position`,
+    [tableName]
+  );
+  return r.rows;
+}
+
+// List all public tables with approximate row counts
+app.get('/api/admin/db/tables', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT t.table_name,
+             COALESCE(s.n_live_tup, 0)::int AS row_count
+      FROM information_schema.tables t
+      LEFT JOIN pg_stat_user_tables s ON s.relname = t.table_name
+      WHERE t.table_schema='public' AND t.table_type='BASE TABLE'
+      ORDER BY t.table_name`);
+    res.json(result.rows);
+  } catch (err) {
+    console.error('DB tables error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get paginated rows from a table
+app.get('/api/admin/db/tables/:table/rows', authenticateToken, requireAdmin, async (req, res) => {
+  const { table } = req.params;
+  const page  = Math.max(1, parseInt(req.query.page)  || 1);
+  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 50));
+  const offset = (page - 1) * limit;
+  try {
+    if (!(await dbValidateTable(table))) return res.status(404).json({ error: 'Table not found' });
+    const columns = await dbGetColumns(table);
+    const hasId = columns.some(c => c.column_name === 'id');
+    const order = hasId ? 'ORDER BY id DESC' : '';
+    const [countRes, rowsRes] = await Promise.all([
+      pool.query(`SELECT COUNT(*)::int AS n FROM "${table}"`),
+      pool.query(`SELECT * FROM "${table}" ${order} LIMIT $1 OFFSET $2`, [limit, offset]),
+    ]);
+    const total = countRes.rows[0].n;
+    res.json({ columns, rows: rowsRes.rows, total, page, limit, pages: Math.ceil(total / limit) });
+  } catch (err) {
+    console.error(`DB rows error (${table}):`, err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Insert a row
+app.post('/api/admin/db/tables/:table/rows', authenticateToken, requireAdmin, async (req, res) => {
+  const { table } = req.params;
+  const data = req.body || {};
+  try {
+    if (!(await dbValidateTable(table))) return res.status(404).json({ error: 'Table not found' });
+    const validCols = new Set((await dbGetColumns(table)).map(c => c.column_name));
+    const keys = Object.keys(data).filter(k => validCols.has(k) && k !== 'id');
+    if (!keys.length) return res.status(400).json({ error: 'No valid columns provided' });
+    const vals = keys.map(k => (data[k] === '' || data[k] === 'null') ? null : data[k]);
+    const cols = keys.map(k => `"${k}"`).join(', ');
+    const ph   = keys.map((_, i) => `$${i + 1}`).join(', ');
+    const r = await pool.query(`INSERT INTO "${table}" (${cols}) VALUES (${ph}) RETURNING *`, vals);
+    res.status(201).json(r.rows[0]);
+  } catch (err) {
+    console.error(`DB insert error (${table}):`, err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Update a row by id
+app.put('/api/admin/db/tables/:table/rows/:id', authenticateToken, requireAdmin, async (req, res) => {
+  const { table, id } = req.params;
+  const data = req.body || {};
+  try {
+    if (!(await dbValidateTable(table))) return res.status(404).json({ error: 'Table not found' });
+    const validCols = new Set((await dbGetColumns(table)).map(c => c.column_name));
+    const keys = Object.keys(data).filter(k => k !== 'id' && validCols.has(k));
+    if (!keys.length) return res.status(400).json({ error: 'No valid columns to update' });
+    const vals = keys.map(k => (data[k] === '' || data[k] === 'null') ? null : data[k]);
+    const sets = keys.map((k, i) => `"${k}" = $${i + 1}`).join(', ');
+    vals.push(id);
+    const r = await pool.query(`UPDATE "${table}" SET ${sets} WHERE id=$${vals.length} RETURNING *`, vals);
+    if (!r.rows.length) return res.status(404).json({ error: 'Row not found' });
+    res.json(r.rows[0]);
+  } catch (err) {
+    console.error(`DB update error (${table}/${id}):`, err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Delete a row by id
+app.delete('/api/admin/db/tables/:table/rows/:id', authenticateToken, requireAdmin, async (req, res) => {
+  const { table, id } = req.params;
+  try {
+    if (!(await dbValidateTable(table))) return res.status(404).json({ error: 'Table not found' });
+    const r = await pool.query(`DELETE FROM "${table}" WHERE id=$1 RETURNING id`, [id]);
+    if (!r.rows.length) return res.status(404).json({ error: 'Row not found' });
+    res.json({ deleted: true, id });
+  } catch (err) {
+    console.error(`DB delete error (${table}/${id}):`, err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.post('/api/admin/dive-messages', authenticateToken, requireAdmin, async (req, res) => {
   const { messageType, text } = req.body;
   
