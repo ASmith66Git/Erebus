@@ -23,10 +23,10 @@ async function runFullMigration(pool) {
 
   for (const ag of trainingData.agencies) {
     await pool.query(`
-      INSERT INTO training_agencies (id,name,abbreviation,website,logo_url,country,is_active,created_at)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+      INSERT INTO training_agencies (id,name,full_name,website,logo_url,description,founded_year,headquarters,is_active,created_at)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
       ON CONFLICT (id) DO NOTHING`,
-      [n(ag.id),n(ag.name),n(ag.abbreviation),n(ag.website),n(ag.logo_url),n(ag.country),nb(ag.is_active),n(ag.created_at)]
+      [n(ag.id),n(ag.name),n(ag.full_name),n(ag.website),n(ag.logo_url),n(ag.description),n(ag.founded_year),n(ag.headquarters),nb(ag.is_active),n(ag.created_at)]
     );
   }
   say(`  agencies: ${trainingData.agencies.length}`);
