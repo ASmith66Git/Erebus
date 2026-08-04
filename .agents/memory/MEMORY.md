@@ -2,3 +2,4 @@
 - [iOS build number locations](ios-build-number-locations.md) — Six files must all be updated; Info.plist CFBundleVersion is what EAS actually reads.
 - [Agent bridge workflow](agent-bridge-workflow.md) — Two-step pattern: agent-link (sets task_ref + in_progress) then agent-complete (sets completed) via localhost:3001 using AGENT_BRIDGE_SECRET.
 - [Subscription & trial model](subscription-trial-model.md) — Apple/RC owns the 14-day trial; access gate is isAdmin||isSubscribed; no server-side trial; isTrialActive removed.
+- [Data infrastructure](data-infrastructure.md) — Images on S3, all DB data on Render PostgreSQL; Replit DB is stale. API is erebusapp.nammu-tech.com.
