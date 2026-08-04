@@ -493,75 +493,103 @@ export default function DiveSiteDetailScreen() {
   }, [site?.id, fetchSiteImages]);
 
   const handleImageUpload = async () => {
-    if (!token || !site?.id || Platform.OS !== 'web') {
-      Alert.alert(t('common.error'), t('diveSites.imageUploadWebOnly'));
+    if (!token || !site?.id) {
+      Alert.alert(t('common.error'), t('diveSites.saveSiteFirst'));
       return;
     }
 
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-    input.onchange = async (e: any) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
-
-      setUploadingImage(true);
-      try {
-        const urlResponse = await fetch(`${getApiUrl()}/api/uploads/request-url`, {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            name: file.name,
-            size: file.size,
-            contentType: file.type,
-          }),
-        });
-
-        if (!urlResponse.ok) {
-          throw new Error('Failed to get upload URL');
+    if (Platform.OS === 'web') {
+      // Web: use a hidden file input
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*';
+      input.onchange = async (e: any) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setUploadingImage(true);
+        try {
+          const urlResponse = await fetch(`${getApiUrl()}/api/uploads/request-url`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: file.name, size: file.size, contentType: file.type }),
+          });
+          if (!urlResponse.ok) throw new Error('Failed to get upload URL');
+          const { uploadURL, objectPath } = await urlResponse.json();
+          const uploadResponse = await fetch(uploadURL, {
+            method: 'PUT', body: file, headers: { 'Content-Type': file.type },
+          });
+          if (!uploadResponse.ok) throw new Error('Failed to upload file');
+          const addImageResponse = await fetch(`${getApiUrl()}/api/dive-sites/${site.id}/images`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ imageUrl: objectPath, caption: null, isPrimary: siteImages.length === 0 }),
+          });
+          if (addImageResponse.ok) {
+            const newImage = await addImageResponse.json();
+            setSiteImages(prev => [...prev, newImage]);
+            Alert.alert(t('common.success'), t('diveSites.imageUploadSuccess'));
+          }
+        } catch (error) {
+          console.error('Error uploading image:', error);
+          Alert.alert(t('common.error'), t('diveSites.failedToUploadImage'));
+        } finally {
+          setUploadingImage(false);
         }
+      };
+      input.click();
+      return;
+    }
 
-        const { uploadURL, objectPath } = await urlResponse.json();
+    // Native: use image library picker
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert(t('common.error'), t('diveSites.cameraPermissionRequired'));
+      return;
+    }
 
-        const uploadResponse = await fetch(uploadURL, {
-          method: 'PUT',
-          body: file,
-          headers: { 'Content-Type': file.type },
-        });
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      quality: 0.8,
+    });
 
-        if (!uploadResponse.ok) {
-          throw new Error('Failed to upload file');
-        }
+    if (result.canceled || !result.assets?.[0]) return;
 
-        const addImageResponse = await fetch(`${getApiUrl()}/api/dive-sites/${site.id}/images`, {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            imageUrl: objectPath,
-            caption: null,
-            isPrimary: siteImages.length === 0,
-          }),
-        });
+    const asset = result.assets[0];
+    setUploadingImage(true);
+    try {
+      const fileName = `site_${Date.now()}.jpg`;
+      const urlResponse = await fetch(`${getApiUrl()}/api/uploads/request-url`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: fileName, size: asset.fileSize || 0, contentType: 'image/jpeg' }),
+      });
+      if (!urlResponse.ok) throw new Error('Failed to get upload URL');
+      const { uploadURL, objectPath } = await urlResponse.json();
 
-        if (addImageResponse.ok) {
-          const newImage = await addImageResponse.json();
-          setSiteImages(prev => [...prev, newImage]);
-          Alert.alert(t('common.success'), t('diveSites.imageUploadSuccess'));
-        }
-      } catch (error) {
-        console.error('Error uploading image:', error);
-        Alert.alert(t('common.error'), t('diveSites.failedToUploadImage'));
-      } finally {
-        setUploadingImage(false);
+      const photoResponse = await fetch(asset.uri);
+      const photoBlob = await photoResponse.blob();
+      const uploadResponse = await fetch(uploadURL, {
+        method: 'PUT', body: photoBlob, headers: { 'Content-Type': 'image/jpeg' },
+      });
+      if (!uploadResponse.ok) throw new Error('Failed to upload file');
+
+      const addImageResponse = await fetch(`${getApiUrl()}/api/dive-sites/${site.id}/images`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageUrl: objectPath, caption: null, isPrimary: siteImages.length === 0 }),
+      });
+      if (addImageResponse.ok) {
+        const newImage = await addImageResponse.json();
+        setSiteImages(prev => [...prev, newImage]);
+        Alert.alert(t('common.success'), t('diveSites.imageUploadSuccess'));
       }
-    };
-    input.click();
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      Alert.alert(t('common.error'), t('diveSites.failedToUploadImage'));
+    } finally {
+      setUploadingImage(false);
+    }
   };
 
   const handleTakePhoto = async () => {
