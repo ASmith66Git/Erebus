@@ -10286,9 +10286,7 @@ initDatabase()
     console.log('Server will start without database - API calls will fail until DB is available');
   })
   .finally(() => {
-    app.listen(PORT, '0.0.0.0', async () => {
+    app.listen(PORT, '0.0.0.0', () => {
       console.log(`Erebus API server running on port ${PORT}`);
-      const started = new Date().toLocaleString('en-GB', { timeZone: 'UTC', hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' });
-      await notifyAdmins('🟢 Erebus Server Online', `Server started at ${started} UTC on port ${PORT}`);
     });
   });
