@@ -4254,13 +4254,34 @@ app.get('/api/objects/url', authenticateToken, async (req, res) => {
 app.get(/^\/objects\/(.+)$/, async (req, res) => {
   try {
     const s3Key = objectPathToS3Key(req.path);
-    // Generate a short-lived presigned GET URL and redirect — avoids server-side streaming issues
-    const presignedUrl = await signObjectURL({ s3Key, method: 'GET', ttlSec: 300 });
-    res.set('Cache-Control', 'public, max-age=300');
-    return res.redirect(302, presignedUrl);
+    // HeadObject to check existence and get metadata
+    let headData;
+    try {
+      headData = await s3Client.send(new HeadObjectCommand({ Bucket: AWS_BUCKET, Key: s3Key }));
+    } catch (err) {
+      if (err.name === 'NotFound' || err.$metadata?.httpStatusCode === 404) {
+        return res.status(404).json({ error: 'Object not found' });
+      }
+      throw err;
+    }
+    res.set({
+      'Content-Type': headData.ContentType || 'application/octet-stream',
+      'Content-Length': headData.ContentLength,
+      'Cache-Control': 'public, max-age=3600',
+    });
+    const getResp = await s3Client.send(new GetObjectCommand({ Bucket: AWS_BUCKET, Key: s3Key }));
+    const { Readable } = require('stream');
+    const readable = Readable.from(getResp.Body);
+    readable.on('error', (err) => {
+      console.error('Stream error:', err);
+      if (!res.headersSent) {
+        res.status(500).json({ error: 'Error streaming file' });
+      }
+    });
+    readable.pipe(res);
   } catch (error) {
     console.error('Error serving object:', error);
-    res.status(500).json({ error: 'Failed to serve object' });
+    res.status(500).json({ error: 'Failed to serve object', detail: error.name, msg: error.message?.slice(0,300), httpStatus: error.$metadata?.httpStatusCode, code: error.Code, key: objectPathToS3Key(req.path), bucket: AWS_BUCKET, region: process.env.AWS_REGION });
   }
 });
 
