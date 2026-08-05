@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Drawer } from 'expo-router/drawer';
-import { View, Text, StyleSheet, SafeAreaView, Alert, Image, Platform } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, Alert, Image, Platform, Linking } from 'react-native';
 import { DrawerContentScrollView, DrawerItem } from '@react-navigation/drawer';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
@@ -60,6 +60,7 @@ function CustomDrawerContent(props: any) {
     { icon: 'code-slash-outline', label: t('nav.devLog'), action: () => handleNavigation('/(app)/(tabs)/dev-log') },
     { icon: 'bug-outline', label: t('nav.debugLogs'), action: () => handleNavigation('/(app)/(tabs)/debug-log') },
     { icon: 'server-outline', label: 'Database', action: () => handleNavigation('/(app)/(tabs)/admin-db') },
+    { icon: 'cloud-outline', label: 'Server Logs', action: () => Linking.openURL('https://dashboard.render.com/') },
   ];
 
   return (
