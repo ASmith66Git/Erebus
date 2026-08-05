@@ -17,6 +17,8 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { getApiUrl } from '@/utils/apiConfig';
 import ThemedBackground from '@/components/ThemedBackground';
+import ReviewPromptModal from '@/components/ReviewPromptModal';
+import { shouldShowReviewPrompt, recordReviewPromptShown } from '@/services/reviewPromptService';
 import { useTranslation } from 'react-i18next';
 
 const TABS = ['Dive', 'Gas', 'Problems', 'Skills', 'Team', 'Notes'] as const;
@@ -134,12 +136,13 @@ const EQUIPMENT_KEYS: Record<string, string> = {
 
 export default function ManualDiveEntryScreen() {
   const { colors } = useTheme();
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const router = useRouter();
   const { t } = useTranslation();
   
   const [activeTab, setActiveTab] = useState<TabType>('Dive');
   const [saving, setSaving] = useState(false);
+  const [showReviewPrompt, setShowReviewPrompt] = useState(false);
   const [diveSites, setDiveSites] = useState<DiveSite[]>([]);
   const [loadingSites, setLoadingSites] = useState(true);
   const [buddies, setBuddies] = useState<DiveBuddy[]>([]);
@@ -373,6 +376,17 @@ export default function ManualDiveEntryScreen() {
 
       if (!response.ok) {
         throw new Error(data.error || 'Failed to save dive log');
+      }
+
+      // Check if we should show the review prompt
+      const userId = user?.id;
+      if (Platform.OS !== 'web' && userId) {
+        const show = await shouldShowReviewPrompt(userId);
+        if (show) {
+          await recordReviewPromptShown(userId);
+          setShowReviewPrompt(true);
+          return; // modal closing will handle navigation back
+        }
       }
 
       if (Platform.OS === 'web') {
@@ -1083,6 +1097,15 @@ export default function ManualDiveEntryScreen() {
       </View>
 
       {renderTabContent()}
+
+      <ReviewPromptModal
+        visible={showReviewPrompt}
+        userId={user?.id ?? ''}
+        onClose={() => {
+          setShowReviewPrompt(false);
+          router.back();
+        }}
+      />
     </ThemedBackground>
   );
 }
