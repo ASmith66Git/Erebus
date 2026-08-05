@@ -37,7 +37,10 @@ const pool = new Pool({
 
 const diveLogPersistence = new DiveLogPersistenceService(pool);
 
-const JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(64).toString('hex');
+const JWT_SECRET = process.env.JWT_SECRET || process.env.SESSION_SECRET || (() => {
+  console.warn('[Auth] WARNING: No JWT_SECRET or SESSION_SECRET set — using random secret. All tokens will be invalidated on restart!');
+  return crypto.randomBytes(64).toString('hex');
+})();
 
 // Resend — initialised directly from env var (no Replit connector dependency).
 // Lazy so the server starts even without RESEND_API_KEY (emails just fail gracefully).
