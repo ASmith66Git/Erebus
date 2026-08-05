@@ -11,7 +11,8 @@
     "web:build": "expo export --platform web --output-dir dist --clear",
     "test": "jest --watchAll",
     "test:planner": "npx tsx tests/divePlanner.test.ts",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "postinstall": "cd server && npm install"
   },
   "jest": {
     "preset": "jest-expo"
