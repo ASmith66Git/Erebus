@@ -165,6 +165,12 @@ export default function TabLayout() {
             href: null,
           }}
         />
+        <Tabs.Screen
+          name="admin-backup"
+          options={{
+            href: null,
+          }}
+        />
       </Tabs>
     </View>
   );

@@ -60,6 +60,7 @@ function CustomDrawerContent(props: any) {
     { icon: 'code-slash-outline', label: t('nav.devLog'), action: () => handleNavigation('/(app)/(tabs)/dev-log') },
     { icon: 'bug-outline', label: t('nav.debugLogs'), action: () => handleNavigation('/(app)/(tabs)/debug-log') },
     { icon: 'server-outline', label: 'Database', action: () => handleNavigation('/(app)/(tabs)/admin-db') },
+    { icon: 'cloud-upload-outline', label: 'Backups', action: () => handleNavigation('/(app)/(tabs)/admin-backup') },
     { icon: 'cloud-outline', label: 'Server Logs', action: () => Linking.openURL('https://dashboard.render.com/') },
   ];
 

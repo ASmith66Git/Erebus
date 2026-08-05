@@ -10,6 +10,8 @@ const { Resend } = require('resend');
 const { Expo } = require('expo-server-sdk');
 const { S3Client, GetObjectCommand, PutObjectCommand, DeleteObjectCommand, HeadObjectCommand } = require('@aws-sdk/client-s3');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
+const { runBackup, runRestore, listBackups } = require('./backup');
+const cron = require('node-cron');
 const diveLogParser = require('./services/diveLogParser');
 const diveLogParserV2 = require('./services/diveLogParserV2');
 const DiveLogPersistenceService = require('./services/diveLogPersistence');
@@ -3340,6 +3342,54 @@ app.delete('/api/admin/db/tables/:table/rows/:id', authenticateToken, requireAdm
   } catch (err) {
     console.error(`DB delete error (${table}/${id}):`, err.message);
     res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── DATABASE BACKUP & RESTORE ───────────────────────────────────────────────
+
+// Daily automatic backup at 02:00 UTC
+cron.schedule('0 2 * * *', async () => {
+  try {
+    const key = await runBackup(pool);
+    console.log(`[Backup] Scheduled backup complete: ${key}`);
+  } catch (err) {
+    console.error('[Backup] Scheduled backup failed:', err.message);
+  }
+});
+
+// Trigger manual backup
+app.post('/api/admin/backup', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const key = await runBackup(pool);
+    res.json({ success: true, key });
+  } catch (err) {
+    console.error('[Backup] Manual backup failed:', err.message);
+    res.status(500).json({ error: 'Backup failed', details: err.message });
+  }
+});
+
+// List available backups
+app.get('/api/admin/backups', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const backups = await listBackups();
+    res.json({ backups });
+  } catch (err) {
+    res.status(500).json({ error: 'Could not list backups', details: err.message });
+  }
+});
+
+// Restore from a specific backup
+app.post('/api/admin/restore', authenticateToken, requireAdmin, async (req, res) => {
+  const { key } = req.body;
+  if (!key || !key.startsWith('backups/')) {
+    return res.status(400).json({ error: 'Invalid backup key' });
+  }
+  try {
+    const createdAt = await runRestore(pool, key);
+    res.json({ success: true, restoredFrom: key, backupCreatedAt: createdAt });
+  } catch (err) {
+    console.error('[Restore] Failed:', err.message);
+    res.status(500).json({ error: 'Restore failed', details: err.message });
   }
 });
 
