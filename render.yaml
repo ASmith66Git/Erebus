@@ -2,6 +2,6 @@ services:
   - type: web
     name: erebus-api
     runtime: node
-    buildCommand: npm install
+    buildCommand: npm install && cd server && npm install
     startCommand: node server/index.js
     healthCheckPath: /api/health
