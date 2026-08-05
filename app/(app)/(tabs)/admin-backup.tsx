@@ -12,7 +12,6 @@ import {
   TextInput,
   Platform,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -54,6 +53,7 @@ export default function AdminBackupScreen() {
 
   const [backups, setBackups] = useState<Backup[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [backingUp, setBackingUp] = useState(false);
   const [restoringKey, setRestoringKey] = useState<string | null>(null);
@@ -65,16 +65,19 @@ export default function AdminBackupScreen() {
   const CONFIRM_WORD = 'RESTORE';
 
   const fetchBackups = useCallback(async () => {
+    setFetchError(null);
     try {
       const res = await fetch(`${getApiUrl()}/api/admin/backups`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+      const data = await res.json();
       if (res.ok) {
-        const data = await res.json();
         setBackups(data.backups);
+      } else {
+        setFetchError(data.error || `Server error ${res.status}`);
       }
-    } catch (err) {
-      console.error('Failed to fetch backups:', err);
+    } catch (err: any) {
+      setFetchError(err.message || 'Could not reach server');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -173,19 +176,18 @@ export default function AdminBackupScreen() {
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <ThemedBackground>
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <PageHeader title="Database Backups" />
+      <PageHeader title="Database Backups" />
 
-        <ScrollView
-          style={styles.scroll}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={() => { setRefreshing(true); fetchBackups(); }}
-              tintColor={colors.primary}
-            />
-          }
-        >
+      <ScrollView
+        style={styles.scroll}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => { setRefreshing(true); fetchBackups(); }}
+            tintColor={colors.primary}
+          />
+        }
+      >
           {/* Info banner */}
           <View style={[styles.infoCard, { backgroundColor: colors.primary + '15', borderColor: colors.primary + '40' }]}>
             <Ionicons name="information-circle-outline" size={18} color={colors.primary} />
@@ -227,10 +229,17 @@ export default function AdminBackupScreen() {
 
           {loading ? (
             <ActivityIndicator style={{ marginTop: 32 }} color={colors.primary} />
+          ) : fetchError ? (
+            <View style={[styles.emptyCard, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
+              <Ionicons name="alert-circle-outline" size={32} color={colors.error ?? '#FF3B30'} />
+              <Text style={[styles.emptyText, { color: colors.error ?? '#FF3B30' }]}>Failed to load backups</Text>
+              <Text style={[styles.errorDetail, { color: colors.textSecondary }]}>{fetchError}</Text>
+            </View>
           ) : backups.length === 0 ? (
             <View style={[styles.emptyCard, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
               <Ionicons name="archive-outline" size={32} color={colors.textSecondary} />
               <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No backups yet</Text>
+              <Text style={[styles.errorDetail, { color: colors.textSecondary }]}>Tap "Create Manual Backup" to create the first one</Text>
             </View>
           ) : (
             backups.map((backup) => {
@@ -277,8 +286,7 @@ export default function AdminBackupScreen() {
               );
             })
           )}
-        </ScrollView>
-      </SafeAreaView>
+      </ScrollView>
 
       {/* ── Step 2 confirmation modal ── */}
       <Modal
@@ -348,8 +356,7 @@ export default function AdminBackupScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  scroll: { padding: 16, paddingBottom: 40 },
+  scroll: { flex: 1, padding: 16, paddingBottom: 40 },
   infoCard: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -396,6 +403,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   emptyText: { fontSize: 14 },
+  errorDetail: { fontSize: 12, textAlign: 'center' },
   backupRow: {
     flexDirection: 'row',
     alignItems: 'center',
