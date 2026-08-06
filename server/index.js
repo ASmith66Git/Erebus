@@ -3630,7 +3630,17 @@ app.put('/api/user/dive-computer', authenticateToken, async (req, res) => {
       'UPDATE users SET dive_computer_brand = $1, dive_computer_model = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3',
       [brand || null, model || null, req.user.id]
     );
-    
+
+    // Keep user_dive_computers in sync with the primary dive computer on the users table
+    if (brand && model) {
+      await pool.query(
+        `INSERT INTO user_dive_computers (user_id, brand, model)
+         VALUES ($1, $2, $3)
+         ON CONFLICT DO NOTHING`,
+        [req.user.id, brand, model]
+      );
+    }
+
     let capabilities = null;
     if (brand && model) {
       const modelInfo = diveComputerCatalog.getModel(brand, model);
