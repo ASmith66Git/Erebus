@@ -62,9 +62,13 @@ interface DiveComputerCapabilities {
   } | null;
 }
 
+// PROTECTED — user's native BLE version: safe NaN/null guard for API
+// parseFloat columns (0 is falsy and would break bare `&&` checks).
+// Do not remove or replace with a simple truthiness check.
 function isFiniteNumber(value: number | null | undefined): boolean {
   return typeof value === 'number' && Number.isFinite(value);
 }
+// END PROTECTED
 
 function formatDuration(seconds: number | null): string {
   if (!seconds) return '--';
@@ -102,6 +106,9 @@ function getImageUrl(imageUrl: string | null): string | null {
   return imageUrl;
 }
 
+// PROTECTED — user's native BLE version: selectionMode/selected props
+// drive the multi-select delete feature. Do not collapse back to the
+// simple { log, onPress, colors } signature.
 function DiveLogCard({
   log,
   onPress,
@@ -251,6 +258,10 @@ function StatsCard({ stats, colors }: { stats: DiveStats; colors: any }) {
   );
 }
 
+// PROTECTED — user's native BLE version: pagination + race-condition guard.
+// PAGE_SIZE, loadingMore, hasMore, fetchIdRef, and the offset-based
+// fetchLogs signature must all stay in sync. Do not revert to a single
+// unbounded fetch or remove the fetchIdRef stale-response check.
 const PAGE_SIZE = 50;
 
 export default function DiveLogsScreen() {
@@ -272,9 +283,9 @@ export default function DiveLogsScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [diveComputer, setDiveComputer] = useState<DiveComputerCapabilities | null>(null);
 
-  // Multi-select delete: toggled by the trash button in the header (top
-  // right). While active, tapping a card selects/deselects it instead of
-  // opening it.
+  // PROTECTED — user's native BLE version: multi-select delete state.
+  // selectionMode, selectedIds, deleting drive the bulk-delete toolbar.
+  // Do not remove — the corresponding UI and server DELETE calls depend on these.
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [deleting, setDeleting] = useState(false);

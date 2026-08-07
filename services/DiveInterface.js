@@ -1,3 +1,8 @@
+// ============================================================
+// PROTECTED FILE — DO NOT OVERWRITE OR REWRITE
+// Native bridge to the Swift DiveBridge module (libdivecomputer).
+// Maintained by the user on their Mac. See replit.md "Protected Files".
+// ============================================================
 import { NativeModules, Platform } from 'react-native';
 
 // This name MUST match the @objc(DiveBridge) name used in Swift

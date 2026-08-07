@@ -1,3 +1,11 @@
+// ============================================================
+// PROTECTED FILE — DO NOT OVERWRITE OR REWRITE
+// This file is maintained by the user on their Mac and contains
+// the libdivecomputer BLE integration (native Swift/Android path
+// via diveComputerNative + legacy JS bleService fallback).
+// Any changes must be pushed from the user's Mac via git, not
+// edited here in Replit. See replit.md "Protected Files" section.
+// ============================================================
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,

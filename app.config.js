@@ -104,6 +104,8 @@ module.exports = {
           cameraPermission: "Allow Erebus to use your camera to take photos, record videos, and scan certification cards."
         }
       ],
+      // PROTECTED — native libdivecomputer Expo plugin. Do not remove.
+      // Requires the modules/dive-computer directory (also protected).
       "./modules/dive-computer/plugin/withDiveComputerNative.js"
     ],
     experiments: {
