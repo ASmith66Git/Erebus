@@ -578,7 +578,13 @@
     "diveNotesLabel": "Tauchnotizen",
     "notesFromImport": "Notizen (importiert)",
     "time": "Uhrzeit",
-    "physicalState": "Körperlicher Zustand"
+    "physicalState": "Körperlicher Zustand",
+    "deleteDiveLogs": "Logbucheinträge löschen",
+    "deleteConfirmMessage": "{{count}} ausgewählte Logbucheinträge löschen? Dies kann nicht rückgängig gemacht werden.",
+    "deleteFailed": "{{count}} Logbucheinträge konnten nicht gelöscht werden.",
+    "selectAll": "Alle auswählen",
+    "deselectAll": "Auswahl aufheben",
+    "selectedCount": "{{count}} ausgewählt"
   },
   "manualDiveEntry": {
     "title": "Tauchgang erfassen",

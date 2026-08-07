@@ -847,8 +847,8 @@ function DiveTab({ diveLog, colors, gearProfileName, gearProfileId }: { diveLog:
           />
 
           <View style={styles.metricCardsRow}>
-            {renderStaticCard(t('diveLogs.time'), scrubberData ? formatScrubberTime(scrubberData.time) : '--:--', colors.primary)}
-            {renderStaticCard(t('diveLogs.depth'), scrubberData ? `${scrubberData.depth.toFixed(1)}m` : '--', '#2196F3')}
+            {renderStaticCard(t('diveLogs.time'), scrubberData?.time != null ? formatScrubberTime(scrubberData.time) : '--:--', colors.primary)}
+            {renderStaticCard(t('diveLogs.depth'), scrubberData?.depth != null ? `${scrubberData.depth.toFixed(1)}m` : '--', '#2196F3')}
             {renderMetricCard(t('diveLogs.temp'), scrubberData?.temp != null ? `${scrubberData.temp.toFixed(1)}°C` : '--', showTemp, () => setShowTemp(!showTemp), '#4CAF50', hasTemp)}
             {renderMetricCard('NDL', scrubberData?.ndl != null ? `${Math.round(scrubberData.ndl)} min` : '--', showNdl, () => setShowNdl(!showNdl), '#FFC107', hasNdl)}
             {renderMetricCard('GF99', scrubberData?.gf99 != null ? `${Math.round(scrubberData.gf99)}%` : '--', showGf99, () => setShowGf99(!showGf99), '#9C27B0', hasGf99)}

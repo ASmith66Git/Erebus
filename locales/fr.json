@@ -578,7 +578,13 @@
     "diveNotesLabel": "Notes de plongée",
     "notesFromImport": "Notes (importées)",
     "time": "Heure",
-    "physicalState": "État physique"
+    "physicalState": "État physique",
+    "deleteDiveLogs": "Supprimer des plongées",
+    "deleteConfirmMessage": "Supprimer {{count}} plongées sélectionnées ? Cette action est irréversible.",
+    "deleteFailed": "Impossible de supprimer {{count}} plongées.",
+    "selectAll": "Tout sélectionner",
+    "deselectAll": "Tout désélectionner",
+    "selectedCount": "{{count}} sélectionnées"
   },
   "manualDiveEntry": {
     "title": "Enregistrer une plongée",
@@ -1883,6 +1889,8 @@
     "bleInitFailed": "Échec de l'initialisation du Bluetooth. Assurez-vous que le Bluetooth est activé sur votre appareil.",
     "bleLibNotAvailable": "Bibliothèque Bluetooth non disponible. Cette fonctionnalité nécessite l'application native.",
     "permissionsNotGranted": "Autorisations Bluetooth non accordées. Veuillez les activer dans les réglages.",
+    "enableBluetooth": "Veuillez activer le Bluetooth pour rechercher des ordinateurs de plongée.",
+    "enableBluetoothIos": "Bluetooth désactivé. Activez-le dans Réglages ou le Centre de contrôle, ou appuyez à nouveau sur Démarrer la recherche pour rouvrir l'invite.",
     "connectingTo": "Connexion à {{name}}...",
     "parsing": "Analyse des données de plongée...",
     "uploadingToServer": "Envoi vers le serveur...",
@@ -1900,7 +1908,17 @@
     "diveComputer": "Ordinateur de plongée",
     "requiresNativeApp": "Cette fonctionnalité nécessite l'application native avec support Bluetooth.",
     "downloadFailed": "Échec du téléchargement",
-    "unknownError": "Inconnu"
+    "unknownError": "Inconnu",
+    "noNewDives": "Aucune nouvelle plongée trouvée sur votre ordinateur de plongée.",
+    "uploadToDiveLog": "Ajouter au carnet de plongée",
+    "selectDivesToUpload": "{{count}} nouvelles plongées téléchargées. Sélectionnez celles à ajouter à votre carnet.",
+    "selectAll": "Tout sélectionner",
+    "deselectAll": "Tout désélectionner",
+    "selectedCount": "{{count}} sélectionnées",
+    "skip": "Ignorer",
+    "uploadSelected": "Ajouter ({{count}})",
+    "uploadedDives": "{{count}} plongées ajoutées à votre carnet !",
+    "uploadFailed": "Impossible d'ajouter les plongées sélectionnées. Veuillez réessayer."
   },
   "admin": {
     "title": "Panneau d'administration",
@@ -2168,8 +2186,8 @@
   "trial": {
     "daysRemaining": "{{count}} jour restant dans votre essai gratuit",
     "daysRemaining_other": "{{count}} jours restants dans votre essai gratuit",
-    "paywallTitle": "Débloquez l'accès Premium",
-    "paywallSubtitle": "14 jours d'essai gratuit, puis {{price}}/{{period}}",
+    "paywallTitle": "Commencez votre essai gratuit",
+    "paywallSubtitle": "Profitez de 14 jours gratuits — aucun frais avant la fin de votre essai.",
     "paywallSubtitleFallback": "Essai gratuit de 14 jours inclus",
     "statusActive": "Actif",
     "statusInactive": "Inactif",

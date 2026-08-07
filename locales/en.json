@@ -578,7 +578,13 @@
     "diveNotesLabel": "Dive Notes",
     "notesFromImport": "Notes (from import)",
     "time": "Time",
-    "physicalState": "Physical State"
+    "physicalState": "Physical State",
+    "deleteDiveLogs": "Delete Dive Logs",
+    "deleteConfirmMessage": "Delete {{count}} selected dive log(s)? This cannot be undone.",
+    "deleteFailed": "Failed to delete {{count}} dive log(s).",
+    "selectAll": "Select all",
+    "deselectAll": "Deselect all",
+    "selectedCount": "{{count}} selected"
   },
   "manualDiveEntry": {
     "title": "Log a Dive",
@@ -1900,7 +1906,17 @@
     "diveComputer": "Dive Computer",
     "requiresNativeApp": "This feature requires a native app build with Bluetooth support.",
     "downloadFailed": "Download failed",
-    "unknownError": "Unknown"
+    "unknownError": "Unknown",
+    "noNewDives": "No new dives found on your dive computer.",
+    "uploadToDiveLog": "Upload to Dive Log",
+    "selectDivesToUpload": "{{count}} new dive(s) downloaded. Select the ones you want to add to your dive log.",
+    "selectAll": "Select all",
+    "deselectAll": "Deselect all",
+    "selectedCount": "{{count}} selected",
+    "skip": "Skip",
+    "uploadSelected": "Upload ({{count}})",
+    "uploadedDives": "Uploaded {{count}} dive(s) to your dive log!",
+    "uploadFailed": "Failed to upload the selected dives. Please try again."
   },
   "admin": {
     "title": "Admin Panel",
@@ -2168,8 +2184,8 @@
   "trial": {
     "daysRemaining": "{{count}} day remaining in your free trial",
     "daysRemaining_other": "{{count}} days remaining in your free trial",
-    "paywallTitle": "Unlock Premium Access",
-    "paywallSubtitle": "14-day free trial, then {{price}}/{{period}}",
+    "paywallTitle": "Start Your Free Trial",
+    "paywallSubtitle": "Enjoy 14 days free — no charge until your trial ends.",
     "paywallSubtitleFallback": "14-day free trial included",
     "statusActive": "Active",
     "statusInactive": "Inactive",

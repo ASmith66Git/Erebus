@@ -104,6 +104,7 @@ module.exports = {
           cameraPermission: "Allow Erebus to use your camera to take photos, record videos, and scan certification cards."
         }
       ],
+      "./modules/dive-computer/plugin/withDiveComputerNative.js"
     ],
     experiments: {
       typedRoutes: true

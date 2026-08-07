@@ -578,7 +578,13 @@
     "diveNotesLabel": "Dykanteckningar",
     "notesFromImport": "Anteckningar (från import)",
     "time": "Tid",
-    "physicalState": "Fysiskt tillstånd"
+    "physicalState": "Fysiskt tillstånd",
+    "deleteDiveLogs": "Ta bort dykloggar",
+    "deleteConfirmMessage": "Ta bort {{count}} valda dykloggar? Detta kan inte ångras.",
+    "deleteFailed": "Kunde inte ta bort {{count}} dykloggar.",
+    "selectAll": "Markera alla",
+    "deselectAll": "Avmarkera alla",
+    "selectedCount": "{{count}} valda"
   },
   "manualDiveEntry": {
     "title": "Logga ett dyk",
@@ -1883,6 +1889,8 @@
     "bleInitFailed": "Kunde inte initiera Bluetooth. Kontrollera att Bluetooth är aktiverat på din enhet.",
     "bleLibNotAvailable": "Bluetooth-bibliotek ej tillgängligt. Denna funktion kräver en inbyggd appversion.",
     "permissionsNotGranted": "Bluetooth-behörigheter ej beviljade. Aktivera dem i inställningar.",
+    "enableBluetooth": "Aktivera Bluetooth för att söka efter dykdatorer.",
+    "enableBluetoothIos": "Bluetooth är avstängt. Slå på det i Inställningar eller Kontrollcenter, eller tryck på Starta skanning igen för att visa prompten på nytt.",
     "connectingTo": "Ansluter till {{name}}...",
     "parsing": "Tolkar dykdata...",
     "uploadingToServer": "Laddar upp till server...",
@@ -1900,7 +1908,17 @@
     "diveComputer": "Dykdator",
     "requiresNativeApp": "Denna funktion kräver en inbyggd appversion med Bluetooth-stöd.",
     "downloadFailed": "Nedladdning misslyckades",
-    "unknownError": "Okänt"
+    "unknownError": "Okänt",
+    "noNewDives": "Inga nya dyk hittades på din dykdator.",
+    "uploadToDiveLog": "Ladda upp till dykloggen",
+    "selectDivesToUpload": "{{count}} nya dyk nedladdade. Välj vilka du vill lägga till i din dyklogg.",
+    "selectAll": "Markera alla",
+    "deselectAll": "Avmarkera alla",
+    "selectedCount": "{{count}} valda",
+    "skip": "Hoppa över",
+    "uploadSelected": "Ladda upp ({{count}})",
+    "uploadedDives": "{{count}} dyk uppladdade till din dyklogg!",
+    "uploadFailed": "Det gick inte att ladda upp de valda dyken. Försök igen."
   },
   "admin": {
     "title": "Adminpanel",
@@ -2168,8 +2186,8 @@
   "trial": {
     "daysRemaining": "{{count}} dag kvar av din gratis provperiod",
     "daysRemaining_other": "{{count}} dagar kvar av din gratis provperiod",
-    "paywallTitle": "Lås upp premiumåtkomst",
-    "paywallSubtitle": "14 dagars provperiod, sedan {{price}}/{{period}}",
+    "paywallTitle": "Starta din kostnadsfria provperiod",
+    "paywallSubtitle": "Njut av 14 dagar gratis — ingen kostnad förrän din provperiod avslutas.",
     "paywallSubtitleFallback": "14 dagars gratis provperiod ingår",
     "statusActive": "Aktiv",
     "statusInactive": "Inaktiv",

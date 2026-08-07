@@ -578,7 +578,13 @@
     "diveNotesLabel": "Notas de inmersión",
     "notesFromImport": "Notas (de importación)",
     "time": "Hora",
-    "physicalState": "Estado físico"
+    "physicalState": "Estado físico",
+    "deleteDiveLogs": "Eliminar registros de buceo",
+    "deleteConfirmMessage": "¿Eliminar {{count}} registros seleccionados? Esta acción no se puede deshacer.",
+    "deleteFailed": "No se pudieron eliminar {{count}} registros.",
+    "selectAll": "Seleccionar todo",
+    "deselectAll": "Deseleccionar todo",
+    "selectedCount": "{{count}} seleccionadas"
   },
   "manualDiveEntry": {
     "title": "Registrar inmersión",
@@ -1883,6 +1889,8 @@
     "bleInitFailed": "Error al inicializar Bluetooth. Asegúrate de que Bluetooth esté activado en tu dispositivo.",
     "bleLibNotAvailable": "Biblioteca Bluetooth no disponible. Esta función requiere una versión nativa de la app.",
     "permissionsNotGranted": "Permisos de Bluetooth no concedidos. Por favor, actívalos en los ajustes.",
+    "enableBluetooth": "Activa el Bluetooth para buscar ordenadores de buceo.",
+    "enableBluetoothIos": "Bluetooth desactivado. Actívalo en Ajustes o Centro de control, o pulsa Iniciar búsqueda de nuevo para volver a ver el aviso.",
     "connectingTo": "Conectando con {{name}}...",
     "parsing": "Analizando datos de inmersión...",
     "uploadingToServer": "Subiendo al servidor...",
@@ -1900,7 +1908,17 @@
     "diveComputer": "Ordenador de buceo",
     "requiresNativeApp": "Esta función requiere una versión nativa de la app con soporte Bluetooth.",
     "downloadFailed": "Error en la descarga",
-    "unknownError": "Desconocido"
+    "unknownError": "Desconocido",
+    "noNewDives": "No se encontraron inmersiones nuevas en tu ordenador de buceo.",
+    "uploadToDiveLog": "Subir al diario de buceo",
+    "selectDivesToUpload": "{{count}} inmersiones nuevas descargadas. Selecciona las que quieras añadir a tu diario.",
+    "selectAll": "Seleccionar todo",
+    "deselectAll": "Deseleccionar todo",
+    "selectedCount": "{{count}} seleccionadas",
+    "skip": "Omitir",
+    "uploadSelected": "Subir ({{count}})",
+    "uploadedDives": "¡{{count}} inmersiones subidas a tu diario!",
+    "uploadFailed": "No se pudieron subir las inmersiones seleccionadas. Inténtalo de nuevo."
   },
   "admin": {
     "title": "Panel de administración",
@@ -2168,9 +2186,8 @@
   "trial": {
     "daysRemaining": "{{count}} día restante en tu prueba gratuita",
     "daysRemaining_other": "{{count}} días restantes en tu prueba gratuita",
-    "paywallTitle": "Desbloquea el acceso Premium",
-    "paywallSubtitle": "14 días de prueba gratuita, luego {{price}}/{{period}}",
-    "paywallSubtitleFallback": "Prueba gratuita de 14 días incluida",
+    "paywallTitle": "Comienza tu prueba gratuita",
+    "paywallSubtitle": "Disfruta 14 días gratis — sin cargo hasta que termine tu prueba.",
     "statusActive": "Activo",
     "statusInactive": "Inactivo",
     "statusTrial": "Prueba — {{count}} día restante",
