@@ -12,6 +12,7 @@ The following files are maintained by the user on their Mac and contain native B
 - `app/(app)/dive-log/[id].tsx`
 - `app/ble-connect.tsx` — canonical copy lives in `app/`; root-level copy (if present) is stale
 - `services/DiveInterface.js`
+- `services/diveComputerNative.ts`
 - `locales/de.json`
 - `locales/en.json`
 - `locales/es.json`

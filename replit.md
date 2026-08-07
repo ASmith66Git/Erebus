@@ -53,6 +53,7 @@ These files are maintained by the user on their Mac and contain native BLE / lib
 | `modules/` (entire directory) | Never touch — contains libdivecomputer native C/Swift source |
 | `app/ble-connect.tsx` | Never overwrite — drives libdivecomputer BLE logic |
 | `services/DiveInterface.js` | Never overwrite — native dive computer interface |
+| `services/diveComputerNative.ts` | Never overwrite — libdivecomputer BLE bridge (iOS/Android) |
 | `app/(app)/(tabs)/dive-logs.tsx` | Merge only — contains BLE entry points |
 | `app/(app)/dive-log/[id].tsx` | Merge only — contains BLE-linked dive detail code |
 | `app.config.js` | Merge only — user maintains native plugin config |
