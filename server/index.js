@@ -3544,6 +3544,10 @@ app.get('/api/dive-messages/random', authenticateToken, async (req, res) => {
 });
 
 app.get('/', (req, res) => {
+  const indexPath = path.join(distPath, 'index.html');
+  if (fs.existsSync(indexPath)) {
+    return res.sendFile(indexPath);
+  }
   res.json({ status: 'ok', service: 'Erebus API' });
 });
 
