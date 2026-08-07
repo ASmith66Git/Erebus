@@ -45,6 +45,26 @@ The application is built using Expo React Native, targeting both iOS and Android
 - **RevenueCat Subscriptions**: In-app subscription management using RevenueCat with monthly ($7.99/mo) and annual ($59.99/yr) plans. Uses `react-native-purchases` on client, `@replit/revenuecat-sdk` for server-side seed script. Paywall screen shown when trial expired and not subscribed. Subscription management and restore purchases available from profile > subscription page. RevenueCat project: "Leviathan Systems Ltd", entitlement: "premium". API keys stored as EXPO_PUBLIC_REVENUECAT_* env vars. `@tanstack/react-query` used for subscription state management via `SubscriptionProvider` context and `useSubscription` hook in `lib/revenuecat.tsx`.
 - **14-Day Free Trial**: Handled entirely by Apple/RevenueCat. When a user reaches the paywall they subscribe immediately with their Apple ID; Apple grants a 14-day free trial before billing begins. During the trial `isSubscribed = true` (RevenueCat sees an active entitlement). Access gate in `app/_layout.tsx`: `isAdmin || isSubscribed`. All new users are routed to the paywall on first launch — no server-side grace period.
 
+## Protected Files — DO NOT OVERWRITE
+These files are maintained by the user on their Mac and contain native BLE / libdivecomputer integration code. They must never be overwritten or rewritten by the agent. Only additive changes are permitted where explicitly instructed.
+
+| File | Rule |
+|---|---|
+| `modules/` (entire directory) | Never touch — contains libdivecomputer native C/Swift source |
+| `app/ble-connect.tsx` | Never overwrite — drives libdivecomputer BLE logic |
+| `services/DiveInterface.js` | Never overwrite — native dive computer interface |
+| `app/(app)/(tabs)/dive-logs.tsx` | Merge only — contains BLE entry points |
+| `app/(app)/dive-log/[id].tsx` | Merge only — contains BLE-linked dive detail code |
+| `app.config.js` | Merge only — user maintains native plugin config |
+| `locales/de.json` | Add keys only — never delete or change existing values |
+| `locales/en.json` | Add keys only — never delete or change existing values |
+| `locales/es.json` | Add keys only — never delete or change existing values |
+| `locales/fr.json` | Add keys only — never delete or change existing values |
+| `locales/it.json` | Add keys only — never delete or change existing values |
+| `locales/sv.json` | Add keys only — never delete or change existing values |
+
+**Sync workflow**: user pushes from their Mac (`Erebus-Git`) → agent does `git pull` here. Not the other way around for these files.
+
 ## Development Notes
 ### Android Touch Handling
 - **Chart Scrubbers**: Must use `react-native-gesture-handler` (GestureDetector + Gesture.Pan()) for chart scrubbers on Android - the basic responder system (onResponderTerminationRequest) doesn't work reliably because ScrollView steals touch events.
