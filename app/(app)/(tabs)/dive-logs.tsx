@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -62,6 +62,10 @@ interface DiveComputerCapabilities {
   } | null;
 }
 
+function isFiniteNumber(value: number | null | undefined): boolean {
+  return typeof value === 'number' && Number.isFinite(value);
+}
+
 function formatDuration(seconds: number | null): string {
   if (!seconds) return '--';
   const minutes = Math.floor(seconds / 60);
@@ -98,7 +102,19 @@ function getImageUrl(imageUrl: string | null): string | null {
   return imageUrl;
 }
 
-function DiveLogCard({ log, onPress, colors }: { log: DiveLog; onPress: () => void; colors: any }) {
+function DiveLogCard({
+  log,
+  onPress,
+  colors,
+  selectionMode = false,
+  selected = false,
+}: {
+  log: DiveLog;
+  onPress: () => void;
+  colors: any;
+  selectionMode?: boolean;
+  selected?: boolean;
+}) {
   const { t } = useTranslation();
   const sourceIcons: { [key: string]: string } = {
     uddf: 'download',
@@ -111,9 +127,22 @@ function DiveLogCard({ log, onPress, colors }: { log: DiveLog; onPress: () => vo
 
   return (
     <Pressable
-      style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}
+      style={[
+        styles.card,
+        {
+          backgroundColor: selected ? colors.primary + '10' : colors.surface,
+          borderColor: selected ? colors.primary : colors.border,
+        },
+      ]}
       onPress={onPress}
     >
+      {selectionMode && (
+        <Feather
+          name={selected ? 'check-square' : 'square'}
+          size={22}
+          color={selected ? colors.primary : colors.textSecondary}
+        />
+      )}
       {thumbnailUrl ? (
         <Image 
           source={{ uri: thumbnailUrl }} 
@@ -145,28 +174,32 @@ function DiveLogCard({ log, onPress, colors }: { log: DiveLog; onPress: () => vo
         )}
 
         <View style={styles.cardStats}>
-          {log.maxDepthMeters && (
+          {/* Explicit null/NaN checks: the API parseFloats these columns, so a
+              legitimate 0 (or NaN from a NULL column) must not short-circuit
+              into a bare text node - React Native throws "Text strings must
+              be rendered within a <Text> component" for `0 && <View/>`. */}
+          {isFiniteNumber(log.maxDepthMeters) ? (
             <View style={styles.statItem}>
               <Feather name="arrow-down" size={14} color={colors.primary} />
               <Text style={[styles.statValue, { color: colors.text }]}>
-                {log.maxDepthMeters.toFixed(1)}m
+                {log.maxDepthMeters!.toFixed(1)}m
               </Text>
             </View>
-          )}
+          ) : null}
           <View style={styles.statItem}>
             <Feather name="clock" size={14} color={colors.primary} />
             <Text style={[styles.statValue, { color: colors.text }]}>
               {formatDuration(log.durationSeconds)}
             </Text>
           </View>
-          {log.minTemperatureCelsius && (
+          {isFiniteNumber(log.minTemperatureCelsius) ? (
             <View style={styles.statItem}>
               <Feather name="thermometer" size={14} color={colors.primary} />
               <Text style={[styles.statValue, { color: colors.text }]}>
-                {log.minTemperatureCelsius.toFixed(0)}°C
+                {log.minTemperatureCelsius!.toFixed(0)}°C
               </Text>
             </View>
-          )}
+          ) : null}
         </View>
 
         <View style={styles.sourceRow}>
@@ -218,6 +251,8 @@ function StatsCard({ stats, colors }: { stats: DiveStats; colors: any }) {
   );
 }
 
+const PAGE_SIZE = 50;
+
 export default function DiveLogsScreen() {
   const { t } = useTranslation();
   const { colors } = useTheme();
@@ -228,16 +263,31 @@ export default function DiveLogsScreen() {
   const [stats, setStats] = useState<DiveStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  // Increments on every fetch so responses that arrive after a newer fetch
+  // started (e.g. the search query changed mid-flight) are discarded.
+  const fetchIdRef = useRef(0);
   const [importing, setImporting] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [diveComputer, setDiveComputer] = useState<DiveComputerCapabilities | null>(null);
 
-  const fetchLogs = useCallback(async () => {
+  // Multi-select delete: toggled by the trash button in the header (top
+  // right). While active, tapping a card selects/deselects it instead of
+  // opening it.
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [deleting, setDeleting] = useState(false);
+
+  const fetchLogs = useCallback(async (offset = 0) => {
     if (!token) return;
 
+    const fetchId = ++fetchIdRef.current;
     try {
       const params = new URLSearchParams();
       if (searchQuery) params.append('search', searchQuery);
+      params.append('limit', String(PAGE_SIZE));
+      params.append('offset', String(offset));
 
       const response = await fetch(`${getApiUrl()}/api/dive-logs?${params}`, {
         headers: {
@@ -247,15 +297,32 @@ export default function DiveLogsScreen() {
 
       if (response.ok) {
         const data = await response.json();
-        setLogs(data.diveLogs);
+        if (fetchId !== fetchIdRef.current) return;
+        setLogs(prev => {
+          if (offset === 0) return data.diveLogs;
+          // Dedupe in case rows shifted between pages (e.g. a dive was
+          // imported while scrolling).
+          const seen = new Set(prev.map(log => log.id));
+          return [...prev, ...data.diveLogs.filter((log: DiveLog) => !seen.has(log.id))];
+        });
+        setHasMore(offset + data.diveLogs.length < data.total);
       }
     } catch (error) {
       console.error('Error fetching dive logs:', error);
     } finally {
+      if (fetchId === fetchIdRef.current) {
       setLoading(false);
+        setLoadingMore(false);
       setRefreshing(false);
     }
+    }
   }, [token, searchQuery]);
+
+  const loadMoreLogs = useCallback(() => {
+    if (loading || refreshing || loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    fetchLogs(logs.length);
+  }, [loading, refreshing, loadingMore, hasMore, logs.length, fetchLogs]);
 
   const fetchStats = useCallback(async () => {
     if (!token) return;
@@ -325,7 +392,76 @@ export default function DiveLogsScreen() {
   };
 
   const handleLogPress = (log: DiveLog) => {
+    if (selectionMode) {
+      toggleLogSelection(log.id);
+      return;
+    }
     router.push(`/dive-log/${log.id}` as any);
+  };
+
+  // --- Multi-select delete ---
+
+  const toggleLogSelection = (id: number) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const allSelected = logs.length > 0 && selectedIds.size === logs.length;
+
+  const toggleSelectAll = () => {
+    setSelectedIds(allSelected ? new Set() : new Set(logs.map(log => log.id)));
+  };
+
+  const exitSelectionMode = () => {
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+  };
+
+  const deleteSelected = () => {
+    if (selectedIds.size === 0) return;
+    Alert.alert(
+      t('diveLogs.deleteDiveLogs'),
+      t('diveLogs.deleteConfirmMessage', { count: selectedIds.size }),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('common.delete'),
+          style: 'destructive',
+          onPress: async () => {
+            setDeleting(true);
+            try {
+              const results = await Promise.allSettled(
+                Array.from(selectedIds).map(id =>
+                  fetch(`${getApiUrl()}/api/dive-logs/${id}`, {
+                    method: 'DELETE',
+                    headers: { Authorization: `Bearer ${token}` },
+                  })
+                )
+              );
+              const failed = results.filter(
+                r => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value.ok)
+              ).length;
+              if (failed > 0) {
+                Alert.alert(t('common.error'), t('diveLogs.deleteFailed', { count: failed }));
+              }
+            } catch (err) {
+              console.error('Delete error:', err);
+            } finally {
+              setDeleting(false);
+              exitSelectionMode();
+              onRefresh();
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handleWebFileSelect = async (event: any) => {
@@ -510,7 +646,58 @@ export default function DiveLogsScreen() {
 
   return (
     <ThemedBackground style={styles.container}>
-      <PageHeader title={t('diveLogs.title')} />
+      <PageHeader
+        title={t('diveLogs.title')}
+        rightAction={
+          logs.length > 0 ? (
+            selectionMode ? (
+              <Pressable onPress={exitSelectionMode} style={styles.headerDeleteButton}>
+                <Feather name="x" size={20} color={colors.text} />
+              </Pressable>
+            ) : (
+              <Pressable onPress={() => setSelectionMode(true)} style={styles.headerDeleteButton}>
+                <Feather name="trash-2" size={20} color={colors.error} />
+              </Pressable>
+            )
+          ) : undefined
+        }
+      />
+
+      {selectionMode && (
+        <View style={[styles.selectionToolbar, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Pressable style={styles.selectAllButton} onPress={toggleSelectAll}>
+            <Feather
+              name={allSelected ? 'check-square' : 'square'}
+              size={20}
+              color={colors.primary}
+            />
+            <Text style={[styles.selectAllLabel, { color: colors.primary }]}>
+              {allSelected ? t('diveLogs.deselectAll') : t('diveLogs.selectAll')}
+            </Text>
+          </Pressable>
+          <Text style={[styles.selectedCount, { color: colors.textSecondary }]}>
+            {t('diveLogs.selectedCount', { count: selectedIds.size })}
+          </Text>
+          <Pressable
+            style={[
+              styles.deleteSelectedButton,
+              { backgroundColor: selectedIds.size > 0 ? colors.error : colors.border },
+            ]}
+            onPress={deleteSelected}
+            disabled={selectedIds.size === 0 || deleting}
+          >
+            {deleting ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <>
+                <Feather name="trash-2" size={16} color="#FFFFFF" />
+                <Text style={styles.deleteSelectedText}>{t('common.delete')}</Text>
+              </>
+            )}
+          </Pressable>
+        </View>
+      )}
+
       <View style={styles.searchContainer}>
         <View style={[styles.searchBar, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <Feather name="search" size={20} color={colors.textSecondary} />
@@ -538,8 +725,15 @@ export default function DiveLogsScreen() {
           data={logs}
           keyExtractor={(item) => item.id.toString()}
           renderItem={({ item }) => (
-            <DiveLogCard log={item} onPress={() => handleLogPress(item)} colors={colors} />
+            <DiveLogCard
+              log={item}
+              onPress={() => handleLogPress(item)}
+              colors={colors}
+              selectionMode={selectionMode}
+              selected={selectedIds.has(item.id)}
+            />
           )}
+          extraData={[selectionMode, selectedIds]}
           contentContainerStyle={logs.length === 0 ? styles.emptyList : styles.list}
           ListEmptyComponent={renderEmptyState}
           ListHeaderComponent={renderHeader}
@@ -547,6 +741,15 @@ export default function DiveLogsScreen() {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
           }
           ItemSeparatorComponent={() => <View style={styles.separator} />}
+          onEndReached={loadMoreLogs}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={
+            loadingMore ? (
+              <View style={styles.footerLoading}>
+                <ActivityIndicator size="small" color={colors.primary} />
+              </View>
+            ) : null
+          }
         />
       )}
 
@@ -606,6 +809,9 @@ const styles = StyleSheet.create({
   },
   separator: {
     height: 12,
+  },
+  footerLoading: {
+    paddingVertical: 24,
   },
   card: {
     flexDirection: 'row',
@@ -794,5 +1000,50 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 13,
     lineHeight: 18,
+  },
+  headerDeleteButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  selectionToolbar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 16,
+    marginTop: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 8,
+  },
+  selectAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  selectAllLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  selectedCount: {
+    fontSize: 12,
+    flex: 1,
+    textAlign: 'center',
+  },
+  deleteSelectedButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  deleteSelectedText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
