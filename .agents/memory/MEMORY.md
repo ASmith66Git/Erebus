@@ -5,4 +5,5 @@
 - [Subscription & trial model](subscription-trial-model.md) — Apple/RC owns the 14-day trial; access gate is isAdmin||isSubscribed; no server-side trial; isTrialActive removed.
 - [Data infrastructure](data-infrastructure.md) — Images on S3, all DB data on Render PostgreSQL; Replit DB is stale. API is erebusapp.nammu-tech.com.
 - [JWT secret stability](jwt-secret-stability.md) — JWT_SECRET must resolve to SESSION_SECRET on Render; random fallback invalidates all tokens on every restart.
-- [Protected files — never overwrite](protected-files.md) — BLE/locale/DiveInterface files owned by user's Mac; only add locale keys, never rewrite.
+- [Protected files — never overwrite](protected-files.md) — BLE/locale/DiveInterface/diveComputerNative files owned by user's Mac; only add locale keys, never rewrite.
+- [Render PWA build setup](render-pwa-build.md) — expo export in build command; babel-preset-expo must be in dependencies; render.yaml changes need manual dashboard update for existing services.
