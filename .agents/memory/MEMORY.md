@@ -7,3 +7,4 @@
 - [JWT secret stability](jwt-secret-stability.md) — JWT_SECRET must resolve to SESSION_SECRET on Render; random fallback invalidates all tokens on every restart.
 - [Protected files — never overwrite](protected-files.md) — BLE/locale/DiveInterface/diveComputerNative files owned by user's Mac; only add locale keys, never rewrite.
 - [Render PWA build setup](render-pwa-build.md) — expo export in build command; babel-preset-expo must be in dependencies; render.yaml changes need manual dashboard update for existing services.
+- [RC key selection — native vs web](rc-key-selection.md) — test_ key is for web/mock store only; native iOS must use appl_ key even in __DEV__; wrong key causes purchasePackage() to hang silently.
