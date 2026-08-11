@@ -1737,6 +1737,31 @@ async function cloneOnboardDataToUser(targetUserId) {
       }
     }
 
+    // Clone dive_log_samples (depth/temp/metric rows that power the dive graph)
+    // These are stored in a separate table — not in the samples JSONB on dive_logs.
+    const oldLogIds = Object.keys(logIdMap).map(Number);
+    if (oldLogIds.length > 0) {
+      const sampleRows = await pool.query(
+        'SELECT * FROM dive_log_samples WHERE dive_log_id = ANY($1) ORDER BY dive_log_id, sample_time_seconds',
+        [oldLogIds]
+      );
+      for (const s of sampleRows.rows) {
+        const newLogId = logIdMap[s.dive_log_id];
+        if (!newLogId) continue;
+        await pool.query(`
+          INSERT INTO dive_log_samples
+            (dive_log_id, sample_time_seconds, depth_meters, temperature_celsius, metrics,
+             ndl_seconds, gf99_percent, ceiling_meters, tts_seconds, ppo2_bar, sac_lpm,
+             heartrate_bpm, cns_percent)
+          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+        `, [newLogId, s.sample_time_seconds, s.depth_meters, s.temperature_celsius,
+            s.metrics == null ? null : JSON.stringify(s.metrics),
+            s.ndl_seconds, s.gf99_percent, s.ceiling_meters, s.tts_seconds,
+            s.ppo2_bar, s.sac_lpm, s.heartrate_bpm, s.cns_percent]);
+      }
+      stats.diveSamples = sampleRows.rows.length;
+    }
+
     // Clone certifications
     const certs = await pool.query('SELECT * FROM user_certifications WHERE user_id = $1', [onboardUserId]);
     const certIdMap = {};
