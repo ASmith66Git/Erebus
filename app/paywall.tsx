@@ -29,6 +29,7 @@ export default function PaywallScreen() {
   const {
     offerings,
     isLoading,
+    isSubscribed,
     purchase,
     restore,
     isPurchasing,
