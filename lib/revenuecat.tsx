@@ -126,8 +126,11 @@ function useSubscriptionContext() {
       const { customerInfo } = await Purchases.purchasePackage(packageToPurchase);
       return { customerInfo, packageToPurchase };
     },
-    onSuccess: ({ packageToPurchase }) => {
-      customerInfoQuery.refetch();
+    onSuccess: async ({ packageToPurchase }) => {
+      // Await the refetch so that isSubscribed is true before mutateAsync resolves.
+      // Without this, the paywall navigates to /(app)/(tabs) while the root layout
+      // still sees isSubscribed=false and immediately bounces back to /paywall.
+      await customerInfoQuery.refetch();
       // Meta Ads attribution — fire Subscribe or StartTrial
       try {
         const { MetaAnalytics } = require('@/services/metaAnalytics');

@@ -80,16 +80,42 @@ export default function PaywallScreen() {
     setShowConfirmModal(true);
   };
 
+  const navigateAfterPurchase = async () => {
+    const welcomeKey = user?.id ? `welcome_seen_${user.id}` : null;
+    const seen = welcomeKey ? await AsyncStorage.getItem(welcomeKey) : 'true';
+    router.replace(seen === 'true' ? '/(app)/(tabs)' : '/welcome');
+  };
+
   const confirmPurchase = async () => {
     setShowConfirmModal(false);
     if (!selectedPackage) return;
+
+    // If RC already updated subscription status in the background, skip the
+    // purchase call entirely — just navigate. Prevents a hanging StoreKit dialog.
+    if (isSubscribed) {
+      await navigateAfterPurchase();
+      return;
+    }
+
     try {
       await purchase(selectedPackage);
-      const welcomeKey = user?.id ? `welcome_seen_${user.id}` : null;
-      const seen = welcomeKey ? await AsyncStorage.getItem(welcomeKey) : 'true';
-      router.replace(seen === 'true' ? '/(app)/(tabs)' : '/welcome');
+      await navigateAfterPurchase();
     } catch (err: unknown) {
       if (err && typeof err === 'object' && 'userCancelled' in err && err.userCancelled) return;
+
+      // RC error code for "product already purchased" — user owns it but the
+      // local customerInfo hadn't refreshed yet. Restore to sync state, then navigate.
+      const rcCode = (err as any)?.code;
+      if (rcCode === 'PRODUCT_ALREADY_PURCHASED' || rcCode === 10) {
+        try {
+          await restore();
+          await navigateAfterPurchase();
+          return;
+        } catch {
+          // fall through to generic error
+        }
+      }
+
       const message = err instanceof Error ? err.message : 'Purchase failed. Please try again.';
       setErrorMessage(message);
     }
