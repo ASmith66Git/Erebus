@@ -14,7 +14,11 @@ export const REVENUECAT_ENTITLEMENT_IDENTIFIER = "premium";
 let revenueCatConfigured = false;
 
 function getRevenueCatApiKey(): string {
-  if (__DEV__ || Platform.OS === "web" || Constants.executionEnvironment === "storeClient") {
+  // The test_ key is RC's Test Store key for web/browser environments only.
+  // Native iOS must always use the appl_ key (even in debug) so that real
+  // StoreKit is used — using the test_ key on native causes purchasePackage()
+  // to go through RC's mock store which hangs indefinitely.
+  if (Platform.OS === "web" || Constants.executionEnvironment === "storeClient") {
     if (!REVENUECAT_TEST_API_KEY) {
       throw new Error("RevenueCat test API key not found (EXPO_PUBLIC_REVENUECAT_TEST_API_KEY)");
     }
