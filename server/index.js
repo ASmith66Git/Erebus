@@ -1786,13 +1786,13 @@ async function cloneOnboardDataToUser(targetUserId) {
               s.depth_meters ?? null,
               s.temperature_celsius ?? null,
               s.ndl_seconds ?? null,
-              s.gf99_percent ?? null,
+              s.gf99_percent ?? s.gf99_pct ?? null,
               s.ceiling_meters ?? null,
               s.tts_seconds ?? null,
               s.ppo2_bar ?? null,
               s.sac_lpm ?? null,
               s.heartrate_bpm ?? null,
-              s.cns_percent ?? null]);
+              s.cns_percent ?? s.cns_pct ?? null]);
           stats.diveSamples++;
         }
       }
