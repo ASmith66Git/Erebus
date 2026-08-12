@@ -1738,13 +1738,19 @@ async function cloneOnboardDataToUser(targetUserId) {
     }
 
     // Clone dive_log_samples (depth/temp/metric rows that power the dive graph)
-    // These are stored in a separate table — not in the samples JSONB on dive_logs.
+    // Primary: copy existing table rows. Fallback: expand the samples JSONB column on
+    // dive_logs for older dives that pre-date the normalised table.
     const oldLogIds = Object.keys(logIdMap).map(Number);
     if (oldLogIds.length > 0) {
       const sampleRows = await pool.query(
         'SELECT * FROM dive_log_samples WHERE dive_log_id = ANY($1) ORDER BY dive_log_id, sample_time_seconds',
         [oldLogIds]
       );
+
+      // Track which old log IDs already have table rows
+      const logsWithTableRows = new Set(sampleRows.rows.map(s => s.dive_log_id));
+
+      // Insert the table rows
       for (const s of sampleRows.rows) {
         const newLogId = logIdMap[s.dive_log_id];
         if (!newLogId) continue;
@@ -1758,8 +1764,38 @@ async function cloneOnboardDataToUser(targetUserId) {
             s.metrics == null ? null : JSON.stringify(s.metrics),
             s.ndl_seconds, s.gf99_percent, s.ceiling_meters, s.tts_seconds,
             s.ppo2_bar, s.sac_lpm, s.heartrate_bpm, s.cns_percent]);
+        stats.diveSamples++;
       }
-      stats.diveSamples = sampleRows.rows.length;
+
+      // Fallback: for logs that have no table rows, expand from the samples JSONB column.
+      // Older dives stored graph data as [{time_seconds, depth_meters, ...}] in dive_logs.samples.
+      for (const log of diveLogs.rows) {
+        if (logsWithTableRows.has(log.id)) continue;
+        if (!log.samples || !Array.isArray(log.samples) || log.samples.length === 0) continue;
+        const newLogId = logIdMap[log.id];
+        if (!newLogId) continue;
+        for (const s of log.samples) {
+          await pool.query(`
+            INSERT INTO dive_log_samples
+              (dive_log_id, sample_time_seconds, depth_meters, temperature_celsius,
+               ndl_seconds, gf99_percent, ceiling_meters, tts_seconds, ppo2_bar, sac_lpm,
+               heartrate_bpm, cns_percent)
+            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+          `, [newLogId,
+              s.time_seconds ?? s.sample_time_seconds ?? null,
+              s.depth_meters ?? null,
+              s.temperature_celsius ?? null,
+              s.ndl_seconds ?? null,
+              s.gf99_percent ?? null,
+              s.ceiling_meters ?? null,
+              s.tts_seconds ?? null,
+              s.ppo2_bar ?? null,
+              s.sac_lpm ?? null,
+              s.heartrate_bpm ?? null,
+              s.cns_percent ?? null]);
+          stats.diveSamples++;
+        }
+      }
     }
 
     // Clone certifications
